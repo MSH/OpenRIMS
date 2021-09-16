@@ -7,3 +7,5 @@ Directories:
   * pharmadex2 - Java Spring Boot Maven project. This project supports controller, and business logic layers. It has been created by Spring Boot Initializer.
 * database - the structure of the database. The database itself is too huge for GitHub, thus should be downloaded from the server. Please, ask alex.kurasoff@gmail.com for more information
 * model - the working model of the system in Visual Paradigm format. It contains ORM classes definition and all UML 
+
+*This project has been established to update on every new release*.
