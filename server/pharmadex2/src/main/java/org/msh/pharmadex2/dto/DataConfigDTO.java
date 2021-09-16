@@ -1,0 +1,52 @@
+package org.msh.pharmadex2.dto;
+
+import org.msh.pdex2.dto.table.TableQtb;
+import org.msh.pharmadex2.dto.form.AllowValidation;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+/**
+ * Data configuration
+ * @author alexk
+ *
+ */
+@JsonIgnoreProperties(ignoreUnknown=true)
+public class DataConfigDTO extends AllowValidation {
+	//selected data url node
+	private long nodeId=0;
+	//selected variable url node
+	private long varNodeId=0;
+	//table for data urls
+	private TableQtb table=new TableQtb();
+	//table for a data url variables
+	private TableQtb varTable=new TableQtb();
+	public long getNodeId() {
+		return nodeId;
+	}
+	public void setNodeId(long nodeId) {
+		this.nodeId = nodeId;
+	}
+	public long getVarNodeId() {
+		return varNodeId;
+	}
+	public void setVarNodeId(long varNodeId) {
+		this.varNodeId = varNodeId;
+	}
+	public TableQtb getTable() {
+		return table;
+	}
+	public void setTable(TableQtb table) {
+		this.table = table;
+	}
+	public TableQtb getVarTable() {
+		return varTable;
+	}
+	public void setVarTable(TableQtb varTable) {
+		this.varTable = varTable;
+	}
+	@Override
+	public String toString() {
+		return "DataConfigDTO [nodeId=" + nodeId + ", varNodeId=" + varNodeId + ", table=" + table + ", varTable="
+				+ varTable + "]";
+	}
+	
+}

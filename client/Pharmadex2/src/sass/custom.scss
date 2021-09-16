@@ -1,0 +1,88 @@
+/* custom.scss */    
+$theme-colors: (
+  "substance": #c6dec6,
+);
+/* import the necessary Bootstrap files */
+@import "Bootstrap";
+
+/* make changes to the !default Bootstrap variables */    
+$enable-shadows: true;
+.custom-control-input:checked ~ .custom-control-label::before {
+    color: #fff;
+    border-color: #283e80;
+    background-color: #283e80;
+  }
+  figure {
+    //border: thin #c0c0c0 solid;
+    display: flex;
+    flex-flow: column;
+    padding: 5px;
+    max-width: 500px;
+    margin: auto;
+}
+
+img {
+    max-width: 500px;
+}
+
+figcaption {
+    color: #fff;
+    font: italic large sans-serif;
+    padding: 3px;
+    text-align: center;
+}
+
+.tile{
+  max-width: 500px;
+  min-height: 300px;
+  max-height: 500px;
+}
+label{
+  font-weight: 500;
+}
+.breadcrumb {
+  padding: 2px 15px !important;
+}
+
+.scrollPnl{
+  overflow-x: hidden!important
+}
+
+/* @group Blink */
+.blink {
+  -webkit-animation: blink .75s linear infinite;
+  -moz-animation: blink .75s linear infinite;
+  -ms-animation: blink .75s linear infinite;
+  -o-animation: blink .75s linear infinite;
+  animation: blink .75s linear infinite;
+ }
+ @-webkit-keyframes blink {
+  0% { opacity: 1; }
+  50% { opacity: 1; }
+  50.01% { opacity: 0; }
+  100% { opacity: 0; }
+ }
+ @-moz-keyframes blink {
+  0% { opacity: 1; }
+  50% { opacity: 1; }
+  50.01% { opacity: 0; }
+  100% { opacity: 0; }
+ }
+ @-ms-keyframes blink {
+  0% { opacity: 1; }
+  50% { opacity: 1; }
+  50.01% { opacity: 0; }
+  100% { opacity: 0; }
+ }
+ @-o-keyframes blink {
+  0% { opacity: 1; }
+  50% { opacity: 1; }
+  50.01% { opacity: 0; }
+  100% { opacity: 0; }
+ }
+ @keyframes blink {
+  0% { opacity: 1; }
+  50% { opacity: 1; }
+  50.01% { opacity: 0; }
+  100% { opacity: 0; }
+ }
