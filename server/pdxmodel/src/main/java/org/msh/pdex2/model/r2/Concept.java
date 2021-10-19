@@ -29,8 +29,8 @@ public class Concept implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22227217BE3E951BE0B4BF")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22227217BE3E951BE0B4BF", strategy="native")	
+	@GeneratedValue(generator="VAC22226E17C9085E9E206ECB")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22226E17C9085E9E206ECB", strategy="native")	
 	private long ID;
 	
 	@Column(name="Identifier", nullable=true, length=255)	

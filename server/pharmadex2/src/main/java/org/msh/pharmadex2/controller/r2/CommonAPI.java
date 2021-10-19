@@ -1,12 +1,16 @@
 package org.msh.pharmadex2.controller.r2;
 
 import org.msh.pdex2.exception.ObjectNotFoundException;
+import org.msh.pharmadex2.dto.AtcDTO;
 import org.msh.pharmadex2.dto.ContentDTO;
 import org.msh.pharmadex2.dto.DictNodeDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
+import org.msh.pharmadex2.dto.ExcipientsDTO;
+import org.msh.pharmadex2.dto.InnsDTO;
 import org.msh.pharmadex2.dto.UserFormDTO;
 import org.msh.pharmadex2.exception.DataNotFoundException;
 import org.msh.pharmadex2.service.common.UserService;
+import org.msh.pharmadex2.service.r2.AtcService;
 import org.msh.pharmadex2.service.r2.ContentService;
 import org.msh.pharmadex2.service.r2.DictService;
 import org.msh.pharmadex2.service.r2.PubOrgService;
@@ -33,6 +37,8 @@ public class CommonAPI {
 	DictService dictServ;
 	@Autowired
 	PubOrgService orgServ;
+	@Autowired
+	AtcService atcServ;
 	
 	/**
 	 * Get user's details for just authenticated user. For edit/display
@@ -174,5 +180,55 @@ public class CommonAPI {
 			throw new DataNotFoundException(e);
 		}
 		return data;
+	}
+	
+	@PostMapping("/api/common/atc/load/table")
+	public AtcDTO atcLoadTable(@RequestBody AtcDTO data) throws DataNotFoundException {
+			try {
+				data=atcServ.loadTable(data);
+			} catch (ObjectNotFoundException e) {
+				throw new DataNotFoundException(e);
+			}
+			return data;
+	}
+	
+	@PostMapping("/api/common/excipient/load/table")
+	public ExcipientsDTO excipientLoadTable(@RequestBody ExcipientsDTO data) throws DataNotFoundException {
+			try {
+				data=atcServ.loadTable(data);
+			} catch (ObjectNotFoundException e) {
+				throw new DataNotFoundException(e);
+			}
+			return data;
+	}
+	
+	@PostMapping("/api/common/excipient/add")
+	public ExcipientsDTO excipientAdd(@RequestBody ExcipientsDTO data) throws DataNotFoundException {
+			try {
+				data=atcServ.addExcipient(data);
+			} catch (ObjectNotFoundException e) {
+				throw new DataNotFoundException(e);
+			}
+			return data;
+	}
+	
+	@PostMapping("/api/common/inn/load/table")
+	public InnsDTO innLoadTable(@RequestBody InnsDTO data) throws DataNotFoundException {
+			try {
+				data=atcServ.loadTable(data);
+			} catch (ObjectNotFoundException e) {
+				throw new DataNotFoundException(e);
+			}
+			return data;
+	}
+	
+	@PostMapping("/api/common/inn/add")
+	public InnsDTO innAdd(@RequestBody InnsDTO data) throws DataNotFoundException {
+			try {
+				data=atcServ.addInn(data);
+			} catch (ObjectNotFoundException e) {
+				throw new DataNotFoundException(e);
+			}
+			return data;
 	}
 }

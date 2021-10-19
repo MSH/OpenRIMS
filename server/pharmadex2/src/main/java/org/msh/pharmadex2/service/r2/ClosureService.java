@@ -57,9 +57,17 @@ public class ClosureService {
 					List<Closure> list = closureRepo.findByChild(conc);
 					//if(conc.getParents().size()==1) {
 					if(list.size() == 1) {
-						conc.setLabel(node.getLabel());
+						if(node.getLabel()!=null) {
+							conc.setLabel(node.getLabel().trim());
+						}else {
+							conc.setLabel("");
+						}
 						conc= conceptRepo.save(conc);
-						entityManager.flush();
+						try {
+							entityManager.flush();
+						} catch (Exception e) {
+							// nothing to do
+						}
 						if(parent != null) {
 							entityManager.refresh(parent);	//to ensure new children
 						}
@@ -76,27 +84,31 @@ public class ClosureService {
 			toInsert.add(closure);
 			if(parent != null) {
 				parent = loadConceptById(parent.getID());
-				
+
 				List<Closure> childs = closureRepo.findByParentAndLevel(parent, 1);
 				//for(Closure child :parent.getChilds()) {			//check unique identifier on a level 
 				for(Closure child :childs) {
 					//if(child.getLevel()==1) {								// right below the parent
-						Concept oldNode = child.getChild();
-						if(oldNode.getIdentifier().equalsIgnoreCase(node.getIdentifier())) {
-							if(node.getLabel()!=null) {
-								oldNode.setLabel(node.getLabel());
-							}
-							oldNode.setActive(node.getActive());
-							oldNode = conceptRepo.save(oldNode);
-							entityManager.flush();
-							if(parent != null) {
-								entityManager.refresh(parent);	//to ensure new children
-							}
-							return oldNode;									//we will return the node with the same identifier
+					Concept oldNode = child.getChild();
+					if(oldNode.getIdentifier().equalsIgnoreCase(node.getIdentifier())) {
+						if(node.getLabel()!=null) {
+							oldNode.setLabel(node.getLabel().trim());
 						}
+						oldNode.setActive(node.getActive());
+						oldNode = conceptRepo.save(oldNode);
+						try {
+							entityManager.flush();
+						} catch (Exception e) {
+							// nothing to do
+						}
+						if(parent != null) {
+							entityManager.refresh(parent);	//to ensure new children
+						}
+						return oldNode;									//we will return the node with the same identifier
+					}
 					//}
 				}
-				
+
 				//closures to all parents of the parent and parent itself
 				List<Closure> allParents = closureRepo.findByChild(parent);
 				for(Closure clos : allParents) {
@@ -132,13 +144,13 @@ public class ClosureService {
 		if(parent!=null) {
 			try {
 				parent = loadConceptById(parent.getID());
-				
+
 				List<Closure> childs = closureRepo.findByParentAndLevel(parent, 1);
 				for(Closure clos :childs) {
-				
-				//for(Closure clos : parent.getChilds()) {
+
+					//for(Closure clos : parent.getChilds()) {
 					//if(clos.getLevel()==1) {
-						ret.add(clos.getChild());
+					ret.add(clos.getChild());
 					//}
 				}
 			} catch (Exception e) {
@@ -294,6 +306,18 @@ public class ClosureService {
 		return concept;
 	}
 	/**
+	 * Save and flush data
+	 * @param iNode
+	 * @return
+	 */
+	@Transactional
+	public Concept saveAndFlush(Concept concept) {
+		concept = conceptRepo.save(concept);
+		entityManager.flush();
+		entityManager.refresh(concept);
+		return concept;
+	}
+	/**
 	 * Get or create concept with identifier under the parent
 	 * @param personRoot
 	 * @param email
@@ -307,7 +331,7 @@ public class ClosureService {
 		ret=saveToTree(parent, ret);
 		return ret;
 	}
-	
+
 	/**
 	 * Create List of IDs instead List of Concept.
 	 * Utility
@@ -321,4 +345,6 @@ public class ClosureService {
 		}
 		return ids;
 	}
+
+
 }

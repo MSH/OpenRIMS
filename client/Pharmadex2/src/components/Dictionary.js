@@ -27,7 +27,7 @@ import SearchControl from './utils/SearchControl'
  * data is DictionaryDTO
  * 
  * @example
- * <Dictionary identifier={this.state.data.dictionaries[i].url} data={this.state.data.dictionaries[i]} display />
+ * <Dictionary identifier={this.state.data.dictionaries[i].url} recipien={this.state.identifier} data={this.state.data.dictionaries[i]} display />
  *  />
  *      
  */

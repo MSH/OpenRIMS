@@ -43,11 +43,13 @@ public class ThingDTO extends AllowValidation {
 	private String title="";																													//title of the Thing to use in the breadcrumb
 	private String label="";																													//label of a thing. Typically, activity name
 	private List<LayoutRowDTO> layout = new ArrayList<LayoutRowDTO>();										//layout on the screen
+	private boolean narrowLayout=false;	//by default two columns layout, however may be a one	//special case for some pages
 	private Map<String,String> mainLabels = new HashMap<String, String>();										//prefLabel and description labels re-assignment
 	private boolean readOnly=false;																									//is read only?																						
 
 	//thing data
 	private Map<String, String> heading = new LinkedHashMap<String, String>();																	//simple heading
+	private Map<String,FormFieldDTO<String>> strings = new LinkedHashMap<String, FormFieldDTO<String>>();					//strings - text field, no languages 
 	private Map<String, FormFieldDTO<String>> literals = new LinkedHashMap<String, FormFieldDTO<String>>();					//text fields
 	private Map<String, FormFieldDTO<LocalDate>> dates = new LinkedHashMap<String, FormFieldDTO<LocalDate>>();			//date fields
 	private Map<String, FormFieldDTO<Long>> numbers = new LinkedHashMap<String, FormFieldDTO<Long>>();	//numbers, only big decimals
@@ -55,12 +57,14 @@ public class ThingDTO extends AllowValidation {
 	private Map<String,DictionaryDTO> dictionaries = new LinkedHashMap<String, DictionaryDTO>();										//classifiers (dictionaries)
 	private Map<String, AddressDTO> addresses = new LinkedHashMap<String, AddressDTO>();												//addresses
 	private Map<String,FileDTO> documents = new LinkedHashMap<String, FileDTO>();															//documents (files)
-	private Map<String,ResourceDTO> resources = new LinkedHashMap<String, ResourceDTO>();	
+	private Map<String,ResourceDTO> resources = new LinkedHashMap<String, ResourceDTO>();											//documents for upload and templates
 	private Map<String, ThingDTO> things = new LinkedHashMap<String, ThingDTO>();															//things included
 	private Map<String,PersonDTO> persons = new LinkedHashMap<String, PersonDTO>();														//persons tables
 	private Map<String,PersonSelectorDTO> personselector = new LinkedHashMap<String, PersonSelectorDTO>();					//selection from the existing persons
-	private Map<String,SchedulerDTO> schedulers = new LinkedHashMap<String, SchedulerDTO>();
-	private Map<String,RegisterDTO> registers = new LinkedHashMap<String, RegisterDTO>();
+	private Map<String, PersonSpecialDTO> personspec = new LinkedHashMap<String, PersonSpecialDTO>();							//selection for the special persons
+	private Map<String,SchedulerDTO> schedulers = new LinkedHashMap<String, SchedulerDTO>();										//with workflow should be run
+	private Map<String,RegisterDTO> registers = new LinkedHashMap<String, RegisterDTO>();												//filing system registers
+	private Map<String,AmendmentDTO> amendments = new LinkedHashMap<String, AmendmentDTO>();								//ameded data
 	private ActionBarDTO actionBar= new ActionBarDTO();																										//action bar for it
 	
 	//The main static path - things that should be filled
@@ -178,6 +182,13 @@ public class ThingDTO extends AllowValidation {
 	public void setLayout(List<LayoutRowDTO> layout) {
 		this.layout = layout;
 	}
+	
+	public boolean isNarrowLayout() {
+		return narrowLayout;
+	}
+	public void setNarrowLayout(boolean narrowLayout) {
+		this.narrowLayout = narrowLayout;
+	}
 	public Map<String, String> getMainLabels() {
 		return mainLabels;
 	}
@@ -196,6 +207,12 @@ public class ThingDTO extends AllowValidation {
 	}
 	public void setHeading(Map<String, String> heading) {
 		this.heading = heading;
+	}
+	public Map<String, FormFieldDTO<String>> getStrings() {
+		return strings;
+	}
+	public void setStrings(Map<String, FormFieldDTO<String>> strings) {
+		this.strings = strings;
 	}
 	public Map<String, FormFieldDTO<String>> getLiterals() {
 		return literals;
@@ -263,6 +280,12 @@ public class ThingDTO extends AllowValidation {
 	public void setPersonselector(Map<String, PersonSelectorDTO> personselector) {
 		this.personselector = personselector;
 	}
+	public Map<String, PersonSpecialDTO> getPersonspec() {
+		return personspec;
+	}
+	public void setPersonspec(Map<String, PersonSpecialDTO> personspec) {
+		this.personspec = personspec;
+	}
 	public Map<String, SchedulerDTO> getSchedulers() {
 		return schedulers;
 	}
@@ -281,6 +304,12 @@ public class ThingDTO extends AllowValidation {
 	}
 	public void setActionBar(ActionBarDTO actionBar) {
 		this.actionBar = actionBar;
+	}
+	public Map<String, AmendmentDTO> getAmendments() {
+		return amendments;
+	}
+	public void setAmendments(Map<String, AmendmentDTO> amendments) {
+		this.amendments = amendments;
 	}
 	public List<ThingDTO> getPath() {
 		return path;

@@ -77,5 +77,45 @@ public class LiteralTest {
 		closureServ.removeNode(root);
 
 	}
+	/**
+	 * CRUD for strings
+	 * @throws ObjectNotFoundException 
+	 */
+	@Test
+	public void stringsTest() throws ObjectNotFoundException {
+		//remove the parent node for literals as well as all test literals
+		Concept root = closureServ.loadRoot("test.literal.root");
+		closureServ.removeNode(root);
+
+		//how many languages?
+		int langs = messages.getAllUsed().size();
+		//create a parent node for literals
+		root = closureServ.loadRoot("test.literal.root");
+		
+		//create a literal on the current language
+		root = literalServ.createUpdateString("name","kaban",root);
+		List<Concept> strings =closureServ.loadLevel(root);
+		assertEquals(1, strings.size());															//should be only one concept "_LITERALS_"
+		List<Concept> variables = closureServ.loadLevel(strings.get(0));
+		assertEquals(1, variables.size());														//should be only one variable "name"	
+		List<Concept> values = closureServ.loadLevel(variables.get(0));
+		assertEquals(langs, values.size());												//should be variables on all languages
+		
+		//read a literal value on the current language
+		String value = literalServ.readValue("name",root);
+		assertEquals("kaban", value);
+		//change a value of a literal
+		root = literalServ.createUpdateString("name","svinka",root);
+		value = literalServ.readValue("name",root);
+		assertEquals("svinka", value);
+		values = closureServ.loadLevel(variables.get(0));
+		for(Concept val :values) {
+			assertEquals("svinka", val.getLabel());			//changed for all langs
+		}
+		
+		
+		//remove the parent node for literals as well as all test literals
+		closureServ.removeNode(root);
+	}
 
 }

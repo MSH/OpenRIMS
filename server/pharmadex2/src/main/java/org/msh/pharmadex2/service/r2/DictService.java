@@ -1037,25 +1037,7 @@ public class DictService {
 		}
 		return ret;
 	}
-	/**
-	 * Find in "dictionary.guest.applications" guest workflow description by application url
-	 * @param applicationUrl
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	@Transactional
-	public List<Concept> guestWorkflows(String appicationUrl) throws ObjectNotFoundException {
-		List<Concept> ret = new ArrayList<Concept>();
-		List<OptionDTO> dictOpt = loadPlain("dictionary.guest.applications");
-		for(OptionDTO opt : dictOpt) {
-			Concept node = closureServ.loadConceptById(opt.getId());
-			String applUrl = literalServ.readValue("applicationurl", node);
-			if(applUrl.equalsIgnoreCase(appicationUrl)) {
-				ret.add(node);
-			}
-		}
-		return ret;
-	}
+
 	/**
 	 * Dict node and url
 	 * For mock only, not for the real job

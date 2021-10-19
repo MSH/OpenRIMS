@@ -7,11 +7,15 @@ import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
 import org.msh.pharmadex2.Pharmadex2Application;
+import org.msh.pharmadex2.dto.WorkflowParamDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.r2.ApplicationService;
 import org.msh.pharmadex2.service.r2.ClosureService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Test application service
@@ -26,19 +30,16 @@ public class ApplicationServiceTest {
 	ApplicationService applServ;
 	@Autowired
 	BoilerService boilerServ;
+	@Autowired
+	ObjectMapper objectMapper;
 	
-	//@Test
-	public void findExecutors() throws ObjectNotFoundException {
-		Concept actConf = closureServ.loadConceptById(14064);
-		History his = boilerServ.historyById(66);
-		List<String> execs = applServ.findExecutors(actConf, his);
-		System.out.println(execs);
-	}
-	//@Test
-	public void loadActivities() throws ObjectNotFoundException {
-		Concept configRoot = closureServ.loadConceptById(14064);
-		List<Concept> nextActs = applServ.loadActivities(configRoot);
-		System.out.println(nextActs);
+	
+	@Test
+	public void createWorkflowParameters() throws JsonProcessingException {
+		WorkflowParamDTO wpdto = new WorkflowParamDTO();
+		wpdto.setChecklistUrl("dictionary.selfcheck.new.pharmacy");
+		System.out.println(objectMapper.writeValueAsString(wpdto));
+		
 	}
 	
 }

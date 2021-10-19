@@ -42,11 +42,14 @@ class Fetchers{
           .then(response => {            
             if (response.ok) { 
                 let resp = response.json()
-                
                 return resp;              
             }else{
-                Spinner.hide();
-                Alerts.show(api +" " + response.status + " " + response.statusText,3)
+               // if(response.statusText.includes("/api/guest/thing/save/application") || response.status.includes(500)){
+               //     Spinner.hide()
+               // }else{
+                    Spinner.hide();
+                    Alerts.show(api +" " + response.status + " " + response.statusText,3)
+               // }
             }
           }) 
           .then(res=> {

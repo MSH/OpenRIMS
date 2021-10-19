@@ -1,5 +1,6 @@
 package org.msh.pharmadex2.service.r2;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +14,7 @@ import org.msh.pharmadex2.dto.Dict2DTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.auth.UserRoleDto;
+import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,18 +30,22 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class SystemService {
 	private static final Logger logger = LoggerFactory.getLogger(SystemService.class);
-	
+	public static final String DICTIONARY_GUEST_DEREGISTRATION = "dictionary.guest.deregistration";
+	public static final String DICTIONARY_GUEST_AMENDMENTS = "dictionary.guest.amendments";
 	public static final String DICTIONARY_GUEST_APPLICATIONS = "dictionary.guest.applications";
+	public static final String DICTIONARY_GUEST_RENEWAL = "dictionary.guest.renewal";
 	public static final String DICTIONARY_SHUTDOWN_APPLICATIONS = "dictionary.shutdown.applications";
 	public static final String DICTIONARY_HOST_APPLICATIONS = "dictionary.host.applications";
-	private static final String DICTIONARY_SYSTEM_LIFECYCLE = "dictionary.system.lifecycle";
+	public static final String DICTIONARY_SYSTEM_LIFECYCLE = "dictionary.system.lifecycle";
 	public static final String DICTIONARY_SYSTEM_SUBMIT = "dictionary.system.submit";
-	public static final Integer DEFAULT_ZOOM = 7;
-	
-
+	public static final String ROOT_SYSTEM_TILES = "dictionary.system.tiles";
 	public static final String DICTIONARY_ADMIN_UNITS = "dictionary.admin.units";
-
 	public static final String DICTIONARY_SYSTEM_ROLES = "dictionary.system.roles";
+	
+	public static final Integer DEFAULT_ZOOM = 7;
+
+
+	
 	/**
 	 * Tree for persons, not dictionary
 	 */
@@ -50,7 +56,7 @@ public class SystemService {
 
 
 	public static String[] ROLES = {"ROLE_ADMIN", "ROLE_MODERATOR", "ROLE_REVIEWER", "ROLE_INSPECTOR", 
-			"ROLE_ACCOUNTANT", "ROLE_SCREENER","APPLICANT"};
+			"ROLE_ACCOUNTANT", "ROLE_SCREENER", "ROLE_SECRETARY","APPLICANT"};
 
 	@Autowired
 	private DictService dictServ;
@@ -61,7 +67,7 @@ public class SystemService {
 	@Autowired
 	private Messages messages;
 
-	
+
 	/**
 	 * Add role to roles dictionary
 	 * @param root
@@ -109,8 +115,8 @@ public class SystemService {
 		dict.setSystem(true);
 		return dict;
 	}
-	
-	
+
+
 
 	/**
 	 * Address or Admin unit dictionary.
@@ -123,14 +129,82 @@ public class SystemService {
 		data = dictServ.createDictionary(data);
 		return data;
 	}
+	
 	/**
-	 * All application types implemented in the system
+	 * New applications dictionary
+	 * @param data
+	 * @param user
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public DictionaryDTO applicationsDictionary(DictionaryDTO data) throws ObjectNotFoundException {
+		data.setUrl(DICTIONARY_GUEST_APPLICATIONS);
+		Concept root = closureServ.loadRoot(data.getUrl());
+		String prefLabel=literalServ.readPrefLabel(root);
+		String descr = literalServ.readDescription(root);
+		if(prefLabel.length()==0) {
+			prefLabel=messages.get("newapplications");
+			descr="";
+		}
+		literalServ.prefAndDescription(prefLabel, descr, root);
+		data = dictServ.createDictionary(data);
+		return data;
+	}
+	
+	/**
+	 * All amendment types implemented in the system
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	public DictionaryDTO applDictionary(DictionaryDTO data) throws ObjectNotFoundException {
-		data.setUrl(DICTIONARY_GUEST_APPLICATIONS);
+	public DictionaryDTO amendmentDictionary(DictionaryDTO data) throws ObjectNotFoundException {
+		data.setUrl(DICTIONARY_GUEST_AMENDMENTS);
+		Concept root = closureServ.loadRoot(data.getUrl());
+		String prefLabel=literalServ.readPrefLabel(root);
+		String descr = literalServ.readDescription(root);
+		if(prefLabel.length()==0) {
+			prefLabel=messages.get("amdmt_type");
+			descr="";
+		}
+		literalServ.prefAndDescription(prefLabel, descr, root);
+		data = dictServ.createDictionary(data);
+		return data;
+	}
+	/**
+	 * Create or get dictionary for renewal processes
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public DictionaryDTO renewalDict(DictionaryDTO data) throws ObjectNotFoundException {
+		data.setUrl(DICTIONARY_GUEST_RENEWAL);
+		Concept root = closureServ.loadRoot(data.getUrl());
+		String prefLabel=literalServ.readPrefLabel(root);
+		String descr = literalServ.readDescription(root);
+		if(prefLabel.length()==0) {
+			prefLabel=messages.get("renew");
+			descr="";
+		}
+		literalServ.prefAndDescription(prefLabel, descr, root);
+		data = dictServ.createDictionary(data);
+		return data;
+	}
+	/**
+	 * DE-registration applications
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public DictionaryDTO deregistrationDict(DictionaryDTO data) throws ObjectNotFoundException {
+		data.setUrl(DICTIONARY_GUEST_DEREGISTRATION);
+		Concept root = closureServ.loadRoot(data.getUrl());
+		String prefLabel=literalServ.readPrefLabel(root);
+		String descr = literalServ.readDescription(root);
+		if(prefLabel.length()==0) {
+			prefLabel=messages.get("suspend_info");
+			descr="";
+		}
+		literalServ.prefAndDescription(prefLabel, descr, root);
 		data = dictServ.createDictionary(data);
 		return data;
 	}
@@ -203,7 +277,10 @@ public class SystemService {
 		Concept node = new Concept();
 		node.setIdentifier(identifier);
 		node= closureServ.saveToTree(root, node);
-		node = literalServ.prefAndDescription(prefLabel, "", node);
+		String pl=literalServ.readPrefLabel(node);
+		if(pl.length()==0) {
+			node = literalServ.prefAndDescription(prefLabel, "", node);
+		}
 	}
 	/**
 	 * Responsible to work with system dictionaries
@@ -230,7 +307,7 @@ public class SystemService {
 		}
 		return data;
 	}
-	
+
 	/**
 	 * Workflow dictionary may or may not be created yet.
 	 * @param dictUrl
@@ -271,12 +348,11 @@ public class SystemService {
 			literalServ.createUpdateLiteral("type", "system", root);
 		}
 		List<Concept> level = literalServ.loadOnlyChilds(root);
-		if(level.size()==0) {
-			//create level
-			systemDictNode(root, DICTIONARY_GUEST_APPLICATIONS, messages.get("guest"));
-			systemDictNode(root, DICTIONARY_HOST_APPLICATIONS, messages.get("host"));
-			systemDictNode(root, DICTIONARY_SHUTDOWN_APPLICATIONS, messages.get("shutdown"));
-		}
+		//create level
+		systemDictNode(root, DICTIONARY_GUEST_APPLICATIONS, messages.get("guest"));
+		systemDictNode(root, DICTIONARY_GUEST_AMENDMENTS, messages.get("amdmt_type"));
+		systemDictNode(root, DICTIONARY_HOST_APPLICATIONS, messages.get("host"));
+		systemDictNode(root, DICTIONARY_SHUTDOWN_APPLICATIONS, messages.get("shutdown"));
 		ret=dictServ.createDictionary(ret);
 		ret.setMult(false);
 		ret.setSystem(true);
@@ -371,6 +447,39 @@ public class SystemService {
 		ret = dictServ.createDictionary(ret);
 		return ret;
 	}
-
+	
+	/**
+	 * Find in "dictionary.guest.applications" guest workflow description by application url
+	 * @param applicationUrl
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public List<Concept> guestWorkflows(String appicationUrl) throws ObjectNotFoundException {
+		List<Concept> ret = new ArrayList<Concept>();
+		ret = guestWorkflow(DICTIONARY_GUEST_APPLICATIONS,appicationUrl, ret);
+		ret = guestWorkflow(DICTIONARY_GUEST_RENEWAL,appicationUrl, ret);
+		ret = guestWorkflow(DICTIONARY_GUEST_AMENDMENTS,appicationUrl, ret);
+		ret = guestWorkflow(DICTIONARY_GUEST_DEREGISTRATION,appicationUrl, ret);
+		return ret;
+	}
+	/**
+	 * Process a guest workflow dictionary
+	 * @param guestDictUrl - url of the guest dictionary
+	 * @param appicationUrl
+	 * @param ret
+	 * @throws ObjectNotFoundException
+	 */
+	public List<Concept> guestWorkflow(String guestDictUrl, String appicationUrl, List<Concept> ret) throws ObjectNotFoundException {
+		List<OptionDTO> dictOpt = dictServ.loadPlain(guestDictUrl);
+		for(OptionDTO opt : dictOpt) {
+			Concept node = closureServ.loadConceptById(opt.getId());
+			String applUrl = literalServ.readValue("applicationurl", node);
+			if(applUrl.equalsIgnoreCase(appicationUrl)) {
+				ret.add(node);
+			}
+		}
+		return ret;
+	}
 
 }

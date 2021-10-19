@@ -9,8 +9,8 @@ import Pharmadex from './Pharmadex'
 import Thing from './Thing'
 import CheckList from './CheckList'
 import ActivitySubmit from './ActivitySubmit'
-import Spinner from './utils/Spinner'
-import ButtonUni from './form/ButtonUni'
+import ActivityHistoryData from './ActivityHistoryData'
+import AlertFloat from './utils/AlertFloat'
 
 /**
  * Manages an activity
@@ -19,7 +19,9 @@ class ActivityManager extends Component{
     constructor(props){
         super(props)
         this.state={
-            reassign:false,
+            historyId:0,                        //history record has been selected
+            reassign:false,                     //reassign the executor
+            reject:false,                       //return to an applicant
             saveCounter:1,                      //by default we wait saved only for checklist, however, sometaimes from data block
             conclude:false,                    //only for alive checklist!
             send:false,                        //display breadcrumb "send"
@@ -37,7 +39,8 @@ class ActivityManager extends Component{
                 application_info:'',
                 done:'',
                 activitycancelled:'',
-                app_save_success:''
+                app_save_success:'',
+                return_action:''
             },
             history:{ //history table
                 historyId:this.props.historyId
@@ -57,6 +60,7 @@ class ActivityManager extends Component{
         this.prevNotes=this.prevNotes.bind(this)
         this.headerFooter=this.headerFooter.bind(this)
         this.hasCancelled=this.hasCancelled.bind(this)
+        this.activityHistory=this.activityHistory.bind(this)
     }
 
     /**
@@ -66,6 +70,11 @@ class ActivityManager extends Component{
         eventProcessor(event){
             let data=event.data
             if(data.to==this.state.identifier){
+                if(data.subject=='activityHistoryClose'){
+                    this.state.historyId=0
+                    this.state.hist=false
+                    this.setState(this.state)
+                }
                 if(data.subject=="savedByAction" || data.subject=="cancelThing"){
                         this.state.saveCounter--
                         if(this.state.saveCounter==0){
@@ -142,6 +151,9 @@ class ActivityManager extends Component{
                         onClick={()=>{
                             this.state.pathIndex=index
                             this.state.send=false
+                            this.state.return=false
+                            this.state.reassign=false
+                            this.state.reject=false
                             this.setState(this.state)
                         }}
                         >
@@ -174,7 +186,7 @@ class ActivityManager extends Component{
         let ret = []
         if(Fetchers.isGoodArray(this.state.data.application)){
             this.state.data.application.forEach((thing, index)=>{
-                thing.readOnly=true
+                //thing.readOnly=true
                 ret.push(
                     <h4 key={index+1000}>
                         {thing.title}
@@ -201,15 +213,6 @@ class ActivityManager extends Component{
         Locales.resolveLabels(this)
     }
 
-    componentDidUpdate(){
-        if(this.state.history.table == undefined
-            || this.state.labels.locale==undefined
-            || this.state.data.path==undefined){
-           
-            Spinner.show()
-        }
-    }
-
     componentWillUnmount(){
         window.removeEventListener("message",this.eventProcessor)
     }
@@ -219,7 +222,7 @@ class ActivityManager extends Component{
     dataThing(){
         if(this.state.data.data.length>0){
             if(this.state.data.data[this.state.pathIndex].url.length>0){
-                this.state.data.data[this.state.pathIndex].repaint=true
+                //this.state.data.data[this.state.pathIndex].repaint=true
                 return(
                     <Thing
                         data={this.state.data.data[this.state.pathIndex]}
@@ -295,37 +298,37 @@ class ActivityManager extends Component{
             return(
                 <Row>
                     <Col>
-                        <ActivitySubmit historyId={this.state.data.historyId} reassign={this.state.reassign} supervisor={this.state.supervisor} recipient={this.state.identifier} />
+                        <ActivitySubmit historyId={this.state.data.historyId} reject={this.state.reject} reassign={this.state.reassign} supervisor={this.state.supervisor} recipient={this.state.identifier} />
                     </Col>
                 </Row>
             )
-        }else{
-            return(
-            <Row>
-                <Col xs='12' sm='12' lg='6' xl='6' className="overflow-auto scrollPnl p-0 m-0" style={{maxHeight:'70vh'}}>
-                    {this.hasCancelled()}
-                    {this.prevNotes()}
-                    <Row>
-                        <Col>
-                            {this.application()}
-                        </Col>
-                    </Row>
-                </Col>
-                <Col xs='12' sm='12' lg='6' xl='6' className="overflow-auto scrollPnl p-0 m-0" style={{maxHeight:'70vh'}}>
-                    <Row>
-                        <Col>
-                            {this.dataThing()}
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col>
-                            {this.checkList()}
-                        </Col>
-                    </Row>
-                </Col>
-            </Row>
-            )
         }
+        
+        return(
+        <Row>
+            <Col xs='12' sm='12' lg='6' xl='6' className="overflow-auto scrollPnl p-0 m-0" style={{maxHeight:'70vh'}}>
+                {this.hasCancelled()}
+                {this.prevNotes()}
+                <Row>
+                    <Col>
+                        {this.application()}
+                    </Col>
+                </Row>
+            </Col>
+            <Col xs='12' sm='12' lg='6' xl='6' className="overflow-auto scrollPnl p-0 m-0" style={{maxHeight:'70vh'}}>
+                <Row>
+                    <Col>
+                        {this.dataThing()}
+                    </Col>
+                </Row>
+                <Row>
+                    <Col>
+                        {this.checkList()}
+                    </Col>
+                </Row>
+            </Col>
+        </Row>
+        )
     }
     /**
      * Place name and buttons top and bottom
@@ -372,14 +375,23 @@ class ActivityManager extends Component{
                          }}
                         >{this.state.labels.global_submit}</Button>{' '}
 
-                        <Button size="sm" hidden={!this.state.conclude || this.state.send}
-                         className="mr-1" color="warning"
+                        <Button size="sm" hidden={!this.state.conclude || this.state.send || this.state.data.guest}
+                         className="mr-1" color="secondary"
                          onClick={()=>{
                             this.state.send=true
                             this.state.reassign=true
                             this.setState(this.state)
                          }}
                         >{this.state.labels.route_action}</Button>{' '}
+
+                        <Button size="sm" hidden={!this.state.conclude || this.state.send || this.state.data.guest}
+                            className="mr-1" color="warning"
+                            onClick={()=>{
+                                this.state.send=true
+                                this.state.reject=true
+                                this.setState(this.state)
+                            }}
+                        >{this.state.labels.return_action}</Button>{' '}
 
                         <Button size="sm" hidden={!(this.state.conclude && this.state.data.background)}
                          className="mr-1" color="primary"
@@ -407,114 +419,143 @@ class ActivityManager extends Component{
         </Row>
         )
     }
-
+    /**
+     * 
+     * @returns expanded activity record
+     */
+    activityHistory(){
+        if(this.state.historyId>0){
+            return <ActivityHistoryData historyId={this.state.historyId} recipient={this.state.identifier} />
+        }else{
+            return []
+        }
+    }
     render(){
         if(this.state.history.table == undefined
             || this.state.labels.locale==undefined
             || this.state.data.path==undefined){
            
-            return[]
+            return <div> <i className="blink fas fa-circle-notch fa-spin" style={{color:'#D3D3D3'}}/></div>
         }
         //determine conclude condition
         this.state.conclude=false
         if(this.state.data.path.length>0){
             this.state.conclude=!this.state.data.path[this.state.pathIndex].readOnly
         }
-        Spinner.hide()
         return(
             <Container fluid>
-               {this.headerFooter()}
+                <Row>
+                    <Col className="btn btn-link p-0 border-0 d-flex justify-content-start"
+                        onClick={()=>{
+                            this.state.hist=!this.state.hist
+                            this.setState(this.state)
+                        }}>
+                        <h4 className="ml-3">{this.state.labels.application_info}</h4>
+                    </Col>
+                </Row>
                 <Row>
                     <Col>
-                        <Row hidden={this.state.data.identifier.length==0}>
-                            <Col>
-                                 <Alert className="p-0 m-0" color={this.state.color}>
-                                     <small>{this.state.data.identifier}</small>
-                                 </Alert>
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col className="btn btn-link p-0 border-0 d-flex justify-content-start"
-                                onClick={()=>{
-                                    this.state.hist=!this.state.hist
+                        <Collapse isOpen={this.state.hist}>
+                            <CollectorTable
+                                tableData={this.state.history.table}
+                                loader={this.loadHistory}
+                                headBackground={Pharmadex.settings.tableHeaderBackground}
+                                styleCorrector={(header)=>{
+                                    if(header=='days'){
+                                        return {width:'10%'}
+                                    }
+                                }}
+                                linkProcessor={(rowNo, cell)=>{
+                                    this.state.historyId=this.state.history.table.rows[rowNo].dbID
                                     this.setState(this.state)
-                                }}>
-                                <h6 className="ml-3">{this.state.labels.application_info}</h6>
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col>
-                                <Collapse isOpen={this.state.hist}>
-                                    <CollectorTable
-                                        tableData={this.state.history.table}
-                                        loader={this.loadHistory}
-                                        headBackground={Pharmadex.settings.tableHeaderBackground}
-                                        styleCorrector={(header)=>{
-                                            if(header=='days'){
-                                                return {width:'10%'}
-                                            }
-                                        }}
-                                        selectRow={(rowNo)=>{
-                                            let rows= this.state.history.table.rows
-                                            rows.forEach((element,index) => {
-                                                if(index!=rowNo){
-                                                    element.selected=false
-                                                }
-                                            });
-                                            rows[rowNo].selected=!rows[rowNo].selected
-                                            if(rows[rowNo].selected){
-                                                this.state.data.historyId=rows[rowNo].dbID
-                                                Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName()+"/activity/history/is/monitoring",
-                                                    this.state.data,(query,result)=>{
-                                                    this.state.data=result
-                                                    if(this.state.data.valid){
-                                                        this.state.supervisor=true
-                                                        this.state.send=true
-                                                    }else{
-                                                        this.state.supervisor=false
-                                                        this.state.send=false
-                                                        rows[rowNo].selected=false
-                                                    }
-                                                    this.setState(this.state)
-                                                })
+                                }}
+                                selectRow={(rowNo)=>{
+                                    let rows= this.state.history.table.rows
+                                    rows.forEach((element,index) => {
+                                        if(index!=rowNo){
+                                            element.selected=false
+                                        }
+                                    });
+                                    rows[rowNo].selected=!rows[rowNo].selected
+                                    if(rows[rowNo].selected){
+                                        this.state.data.historyId=rows[rowNo].dbID
+                                        Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName()+"/activity/history/is/monitoring",
+                                            this.state.data,(query,result)=>{
+                                            this.state.data=result
+                                            if(this.state.data.valid){
+                                                this.state.historyId=this.state.history.table.rows[rowNo].dbID
+                                                this.state.supervisor=true
+                                                this.state.send=true
                                             }else{
+                                                this.state.historyId=0
                                                 this.state.supervisor=false
                                                 this.state.send=false
-                                                this.setState(this.state)
+                                                rows[rowNo].selected=false
                                             }
-                                            
-                                        }}
-                                    />
-                                </Collapse>
-                            </Col>
-                        </Row>
-                        <Row hidden={this.state.data.identifier.length==0}>
-                            <Col>
-                                 <Alert className="p-0 m-0" color={this.state.color}>
-                                     <small>{this.state.data.identifier}</small>
-                                 </Alert>
-                            </Col>
-                        </Row>   
+                                            this.setState(this.state)
+                                        })
+                                    }else{
+                                        this.state.supervisor=false
+                                        this.state.send=false
+                                        this.setState(this.state)
+                                    }
+                                    
+                                }}
+                            />
+                            <Row>
+                                <Col>
+                                    {this.activityHistory()}
+                                </Col>
+                            </Row>
+                        </Collapse>
                     </Col>
                 </Row>
-                <Row className="mb-2">
+                <Row>
                     <Col>
-                    <Breadcrumb>
-                            {this.createBreadCrumb()}
-                        </Breadcrumb>
+                    <Collapse isOpen={!this.state.hist}>
+                        {this.headerFooter()}
+                            <Row>
+                                <Col>
+                                    <Row hidden={this.state.data.identifier.length==0}>
+                                        <Col>
+                                            <Alert className="p-0 m-0" color={this.state.color}>
+                                                <small>{this.state.data.identifier}</small>
+                                            </Alert>
+                                        </Col>
+                                    </Row>
+                                
+                                
+                                    
+                                    <Row hidden={this.state.data.identifier.length==0}>
+                                        <Col>
+                                            <Alert className="p-0 m-0" color={this.state.color}>
+                                                <small>{this.state.data.identifier}</small>
+                                            </Alert>
+                                        </Col>
+                                    </Row>   
+                                </Col>
+                            </Row>
+                            <Row className="mb-2">
+                                <Col>
+                                <Breadcrumb>
+                                        {this.createBreadCrumb()}
+                                    </Breadcrumb>
+                                </Col>
+                            </Row>
+							 <AlertFloat />
+                            {this.content()}
+							<AlertFloat />
+                            <Row className="mt-2">
+                                <Col>
+                                <Breadcrumb>
+                                        {this.createBreadCrumb()}
+                                    </Breadcrumb>
+                                </Col>
+                            </Row>
+                            {this.headerFooter()}
+                        </Collapse>
                     </Col>
                 </Row>
-               
-                {this.content()}
-                
-                <Row className="mt-2">
-                    <Col>
-                    <Breadcrumb>
-                            {this.createBreadCrumb()}
-                        </Breadcrumb>
-                    </Col>
-                </Row>
-                {this.headerFooter()}
             </Container>
         )
     }

@@ -1,7 +1,9 @@
 package org.msh.pharmadex2.service.r2;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -16,6 +18,7 @@ import org.msh.pharmadex2.dto.LayoutCellDTO;
 import org.msh.pharmadex2.dto.LayoutRowDTO;
 import org.msh.pharmadex2.dto.ReportConfigDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
+import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.common.DtoService;
 import org.slf4j.Logger;
@@ -34,30 +37,11 @@ public class AssemblyService {
 
 
 	private static final String ACTIVITY_CONFIGURATION = "activity.configuration";
-	private static final String SUBJECT_PHARMACY_OWNER_PVT = "subject.pharmacy.owner.pvt";
-	private static final String SUBJECT_PHARMACY_OWNER_GOVERNMENT = "subject.pharmacy.owner.government";
-	private static final String SUBJECT_PHARMACY_PERSON_EMPLOYEE_DETAILS = "subject.pharmacy.person.employee.details";
-	private static final String SUBJECT_PHARMACY_PERSON_EMPLOYEE = "subject.pharmacy.person.employee";
-	private static final String SUBJECT_PHARMACY_OWNER_PERSON_DETAILS = "subject.pharmacy.owner.person.details";
-	private static final String SUBJECT_PHARMACY_OWNER_PERSON = "subject.pharmacy.owner.person";
-	private static final String SUBJECT_PHARMACY_PERSON = "subject.pharmacy.person";
-
-
-	private static final String SUBJECT_PHARMACY_OWNER = "subject.pharmacy.owner";
-
-	private static final String ADDRESS_SITE_PHARMACY = "address.site.pharmacy";
-
 	private static final String OBJECT_SITE_CLASSIFIERS = "object.site.classifiers";
-
-	private static final String SITE_PHARMACY = "site.pharmacy";
-
 	private static final String SAVE_ACTION = "save_action";
-
 	private static final Logger logger = LoggerFactory.getLogger(AssemblyService.class);
-
-	private static final String DICTIONARY_GUEST_APPLICATIONS = "dictionary.guest.applications";
 	private static final String DICTIONARY_WORKFLOW_ACTIVITIES = "dictionary.workflow.activities";
-	private static final String ROOT_SYSTEM_TILES = "dictionary.system.tiles";
+	
 	@Autowired
 	private ClosureService closureServ;
 	@Autowired
@@ -115,7 +99,22 @@ public class AssemblyService {
 		}
 		return ret;
 	}
-
+	/**
+	 * Create auxiliary strings, unlike literals strings are without language separation
+	 * @param url
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public List<AssemblyDTO> auxStrings(String url) throws ObjectNotFoundException {
+		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
+		List<Assembly> assms = boilerServ.loadDataConfiguration(url);
+		for(Assembly assm : assms) {
+			if(assm.getClazz().equalsIgnoreCase("strings")) {
+				ret.add(dtoServ.assemblyDto(assm));
+			}
+		}
+		return ret;
+	}
 	/**
 	 * Create empty auxiliary literals for the url given
 	 * @param url url given
@@ -138,12 +137,16 @@ public class AssemblyService {
 				}
 
 		// Configure a activity constructor. Not a mock!
-		if(url.equalsIgnoreCase(ACTIVITY_CONFIGURATION)) {
+		if(url.toUpperCase().startsWith(ACTIVITY_CONFIGURATION.toUpperCase())) {
+			BigDecimal min = BigDecimal.valueOf(3l);
+			BigDecimal max= BigDecimal.valueOf(80l);
 			{
 				AssemblyDTO fld = new AssemblyDTO();
 				fld.setRequired(true);
 				fld.setReadOnly(false);
 				fld.setTextArea(false);
+				fld.setMin(min);
+				fld.setMax(max);
 				fld.setPropertyName("prefLabel");
 				ret.add(fld);	
 			}
@@ -157,6 +160,8 @@ public class AssemblyService {
 			{
 				AssemblyDTO fld = new AssemblyDTO();
 				fld.setRequired(true);
+				fld.setMin(min);
+				fld.setMax(max);
 				fld.setReadOnly(false);
 				fld.setTextArea(false);
 				fld.setPropertyName("activityurl");
@@ -209,7 +214,11 @@ public class AssemblyService {
 		/**
 		 * Applications implemented
 		 */
-		if(url.equalsIgnoreCase(SystemService.DICTIONARY_GUEST_APPLICATIONS)) {
+		if(url.equalsIgnoreCase(SystemService.DICTIONARY_GUEST_APPLICATIONS)
+				|| url.equalsIgnoreCase(SystemService.DICTIONARY_GUEST_AMENDMENTS)
+				|| url.equalsIgnoreCase(SystemService.DICTIONARY_GUEST_RENEWAL)
+				|| url.equalsIgnoreCase(SystemService.DICTIONARY_GUEST_DEREGISTRATION)
+			) {
 			{
 				AssemblyDTO fld = new AssemblyDTO();
 				fld.setRequired(true);
@@ -251,7 +260,7 @@ public class AssemblyService {
 		}
 
 		// Tiles
-		if(url.equalsIgnoreCase(ROOT_SYSTEM_TILES)) {
+		if(url.equalsIgnoreCase(SystemService.ROOT_SYSTEM_TILES)) {
 			AssemblyDTO fld = new AssemblyDTO();
 			fld.setRequired(false);
 			fld.setPropertyName(LiteralService.ICON_URL); // url by icon Tile
@@ -306,25 +315,7 @@ public class AssemblyService {
 	 */
 	public List<AssemblyDTO> auxAddresses(String url) throws ObjectNotFoundException {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
-		if(url.equalsIgnoreCase(SITE_PHARMACY)) {
-			AssemblyDTO fld = new AssemblyDTO();
-			fld.setRequired(true);
-			fld.setReadOnly(false);
-			fld.setPropertyName("address");
-			fld.setUrl(ADDRESS_SITE_PHARMACY);
-			ret.add(fld);
-		}
-		if(url.equalsIgnoreCase(SUBJECT_PHARMACY_OWNER_PERSON_DETAILS)
-				|| url.equalsIgnoreCase(SUBJECT_PHARMACY_PERSON_EMPLOYEE_DETAILS)) {
-			{
-				AssemblyDTO fld = new AssemblyDTO();
-				fld.setRequired(true);
-				fld.setReadOnly(false);
-				fld.setPropertyName("address");
-				fld.setUrl("address.site.pharmacy.owner");
-				ret.add(fld);
-			}
-		}
+		
 		if(ret.size()==0) {
 			List<Assembly> assms = boilerServ.loadDataConfiguration(url);
 			for(Assembly assm : assms) {
@@ -364,7 +355,7 @@ public class AssemblyService {
 	 */
 	public List<AssemblyDTO> auxNumbers(String url) throws ObjectNotFoundException {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
-		if(url.equalsIgnoreCase(DICTIONARY_GUEST_APPLICATIONS)) {
+		if(url.equalsIgnoreCase(SystemService.DICTIONARY_GUEST_APPLICATIONS)) {
 			{
 				AssemblyDTO fld = new AssemblyDTO();
 				fld.setRequired(true);
@@ -392,6 +383,11 @@ public class AssemblyService {
 			{
 				AssemblyDTO assm = new AssemblyDTO();
 				assm.setPropertyName("background");
+				ret.add(assm);
+			}
+			{
+				AssemblyDTO assm = new AssemblyDTO();
+				assm.setPropertyName("finalize");
 				ret.add(assm);
 			}
 		}
@@ -493,19 +489,12 @@ public class AssemblyService {
 	 */
 	public Map<String, String> mainLabelsByUrl(String url) {
 		Map<String,String> ret = new HashMap<String, String>();
-		if(url.equalsIgnoreCase(SITE_PHARMACY)) {
-			ret.put("prefLabel", messages.get("name_english"));
-			ret.put("description", messages.get("notes"));
-		}
 
-		if(url.equalsIgnoreCase(ROOT_SYSTEM_TILES)) {
+		if(url.equalsIgnoreCase(SystemService.ROOT_SYSTEM_TILES)) {
 			ret.put("prefLabel", messages.get("rolename"));
 			//ret.put("description", messages.get("businessdetails"));
 		}
-		if(url.equalsIgnoreCase(SUBJECT_PHARMACY_OWNER_PERSON)
-				|| url.equalsIgnoreCase(SUBJECT_PHARMACY_PERSON_EMPLOYEE)){
-			ret.put("prefLabel", messages.get("fullnameenglish"));
-		}
+
 		return ret;
 	}
 
@@ -534,25 +523,9 @@ public class AssemblyService {
 				LayoutCellDTO cell2 = new LayoutCellDTO();
 				cell2.getVariables().add("executives");
 				cell2.getVariables().add("background");
+				cell2.getVariables().add("finalize");
 				row.getCells().add(cell2);
 
-				ret.add(row);
-			}
-		}
-		if(url.equalsIgnoreCase(SITE_PHARMACY)) {
-			{
-				LayoutRowDTO row= new LayoutRowDTO();
-				LayoutCellDTO cell1 = new LayoutCellDTO();
-				cell1.getVariables().add("prefLabel");
-				cell1.getVariables().add("name_nepali");
-				cell1.getVariables().add("capital");
-				cell1.getVariables().add("description");
-				cell1.getVariables().add("documents");
-				row.getCells().add(cell1);
-				LayoutCellDTO cell2 = new LayoutCellDTO();
-				cell2.getVariables().add("streetaddress");
-				cell2.getVariables().add("address");
-				row.getCells().add(cell2);
 				ret.add(row);
 			}
 		}
@@ -570,79 +543,7 @@ public class AssemblyService {
 			}
 		}
 
-		if(url.equalsIgnoreCase(SUBJECT_PHARMACY_OWNER)) {
-			LayoutRowDTO row1= new LayoutRowDTO();
-			{
-				LayoutCellDTO cell = new LayoutCellDTO();
-				cell.getVariables().add("ownership");
-				row1.getCells().add(cell);
-				LayoutCellDTO cell1 = new LayoutCellDTO();
-				cell1.getVariables().add("owners");
-				row1.getCells().add(cell1);
-			}
-			ret.add(row1);
-		}
-		if(url.equalsIgnoreCase(SUBJECT_PHARMACY_OWNER_PERSON)
-				|| url.equalsIgnoreCase(SUBJECT_PHARMACY_PERSON_EMPLOYEE)) {
-			LayoutRowDTO row1= new LayoutRowDTO();
-			{
-				LayoutCellDTO cell = new LayoutCellDTO();
-				if(url.equalsIgnoreCase(SUBJECT_PHARMACY_PERSON_EMPLOYEE)) {
-					cell.getVariables().add("employee_category");
-				}
-				cell.getVariables().add("prefLabel");
-				cell.getVariables().add("namenepali");
-				cell.getVariables().add("dob");
-				cell.getVariables().add("certno");
-				cell.getVariables().add("concilregno");
-				cell.getVariables().add("passedyears");
-				row1.getCells().add(cell);
-				LayoutCellDTO cell1 = new LayoutCellDTO();
-				cell1.getVariables().add("person_academic");
-				row1.getCells().add(cell1);
-			}
-			ret.add(row1);
-		}
-		if(url.equalsIgnoreCase(SUBJECT_PHARMACY_OWNER_PERSON_DETAILS)
-				|| url.equalsIgnoreCase(SUBJECT_PHARMACY_PERSON_EMPLOYEE_DETAILS)) {
-			LayoutRowDTO row1= new LayoutRowDTO();
-			{
-				LayoutCellDTO cell = new LayoutCellDTO();
-				cell.getVariables().add("fathername");
-				cell.getVariables().add("mothername");
-				cell.getVariables().add("grandfathername");
-				cell.getVariables().add("citezenshipno");
-				cell.getVariables().add("documents");
-				row1.getCells().add(cell);
-				LayoutCellDTO cell1 = new LayoutCellDTO();
-				cell1.getVariables().add("streetaddress");
-				cell1.getVariables().add("address");
-				row1.getCells().add(cell1);
-			}
-			ret.add(row1);
-		}
-		if(url.equalsIgnoreCase(SUBJECT_PHARMACY_PERSON)) {
-			LayoutRowDTO row1= new LayoutRowDTO();
-			{
-				LayoutCellDTO cell = new LayoutCellDTO();
-				cell.getVariables().add("employee");
-				row1.getCells().add(cell);
-			}
-			ret.add(row1);
-		}
-
-		if(url.equalsIgnoreCase(SUBJECT_PHARMACY_OWNER_GOVERNMENT)
-				|| url.equalsIgnoreCase(SUBJECT_PHARMACY_OWNER_PVT)){
-			LayoutRowDTO row1= new LayoutRowDTO();
-			{
-				LayoutCellDTO cell = new LayoutCellDTO();
-				cell.getVariables().add("willbelater");
-				row1.getCells().add(cell);
-			}
-			ret.add(row1);
-		}
-
-		if(url.equalsIgnoreCase(ROOT_SYSTEM_TILES)) {
+		if(url.equalsIgnoreCase(SystemService.ROOT_SYSTEM_TILES)) {
 			LayoutRowDTO row_1 = new LayoutRowDTO();
 			LayoutCellDTO cell_11 = new LayoutCellDTO();
 			cell_11.getVariables().add("tile0");
@@ -700,13 +601,13 @@ public class AssemblyService {
 			}
 
 
-			if(url.equalsIgnoreCase(ROOT_SYSTEM_TILES)) {
+			if(url.equalsIgnoreCase(SystemService.ROOT_SYSTEM_TILES)) {
 				for(int i=0; i < 6; i++) {
 					AssemblyDTO assm = new AssemblyDTO();
 					assm.setMult(false);
 					assm.setPropertyName("tile" + i);
 					assm.setRequired(false);
-					assm.setUrl(ROOT_SYSTEM_TILES);
+					assm.setUrl(SystemService.ROOT_SYSTEM_TILES);
 					ret.add(assm);
 				}
 			}
@@ -761,6 +662,25 @@ public class AssemblyService {
 			return ret;
 		}
 		/**
+		 * Special persons
+		 * @param url
+		 * @return
+		 * @throws ObjectNotFoundException 
+		 */
+		public List<AssemblyDTO> auxPersonSpecials(String url) throws ObjectNotFoundException {
+			List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
+			//TODO hardcoded definitions
+			if(ret.size()==0) {
+				List<Assembly> assms = boilerServ.loadDataConfiguration(url);
+				for(Assembly assm : assms) {
+					if(assm.getClazz().equalsIgnoreCase("personspec")) {
+						ret.add(dtoServ.assemblyDto(assm));
+					}
+				}
+			}
+			return ret;
+		}
+		/**
 		 * Auxiliary schedulers
 		 * @param url
 		 * @return
@@ -798,14 +718,27 @@ public class AssemblyService {
 			}
 			return ret;
 		}
-		
 		/**
-		 * A dictionary for guest user
+		 * Read configurations for amendment definition
+		 * @param url
+		 * @param  
 		 * @return
+		 * @throws ObjectNotFoundException 
 		 */
-		public String guestDictUrl() {
-			return DICTIONARY_GUEST_APPLICATIONS;
+		public List<AssemblyDTO> auxAmendments(String url) throws ObjectNotFoundException {
+			List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
+			// TODO hardcoded definitions...
+			if(ret.size()==0) {
+				List<Assembly> assms = boilerServ.loadDataConfiguration(url);
+				for(Assembly assm : assms) {
+					if(assm.getClazz().equalsIgnoreCase("amendments")) {
+						ret.add(dtoServ.assemblyDto(assm));
+					}
+				}
+			}
+			return ret;
 		}
+		
 		/**
 		 * Mock form actions
 		 * @param url
@@ -940,41 +873,81 @@ public class AssemblyService {
 			return ret;
 		}
 		/**
-		 * Load report configuration
-		 * @param url
+		 * Mock to load reports configurations
 		 * @return
-		 * TODO Mock
 		 */
-		public ReportConfigDTO reportConfig(String url) {
-			ReportConfigDTO ret = new ReportConfigDTO();
-			if(url.equalsIgnoreCase("report.pharmacy.registered")) {
-				ret.setDataUrl("pharmacy.site");
-				ret.setDictStageUrl("dictionary.host.applications");
-				ret.setAddressUrl("pharamcy.site.address");
-				ret.setOwnerUrl("pharmacy.site.owners");
-				ret.setInspectAppUrl("application.pharmacy.inspection");
-				ret.setRenewAppUrl("application.pharmacy.renew");
-				ret.setRegistered(true);
+		public Map<String, ReportConfigDTO> reportConfigLoad(){
+			Map<String, ReportConfigDTO> ret = new LinkedHashMap<String, ReportConfigDTO>();
+			{
+				ReportConfigDTO dto = new ReportConfigDTO();
+				dto.setDataUrl("pharmacy.site");
+				dto.setDictStageUrl("dictionary.host.applications");
+				dto.setAddressUrl("pharamcy.site.address");
+				dto.setOwnerUrl("pharmacy.site.owners");
+				dto.setInspectAppUrl("application.pharmacy.inspection");
+				dto.setRenewAppUrl("application.pharmacy.renew");
+				dto.setRegisterAppUrl("pharmacy.site.certificate");
+				dto.setRegistered(true);
+				ret.put(dto.getDataUrl(), dto);
 			}
-			if(url.equalsIgnoreCase("report.importer.registered")) {
-				ret.setDataUrl("importer.site");
-				ret.setDictStageUrl("dictionary.host.applications");
-				ret.setAddressUrl("importer.site.address");
-				ret.setOwnerUrl("importer.site.owners");
-				ret.setInspectAppUrl("application.importer.inspection");
-				ret.setRenewAppUrl("application.importer.renew");
-				ret.setRegistered(true);
+			{
+				ReportConfigDTO dto = new ReportConfigDTO();
+				dto.setDataUrl("importer.site");
+				dto.setDictStageUrl("dictionary.host.applications");
+				dto.setAddressUrl("importer.site.address");
+				dto.setOwnerUrl("importer.site.owners");
+				dto.setInspectAppUrl("application.importer.inspection");
+				dto.setRenewAppUrl("application.importer.renew");
+				dto.setRegisterAppUrl("importer.site.certificate");
+				dto.setRegistered(true);
+				ret.put(dto.getDataUrl(), dto);
 			}
-			if(url.equalsIgnoreCase("report.ws.registered")) {
-				ret.setDataUrl("ws.site");
-				ret.setDictStageUrl("dictionary.host.applications");
-				ret.setAddressUrl("ws.site.address");
-				ret.setOwnerUrl("ws.site.owners");
-				ret.setInspectAppUrl("application.ws.inspection");
-				ret.setRenewAppUrl("application.ws.renew");
-				ret.setRegistered(true);
+			
+			{
+				ReportConfigDTO dto = new ReportConfigDTO();
+				dto.setDataUrl("ws.site");
+				dto.setDictStageUrl("dictionary.host.applications");
+				dto.setAddressUrl("ws.site.address");
+				dto.setOwnerUrl("ws.site.owners");
+				dto.setInspectAppUrl("application.ws.inspection");
+				dto.setRenewAppUrl("application.ws.renew");
+				dto.setRegisterAppUrl("ws.site.certificate");
+				dto.setRegistered(true);
+				ret.put(dto.getDataUrl(), dto);
+			}
+			{
+				ReportConfigDTO dto = new ReportConfigDTO();
+				dto.setDataUrl("import.permit");
+				dto.setRegisterAppUrl("register.import.permit");
+				dto.setRegistered(true);
+				dto.setApplicantRestriction(true);
+				ret.put(dto.getDataUrl(), dto);
 			}
 			return ret;
 		}
+		/**
+		 * Get report configuration by report url
+		 * @param url
+		 * @return
+		 */
+		public ReportConfigDTO reportConfig(String url) {
+			Map<String, ReportConfigDTO> data = reportConfigLoad();
+			if(url.equalsIgnoreCase("report.pharmacy.registered")) {
+				return data.get("pharmacy.site");
+			}
+			if(url.equalsIgnoreCase("report.importer.registered")) {
+				return data.get("importer.site");
+			}
+			if(url.equalsIgnoreCase("report.ws.registered")) {
+				return data.get("ws.site");
+			}
+			if(url.equalsIgnoreCase("report.import.permit.valid")) {
+				return data.get("import.permit");
+			}
+			return new ReportConfigDTO();
+		}
+
+
+
 	
 	}

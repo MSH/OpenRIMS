@@ -1,7 +1,6 @@
 package org.msh.pharmadex2.controller.r2;
 
 import org.msh.pdex2.exception.ObjectNotFoundException;
-import org.msh.pharmadex2.dto.AmendmentDTO;
 import org.msh.pharmadex2.dto.ApplicationOrActivityDTO;
 import org.msh.pharmadex2.dto.ApplicationSelectDTO;
 import org.msh.pharmadex2.dto.ApplicationsDTO;
@@ -18,12 +17,15 @@ import org.msh.pharmadex2.service.r2.AmendmentService;
 import org.msh.pharmadex2.service.r2.ApplicationService;
 import org.msh.pharmadex2.service.r2.ContentService;
 import org.msh.pharmadex2.service.r2.DictService;
+import org.msh.pharmadex2.service.r2.SystemService;
 import org.msh.pharmadex2.service.r2.ThingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
 @RestController
 public class GuestAPI {
 	@Autowired
@@ -38,6 +40,8 @@ public class GuestAPI {
 	private DictService dictService;
 	@Autowired
 	private AmendmentService amendServ;
+	@Autowired
+	private SystemService systemServ;
 
 
 	/**
@@ -63,11 +67,63 @@ public class GuestAPI {
 	 * @return
 	 * @throws DataNotFoundException
 	 */
-	@PostMapping("/api/guest/applications")
-	public ApplicationSelectDTO applications(Authentication auth, @RequestBody ApplicationSelectDTO data) throws DataNotFoundException {
+	@PostMapping("/api/*/applications")
+	public DictionaryDTO applications(Authentication auth, @RequestBody DictionaryDTO data) throws DataNotFoundException {
 		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
 		try {
-			data=applServ.guestApplications(data, user);
+			data=systemServ.applicationsDictionary(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	/**
+	 * Dictionary of all possible amendments
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException 
+	 */
+	@PostMapping("/api/*/amendments")
+	public DictionaryDTO amendments(Authentication auth, @RequestBody DictionaryDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		try {
+			data=systemServ.amendmentDictionary(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
+	/**
+	 * Dictionary of all possible renewals
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException 
+	 */
+	@PostMapping("/api/*/renewal")
+	public DictionaryDTO renewal(Authentication auth, @RequestBody DictionaryDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		try {
+			data=systemServ.renewalDict(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	/**
+	 * Dictionary of all possible de-registration
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException 
+	 */
+	@PostMapping("/api/*/deregistration")
+	public DictionaryDTO deregistration(Authentication auth, @RequestBody DictionaryDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		try {
+			data=systemServ.deregistrationDict(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -81,7 +137,7 @@ public class GuestAPI {
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/guest/applications/table")
-	public ApplicationsDTO applications(Authentication auth, @RequestBody ApplicationsDTO data) throws DataNotFoundException {
+	public ApplicationsDTO applicatonsTable(Authentication auth, @RequestBody ApplicationsDTO data) throws DataNotFoundException {
 		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data=applServ.applicatonsTable(data, user);
@@ -104,7 +160,7 @@ public class GuestAPI {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data = thingServ.save(data, user);
-		} catch (ObjectNotFoundException e) {
+		} catch (ObjectNotFoundException | JsonProcessingException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
@@ -160,21 +216,6 @@ public class GuestAPI {
 		return data;
 	}
 	
-
-	/**
-	 * Load a table with my registered objects
-	 * @param auth
-	 * @param data
-	 * @return
-	 * @throws DataNotFoundException
-	 */
-	@PostMapping("/api/guest/objects/registered/load")
-	public AmendmentDTO objectRegisteredLoad(Authentication auth, @RequestBody AmendmentDTO data) throws DataNotFoundException{
-		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
-		data=amendServ.objectRegisteredLoad(user, data);
-		return data;
-	}
-	
 	/**
 	 * Create a user's choice from the mock ThingDTO
 	 * @param auth
@@ -194,4 +235,5 @@ public class GuestAPI {
 		}
 		return ret;
 	}
+	
 }

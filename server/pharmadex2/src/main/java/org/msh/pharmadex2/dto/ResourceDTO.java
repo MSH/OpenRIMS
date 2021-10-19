@@ -1,6 +1,5 @@
 package org.msh.pharmadex2.dto;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.msh.pdex2.dto.table.TableQtb;

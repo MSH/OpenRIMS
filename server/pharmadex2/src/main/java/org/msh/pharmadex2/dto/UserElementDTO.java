@@ -23,7 +23,10 @@ public class UserElementDTO extends AllowValidation{
 	private FormFieldDTO<OptionDTO> addPerson=FormFieldDTO.of(new OptionDTO());
 	//dictionaries
 	private DictionaryDTO roles = new DictionaryDTO();
-	private DictionaryDTO responsibilities = new DictionaryDTO();
+	private DictionaryDTO applications = new DictionaryDTO();
+	private DictionaryDTO amendments = new DictionaryDTO();
+	private DictionaryDTO renewal = new DictionaryDTO();
+	private DictionaryDTO deregistration = new DictionaryDTO();
 	private DictionaryDTO areas = new DictionaryDTO();
 
 	public String getOrganization() {
@@ -77,11 +80,29 @@ public class UserElementDTO extends AllowValidation{
 	public void setRoles(DictionaryDTO roles) {
 		this.roles = roles;
 	}
-	public DictionaryDTO getResponsibilities() {
-		return responsibilities;
+	public DictionaryDTO getApplications() {
+		return applications;
 	}
-	public void setResponsibilities(DictionaryDTO responsibilities) {
-		this.responsibilities = responsibilities;
+	public void setApplications(DictionaryDTO applications) {
+		this.applications = applications;
+	}
+	public DictionaryDTO getAmendments() {
+		return amendments;
+	}
+	public void setAmendments(DictionaryDTO amendments) {
+		this.amendments = amendments;
+	}
+	public DictionaryDTO getRenewal() {
+		return renewal;
+	}
+	public void setRenewal(DictionaryDTO renewal) {
+		this.renewal = renewal;
+	}
+	public DictionaryDTO getDeregistration() {
+		return deregistration;
+	}
+	public void setDeregistration(DictionaryDTO deregistration) {
+		this.deregistration = deregistration;
 	}
 	public DictionaryDTO getAreas() {
 		return areas;

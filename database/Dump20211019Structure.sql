@@ -1,8 +1,8 @@
 -- MySQL dump 10.13  Distrib 8.0.21, for Win64 (x86_64)
 --
--- Host: 212.115.235.249    Database: pdx2
+-- Host: 127.0.0.1    Database: pdx2
 -- ------------------------------------------------------
--- Server version	5.7.35-0ubuntu0.18.04.1
+-- Server version	5.7.26-log
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -48,9 +48,11 @@ SET @saved_cs_client     = @@character_set_client;
  1 AS `ID`,
  1 AS `come`,
  1 AS `go`,
+ 1 AS `notes`,
  1 AS `days`,
  1 AS `applNodeId`,
  1 AS `actConfigID`,
+ 1 AS `applDataID`,
  1 AS `applicant`,
  1 AS `applurl`,
  1 AS `executive`,
@@ -235,9 +237,9 @@ CREATE TABLE `amended` (
   PRIMARY KEY (`ID`),
   KEY `FKamended511026` (`amendmentID`),
   KEY `FKamended264173` (`assemblyID`),
-  CONSTRAINT `FKamended264173` FOREIGN KEY (`assemblyID`) REFERENCES `assembly` (`ID`),
-  CONSTRAINT `FKamended511026` FOREIGN KEY (`amendmentID`) REFERENCES `amendment` (`ID`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+  CONSTRAINT `FKamended264173` FOREIGN KEY (`assemblyID`) REFERENCES `assembly` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `FKamended511026` FOREIGN KEY (`amendmentID`) REFERENCES `amendment` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -254,15 +256,19 @@ CREATE TABLE `amendment` (
   `conceptID` bigint(20) NOT NULL,
   `OldThing` mediumtext,
   `NewThing` mediumtext,
+  `OldPath` mediumtext,
+  `NewPath` mediumtext,
   `CreatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `AppliedAt` date DEFAULT NULL,
+  `RejectedAt` date DEFAULT NULL,
   PRIMARY KEY (`ID`),
   KEY `FKamendment121508` (`conceptID`),
   KEY `FKamendment712597` (`applicationDataID`),
   KEY `FKamendment307312` (`amendedThingID`),
-  CONSTRAINT `FKamendment121508` FOREIGN KEY (`conceptID`) REFERENCES `concept` (`ID`),
-  CONSTRAINT `FKamendment307312` FOREIGN KEY (`amendedThingID`) REFERENCES `concept` (`ID`),
-  CONSTRAINT `FKamendment712597` FOREIGN KEY (`applicationDataID`) REFERENCES `concept` (`ID`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+  CONSTRAINT `FKamendment121508` FOREIGN KEY (`conceptID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `FKamendment307312` FOREIGN KEY (`amendedThingID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `FKamendment712597` FOREIGN KEY (`applicationDataID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -512,7 +518,7 @@ CREATE TABLE `assembly` (
   PRIMARY KEY (`ID`),
   KEY `FKassembly126800` (`conceptID`),
   CONSTRAINT `FKassembly126800` FOREIGN KEY (`conceptID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=318 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=513 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -695,7 +701,7 @@ CREATE TABLE `checklistr2` (
   CONSTRAINT `FKchecklistr541205` FOREIGN KEY (`dictItemID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `FKchecklistr910937` FOREIGN KEY (`applicationID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `FKchecklistr915013` FOREIGN KEY (`activityID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=7200 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=9808 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -734,7 +740,7 @@ CREATE TABLE `closure` (
   KEY `FKclosure121614` (`childID`),
   CONSTRAINT `FKclosure121614` FOREIGN KEY (`childID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `FKclosure226963` FOREIGN KEY (`parentID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=302676 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=344571 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -814,7 +820,7 @@ CREATE TABLE `concept` (
   `Active` tinyint(1) NOT NULL,
   PRIMARY KEY (`ID`),
   KEY `identifier` (`Identifier`)
-) ENGINE=InnoDB AUTO_INCREMENT=58483 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=66730 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -851,7 +857,7 @@ CREATE TABLE `context` (
   `ID` bigint(20) NOT NULL AUTO_INCREMENT,
   `Created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`ID`)
-) ENGINE=InnoDB AUTO_INCREMENT=342 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=472 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1190,7 +1196,7 @@ CREATE TABLE `fileresource` (
   CONSTRAINT `FKfileresour258199` FOREIGN KEY (`activityDataID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `FKfileresour477120` FOREIGN KEY (`conceptID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `FKfileresour491212` FOREIGN KEY (`dictconceptID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=937 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=1210 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1265,6 +1271,7 @@ CREATE TABLE `history` (
   `Cancelled` tinyint(1) NOT NULL,
   `Expire` date DEFAULT NULL,
   `CreatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `amendedID` bigint(20) DEFAULT NULL,
   PRIMARY KEY (`ID`),
   KEY `FKhistory387311` (`activityID`),
   KEY `FKhistory608612` (`applicationID`),
@@ -1273,14 +1280,16 @@ CREATE TABLE `history` (
   KEY `FKhistory777469` (`applDictID`),
   KEY `FKhistory733279` (`applConfigID`),
   KEY `FKhistory555751` (`actConfigID`),
+  KEY `FKhistory561773` (`amendedID`),
   CONSTRAINT `FKhistory19325` FOREIGN KEY (`activityDataID`) REFERENCES `concept` (`ID`) ON DELETE SET NULL ON UPDATE SET NULL,
   CONSTRAINT `FKhistory387311` FOREIGN KEY (`activityID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `FKhistory555751` FOREIGN KEY (`actConfigID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `FKhistory561773` FOREIGN KEY (`amendedID`) REFERENCES `concept` (`ID`),
   CONSTRAINT `FKhistory608612` FOREIGN KEY (`applicationID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `FKhistory733279` FOREIGN KEY (`applConfigID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `FKhistory777469` FOREIGN KEY (`applDictID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `FKhistory877482` FOREIGN KEY (`applDataID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=1519 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=2022 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1593,18 +1602,12 @@ DROP TABLE IF EXISTS `openinghoursspec`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `openinghoursspec` (
   `ID` bigint(20) NOT NULL AUTO_INCREMENT,
-  `contactpointID` bigint(20) DEFAULT NULL,
   `Dow` int(11) NOT NULL,
   `Closes` int(11) NOT NULL,
   `Opens` int(11) NOT NULL,
   `ValidFrom` date DEFAULT NULL,
   `ValidThrough` date DEFAULT NULL,
-  `publicorganizationID` bigint(20) DEFAULT NULL,
-  PRIMARY KEY (`ID`),
-  KEY `FKopeninghou195842` (`contactpointID`),
-  KEY `FKopeninghou161452` (`publicorganizationID`),
-  CONSTRAINT `FKopeninghou161452` FOREIGN KEY (`publicorganizationID`) REFERENCES `publicorganization` (`ID`),
-  CONSTRAINT `FKopeninghou195842` FOREIGN KEY (`contactpointID`) REFERENCES `contactpoint` (`ID`)
+  PRIMARY KEY (`ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -2368,7 +2371,7 @@ CREATE TABLE `publicorganization` (
   CONSTRAINT `FKpublicorga595638` FOREIGN KEY (`webresourceID2`) REFERENCES `webresource` (`ID`),
   CONSTRAINT `FKpublicorga602054` FOREIGN KEY (`spatialdataID`) REFERENCES `spatialdata` (`ID`),
   CONSTRAINT `FKpublicorga617726` FOREIGN KEY (`conceptID`) REFERENCES `concept` (`ID`)
-) ENGINE=InnoDB AUTO_INCREMENT=28 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2389,7 +2392,7 @@ CREATE TABLE `publicorgsubject` (
   KEY `FKpublicorgs323332` (`conceptID`),
   CONSTRAINT `FKpublicorgs323332` FOREIGN KEY (`conceptID`) REFERENCES `concept` (`ID`),
   CONSTRAINT `FKpublicorgs935498` FOREIGN KEY (`publicorganizationID`) REFERENCES `publicorganization` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=99 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=101 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2481,7 +2484,7 @@ CREATE TABLE `register` (
   CONSTRAINT `FKregister105477` FOREIGN KEY (`appdataID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `FKregister803271` FOREIGN KEY (`activityDataID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `FKregister932047` FOREIGN KEY (`conceptID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2541,7 +2544,7 @@ CREATE TABLE `resource_message` (
   KEY `key_bundle` (`key_bundle`),
   CONSTRAINT `bundle` FOREIGN KEY (`key_bundle`) REFERENCES `resource_bundle` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `key_bundle` FOREIGN KEY (`key_bundle`) REFERENCES `resource_bundle` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=34503 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=34505 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3025,7 +3028,7 @@ CREATE TABLE `scheduler` (
   CONSTRAINT `FKscheduler428774` FOREIGN KEY (`conceptID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `FKscheduler602203` FOREIGN KEY (`appdataID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `FKscheduler665045` FOREIGN KEY (`activityDataID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=50 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=70 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3104,6 +3107,44 @@ CREATE TABLE `spatialdata` (
   KEY `FKspatialdat698804` (`labelsID`),
   CONSTRAINT `FKspatialdat698804` FOREIGN KEY (`labelsID`) REFERENCES `concept` (`ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `spring_session`
+--
+
+DROP TABLE IF EXISTS `spring_session`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `spring_session` (
+  `PRIMARY_ID` char(36) NOT NULL,
+  `SESSION_ID` char(36) NOT NULL,
+  `CREATION_TIME` bigint(20) NOT NULL,
+  `LAST_ACCESS_TIME` bigint(20) NOT NULL,
+  `MAX_INACTIVE_INTERVAL` int(11) NOT NULL,
+  `EXPIRY_TIME` bigint(20) NOT NULL,
+  `PRINCIPAL_NAME` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`PRIMARY_ID`),
+  UNIQUE KEY `SPRING_SESSION_IX1` (`SESSION_ID`),
+  KEY `SPRING_SESSION_IX2` (`EXPIRY_TIME`),
+  KEY `SPRING_SESSION_IX3` (`PRINCIPAL_NAME`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `spring_session_attributes`
+--
+
+DROP TABLE IF EXISTS `spring_session_attributes`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `spring_session_attributes` (
+  `SESSION_PRIMARY_ID` char(36) NOT NULL,
+  `ATTRIBUTE_NAME` varchar(200) NOT NULL,
+  `ATTRIBUTE_BYTES` blob NOT NULL,
+  PRIMARY KEY (`SESSION_PRIMARY_ID`,`ATTRIBUTE_NAME`),
+  CONSTRAINT `SPRING_SESSION_ATTRIBUTES_FK` FOREIGN KEY (`SESSION_PRIMARY_ID`) REFERENCES `spring_session` (`PRIMARY_ID`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3317,7 +3358,28 @@ CREATE TABLE `thing` (
   PRIMARY KEY (`ID`),
   KEY `FKthing613083` (`conceptID`),
   CONSTRAINT `FKthing613083` FOREIGN KEY (`conceptID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=2183 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=2657 DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `thingamendment`
+--
+
+DROP TABLE IF EXISTS `thingamendment`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `thingamendment` (
+  `ID` bigint(20) NOT NULL AUTO_INCREMENT,
+  `thingID` bigint(20) DEFAULT NULL,
+  `conceptID` bigint(20) NOT NULL,
+  `Url` varchar(255) DEFAULT NULL,
+  `VarName` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`ID`),
+  KEY `FKthingamend672054` (`conceptID`),
+  KEY `FKthingamend374223` (`thingID`),
+  CONSTRAINT `FKthingamend374223` FOREIGN KEY (`thingID`) REFERENCES `thing` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `FKthingamend672054` FOREIGN KEY (`conceptID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3329,11 +3391,12 @@ DROP TABLE IF EXISTS `thingarchive`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `thingarchive` (
   `ID` bigint(20) NOT NULL AUTO_INCREMENT,
+  `amendedID` bigint(20) NOT NULL,
   `filecopyID` bigint(20) NOT NULL,
   `conceptID` bigint(20) NOT NULL,
-  `thingID` bigint(20) DEFAULT NULL,
-  `CreatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `amendedID` bigint(20) NOT NULL,
+  `thingID` bigint(20) NOT NULL,
+  `CreatedAt` date DEFAULT NULL,
+  `ThingDto` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`ID`),
   KEY `FKthingarchi831668` (`thingID`),
   KEY `FKthingarchi214609` (`conceptID`),
@@ -3364,7 +3427,7 @@ CREATE TABLE `thingdict` (
   KEY `FKthingdict264790` (`thingID`),
   CONSTRAINT `FKthingdict264790` FOREIGN KEY (`thingID`) REFERENCES `thing` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `FKthingdict339477` FOREIGN KEY (`conceptID`) REFERENCES `concept` (`ID`)
-) ENGINE=InnoDB AUTO_INCREMENT=8258 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=9634 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3389,7 +3452,7 @@ CREATE TABLE `thingdoc` (
   CONSTRAINT `FKthingdoc187695` FOREIGN KEY (`thingID`) REFERENCES `thing` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `FKthingdoc250361` FOREIGN KEY (`dictNodeID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `FKthingdoc737617` FOREIGN KEY (`conceptID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=850 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=1143 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3410,7 +3473,7 @@ CREATE TABLE `thingperson` (
   KEY `FKthingperso870391` (`thingID`),
   CONSTRAINT `FKthingperso54921` FOREIGN KEY (`conceptID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `FKthingperso870391` FOREIGN KEY (`thingID`) REFERENCES `thing` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=190 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=245 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3431,7 +3494,7 @@ CREATE TABLE `thingregister` (
   KEY `FKthingregis438768` (`conceptID`),
   CONSTRAINT `FKthingregis438768` FOREIGN KEY (`conceptID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `FKthingregis607509` FOREIGN KEY (`thingID`) REFERENCES `thing` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=37 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3452,7 +3515,7 @@ CREATE TABLE `thingscheduler` (
   KEY `FKthingsched222337` (`conceptID`),
   CONSTRAINT `FKthingsched222337` FOREIGN KEY (`conceptID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `FKthingsched823940` FOREIGN KEY (`thingID`) REFERENCES `thing` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=80 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=100 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3473,7 +3536,7 @@ CREATE TABLE `thingthing` (
   KEY `FKthingthing369258` (`conceptID`),
   CONSTRAINT `FKthingthing294571` FOREIGN KEY (`thingID`) REFERENCES `thing` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `FKthingthing369258` FOREIGN KEY (`conceptID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=1804 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=2158 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3636,7 +3699,7 @@ CREATE TABLE `user` (
   CONSTRAINT `FKuser610100` FOREIGN KEY (`user_roleID`) REFERENCES `user_role` (`ID`),
   CONSTRAINT `FKuser756152` FOREIGN KEY (`auxDataID`) REFERENCES `concept` (`ID`),
   CONSTRAINT `FKuser881165` FOREIGN KEY (`conceptID`) REFERENCES `concept` (`ID`)
-) ENGINE=InnoDB AUTO_INCREMENT=45 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=46 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3699,7 +3762,7 @@ CREATE TABLE `userdict` (
   KEY `FKuserdict722377` (`conceptID`),
   CONSTRAINT `FKuserdict722377` FOREIGN KEY (`conceptID`) REFERENCES `concept` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `FKuserdict782172` FOREIGN KEY (`useruserId`) REFERENCES `user` (`userId`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=349 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=468 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3846,10 +3909,12 @@ SELECT his.*, exec.Identifier as 'email',val.Label as 'activity', aval.Label as 
 FROM history his
 join closure execo on execo.childID=his.activityID and execo.Level=1
 join concept exec on exec.ID=execo.parentID
+
 join closure varclo on varclo.parentID=his.actConfigID and varclo.Level=2
 join concept var on var.ID=varclo.childID and var.Identifier='prefLabel'
 join closure valclo on valclo.parentID=var.ID and valclo.Level=1
 join concept val on val.ID=valclo.childID and val.Identifier=lang
+
 join closure aclo on aclo.parentID=his.applDictID and aclo.Level=2
 join concept acl on acl.ID = aclo.childID and acl.Identifier='prefLabel'
 join closure avalo on avalo.parentID=acl.ID and avalo.Level=1
@@ -3861,6 +3926,122 @@ join concept v on v.ID=vo.childID and v.Identifier=lang
 join closure acto on acto.childID=his.applDataID and acto.Level=1
 join concept act on act.ID=acto.parentID
 where (exec.Identifier=ex or execo) and (his.Go is null or goo) and (his.applicationID=app or appo);
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `amendments` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `amendments`(email varchar(100), lang varchar(80))
+BEGIN
+/*
+get amendments
+@params
+email - user's email, null neans all
+lang - language
+@result 
+table _amendments
+ID is amendment's node ID - concept
+@example
+call amendments('oleksiik@unops.org', 'EN_US');
+select * from _amendments;
+*/
+
+declare em bool default true;
+declare emailu varchar(100) default 'nobody@nowhere';
+if email is not null then
+ set em=false;
+ set emailu=email;
+end if;
+
+drop temporary table if exists _amendments;
+create temporary table _amendments
+SELECT conc.ID as 'ID', am.applicationDataID as 'itemID', am.amendedThingID as 'chapterID', am.CreatedAt as 'created', am.AppliedAt as 'applied', am.rejectedAt as 'rejected', 
+aval.Label as 'pref', val.Label as 'chapter', val1.Label as 'description', uco.Identifier as 'email'
+FROM amendment am
+join concept conc on conc.ID=am.conceptID
+join closure clo on clo.childID=conc.ID and clo.Level=1
+join concept uco on uco.ID=clo.parentID and (uco.Identifier=emailu or em)
+join closure varclo on varclo.parentID=am.conceptID and varclo.Level=2
+join concept var on var.ID= varclo.childID and var.Identifier='prefLabel'
+join closure valclo on valclo.parentID=var.ID and valclo.Level=1
+join concept val on val.ID=valclo.childID and val.Identifier=lang
+
+join closure varclo1 on varclo1.parentID=am.conceptID and varclo1.Level=2
+join concept var1 on var1.ID= varclo1.childID and var1.Identifier='description'
+join closure valclo1 on valclo1.parentID=var1.ID and valclo1.Level=1
+join concept val1 on val1.ID=valclo1.childID and val1.Identifier=lang
+
+join concept appl on appl.ID=am.applicationDataID
+join closure aclo on aclo.parentID=appl.ID and aclo.Level=2
+join concept avar on avar.ID=aclo.childID and avar.Identifier='prefLabel'
+join closure avalo on avalo.parentID=avar.ID and avalo.Level=1
+join concept aval on aval.ID=avalo.childID and aval.Identifier=lang;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `application_history` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `application_history`(applDataId bigint(20), lang varchar(20))
+BEGIN
+drop temporary table if exists application_history;
+create temporary table application_history
+SELECT his.ID as 'ID', his.come as 'come', his.go as 'go', DATEDIFF(ifnull(his.go,now()),his.come) as 'days',  
+his.applicationID as 'applNodeId',
+his.applDataID as 'applDataID',
+his.prevNotes as 'notes',
+applicant.Identifier as 'applicant',
+exec.Identifier as 'executive',
+val.Label as 'pref',
+val1.Label as 'workflow',
+val2.Label as 'activity'
+FROM history his
+join closure aplclo on aplclo.childID=his.applicationID and aplclo.Level=1
+join concept applicant on applicant.ID=aplclo.parentID
+join closure aurlclo on aurlclo.childID=applicant.ID and aurlclo.Level=1
+join concept applurl on applurl.ID=aurlclo.parentID
+
+join closure execlo on execlo.childID=his.activityID and execlo.Level=1
+join concept exec on exec.ID=execlo.parentID
+
+join closure prefclo on prefclo.parentID=his.applDataId and prefclo.Level=2
+join concept pref on pref.ID=prefclo.childID and pref.Identifier='prefLabel'
+join closure valclo on valclo.parentID=pref.ID and valclo.Level=1
+join concept val on val.ID=valclo.childID and val.Identifier=lang
+
+join closure prefclo1 on prefclo1.parentID=his.applDictID and prefclo1.Level=2
+join concept pref1 on pref1.ID=prefclo1.childID and pref1.Identifier='prefLabel'
+join closure valclo1 on valclo1.parentID=pref1.ID and valclo1.Level=1
+join concept val1 on val1.ID=valclo1.childID and val1.Identifier=lang
+
+join closure prefclo2 on prefclo2.parentID=his.actConfigID and prefclo2.Level=2
+join concept pref2 on pref2.ID=prefclo2.childID and pref2.Identifier='prefLabel'
+join closure valclo2 on valclo2.parentID=pref2.ID and valclo2.Level=1
+join concept val2 on val2.ID=valclo2.childID and val2.Identifier=lang
+
+where !(his.Cancelled and PrevNotes='') and his.applDataID=applDataId and his.actConfigID is not null
+order by his.Come;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -3986,25 +4167,38 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `filelist`(dictrootid bigint(20), thingid bigint(20), lang varchar(20))
+CREATE DEFINER=`root`@`localhost` PROCEDURE `filelist`(dictrootid bigint(20), thingId bigint(20), 
+docurl varchar(120), varname varchar(120), email varchar(120), lang varchar(20))
 BEGIN
+/**
+Provides a table for ApplicationFiles control
+@example
+call filelist(64948,2650,'ownership.documents','documents_saj','oleksiik@unops.org', 'EN_US');
+select * from _filelist;
+*/
+declare thnull boolean default false;
+if(thingid is null or thingid=0) then
+	set thnull=true;
+end if;
 call dictlevel(dictrootid, lang);
-drop temporary table if exists __dictlevel;
 drop temporary table if exists _filelist;
-create temporary table __dictlevel select * from _dictlevel;
 create temporary table _filelist
-select dict.ID as 'ID', dict.pref, dict.description, ifnull(att.filename,'upload_file') as 'filename'
-from __dictlevel dict
+select dl.ID as 'ID', dl.pref as 'pref', dl.description as 'description', files.filename as 'filename', files.thingID as 'thingID', files.nodeId as 'nodeId'
+from _dictlevel dl
 left join (
-	select dict.ID as 'ID', dict.pref as 'pref', dict.description as 'description', conc.Label as filename
-	from _dictlevel dict
-	join fileresource fres on fres.dictconceptID=dict.ID
-	join thingdoc td on td.conceptID=fres.conceptID
-	join concept conc on conc.ID=fres.conceptID
-	where td.thingID=thingid) att on att.ID=dict.ID
-    where dict.Active = true;
+SELECT fconc.ID, fconc.Label as 'filename', td.thingID as 'thingID', td.dictNodeID as 'dictNodeId', fconc.ID as 'nodeId'
+FROM concept root
+join closure uclo on uclo.parentID=root.ID and uclo.Level=1
+join concept u on u.ID=uclo.childID and u.Identifier=email
+join closure fclo on fclo.parentID=u.ID and fclo.Level>0
+join concept fconc on fconc.ID=fclo.childID
+join thingdoc td on td.conceptID=fconc.ID 
+where root.Identifier=docurl and (((td.thingID is null) and thnull)  or ((td.thingID=thingId) and !thnull)) 
+and (td.VarName= varname)
+) files on files.dictNodeId= dl.ID
+where dl.Active;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -4184,6 +4378,50 @@ DELIMITER ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 ALTER DATABASE `pdx2` CHARACTER SET utf8 COLLATE utf8_general_ci ;
+/*!50003 DROP PROCEDURE IF EXISTS `persons_application` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `persons_application`(applDataId bigint(20), lang varchar(20))
+BEGIN
+/*
+Selects distict all persons from the applicatin data given
+@params
+applDataId - ID of an appliction data
+lang - language
+@example
+call persons_application(20005, 'EN_US')
+*/
+drop temporary table if exists persons_application;
+create temporary table persons_application
+SELECT distinct 
+pconc.ID as 'ID',
+tp.PersonUrl as 'url',
+val.Label as 'pref'
+FROM thing t
+join thingthing tt on tt.thingID=t.ID
+join concept conc on conc.ID=tt.conceptID
+join thing t1 on t1.conceptID=conc.ID
+join thingperson tp on tp.thingID=t1.ID
+
+join concept pconc on pconc.ID=tp.conceptID
+join closure pclov on pclov.parentID=pconc.ID and pclov.Level=2
+join concept var on var.ID=pclov.childID and var.Identifier='prefLabel'
+join closure valclo on valclo.parentID=var.ID and valclo.Level=1
+join concept val on val.ID=valclo.childID and val.Identifier=lang 
+where t.conceptID=applDataId;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `prefdescription` */;
 ALTER DATABASE `pdx2` CHARACTER SET latin1 COLLATE latin1_swedish_ci ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
@@ -4266,6 +4504,43 @@ DELIMITER ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 ALTER DATABASE `pdx2` CHARACTER SET utf8 COLLATE utf8_general_ci ;
+/*!50003 DROP PROCEDURE IF EXISTS `product_main` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `product_main`(url varchar(80), lang varchar(20))
+BEGIN
+/**
+Get a list of products under the URL
+@example
+call product_main('import.permit', 'EN_US');
+select * from product_main;
+*/
+drop temporary table if exists product_main;
+create temporary table product_main
+select prod.ID as 'ID', u.Identifier as 'email', val.Label as 'product'  
+from concept root
+join closure uclo on uclo.parentID=root.ID and uclo.Level=1
+join concept u on u.ID=uclo.childID
+join closure dclo on dclo.parentID=u.ID and dclo.Level=1
+join concept prod on prod.ID=dclo.childID
+join closure vclo on vclo.parentID=prod.ID and vclo.Level=2
+join concept var on var.ID=vclo.childID and var.Identifier='prefLabel'
+join closure valclo on valclo.parentID=var.ID and valclo.Level=1
+join concept val on val.ID=valclo.childID and val.Identifier=lang
+where root.Identifier=url;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `registered` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -4359,6 +4634,40 @@ DELIMITER ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 ALTER DATABASE `pdx2` CHARACTER SET utf8 COLLATE utf8_general_ci ;
+/*!50003 DROP PROCEDURE IF EXISTS `report_products` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `report_products`(data_url varchar(100), register_url varchar(100), lang varchar(20))
+BEGIN
+/*
+Very simple registered products or import permits report
+@example
+call report_products('import.permit', 'register.import.permit', 'EN_US');
+select * from report_products
+*/
+call product_main(data_url, lang);
+call site_registers(register_url);
+
+drop temporary table if exists report_products;
+create temporary table report_products
+select pm.ID as 'ID', pm.Product as 'product', pm.email as 'email', 
+sr.regno as 'register', sr.registeredat as 'registered', sr.validto as 'valid', sr.createdat as 'created'
+from
+site_registers sr
+join product_main pm on pm.ID=sr.ID;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `report_sites` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -4372,27 +4681,29 @@ DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `report_sites`(site_url varchar(80), dict_stage_url varchar(80), 
 																		addr_url varchar(80), owner_url varchar(80), 
 																		appl_inspection_url varchar(80), appl_renew_url varchar(80),
+                                                                        appl_cert_url varchar(80),
                                                                         lang varchar(80))
 BEGIN
 /*
 @example
 call report_sites('pharmacy.site','dictionary.host.applications','pharamcy.site.address',
 							'pharmacy.site.owners','application.pharmacy.inspection',
-                            'application.pharmacy.renew', 'EN_US');
+                            'application.pharmacy.renew', 'pharmacy.site.certificate', 'EN_US');
 select * from report_sites
 */
 call sites_data(site_url,dict_stage_url,lang);
 call site_addr(addr_url,lang);
 call site_owners(owner_url,lang);
+call site_registers(appl_cert_url);
 drop temporary table if exists report_sites;
 create temporary table report_sites
 select d.ID as 'ID', d.pref as 'pref', d.registrar as 'email', a.aus as 'address',a.gis as 'gis', o.owners as 'owners', 
-reg.Register as 'regno', reg.RegisteredAt as 'regdate', reg.ValidTo as 'expdate',
+reg.regno as 'regno', reg.registeredat as 'regdate', reg.validto as 'expdate',
  insp.come as 'inspdate', ren.come as 'renewvaldate'
 from sites_data d
 join site_addr a on a.ID=d.ID 
 join site_owners o on o.ID=d.ID
-left join register reg on reg.appdataID=d.ID
+left join site_registers reg on reg.ID=d.ID
 left join applications_active insp on insp.dataID=d.ID and insp.url=appl_inspection_url
 left join applications_active ren on ren.dataID=d.ID and ren.url=appl_renew_url;
 END ;;
@@ -4510,7 +4821,6 @@ DELIMITER ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `site_owners` */;
-ALTER DATABASE `pdx2` CHARACTER SET latin1 COLLATE latin1_swedish_ci ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
@@ -4518,7 +4828,7 @@ ALTER DATABASE `pdx2` CHARACTER SET latin1 COLLATE latin1_swedish_ci ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `site_owners`(url varchar(100), lang varchar(20))
 BEGIN
@@ -4527,11 +4837,12 @@ create temporary table _siteowners
 SELECT siteco.ID as 'ID', own.ID as 'ownerid'
 FROM concept siteco
 join thing ts on ts.conceptID=siteco.ID
-join thingthing tt on tt.thingID=ts.ID and tt.Url=url
+join thingthing tt on tt.thingID=ts.ID
 join concept oco on oco.ID=tt.conceptID 
 join thing tot on tot.conceptID=oco.ID
 join thingperson tpo on tpo.thingID=tot.ID
-join concept own on own.ID=tpo.conceptID;
+join concept own on own.ID=tpo.conceptID
+where tt.url=url or  tt.url='pharmacy.owner';
 
 drop temporary table if exists site_owners;
 create temporary table site_owners
@@ -4548,7 +4859,6 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
-ALTER DATABASE `pdx2` CHARACTER SET utf8 COLLATE utf8_general_ci ;
 /*!50003 DROP PROCEDURE IF EXISTS `site_registers` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -4557,7 +4867,7 @@ ALTER DATABASE `pdx2` CHARACTER SET utf8 COLLATE utf8_general_ci ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `site_registers`(url varchar(100))
 BEGIN
@@ -4566,7 +4876,7 @@ Get data from registers ordered by register date, asc
 @params 
 url - url of register
 @example
-call site_registers('pharmacy.site.certificates');
+call site_registers('pharmacy.site.certificate');
 select * from site_registers;
 @Result
 ID - application data ID
@@ -4577,10 +4887,9 @@ createdat - date when this record has been created
 */
 drop temporary table if exists site_registers;
 create temporary table site_registers
-SELECT appdt.ID as ID, reg.RegisteredAt as 'registeredat', reg.Register as 'regno', reg.ValidTo as 'validto' , reg.createdAt as 'createdat'
+SELECT reg.appdataID as ID, reg.RegisteredAt as 'registeredat', reg.Register as 'regno', reg.ValidTo as 'validto' , reg.createdAt as 'createdat'
 FROM register reg
 join thingregister tr on tr.conceptID=reg.conceptID and tr.Url=url
-join concept appdt on appdt.ID=reg.appdataID
 order by reg.RegisteredAt;
 END ;;
 DELIMITER ;
@@ -4699,7 +5008,6 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 ALTER DATABASE `pdx2` CHARACTER SET utf8 COLLATE utf8_general_ci ;
 /*!50003 DROP PROCEDURE IF EXISTS `workflow_configuration` */;
-ALTER DATABASE `pdx2` CHARACTER SET latin1 COLLATE latin1_swedish_ci ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
@@ -4707,7 +5015,7 @@ ALTER DATABASE `pdx2` CHARACTER SET latin1 COLLATE latin1_swedish_ci ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `workflow_configuration`(rootid bigint(20), varname varchar(20), lang varchar(20))
     COMMENT 'get single literal (varible) from all activities in workflow description. Activities will be in a right order. Used in workflow_activities'
@@ -4717,7 +5025,7 @@ create temporary table workflow_configuration
 SELECT conc.ID, val.Label, val.Identifier 
 FROM concept root
 join closure clo on clo.parentID=root.ID
-join concept conc on clo.childID=conc.ID and (conc.Identifier=concat(conc.ID,'') or conc.Identifier=root.Identifier) and conc.Active
+join concept conc on clo.childID=conc.ID and (conc.Identifier != '_LITERALS_') and conc.Active
 
 join closure prefclo on prefclo.parentID=conc.ID and prefclo.level=2
 join concept var on var.ID=prefclo.childID and var.Identifier=varname
@@ -4732,7 +5040,6 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
-ALTER DATABASE `pdx2` CHARACTER SET utf8 COLLATE utf8_general_ci ;
 
 --
 -- Final view structure for view `activity_data`
@@ -4747,7 +5054,7 @@ ALTER DATABASE `pdx2` CHARACTER SET utf8 COLLATE utf8_general_ci ;
 /*!50001 SET collation_connection      = utf8mb4_general_ci */;
 /*!50001 CREATE ALGORITHM=UNDEFINED */
 /*!50013 DEFINER=`root`@`localhost` SQL SECURITY DEFINER */
-/*!50001 VIEW `activity_data` AS select `his`.`ID` AS `ID`,`his`.`Come` AS `come`,`his`.`Go` AS `go`,(to_days(ifnull(`his`.`Go`,now())) - to_days(`his`.`Come`)) AS `days`,`his`.`applicationID` AS `applNodeId`,`his`.`actConfigID` AS `actConfigID`,`applicant`.`Identifier` AS `applicant`,`applurl`.`Identifier` AS `applurl`,`exec`.`Identifier` AS `executive`,`acturl`.`Identifier` AS `activityurl`,`val`.`Label` AS `pref`,`val`.`Identifier` AS `lang` from ((((((((((((`history` `his` join `closure` `aplclo` on(((`aplclo`.`childID` = `his`.`applicationID`) and (`aplclo`.`Level` = 1)))) join `concept` `applicant` on((`applicant`.`ID` = `aplclo`.`parentID`))) join `closure` `aurlclo` on(((`aurlclo`.`childID` = `applicant`.`ID`) and (`aurlclo`.`Level` = 1)))) join `concept` `applurl` on((`applurl`.`ID` = `aurlclo`.`parentID`))) join `closure` `execlo` on(((`execlo`.`childID` = `his`.`activityID`) and (`execlo`.`Level` = 1)))) join `concept` `exec` on((`exec`.`ID` = `execlo`.`parentID`))) join `closure` `acturlclo` on(((`acturlclo`.`childID` = `exec`.`ID`) and (`acturlclo`.`Level` = 1)))) join `concept` `acturl` on((`acturl`.`ID` = `acturlclo`.`parentID`))) join `closure` `prefclo` on(((`prefclo`.`parentID` = `his`.`applDataID`) and (`prefclo`.`Level` = 2)))) join `concept` `pref` on(((`pref`.`ID` = `prefclo`.`childID`) and (`pref`.`Identifier` = 'prefLabel')))) join `closure` `valclo` on(((`valclo`.`parentID` = `pref`.`ID`) and (`valclo`.`Level` = 1)))) join `concept` `val` on((`val`.`ID` = `valclo`.`childID`))) */;
+/*!50001 VIEW `activity_data` AS select `his`.`ID` AS `ID`,`his`.`Come` AS `come`,`his`.`Go` AS `go`,`his`.`PrevNotes` AS `notes`,(to_days(ifnull(`his`.`Go`,now())) - to_days(`his`.`Come`)) AS `days`,`his`.`applicationID` AS `applNodeId`,`his`.`actConfigID` AS `actConfigID`,`his`.`applDataID` AS `applDataID`,`applicant`.`Identifier` AS `applicant`,`applurl`.`Identifier` AS `applurl`,`exec`.`Identifier` AS `executive`,`acturl`.`Identifier` AS `activityurl`,`val`.`Label` AS `pref`,`val`.`Identifier` AS `lang` from ((((((((((((`history` `his` join `closure` `aplclo` on(((`aplclo`.`childID` = `his`.`applicationID`) and (`aplclo`.`Level` = 1)))) join `concept` `applicant` on((`applicant`.`ID` = `aplclo`.`parentID`))) join `closure` `aurlclo` on(((`aurlclo`.`childID` = `applicant`.`ID`) and (`aurlclo`.`Level` = 1)))) join `concept` `applurl` on((`applurl`.`ID` = `aurlclo`.`parentID`))) join `closure` `execlo` on(((`execlo`.`childID` = `his`.`activityID`) and (`execlo`.`Level` = 1)))) join `concept` `exec` on((`exec`.`ID` = `execlo`.`parentID`))) join `closure` `acturlclo` on(((`acturlclo`.`childID` = `exec`.`ID`) and (`acturlclo`.`Level` = 1)))) join `concept` `acturl` on((`acturl`.`ID` = `acturlclo`.`parentID`))) join `closure` `prefclo` on(((`prefclo`.`parentID` = `his`.`applDataID`) and (`prefclo`.`Level` = 2)))) join `concept` `pref` on(((`pref`.`ID` = `prefclo`.`childID`) and (`pref`.`Identifier` = 'prefLabel')))) join `closure` `valclo` on(((`valclo`.`parentID` = `pref`.`ID`) and (`valclo`.`Level` = 1)))) join `concept` `val` on((`val`.`ID` = `valclo`.`childID`))) */;
 /*!50001 SET character_set_client      = @saved_cs_client */;
 /*!50001 SET character_set_results     = @saved_cs_results */;
 /*!50001 SET collation_connection      = @saved_col_connection */;
@@ -4851,4 +5158,4 @@ ALTER DATABASE `pdx2` CHARACTER SET utf8 COLLATE utf8_general_ci ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2021-09-16 11:14:10
+-- Dump completed on 2021-10-19  9:34:46

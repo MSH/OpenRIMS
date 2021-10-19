@@ -34,6 +34,7 @@ import org.msh.pharmadex2.dto.DictNodeDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.FileDTO;
 import org.msh.pharmadex2.dto.MessageDTO;
+import org.msh.pharmadex2.dto.PersonSpecialDTO;
 import org.msh.pharmadex2.dto.PublicOrgDTO;
 import org.msh.pharmadex2.dto.QuestionDTO;
 import org.msh.pharmadex2.dto.RegisterDTO;
@@ -65,8 +66,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ValidationService {
 	private static final Logger logger = LoggerFactory.getLogger(DtoService.class);
-	@Autowired
-	ValidationCommon validationCommon;
 	@Autowired
 	Messages messages;
 	@Autowired
@@ -255,7 +254,11 @@ public class ValidationService {
 	 */
 	@Transactional
 	public RootNodeDTO rootNode(RootNodeDTO data) throws ObjectNotFoundException {
-		validationCommon.validateDTO(data,true,true);
+		data.clearErrors();
+		//validationCommon.validateDTO(data,true,true);
+		if(data.getPrefLabel().getValue().length()<3 || data.getPrefLabel().getValue().length()>80) {
+			suggest(data.getPrefLabel(),3,80,true);
+		}
 		data.propagateValidation();
 		if(data.isValid()) {
 			if(!data.getUrl().getValue().startsWith("dictionary.")) {
@@ -278,7 +281,13 @@ public class ValidationService {
 	@Transactional
 	public ThingDTO thing(ThingDTO data) throws ObjectNotFoundException {
 		data.clearErrors();
-
+		
+		List<AssemblyDTO> s = assemblyServ.auxStrings(data.getUrl());
+		for(AssemblyDTO str : s) {
+			if(str.isRequired()) {
+				mandatoryLiteral(data.getStrings().get(str.getPropertyName()), str);
+			}
+		}
 		List<AssemblyDTO> lits = assemblyServ.auxLiterals(data.getUrl());
 		for(AssemblyDTO lit : lits) {
 			if(lit.isRequired()) {
@@ -334,6 +343,14 @@ public class ValidationService {
 				mandatoryPersons(data, per.getPropertyName());
 			}
 		}
+
+		List<AssemblyDTO> personSpec = assemblyServ.auxPersonSpecials(data.getUrl());
+		for(AssemblyDTO per : personSpec) {
+			if(per.isRequired()) {
+				mandatoryPersonSpec(data, per.getPropertyName());
+			}
+		}
+
 		List<AssemblyDTO> things = assemblyServ.auxThings(data.getUrl());
 		for(AssemblyDTO thing :things) {
 			if(thing.isRequired()) {
@@ -343,6 +360,31 @@ public class ValidationService {
 		data.propagateValidation();
 		return data;
 	}
+
+	/**
+	 * Special person, like Pharmacist
+	 * @param data
+	 * @param propertyName
+	 * @throws ObjectNotFoundException 
+	 */
+	private void mandatoryPersonSpec(ThingDTO data, String propertyName) throws ObjectNotFoundException {
+		PersonSpecialDTO dto = data.getPersonspec().get(propertyName);
+		//person should be selected
+		List<TableRow> rows = dto.getTable().getRows();
+		int selected = 0;
+		if(rows.size()>0) {
+			for(TableRow row : rows) {
+				if(row.getSelected()) {
+					selected++;
+				}
+			}
+			if(selected==0) {
+				dto.setValid(false);
+				dto.setIdentifier(messages.get("error_dictionaryempty"));
+			}
+		}
+	}
+
 	/**
 	 * Register record should...
 	 * @param ar
@@ -368,7 +410,7 @@ public class ValidationService {
 			dto.getRegistration_date().invalidate(errorMess);
 		}
 		//register number should be not empty, not duplicated for url given
-		if(regNum.length()>3 && regNum.length()<255) {
+		if(regNum.length()>=3 && regNum.length()<=255) {
 			List<Register> rr = boilerServ.registerByNumber(regNum);
 			if(rr.size()>1) {
 				dto.getReg_number().invalidate(messages.get("registrationexists"));
@@ -914,12 +956,14 @@ public class ValidationService {
 	@Transactional
 	public ActivitySubmitDTO submitNext(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		data.clearErrors();
-		if(!data.isReassign()) {
-			Concept exec = closureServ.getParent(curHis.getActivity());
-			if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {
-				if(isActivityForeground(curHis.getActConfig())) {
-					if(curHis.getGo()==null) {
-						return data;
+		if(!data.isReject()) {
+			if(!data.isReassign()) {
+				Concept exec = closureServ.getParent(curHis.getActivity());
+				if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {
+					if(isActivityForeground(curHis.getActConfig())) {
+						if(curHis.getGo()==null) {
+							return data;
+						}
 					}
 				}
 			}
@@ -943,11 +987,13 @@ public class ValidationService {
 	@Transactional
 	public ActivitySubmitDTO submitRoute(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		data.clearErrors();
-		Concept exec = closureServ.getParent(curHis.getActivity());
-		if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {
-			if(isActivityForeground(curHis.getActConfig()) || (data.isReassign())) {
-				if(curHis.getGo()==null) {
-					return data;
+		if(!data.isReject()) {
+			Concept exec = closureServ.getParent(curHis.getActivity());
+			if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {
+				if(isActivityForeground(curHis.getActConfig()) || (data.isReassign())) {
+					if(curHis.getGo()==null) {
+						return data;
+					}
 				}
 			}
 		}
@@ -970,6 +1016,9 @@ public class ValidationService {
 	@Transactional
 	public ActivitySubmitDTO submitApproveReject(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		data.clearErrors();
+		if(data.isReject()) {
+			return data;
+		}
 		if(!data.isReassign()) {
 			Concept exec = closureServ.getParent(curHis.getActivity());
 			if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {
@@ -994,6 +1043,10 @@ public class ValidationService {
 	 */
 	@Transactional
 	public boolean isActivityLatest(History curHis) throws ObjectNotFoundException {
+		YesNoNA result = dtoServ.readLogicalLiteral("finalize", curHis.getActConfig());
+		if(result.equals(YesNoNA.YES)) {
+			return true;
+		}
 		TableQtb fgActs = new TableQtb();
 		fgActs.getHeaders().getHeaders().add(TableHeader.instanceOf("pref", TableHeader.COLUMN_STRING));
 		jdbcRepo.workflowActivities(curHis.getApplConfig().getID());
@@ -1020,8 +1073,10 @@ public class ValidationService {
 	 */
 	public ActivitySubmitDTO submitAddActivity(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		data.clearErrors();
-		if(!data.isReassign()) {
-			return data;
+		if(!data.isReject()) {
+			//if(!data.isReassign()) {
+				return data;
+			//}
 		}
 		error(data, messages.get("error_submitaddactivity"), true);
 		return data;
@@ -1099,8 +1154,8 @@ public class ValidationService {
 	 */
 	private ActivitySubmitDTO submitNotesIsMandatory(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		String notes = data.getNotes().getValue();
-		if(notes.length()<3 || notes.length()>1000) {
-			suggest(data.getNotes(), 2, 1000, true);
+		if(notes.length()<=3 || notes.length()>1000) {
+			suggest(data.getNotes(), 3, 1000, true);
 			data.propagateValidation();
 		}
 		return data;
@@ -1144,35 +1199,42 @@ public class ValidationService {
 	 * @param data
 	 * @return
 	 */
-	public ActivitySubmitDTO submitApproveRejectData(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) {
+	public ActivitySubmitDTO submitApproveData(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) {
 		// TODO for future extensions
 		return data;
 	}
+	
 	/**
-	 * At least one piece of data is amended and notes is filled up
+	 * Any extra requirements to data yet
+	 * @param curHis
+	 * @param user
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	public AmendmentDTO amendment(AmendmentDTO data) throws ObjectNotFoundException {
-		int amended=0;
-		for(TableRow row :data.getVariables().getRows()) {
-			if(row.getSelected()) {
-				amended++;
-			}
-		}
-		if(amended>0) {
-			int descrL = data.getDescription().getValue().length();
-			if(descrL<12 || descrL>255) {
-				suggest(data.getDescription(), 12, 300, true);
-			}
-		}else {
-			data.setValid(false);
-			data.setIdentifier(messages.get("error_dictionaryempty"));
-		}
-		data.propagateValidation();
+	public ActivitySubmitDTO submitRejectData(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
+		data=submitNotesIsMandatory(curHis, data);
 		return data;
 	}
-
+	/**
+	 * Should be selected anyway
+	 * @param dto
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public AmendmentDTO amendment(AmendmentDTO dto) throws ObjectNotFoundException {
+		dto.clearErrors();
+		long id = 0;
+		for(TableRow row :dto.getTable().getRows()) {
+			if(row.getSelected()) {
+				id=row.getDbID();
+			}
+		}
+		if(id==0) {
+			dto.setValid(false);
+			dto.setIdentifier(messages.get("error_dictionaryempty"));
+		}
+		return dto;
+	}
 
 }

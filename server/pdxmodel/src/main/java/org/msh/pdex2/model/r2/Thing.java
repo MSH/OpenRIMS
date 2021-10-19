@@ -25,12 +25,12 @@ public class Thing implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22227217BE3E951CB0B4CA")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22227217BE3E951CB0B4CA", strategy="native")	
+	@GeneratedValue(generator="VAC22226E17C9085E9F206ED4")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22226E17C9085E9F206ED4", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
-	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.SAVE_UPDATE, org.hibernate.annotations.CascadeType.LOCK})	
+	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.ALL, org.hibernate.annotations.CascadeType.DELETE_ORPHAN})	
 	@JoinColumns({ @JoinColumn(name="conceptID") })	
 	@Basic(fetch=FetchType.LAZY)	
 	private org.msh.pdex2.model.r2.Concept concept;
@@ -80,11 +80,11 @@ public class Thing implements Serializable {
 	@org.hibernate.annotations.LazyCollection(org.hibernate.annotations.LazyCollectionOption.TRUE)	
 	private java.util.Set<org.msh.pdex2.model.r2.ThingRegister> registers = new java.util.HashSet<org.msh.pdex2.model.r2.ThingRegister>();
 	
-	@OneToMany(targetEntity=org.msh.pdex2.model.r2.ThingArchive.class)	
-	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.SAVE_UPDATE, org.hibernate.annotations.CascadeType.LOCK})	
+	@OneToMany(targetEntity=org.msh.pdex2.model.r2.ThingAmendment.class)	
+	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.ALL, org.hibernate.annotations.CascadeType.DELETE_ORPHAN})	
 	@JoinColumn(name="thingID", nullable=true)	
 	@org.hibernate.annotations.LazyCollection(org.hibernate.annotations.LazyCollectionOption.TRUE)	
-	private java.util.Set<org.msh.pdex2.model.r2.ThingArchive> archives = new java.util.HashSet<org.msh.pdex2.model.r2.ThingArchive>();
+	private java.util.Set<org.msh.pdex2.model.r2.ThingAmendment> amendments = new java.util.HashSet<org.msh.pdex2.model.r2.ThingAmendment>();
 	
 	private void setID(long value) {
 		this.ID = value;
@@ -190,12 +190,12 @@ public class Thing implements Serializable {
 	}
 	
 	
-	public void setArchives(java.util.Set<org.msh.pdex2.model.r2.ThingArchive> value) {
-		this.archives = value;
+	public void setAmendments(java.util.Set<org.msh.pdex2.model.r2.ThingAmendment> value) {
+		this.amendments = value;
 	}
 	
-	public java.util.Set<org.msh.pdex2.model.r2.ThingArchive> getArchives() {
-		return archives;
+	public java.util.Set<org.msh.pdex2.model.r2.ThingAmendment> getAmendments() {
+		return amendments;
 	}
 	
 	

@@ -40,13 +40,13 @@ class Tiles extends Component{
 
     eventProcessor(event){
         let data=event.data
-        if(data.to=="*" && data.from==this.state.data.dictionary.url){
+        if(data.to=="*" ){
             if(data.subject=="onSelectionChange"){
                 this.state.buffer=data.data
                 this.state.data.dictionary = this.state.buffer
 
-                let id = data.data.prevSelected[data.data.prevSelected.length - 1]
-                if(id > 0){
+                //let id = data.data.pathSelected.id
+                if(data.data.path.length==1 ){
                     this.state.data.editForm = true
                     this.load()
                 }else{

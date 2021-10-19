@@ -15,9 +15,6 @@ package org.msh.pdex2.model.r2;
 
 import java.io.Serializable;
 import javax.persistence.*;
-/**
- * Archives of the thing. It may be archives for applications data and or for any other particular thing
- */
 @Entity
 @org.hibernate.annotations.Proxy(lazy=false)
 @Table(name="thingarchive")
@@ -28,27 +25,18 @@ public class ThingArchive implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22227217BE3E951D80B4D4")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22227217BE3E951D80B4D4", strategy="native")	
+	@GeneratedValue(generator="VAC22226E17C9085EA0306EDE")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22226E17C9085EA0306EDE", strategy="native")	
 	private long ID;
 	
-	@OneToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
-	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.SAVE_UPDATE, org.hibernate.annotations.CascadeType.LOCK})	
-	@JoinColumns({ @JoinColumn(name="amendedID") })	
+	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Thing.class)	
+	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.LOCK})	
+	@JoinColumns({ @JoinColumn(name="thingID", referencedColumnName="ID") })	
 	@Basic(fetch=FetchType.LAZY)	
-	private org.msh.pdex2.model.r2.Concept amended;
+	private org.msh.pdex2.model.r2.Thing thing;
 	
-	@OneToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
-	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.SAVE_UPDATE, org.hibernate.annotations.CascadeType.LOCK})	
-	@JoinColumns({ @JoinColumn(name="filecopyID") })	
-	@Basic(fetch=FetchType.LAZY)	
-	private org.msh.pdex2.model.r2.Concept fileCopy;
-	
-	@OneToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
-	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.SAVE_UPDATE, org.hibernate.annotations.CascadeType.LOCK})	
-	@JoinColumns({ @JoinColumn(name="conceptID") })	
-	@Basic(fetch=FetchType.LAZY)	
-	private org.msh.pdex2.model.r2.Concept concept;
+	@Column(name="ThingDto", nullable=true, length=255)	
+	private String thingDto;
 	
 	@Column(name="CreatedAt", nullable=true)	
 	private java.util.Date createdAt;
@@ -65,6 +53,20 @@ public class ThingArchive implements Serializable {
 		return getID();
 	}
 	
+	/**
+	 * Thing DTO in JSON format
+	 */
+	public void setThingDto(String value) {
+		this.thingDto = value;
+	}
+	
+	/**
+	 * Thing DTO in JSON format
+	 */
+	public String getThingDto() {
+		return thingDto;
+	}
+	
 	public void setCreatedAt(java.util.Date value) {
 		this.createdAt = value;
 	}
@@ -73,28 +75,12 @@ public class ThingArchive implements Serializable {
 		return createdAt;
 	}
 	
-	public void setConcept(org.msh.pdex2.model.r2.Concept value) {
-		this.concept = value;
+	public void setThing(org.msh.pdex2.model.r2.Thing value) {
+		this.thing = value;
 	}
 	
-	public org.msh.pdex2.model.r2.Concept getConcept() {
-		return concept;
-	}
-	
-	public void setFileCopy(org.msh.pdex2.model.r2.Concept value) {
-		this.fileCopy = value;
-	}
-	
-	public org.msh.pdex2.model.r2.Concept getFileCopy() {
-		return fileCopy;
-	}
-	
-	public void setAmended(org.msh.pdex2.model.r2.Concept value) {
-		this.amended = value;
-	}
-	
-	public org.msh.pdex2.model.r2.Concept getAmended() {
-		return amended;
+	public org.msh.pdex2.model.r2.Thing getThing() {
+		return thing;
 	}
 	
 	public String toString() {

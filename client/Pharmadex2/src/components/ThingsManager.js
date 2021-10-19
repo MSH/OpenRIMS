@@ -5,6 +5,7 @@ import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
 import Navigator from './utils/Navigator'
 import Thing from './Thing'
+import Spinner from './utils/Spinner'
 
 
 /**
@@ -77,13 +78,13 @@ class ThingsManager extends Component{
      * byAction - saved by the button Save, otherwise saved by "next" or "conclude" 
      */
     afterSave(data, byAction){
-        //store the saved anyway
-        if(this.state.data.auxPath.length>0){
-            this.state.data.auxPath[this.state.data.auxPathIndex]=data
-        }else{
-            this.state.data.path[this.state.data.pathIndex]=data
-        }
+        Spinner.hide()
         if(data.valid){
+            if(this.state.data.auxPath.length==0){
+               // this.state.data.path[this.state.data.pathIndex]=data
+            }else{
+               // this.state.data.auxPath[this.state.data.auxPathIndex]=data
+            }
             if(this.state.data.auxPath.length>0){
                 //process aux path
                 let auxLength=this.state.data.auxPath.length
@@ -107,6 +108,7 @@ class ThingsManager extends Component{
                 }else{
                     //NEXT has been pressed
                     if(this.state.data.auxPathIndex<(auxLength-1)){
+                        this.state.data.auxPath[this.state.data.auxPathIndex]=data
                         this.state.data.auxPathIndex++
                     }else{
                         this.state.data.auxPath=[]
@@ -137,9 +139,10 @@ class ThingsManager extends Component{
                 }
             }else{
                 //movement forward, next has been pressed
+                this.state.data.path[this.state.data.pathIndex]=data
                 this.state.data.pathIndex++
-                this.setState(this.state)
             }
+            this.setState(this.state)
         }
     }
 
@@ -167,6 +170,11 @@ class ThingsManager extends Component{
             if(data.to==this.state.identifier){
                 if(data.subject=="thingLoaded"){
                     this.state.thingIdentifier=data.data.identifier
+                    if(this.state.data.auxPath.length>0){
+                        this.state.data.auxPath[this.state.data.auxPathIndex]=data.data
+                    }else{
+                        this.state.data.path[this.state.data.pathIndex]=data.data
+                    }
                 }
                 if(data.subject=="saved"){
                     this.afterSave(data.data)
@@ -209,7 +217,7 @@ class ThingsManager extends Component{
     paintCurrentThing(){
         let index=0
         let data={}
-        if(this.state.data.path != undefined){
+        if(this.state.data.path != undefined && this.state.data.path[index] != undefined){
             index=this.state.data.pathIndex
             data=this.state.data.path[index]
             data.repaint=true                   //repaint it!
@@ -295,6 +303,7 @@ class ThingsManager extends Component{
                 <BreadcrumbItem className="d-inline"  key={this.state.data.pathIndex+1}>
                     <div className="btn btn-link p-0 border-0"
                         onClick={()=>{
+                            Spinner.show()
                             Navigator.message(this.state.identifier, this.state.thingIdentifier, "saveGuest", {})
                         }}
                     >
@@ -344,6 +353,7 @@ class ThingsManager extends Component{
                         <BreadcrumbItem className="d-inline"  key={this.state.data.pathIndex+1}>
                             <div className="btn btn-link p-0 border-0"
                                 onClick={()=>{
+                                    Spinner.show()
                                     Navigator.message(this.state.identifier, this.state.thingIdentifier, "saveGuest", {})
                                 }}
                             >
@@ -404,7 +414,7 @@ class ThingsManager extends Component{
                 </Row>
                 <Row hidden={this.props.readOnly || this.state.thingIdentifier == undefined}>
                     <Col>
-                    <Breadcrumb>
+                        <Breadcrumb>
                             {this.createBreadCrumb()}
                         </Breadcrumb>
                     </Col>

@@ -19,6 +19,7 @@ import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.TilesDTO;
 import org.msh.pharmadex2.dto.UserElementDTO;
 import org.msh.pharmadex2.dto.WorkflowDTO;
+import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.exception.DataNotFoundException;
 import org.msh.pharmadex2.service.common.UserService;
 import org.msh.pharmadex2.service.r2.ApplicationService;
@@ -49,8 +50,6 @@ public class AdminAPI {
 	ContentService contentService;
 	@Autowired
 	SupervisorService superVisServ;
-	@Autowired
-	private ObjectMapper objectMapper;
 	@Autowired
 	private PubOrgService orgServ;
 	@Autowired
@@ -305,9 +304,10 @@ public class AdminAPI {
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/admin/workflow/configuration/load")
-	public WorkflowDTO workflowConfigurationLoad(@RequestBody WorkflowDTO data) throws DataNotFoundException {
+	public WorkflowDTO workflowConfigurationLoad(Authentication auth,@RequestBody WorkflowDTO data) throws DataNotFoundException {
 		try {
-			data=superVisServ.workflowConfiguration(data);
+			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+			data=superVisServ.workflowConfiguration(data,user);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -321,10 +321,11 @@ public class AdminAPI {
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/admin/thing/load")
-	public ThingDTO thingLoad(@RequestBody ThingDTO data) throws DataNotFoundException {
+	public ThingDTO thingLoad(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
 		if(data.getNodeId()>0) {
 			try {
-				data=superVisServ.thingLoad(data);
+				UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+				data=superVisServ.thingLoad(data,user);
 			} catch (ObjectNotFoundException e) {
 				throw new DataNotFoundException(e);
 			}
@@ -340,14 +341,33 @@ public class AdminAPI {
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/admin/workflow/activity/add")
-	public WorkflowDTO workflowActivityAdd(@RequestBody WorkflowDTO data) throws DataNotFoundException {
+	public WorkflowDTO workflowActivityAdd(Authentication auth,@RequestBody WorkflowDTO data) throws DataNotFoundException {
 		try {
-			data=superVisServ.workflowActivityAdd(data);
+			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+			data=superVisServ.workflowActivityAdd(data,user);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
 	}
+	
+	/**
+	 * Insert an activity before the current one
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/workflow/activity/insert")
+	public WorkflowDTO workflowActivityInsert(Authentication auth,@RequestBody WorkflowDTO data) throws DataNotFoundException {
+		try {
+			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+			data=superVisServ.workflowActivityInsert(data,user);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
 	/**
 	 * Suspend an activity and remove from the path
 	 * @param data
@@ -355,9 +375,10 @@ public class AdminAPI {
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/admin/workflow/activity/suspend")
-	public WorkflowDTO workflowActivitySuspend(@RequestBody WorkflowDTO data) throws DataNotFoundException {
+	public WorkflowDTO workflowActivitySuspend(Authentication auth,@RequestBody WorkflowDTO data) throws DataNotFoundException {
 		try {
-			data=superVisServ.workflowActivitySuspend(data);
+			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+			data=superVisServ.workflowActivitySuspend(data,user);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -505,9 +526,10 @@ public class AdminAPI {
 	}
 	
 	@PostMapping("/api/admin/data/collection/definition/preview")
-	public DataPreviewDTO dataCollectionDefinitionPreview(@RequestBody DataPreviewDTO data) throws DataNotFoundException {
+	public DataPreviewDTO dataCollectionDefinitionPreview(Authentication auth,@RequestBody DataPreviewDTO data) throws DataNotFoundException {
 		try {
-			data=superVisServ.dataCollectionDefinitionPreview(data);
+			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+			data=superVisServ.dataCollectionDefinitionPreview(data,user);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -625,9 +647,10 @@ public class AdminAPI {
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/admin/resource/save")
-	public ThingDTO resourceSave(@RequestBody ThingDTO data) throws DataNotFoundException {
+	public ThingDTO resourceSave(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
 		try {
-			data=superVisServ.resourceSave(data);
+			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+			data=superVisServ.resourceSave(data,user);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}

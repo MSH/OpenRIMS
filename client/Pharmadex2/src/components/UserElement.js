@@ -23,10 +23,8 @@ import Dictionary from './Dictionary'
 class UserElement extends Component{
     constructor(props){
         super(props)
-        this.identifier="user.element"
-        this.alldicts="rolesresponsibilitiesareas"
+        this.identifier=Date.now().toString()
         this.state={
-            alldicts:"rolesresponsibilitiesareas",
             data:{},            //UserElementDTO.java
             labels:{
                 save:'',
@@ -39,39 +37,13 @@ class UserElement extends Component{
             }
         }
         this.loadData=this.loadData.bind(this)
-        this.onGetData=this.onGetData.bind(this)
-        this.isCollected=this.isCollected.bind(this)
         this.comparator = new FieldsComparator(this)
         this.processEvent=this.processEvent.bind(this)
         this.placeLiterals=this.placeLiterals.bind(this)
         this.literal=this.literal.bind(this)
     }
 
-    /**
-     * Get data from a components
-     * @param {object} data 
-     */
-         onGetData(data){
-            let key=data.from
-            this.dicionaries=this.dicionaries.replace(key,"")   //minus the name of a dictionary in the string
-            if(key.length>0){
-                this.state.data[key]=data.data
-                if(this.isCollected()){
-                    Fetchers.postJSONNoSpinner("/api/admin/user/save", this.state.data,(query,result)=>{
-                        Fetchers.setJustLoaded(result,false)
-                        if(result.valid){
-                            //return to the caller
-                            let caller=this.props.caller
-                            Navigator.navigate(caller.tab,caller.component,caller.parameter)
-                        }else{
-                            //send to components validation results
-                            this.state.data=result
-                            this.setState(this.state)
-                        }
-                    })
-                }
-            }
-        }
+ 
         /**
          * Check component pooling completion
          * @returns true if all data has been collected from components
@@ -84,9 +56,9 @@ class UserElement extends Component{
 
     processEvent(event){
         let data=event.data
-        if(data.from != this.identifier && (data.to=="*" || data.to==this.identifier)){
-            if(data.subject=="onGetData"){
-                this.onGetData(data)   //in answer to ask data
+        if(data.to==this.identifier){
+            if(data.subject="onSelectionChange"){
+                this.state.data[data.from]=data.data
             }
         }
     }
@@ -229,13 +201,26 @@ class UserElement extends Component{
                     </Row>
                     <Row>
                         <Col>
-                        <Dictionary identifier="roles" data={this.state.data.roles} recipient={this.identifier}/>
+                        <Dictionary identifier="roles" recipient={this.identifier} data={this.state.data.roles} recipient={this.identifier} display />
                         </Col>
                     </Row>
                 </Col>
               </Row>
              
               <Row>
+              <Col xs='12' sm='12' lg='6' xl='6'>
+                <Row>
+                    <Col>
+                        <Label>{this.state.labels.area_responsibility}</Label>
+                    </Col>
+                    </Row>
+                    <Row>
+                        <Col>
+                            <Dictionary identifier="areas" recipient={this.identifier} data={this.state.data.areas} recipient={this.identifier} display />
+                        </Col>
+                    </Row>
+                    
+                </Col>
                 <Col xs='12' sm='12' lg='6' xl='6'>
                     <Row>
                         <Col>
@@ -244,22 +229,27 @@ class UserElement extends Component{
                     </Row>
                     <Row>
                         <Col>
-                            <Dictionary identifier="responsibilities" data={this.state.data.responsibilities} recipient={this.identifier}/>
+                            <Dictionary identifier="applications" recipient={this.identifier} data={this.state.data.applications} recipient={this.identifier} display />
                         </Col>
-                    </Row>
-                </Col>
-                <Col xs='12' sm='12' lg='6' xl='6'>
-                <Row>
-                    <Col>
-                        <Label>{this.state.labels.area_responsibility}</Label>
-                    </Col>
                     </Row>
                     <Row>
                         <Col>
-                            <Dictionary identifier="areas" data={this.state.data.areas} recipient={this.identifier}/>
+                            <Dictionary identifier="amendments" recipient={this.identifier} data={this.state.data.amendments} recipient={this.identifier} display />
                         </Col>
                     </Row>
+                    <Row>
+                        <Col>
+                            <Dictionary identifier="renewal" recipient={this.identifier} data={this.state.data.renewal} recipient={this.identifier} display />
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col>
+                            <Dictionary identifier="deregistration" recipient={this.identifier} data={this.state.data.deregistration} recipient={this.identifier} display />
+                        </Col>
+                    </Row>
+
                 </Col>
+               
               </Row>
 
               <Row className="mb-2">
@@ -267,10 +257,19 @@ class UserElement extends Component{
                     <ButtonUni
                          label={this.state.labels.save}
                          onClick={()=>{
-                            this.dicionaries=this.alldicts  //to track replies
-                            Navigator.message(this.identifier, "*", "askData",{})
+                            Fetchers.postJSONNoSpinner("/api/admin/user/save", this.state.data,(query,result)=>{
+                                Fetchers.setJustLoaded(result,false)
+                                if(result.valid){
+                                    //return to the caller
+                                    let caller=this.props.caller
+                                    Navigator.navigate(caller.tab,caller.component,caller.parameter)
+                                }else{
+                                    //send to components validation results
+                                    this.state.data=result
+                                    this.setState(this.state)
+                                }
+                            })
                          }}
-                         outline
                          color="primary"
                     />
                   </Col>
@@ -286,7 +285,6 @@ class UserElement extends Component{
                                 Navigator.navigate(caller.tab,caller.component,caller.parameter)
                             })
                          }}
-                         outline
                          color="warning"
                     /> 
                   </Col>
@@ -298,7 +296,6 @@ class UserElement extends Component{
                             Navigator.navigate(caller.tab,caller.component,caller.parameter)
                             }
                         }
-                         outline
                          color="secondary"
                       />
                   </Col>

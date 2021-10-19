@@ -27,7 +27,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class ReportService {
 	private static final Logger logger = LoggerFactory.getLogger(ReportService.class);
-	
+
 	@Autowired
 	private DictService dictServ;
 	@Autowired
@@ -42,6 +42,8 @@ public class ReportService {
 	private BoilerService boilerServ;
 	@Autowired
 	private JdbcRepository jdbcRepo;
+	@Autowired
+	private AccessControlService accessControl;
 	/**
 	 * Load dictionary, table or thing 
 	 * @param user
@@ -70,18 +72,11 @@ public class ReportService {
 			String url=literalServ.readValue("url", conc);
 			if(url.length()>0) {
 				ReportConfigDTO repConf = assmServ.reportConfig(url);
-					long nodeId=0;	//Thing node ID
-					for(TableRow row : data.getTable().getRows()) {
-						if(row.getSelected()) {
-							nodeId=row.getDbID();
-							break;
-						}
-					}
-					if(nodeId==0) {
-						data=reportTable(data,repConf);
-					}else {
-						//TODO data=loadReportThing(data);
-					}
+				if(repConf.getAddressUrl().length()>0) {
+					data = siteReport(data, repConf);
+				}else {
+					data = productReport(user, data, repConf);
+				}
 			}else {
 				data = cleanData(data);
 			}
@@ -90,7 +85,102 @@ public class ReportService {
 		}
 		return data;
 	}
-	
+	/**
+	 * Very Simple product report
+	 * @param user
+	 * @param data
+	 * @param repConf
+	 * @return
+	 */
+	private ReportDTO productReport(UserDetailsDTO user, ReportDTO data, ReportConfigDTO repConf) {
+		//get headers
+		TableQtb table = data.getTable();
+		Headers headers= headersProduct(table.getHeaders());
+		if(table.getHeaders().getHeaders().size()!=headers.getHeaders().size()) {
+			table.setHeaders(headers);
+		}else {
+			if(table.getHeaders().getHeaders().get(0).getKey().equals(headers.getHeaders().get(0).getKey())) {
+				table.setHeaders(headers);
+			}
+		}
+		//get data
+		jdbcRepo.productReport(repConf.getDataUrl(), repConf.getRegisterAppUrl());
+		//applicant may see only own or not?
+		String where = "";
+		if(repConf.isApplicantRestriction()) {
+			if(accessControl.isApplicant(user)) {
+				where = "email='"+user.getEmail()+"'";
+			}
+		}
+		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from report_products", "", where, table.getHeaders());
+		TableQtb.tablePage(rows, table);
+		return data;
+	}
+	/**
+	 * Create headers for simple product reports
+	 * @param headers
+	 * @return
+	 */
+	private Headers headersProduct(Headers headers) {
+		headers.getHeaders().clear();
+		headers.getHeaders().add(TableHeader.instanceOf(
+				"product",
+				"prefLabel",
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_LINK,
+				40));
+		headers.getHeaders().add(TableHeader.instanceOf(
+				"register",
+				"reg_number",
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_STRING,
+				20));
+		headers.getHeaders().add(TableHeader.instanceOf(
+				"registered",
+				"registration_date",
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_LOCALDATE,
+				11));
+		headers.getHeaders().add(TableHeader.instanceOf(
+				"valid",
+				"valid_to",
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_LOCALDATE,
+				11));
+		headers=boilerServ.translateHeaders(headers);
+		headers.setPageSize(20);
+		return headers;
+	}
+	/**
+	 * Simple site report
+	 * @param data
+	 * @param repConf
+	 * @return
+	 */
+	public ReportDTO siteReport(ReportDTO data, ReportConfigDTO repConf) {
+		long nodeId=0;	//Thing node ID
+		for(TableRow row : data.getTable().getRows()) {
+			if(row.getSelected()) {
+				nodeId=row.getDbID();
+				break;
+			}
+		}
+		if(nodeId==0) {
+			data=reportTable(data,repConf);
+		}else {
+			//TODO data=loadReportThing(data);
+		}
+		return data;
+	}
+
 	/**
 	 * Data table for report may be build
 	 * @param data
@@ -122,16 +212,21 @@ public class ReportService {
 	 */
 	private ReportDTO registeredFacilityTable(ReportDTO data, ReportConfigDTO repConf) {
 		TableQtb table = data.getTable();
-		if(table.getHeaders().getHeaders().size()==0) {
-			table.setHeaders(headersRegisteredFacility(table.getHeaders()));
+		Headers headers= headersRegisteredFacility(table.getHeaders());
+		if(table.getHeaders().getHeaders().size()!=headers.getHeaders().size()) {
+			table.setHeaders(headers);
+		}else {
+			if(table.getHeaders().getHeaders().get(0).getKey().equals(headers.getHeaders().get(0).getKey())) {
+				table.setHeaders(headers);
+			}
 		}
 		jdbcRepo.report_sites(repConf.getDataUrl(), repConf.getDictStageUrl(), repConf.getAddressUrl(), repConf.getOwnerUrl(),
-				repConf.getInspectAppUrl(), repConf.getRenewAppUrl());
+				repConf.getInspectAppUrl(), repConf.getRenewAppUrl(), repConf.getRegisterAppUrl());
 		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from report_sites", "", "", table.getHeaders());
 		TableQtb.tablePage(rows, table);
 		return data;
 	}
-	
+
 	/**
 	 * Report table headers for registered facility 
 	 * @param headers
@@ -256,14 +351,14 @@ public class ReportService {
 		}
 		String select = "SELECT r.RegisteredAt, r.Register,r.ValidTo,tr.VarName "
 				+ "FROM register r join thingregister tr on tr.conceptID=r.conceptID";
-	    
+
 		List<TableRow> rows= jdbcRepo.qtbGroupReport(select, "", "r.appdataID='"+data.getNodeId()+"'", regTable.getHeaders());
 		TableQtb.tablePage(rows, regTable);
 		regTable.setSelectable(false);
 		boilerServ.translateRows(regTable);
 		return data;
 	}
-	
+
 	/**
 	 * Records from register
 	 * @param headers
@@ -308,6 +403,4 @@ public class ReportService {
 		return headers;
 	}
 
-	
-	
 }

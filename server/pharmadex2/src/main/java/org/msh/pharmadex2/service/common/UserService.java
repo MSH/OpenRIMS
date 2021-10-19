@@ -605,7 +605,16 @@ public class UserService implements UserDetailsService {
 					data.getAreas().getPrevSelected().add(dictVal.getConcept().getID());
 				}
 				if(dictVal.getUrl().equalsIgnoreCase(SystemService.DICTIONARY_GUEST_APPLICATIONS)) {
-					data.getResponsibilities().getPrevSelected().add(dictVal.getConcept().getID());
+					data.getApplications().getPrevSelected().add(dictVal.getConcept().getID());
+				}
+				if(dictVal.getUrl().equalsIgnoreCase(SystemService.DICTIONARY_GUEST_AMENDMENTS)) {
+					data.getAmendments().getPrevSelected().add(dictVal.getConcept().getID());
+				}
+				if(dictVal.getUrl().equalsIgnoreCase(SystemService.DICTIONARY_GUEST_RENEWAL)) {
+					data.getRenewal().getPrevSelected().add(dictVal.getConcept().getID());
+				}
+				if(dictVal.getUrl().equalsIgnoreCase(SystemService.DICTIONARY_GUEST_DEREGISTRATION)) {
+					data.getDeregistration().getPrevSelected().add(dictVal.getConcept().getID());
 				}
 			}
 
@@ -615,8 +624,16 @@ public class UserService implements UserDetailsService {
 		//prepare dictionaries
 		data.setRoles(systemServ.userRolesDict(data.getRoles()));
 		data.setAreas(systemServ.addressDictionary(data.getAreas()));
-		data.setResponsibilities(systemServ.applDictionary(data.getResponsibilities()));
-		data.getResponsibilities().setMult(true);
+		
+		data.setApplications(systemServ.applicationsDictionary(data.getApplications()));
+		data.setRenewal(systemServ.renewalDict(data.getRenewal()));
+		data.setAmendments(systemServ.amendmentDictionary(data.getAmendments()));
+		data.setDeregistration(systemServ.deregistrationDict(data.getDeregistration()));
+		
+		data.getApplications().setMult(true);
+		data.getAmendments().setMult(true);
+		data.getRenewal().setMult(true);
+		data.getDeregistration().setMult(true);
 		return data;
 	}
 
@@ -671,7 +688,10 @@ public class UserService implements UserDetailsService {
 			//save dictionaries
 			user.getDictionaries().clear();
 			user.getDictionaries().addAll(createDictItems(data.getRoles()));
-			user.getDictionaries().addAll(createDictItems(data.getResponsibilities()));
+			user.getDictionaries().addAll(createDictItems(data.getApplications()));
+			user.getDictionaries().addAll(createDictItems(data.getRenewal()));
+			user.getDictionaries().addAll(createDictItems(data.getAmendments()));
+			user.getDictionaries().addAll(createDictItems(data.getDeregistration()));
 			user.getDictionaries().addAll(createDictItems(data.getAreas()));
 			//other fields
 

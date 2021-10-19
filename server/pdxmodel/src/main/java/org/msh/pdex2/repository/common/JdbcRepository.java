@@ -349,16 +349,21 @@ public class JdbcRepository {
 
 	/**
 	 * Call stored procedure to prepare the file list
-	 * @param id
-	 * @param thingNodeId
-	 * @param locale
+	 * @param dictRootId root od the dictionary
+	 * @param thingId id of the current thing, 0 for the new thing
+	 * @param docUrl url of the current document
+	 * @param varName name of variable
+	 * @param email user's email
 	 */
-	public void prepareFileList(long dictRootId, long thingNodeId) {
+	public void prepareFileList(long dictRootId, long thingId, String docUrl, String varName, String email) {
 		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
 		proc.withProcedureName("filelist");
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("dictrootid", dictRootId);
-		params.addValue("thingid", thingNodeId);
+		params.addValue("thingid", thingId);
+		params.addValue("docurl", docUrl);
+		params.addValue("varname", varName);
+		params.addValue("email", email);
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 	}
@@ -474,7 +479,7 @@ public class JdbcRepository {
 	 * @param renewAppUrl under which renewal applications are stored, i.e. application.pharmacy.renew
 	 */
 	public void report_sites(String dataUrl, String dictStageUrl, String addressUrl, String ownerUrl,
-			String inspectAppUrl, String renewAppUrl) {
+			String inspectAppUrl, String renewAppUrl, String certAppUrl) {
 			SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
 			proc.withProcedureName("report_sites");
 			MapSqlParameterSource params = new MapSqlParameterSource();
@@ -484,9 +489,77 @@ public class JdbcRepository {
 			params.addValue("owner_url", ownerUrl);
 			params.addValue("appl_inspection_url", inspectAppUrl);
 			params.addValue("appl_renew_url", renewAppUrl);
+			params.addValue("appl_cert_url", certAppUrl);
 			params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 			proc.execute(params);
 		
+	}
+	/**
+	 * load amendments
+	 * @param email user's email, if null - all users all amendments
+	 */
+	public void amendments(String email) {
+			SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+			proc.withProcedureName("amendments");
+			MapSqlParameterSource params = new MapSqlParameterSource();
+			params.addValue("email", email);
+			params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+			proc.execute(params);
+	}
+	/**
+	 * Move root of some tree to a new root
+	 * @param root
+	 * @param newRoot
+	 */
+	@Transactional
+	public void moveSubTree(Concept root, Concept newRoot) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("moveSubTree");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("rootNode", root.getID());
+		params.addValue("newParent", newRoot.getID());
+		proc.execute(params);
+	}
+	/**
+	 * Get the history of an application data
+	 * @param applDataId
+	 */
+	@Transactional
+	public void application_history(long applDataId) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("application_history");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("applDataId", applDataId);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+	}
+	/**
+	 * Load list of persons for the application data
+	 * @param nodeId
+	 */
+	@Transactional
+	public void persons_application(long applDataId) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("persons_application");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("applDataId", applDataId);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+		
+	}
+	/**
+	 * Simple product report
+	 * @param dataUrl
+	 * @param register_url
+	 */
+	public void productReport(String dataUrl, String register_url) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("report_products");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("data_url", dataUrl);
+		params.addValue("register_url", register_url);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
 	}
 
 

@@ -13,4 +13,5 @@ public interface AssemblyRepo extends CrudRepository<Assembly, Long> {
 
 	List<Assembly> findAllByPropertyNameIn(List<Concept> vars, Sort sort);
 
+
 }

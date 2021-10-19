@@ -17,6 +17,8 @@ public class ReportConfigDTO extends AllowValidation{
 	private String addressUrl="";
 	private String inspectAppUrl ="";
 	private String renewAppUrl ="";
+	private String registerAppUrl="";
+	private boolean applicantRestriction=false;		//applicant should see only own
 	private boolean registered=true;
 	public String getDataUrl() {
 		return dataUrl;
@@ -59,6 +61,18 @@ public class ReportConfigDTO extends AllowValidation{
 	}
 	public void setRenewAppUrl(String renewAppUrl) {
 		this.renewAppUrl = renewAppUrl;
+	}
+	public String getRegisterAppUrl() {
+		return registerAppUrl;
+	}
+	public void setRegisterAppUrl(String registerAppUrl) {
+		this.registerAppUrl = registerAppUrl;
+	}
+	public boolean isApplicantRestriction() {
+		return applicantRestriction;
+	}
+	public void setApplicantRestriction(boolean applicantRestriction) {
+		this.applicantRestriction = applicantRestriction;
 	}
 
 }

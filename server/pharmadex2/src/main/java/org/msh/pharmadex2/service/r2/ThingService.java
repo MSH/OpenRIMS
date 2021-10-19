@@ -12,6 +12,9 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+
 import org.msh.pdex2.dto.table.Headers;
 import org.msh.pdex2.dto.table.TableCell;
 import org.msh.pdex2.dto.table.TableHeader;
@@ -25,6 +28,7 @@ import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.model.r2.Register;
 import org.msh.pdex2.model.r2.Scheduler;
 import org.msh.pdex2.model.r2.Thing;
+import org.msh.pdex2.model.r2.ThingAmendment;
 import org.msh.pdex2.model.r2.ThingDict;
 import org.msh.pdex2.model.r2.ThingDoc;
 import org.msh.pdex2.model.r2.ThingPerson;
@@ -37,17 +41,20 @@ import org.msh.pdex2.repository.r2.HistoryRepo;
 import org.msh.pdex2.repository.r2.ThingRepo;
 import org.msh.pharmadex2.dto.AddressDTO;
 import org.msh.pharmadex2.dto.AddressValuesDTO;
+import org.msh.pharmadex2.dto.AmendmentDTO;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.DictValuesDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.FileDTO;
 import org.msh.pharmadex2.dto.PersonDTO;
 import org.msh.pharmadex2.dto.PersonSelectorDTO;
+import org.msh.pharmadex2.dto.PersonSpecialDTO;
 import org.msh.pharmadex2.dto.RegisterDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
 import org.msh.pharmadex2.dto.SchedulerDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.ThingValuesDTO;
+import org.msh.pharmadex2.dto.WorkflowParamDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.dto.form.OptionDTO;
@@ -107,6 +114,10 @@ public class ThingService {
 	private HistoryRepo historyRepo;
 	@Autowired
 	private ResourceService resourceServ;
+	@Autowired
+	private AmendmentService amendServ;
+	@PersistenceContext
+	EntityManager entityManager;
 
 	/**
 	 * Create a new thing
@@ -125,7 +136,7 @@ public class ThingService {
 			}else {
 				data.setTitle(messages.get(data.getVarName()));
 			}
-			data = createContent(data);
+			data = createContent(data,user);
 		}else {
 			throw new ObjectNotFoundException("User is not allowed to initiate application. User is "+user.getEmail(),logger);
 		}
@@ -134,17 +145,23 @@ public class ThingService {
 	/**
 	 * Create all content in thing DTO
 	 * @param data
+	 * @param user 
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	public ThingDTO createContent(ThingDTO data) throws ObjectNotFoundException {
+	public ThingDTO createContent(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		//literals
 		List<AssemblyDTO> headings = assemblyServ.auxHeadings(data.getUrl());
 		data.getHeading().clear();
 		for(AssemblyDTO head : headings) {
 			data.getHeading().put(head.getPropertyName(), messages.get(head.getPropertyName()));
 		}
+
+		data.getStrings().clear();
+		List<AssemblyDTO> strings = assemblyServ.auxStrings(data.getUrl());
+		data=dtoServ.createStrings(data,strings);
+
 		List<AssemblyDTO> literals = assemblyServ.auxLiterals(data.getUrl());
 		data=dtoServ.createLiterals(data, literals);
 		//dates
@@ -164,7 +181,7 @@ public class ThingService {
 		data=createAddresses(data, addresses);
 		//files
 		List<AssemblyDTO> documents = assemblyServ.auxDocuments(data.getUrl());
-		data=createDocuments(documents, data);
+		data=createDocuments(documents, data,user);
 		List<AssemblyDTO> resources = assemblyServ.auxResources(data.getUrl());
 		data=createResources(resources,data);
 		//things
@@ -176,11 +193,17 @@ public class ThingService {
 		//person selectors
 		List<AssemblyDTO> personselectors = assemblyServ.auxPersonSelector(data.getUrl());
 		data=createPersonSelectors(personselectors,data);
+		List<AssemblyDTO> personspecial = assemblyServ.auxPersonSpecials(data.getUrl());
+		data = createPersonSpecial(personspecial, data);
 		//Schedulers
 		List<AssemblyDTO> schedulers = assemblyServ.auxSchedulers(data.getUrl());
 		data=createSchedulers(schedulers, data);
+		//Registers
 		List<AssemblyDTO> registers = assemblyServ.auxRegisters(data.getUrl());
 		data=createRegisters(registers,data);
+		//Amendments
+		List<AssemblyDTO> amendments = assemblyServ.auxAmendments(data.getUrl());
+		data=createAmendments(amendments,data,user);
 		//form actions
 		data.setActionBar(assemblyServ.formActions(data.getUrl()));
 		//layout
@@ -192,6 +215,154 @@ public class ThingService {
 	}
 
 	/**
+	 * Create data for amendment component, i.e. a pointer to concept (thing) amended by this
+	 * @param amendments
+	 * @param data
+	 * @param user 
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private ThingDTO createAmendments(List<AssemblyDTO> amendments, ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		//read a configuration
+		data.getAmendments().clear();
+		AmendmentDTO dto = new AmendmentDTO();
+		for(AssemblyDTO asm : amendments) {
+			dto.setUrl(asm.getUrl());
+			dto.setVarName(asm.getPropertyName());
+			dto.setPattern(asm.getFileTypes());
+			data.getAmendments().put(dto.getVarName(),dto);
+			break;		//only one is allowed
+		}
+		//load a concept if one
+		if(data.getNodeId()>0) {
+			Concept node = closureServ.loadConceptById(data.getNodeId());
+			Thing thing = new Thing();
+			thing = boilerServ.loadThingByNode(node, thing);
+			for(ThingAmendment ta :thing.getAmendments()) {
+				if(dto.getUrl().equalsIgnoreCase(ta.getUrl())) {
+					dto.setDataNodeId(ta.getConcept().getID());
+				}
+				break;										//only one is possible
+			}
+		}
+		//create a table
+		if(dto.getUrl().length()>0) {
+			dto=amendServ.createTable(dto,user);
+		}
+		return data;
+	}
+	/**
+	 * Create special person
+	 * @param personspecial
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	@Transactional
+	private ThingDTO createPersonSpecial(List<AssemblyDTO> personspecial, ThingDTO data) throws ObjectNotFoundException {
+		//it is possible only one Special Person for a thing
+		if(personspecial.size()==1) {
+			AssemblyDTO adto = personspecial.get(0);
+			PersonSpecialDTO ps = new PersonSpecialDTO();
+			if(data.getPersonspec().size()==1) {
+				ps=data.getPersonspec().get(adto.getPropertyName());
+			}
+			if(ps!=null) {
+				ps.setVarName(adto.getPropertyName());				//variable for it
+				//object's data
+				ps.setParentId(data.getParentId());
+				//person data
+				ps.setPersonDataId(data.getNodeId());
+				//url of the unit of person's data. The root unit are allowed
+				ps.setPresonDataUrl(data.getUrl());
+				//restrict person's selection to this root person url, empty means all!
+				ps.setRestrictByURl(adto.getDictUrl());
+				//this component data 						
+				ps.setNodeUrl(adto.getAuxDataUrl());
+				data.getPersonspec().put(adto.getPropertyName(), ps);
+				//load it
+				ps=personList(ps);
+				//mark it
+				if(data.getNodeId()>0) {
+					Concept pconc= closureServ.loadConceptById(data.getNodeId());
+					if(pconc.getLabel() != null) {
+						String persIdStr= pconc.getLabel();
+						try {
+							Long persId= new Long(persIdStr);
+							Concept pers = closureServ.loadConceptById(persId);
+							ps.setSelectedName(literalServ.readPrefLabel(pers));
+						} catch (NumberFormatException e) {
+							//nothing to do
+						}
+					}
+					for(TableRow row : ps.getTable().getRows()) {
+						Concept node = closureServ.loadConceptById(row.getDbID());
+						if(conceptBelongToNode(node, pconc)) {
+							row.setSelected(true);
+						}
+					}
+				}
+			}
+		}
+		return data;
+	}
+	/**
+	 * Concept is belong to node if this concept is node itself or related thing 
+	 * @param node
+	 * @param pconc
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private boolean conceptBelongToNode(Concept node, Concept pconc) throws ObjectNotFoundException {
+		if(node.getID()==pconc.getID()) {
+			return true;
+		}
+		Thing th = boilerServ.loadThingByNode(node);
+		for(ThingThing tt : th.getThings()) {
+			if(tt.getConcept().getID()==pconc.getID()) {
+				return true;
+			}
+		}
+		return false;
+	}
+	/**
+	 * Load a list of all persons in this application data
+	 * @param data
+	 * @return
+	 */
+	public PersonSpecialDTO personList(PersonSpecialDTO data) {
+		TableQtb table = data.getTable();
+		table.getHeaders().getHeaders().clear();
+		table.getHeaders().getHeaders().add(TableHeader.instanceOf(
+				"pref",
+				"prefLabel",
+				true,
+				false,
+				false,
+				TableHeader.COLUMN_LINK,
+				0));
+		jdbcRepo.persons_application(data.getParentId());
+		long selected = 0;
+		for(TableRow row : table.getRows()) {
+			if (row.getSelected()) {
+				selected = row.getDbID();
+			}
+		}
+		String where="";
+		if(data.getRestrictByURl().length()>0) {
+			where="url='"+data.getRestrictByURl()+"'";
+		}
+		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from persons_application", "", where, table.getHeaders());
+		TableQtb.tablePage(rows, table);
+		for(TableRow row : table.getRows()) {
+			row.setSelected(row.getDbID()==selected);
+		}
+		table.setHeaders(boilerServ.translateHeaders(table.getHeaders()));
+		return data;
+	}
+	/**
 	 * create empty and load existing registers
 	 * @param registers
 	 * @param data
@@ -200,10 +371,11 @@ public class ThingService {
 	 */
 	private ThingDTO createRegisters(List<AssemblyDTO> registers, ThingDTO data) throws ObjectNotFoundException {
 		data.getRegisters().clear();
-		//create
+		//all registers here
 		for(AssemblyDTO ad : registers) {
 			String prevNumber=boilerServ.registerPrev(ad.getUrl());		//prev number
 			RegisterDTO dto = new RegisterDTO();
+			dto.setReadOnly(ad.isReadOnly());
 			dto.setUrl(ad.getUrl());
 			dto.setPrev(FormFieldDTO.of(prevNumber));
 			dto.setVarName(ad.getPropertyName());
@@ -212,24 +384,44 @@ public class ThingService {
 			dto.setExpirable(ad.isMult());
 			data.getRegisters().put(dto.getVarName(),dto);
 		}
-		//try to load
-		if(data.getNodeId()>0 && data.getRegisters().size()>0) {
-			Concept node = closureServ.loadConceptById(data.getNodeId());
+		//do we have value here, connected to the current application data or an amendment?
+		if(data.getHistoryId()>0) {
 			History his = boilerServ.historyById(data.getHistoryId());
-			Thing thing = boilerServ.loadThingByNode(node);
-			for(ThingRegister tr : thing.getRegisters()) {
+			data=registersLoad(data, his.getApplicationData());
+			Concept amended = amendServ.amendedConcept(his.getApplicationData());
+			if(amended.getID()>0) {
+				data=registersLoad(data, amended);
+			}
+		}
+		return data;
+	}
+
+	/**
+	 * Load registers
+	 * @param data contains list of registers-valrname-urls
+	 * @param applData
+	 * @throws ObjectNotFoundException
+	 */
+	@Transactional
+	private ThingDTO registersLoad(ThingDTO data, Concept applData) throws ObjectNotFoundException {
+		if(data.getRegisters().size()==0) {
+			return data;
+		}
+		//all "this" registers
+		List<Register> regs = boilerServ.registersByApplData(applData);
+		for(Register reg : regs) {
+			List<ThingRegister> trList = boilerServ.thingRegisterByNode(reg.getConcept());	//all relation
+			for(ThingRegister tr : trList) {
 				RegisterDTO dto = data.getRegisters().get(tr.getVarName());
-				if(dto!=null) {
-					Register reg = boilerServ.registerByConcept(tr.getConcept());
+				if(dto!=null && dto.getUrl().equalsIgnoreCase(tr.getUrl())) {
 					dto.setReg_number(FormFieldDTO.of(reg.getRegister()));
 					FormFieldDTO<LocalDate> regd = FormFieldDTO.of(boilerServ.convertToLocalDateViaMilisecond(reg.getRegisteredAt()));
 					FormFieldDTO<LocalDate> expd = FormFieldDTO.of(boilerServ.convertToLocalDateViaMilisecond(reg.getValidTo()));
 					dto.setRegistration_date(regd);
 					dto.setExpiry_date(expd);
-					dto.setNodeID(tr.getConcept().getID());
-					dto.setAppDataID(his.getApplicationData().getID());
+					dto.setNodeID(reg.getConcept().getID());
 				}
-			}			
+			}
 		}
 		return data;
 	}
@@ -345,7 +537,16 @@ public class ThingService {
 			PersonSelectorDTO dto = new PersonSelectorDTO();
 			dto.setHistoryId(data.getHistoryId());
 			dto.setPersonUrl(ad.getUrl());
-			dto=resourceServ.personSelectorTable(dto);								//for current persons are resources
+			dto=amendServ.personSelectorTable(dto);										//the amended data has precedence
+			if(dto.getTable().getRows().size()==0) {
+				dto=resourceServ.personSelectorTable(dto);								//not found in amended data
+			}
+			List<Long> selected = boilerServ.saveSelectedRows(dto.getTable());
+			if(selected.size()==0) {
+				if(dto.getTable().getRows().size()>0) {
+					dto.getTable().getRows().get(0).setSelected(true);			//for lazy testers
+				}
+			}
 			data.getPersonselector().put(ad.getPropertyName(),dto);
 		}
 		return data;
@@ -529,7 +730,8 @@ public class ThingService {
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	private ThingDTO createDocuments(List<AssemblyDTO> files, ThingDTO data) throws ObjectNotFoundException {
+	@Transactional
+	private ThingDTO createDocuments(List<AssemblyDTO> files, ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		data.getDocuments().clear();
 		//prepare files
 		for(AssemblyDTO asm : files) {
@@ -540,8 +742,8 @@ public class ThingService {
 			fdto.setDictUrl(asm.getDictUrl());
 			fdto.setVarName(asm.getPropertyName());
 			fdto.setThingNodeId(data.getNodeId());
-			fdto=createDocUploaded(fdto);
-			fdto = createDocTable(fdto);
+			fdto = createDocTable(fdto,user);
+			fdto=createDocUploaded(fdto,user);
 			data.getDocuments().put(asm.getPropertyName(),fdto);
 		}
 		return data;
@@ -553,16 +755,30 @@ public class ThingService {
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	private FileDTO createDocUploaded(FileDTO data) throws ObjectNotFoundException {
+	private FileDTO createDocUploaded(FileDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		data.getLinked().clear();
 		if(data.getThingNodeId()>0) {
+			//take from linked
 			Concept thingConc = closureServ.loadConceptById(data.getThingNodeId());
 			Thing thing = new Thing();
 			thing = boilerServ.loadThingByNode(thingConc, thing);
 			for(ThingDoc td : thing.getDocuments()) {
 				long dictItemId = td.getDictNode().getID();
 				long fileNodeId = td.getConcept().getID();
-				data.getLinked().put(dictItemId, fileNodeId);
+				data.getLinked().put(dictItemId,fileNodeId);
+			}
+		}else {
+			//take from the database
+			Headers th = new Headers();
+			Concept dictRoot = closureServ.loadRoot(data.getDictUrl());
+			th.getHeaders().add(TableHeader.instanceOf("ID", TableHeader.COLUMN_LONG));	//dictNodeId
+			th.getHeaders().add(TableHeader.instanceOf("nodeId", TableHeader.COLUMN_LONG)); //nodeId
+			jdbcRepo.prepareFileList(dictRoot.getID(),0,data.getUrl(), data.getVarName(), user.getEmail());
+			List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from _filelist", "", "", th);
+			for(TableRow row : rows) {
+				Long dictNodeId = (Long) row.getRow().get(0).getOriginalValue();
+				Long fileNodeId = (Long) row.getRow().get(1).getOriginalValue();
+				data.getLinked().put(dictNodeId, fileNodeId);
 			}
 		}
 		return data;
@@ -573,33 +789,31 @@ public class ThingService {
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	private FileDTO createDocTable(FileDTO data) throws ObjectNotFoundException {
+	@Transactional
+	private FileDTO createDocTable(FileDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		if(data.getTable().getHeaders().getHeaders().size()==0) {
 			data.getTable().setHeaders(createDocTableHeaders(data.getTable().getHeaders()));
 		}
-		Concept dictRoot = closureServ.loadRoot(data.getDictUrl());
-		long thingId=0;
+		Concept dict = closureServ.loadRoot(data.getDictUrl());
+		Concept node = new Concept();
 		if(data.getThingNodeId()>0) {
-			Concept thingNode=closureServ.loadConceptById(data.getThingNodeId());
-			Thing thing = new Thing();
-			thing = boilerServ.loadThingByNode(thingNode, thing);
-			thingId = thing.getID(); 
+			node=closureServ.loadConceptById(data.getThingNodeId());
 		}
-
-		jdbcRepo.prepareFileList(dictRoot.getID(), thingId);
-		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from _filelist", "", "", data.getTable().getHeaders());
+		Thing thing = new Thing();
+		thing = boilerServ.loadThingByNode(node, thing);
+		jdbcRepo.prepareFileList(dict.getID(),thing.getID(),data.getUrl(), data.getVarName(), user.getEmail());
+		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from _filelist", "","", data.getTable().getHeaders());
 		TableQtb.tablePage(rows, data.getTable());
 		for(TableRow row : rows) {
-			Long fileNodeId = data.getLinked().get(row.getDbID());
 			TableCell cell = row.getCellByKey("filename");
-			if(data.isReadOnly()) {
-				cell.setValue("");
-				cell.setOriginalValue("");
-			}
-			if(fileNodeId != null) {
-				Concept fileNode = closureServ.loadConceptById(fileNodeId);
-				cell.setValue(fileNode.getLabel());
-				cell.setOriginalValue(fileNode.getLabel());
+			if(cell.getOriginalValue()==null || cell.getValue().length()==0) {
+				if(data.isReadOnly()) {
+					cell.setValue("");
+					cell.setOriginalValue("");
+				}else {
+					cell.setValue(messages.get("upload_file"));
+					cell.setOriginalValue(messages.get("upload_file"));
+				}
 			}
 		}
 		boilerServ.translateRows(data.getTable());
@@ -639,6 +853,7 @@ public class ThingService {
 				TableHeader.COLUMN_STRING,
 				0));
 		headers=boilerServ.translateHeaders(headers);
+		headers.getHeaders().get(1).setSortValue(TableHeader.SORT_ASC);
 		return headers;
 	}
 	/**
@@ -702,13 +917,15 @@ public class ThingService {
 	 * @param user
 	 * @return
 	 * @throws ObjectNotFoundException 
+	 * @throws JsonProcessingException 
 	 */
 	@Transactional
-	public ThingDTO save(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+	public ThingDTO save(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException, JsonProcessingException {
 		data = validServ.thing(data);
 		if(data.isValid() || !data.isStrict()) {
 			data.setStrict(true);									//to ensure the next
 			if(accessControlServ.writeAllowed(data, user)) {
+				data = checkUrlChange(data);
 				Concept node = new Concept();
 				if(data.getNodeId()==0) {
 					node = createNode(data.getUrl(), user.getEmail());
@@ -723,16 +940,18 @@ public class ThingService {
 				thing.setUrl(data.getUrl());
 
 				//store data under the node and thing
+				data = storeStrings(node,data);
 				data = storeLiterals(node, data);
 				data = storeDates(node,data);
 				data = storeNumbers(node, data);
 				data = storeLogical(node,data);
 				data = storeDictionaries(thing,data);
-				data = storeDocuments(thing, data);
+				data = storeDocuments(thing, data,user);
 				data = storeAddresses(user, node, thing,data);
+				data = storeAmended(user, node, thing, data);
 
-				//store a thing
 				thing = thingRepo.save(thing);
+
 				/////////////////// Store data, end /////////////////////////////
 
 				//application and activity
@@ -744,7 +963,8 @@ public class ThingService {
 				//schedules and registers should be stored only for an application
 				data = storeSchedule(user, node, thing, data);
 				data = storeRegister(user, thing, data);
-
+				//person special may change parent ID
+				data = storePersonSpecial(data, thing);
 				//attach to the parent auxiliary things
 				if(data.getParentId()>0) {
 					Concept incl=closureServ.loadConceptById(data.getParentId());
@@ -780,7 +1000,92 @@ public class ThingService {
 	}
 
 
+	/**
+	 * Store which object should be amended 
+	 * @param user
+	 * @param node
+	 * @param thing
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private ThingDTO storeAmended(UserDetailsDTO user, Concept node, Thing thing, ThingDTO data) throws ObjectNotFoundException {
+		if(data.getAmendments().size()==1) {
+			Set<String> keySet = data.getAmendments().keySet();
+			AmendmentDTO dto = data.getAmendments().get(keySet.iterator().next());
+			dto=validServ.amendment(dto);		//always mandatory, always strict
+			if(dto.isValid()) {
+				data.setValid(true);
+				data = amendServ.save(user, node, thing, data, dto);
+			}else {
+				data.setValid(false);
+			}
+		}
+		return data;
+	}
+	/**
+	 * Component Person Special may change the parent ID
+	 * @param data
+	 * @param thing 
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private ThingDTO storePersonSpecial(ThingDTO data, Thing thing) throws ObjectNotFoundException {
+		Set<String> keyset = data.getPersonspec().keySet();
+		if(keyset.size()==1) {
+			PersonSpecialDTO dto = data.getPersonspec().get(keyset.iterator().next());
+			//save under the current person Id
+			Concept pconc = new Concept();
+			for(TableRow row : dto.getTable().getRows()) {
+				if(row.getSelected()) {
+					pconc=closureServ.loadConceptById(row.getDbID());
+					break;
+				}
+			}
+			if(pconc.getID()>0) {
+				Thing th = boilerServ.loadThingByNode(pconc);
+				Concept conc = closureServ.loadConceptById(data.getNodeId());
+				conc.setLabel(pconc.getID()+"");				//save Person ID to the label of node. Acceptable
+				ThingThing link= new ThingThing();
+				for(ThingThing tt :th.getThings()) {
+					if(tt.getUrl().equalsIgnoreCase(dto.getPresonDataUrl())) {
+						link=tt;
+					}
+				}
+				if(link.getID()==0) {
+					link.setConcept(conc);
+					link.setUrl(data.getUrl());
+					link.setVarname(data.getVarName());
+					th.getThings().add(link);
+					th=thingRepo.save(th);
+				}
+			}
+			//set new parent ID
+			data.setParentId(dto.getParentId());
+		}
 
+		return data;
+	}
+	/**
+	 * Sometimes the data URL may be changed, this we should re-save the data under the new url
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private ThingDTO checkUrlChange(ThingDTO data) throws ObjectNotFoundException {
+		if(data.getNodeId()>0) {
+			Concept node = closureServ.loadConceptById(data.getNodeId());
+			List<Concept> parents = closureServ.loadParents(node);
+			if(!parents.get(0).getIdentifier().equalsIgnoreCase(data.getUrl())) {
+				jdbcRepo.removeConcept(node);
+				data.setNodeId(0l);
+			}
+		}
+		return data;
+	}
 	/**
 	 * Attach the node to persons
 	 * @param data
@@ -811,22 +1116,20 @@ public class ThingService {
 	 * @param node
 	 * @param attachTo
 	 */
+	@Transactional
 	public void saveToThings(ThingDTO data, Concept node, Thing attachTo) {
-		boolean found = false;
+		ThingThing link = new ThingThing();
 		for(ThingThing tt : attachTo.getThings()) {
 			if(tt.getVarname().equalsIgnoreCase(data.getVarName())) {
-				found=true;
+				link=tt;
 				break;
 			}
 		}
-		if(!found) {
-			ThingThing link = new ThingThing();
-			link.setConcept(node);
-			link.setUrl(data.getUrl());
-			link.setVarname(data.getVarName());
-			attachTo.getThings().add(link);
-			attachTo=thingRepo.save(attachTo);
-		}
+		link.setConcept(node);
+		link.setUrl(data.getUrl());
+		link.setVarname(data.getVarName());
+		attachTo.getThings().add(link);
+		attachTo=thingRepo.save(attachTo);
 	}
 
 	/**
@@ -836,9 +1139,10 @@ public class ThingService {
 	 * @param applicationData
 	 * @return the first activity in the application
 	 * @throws ObjectNotFoundException
+	 * @throws JsonProcessingException 
 	 */
 	@Transactional
-	private ThingDTO createApplication(ThingDTO data, String email, Concept applicationData) throws ObjectNotFoundException {
+	public ThingDTO createApplication(ThingDTO data, String email, Concept applicationData) throws ObjectNotFoundException, JsonProcessingException {
 		//create an application.
 		Concept application = createNode(data.getApplicationUrl(), email);
 		///do we need a special checklist for an applicant?
@@ -848,7 +1152,9 @@ public class ThingService {
 		if(specUrl.length()>0) {
 			checklistUrl=specUrl;
 		}
-		application.setLabel(checklistUrl);
+		WorkflowParamDTO param = new WorkflowParamDTO();
+		param.setChecklistUrl(checklistUrl);
+		application.setLabel(objectMapper.writeValueAsString(param));
 		application = closureServ.save(application);
 
 		//create a history
@@ -875,6 +1181,7 @@ public class ThingService {
 	 * @param thing
 	 * @throws ObjectNotFoundException
 	 */
+	@Transactional
 	public ThingDTO storeAddresses(UserDetailsDTO user, Concept node, Thing thing, ThingDTO data)
 			throws ObjectNotFoundException {
 		for(String addr:data.getAddresses().keySet()){
@@ -954,36 +1261,38 @@ public class ThingService {
 			if(his.size()>0) {																//we need a history record to access application data
 				Concept applData = his.get(0).getApplicationData();
 				thing.getRegisters().clear();													//do not replace :)
-				for(String key :data.getRegisters().keySet()) {			//for each register...
+				for(String key :data.getRegisters().keySet()) {			//for each register... except read only
 					RegisterDTO regDto = data.getRegisters().get(key);
-					Register reg = new Register();
-					Concept regNode = new Concept();
-					if(regDto.getNodeID()>0) {
-						//load
-						regNode = closureServ.loadConceptById(regDto.getNodeID());
-						reg=boilerServ.registerByConcept(regNode);
-					}else {
-						//create new
-						Concept root = closureServ.loadRoot(regDto.getUrl());
-						Concept owner = closureServ.saveToTree(root, user.getEmail());
-						regNode = closureServ.save(regNode);
-						regNode.setIdentifier(regNode.getID()+"");
-						regNode=closureServ.saveToTree(owner, regNode);
-						regDto.setNodeID(regNode.getID());
+					if(!regDto.isReadOnly()) {
+						Register reg = new Register();
+						Concept regNode = new Concept();
+						if(regDto.getNodeID()>0) {
+							//load
+							regNode = closureServ.loadConceptById(regDto.getNodeID());
+							reg=boilerServ.registerByConcept(regNode);
+						}else {
+							//create new
+							Concept root = closureServ.loadRoot(regDto.getUrl());
+							Concept owner = closureServ.saveToTree(root, user.getEmail());
+							regNode = closureServ.save(regNode);
+							regNode.setIdentifier(regNode.getID()+"");
+							regNode=closureServ.saveToTree(owner, regNode);
+							regDto.setNodeID(regNode.getID());
+						}
+						ThingRegister thre = new ThingRegister();
+						thre.setConcept(regNode);
+						thre.setUrl(regDto.getUrl());
+						thre.setVarName(key);
+						thing.getRegisters().add(thre);
+						reg.setAppData(applData);
+						reg.setActivityData(thing.getConcept());
+						reg.setConcept(regNode);
+						reg.setRegister(regDto.getReg_number().getValue());
+						reg.setRegisteredAt(boilerServ.localDateToDate(regDto.getRegistration_date().getValue()));
+						reg.setValidTo(boilerServ.localDateToDate(regDto.getExpiry_date().getValue()));
+						//save all
+						reg=boilerServ.saveRegister(reg);
 					}
-					ThingRegister thre = new ThingRegister();
-					thre.setConcept(regNode);
-					thre.setUrl(regDto.getUrl());
-					thre.setVarName(key);
-					thing.getRegisters().add(thre);
-					reg.setAppData(applData);
-					reg.setActivityData(thing.getConcept());
-					reg.setConcept(regNode);
-					reg.setRegister(regDto.getReg_number().getValue());
-					reg.setRegisteredAt(boilerServ.localDateToDate(regDto.getRegistration_date().getValue()));
-					reg.setValidTo(boilerServ.localDateToDate(regDto.getExpiry_date().getValue()));
-					//save all
-					reg=boilerServ.saveRegister(reg);
 				}
 				//and save it at last
 				thing=boilerServ.saveThing(thing);
@@ -1001,26 +1310,16 @@ public class ThingService {
 	 * @param thing
 	 * @throws ObjectNotFoundException
 	 */
-	public ThingDTO storeDocuments(Thing thing, ThingDTO data) throws ObjectNotFoundException {
+	@Transactional
+	public ThingDTO storeDocuments(Thing thing, ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		for(String key : data.getDocuments().keySet()) {
 			FileDTO docDto = data.getDocuments().get(key);
-			//which are already stored
-			for(ThingDoc td : thing.getDocuments()){
-				if(td.getVarName().equalsIgnoreCase(key)) {
-					Long nodeId = docDto.getLinked().get(td.getDictNode().getID());
-					if(nodeId != null) {
-						//replace concept for a case
-						Concept fileNode = closureServ.loadConceptById(nodeId);
-						td.setConcept(fileNode);
-						docDto.getLinked().remove(td.getDictNode().getID());	//remove it
-					}
-				}
-			}
-			//The rest should be added
-			for(Long dictId : docDto.getLinked().keySet()) {
+			for(Long dictNodeId : docDto.getLinked().keySet()) {
 				ThingDoc td = new ThingDoc();
-				Concept dictNode = closureServ.loadConceptById(dictId);
-				Concept fileNode =closureServ.loadConceptById(docDto.getLinked().get(dictId));
+				Concept fileNode =closureServ.loadConceptById(docDto.getLinked().get(dictNodeId));
+				docDto.setNodeId(fileNode.getID());
+				td=boilerServ.thingDocByNode(fileNode);
+				Concept dictNode = td.getDictNode();
 				FileResource fr = boilerServ.fileResourceByNode(fileNode);
 				fr.setActivityData(thing.getConcept());
 				td.setConcept(fileNode);
@@ -1031,7 +1330,9 @@ public class ThingService {
 				thing.getDocuments().add(td);
 				fr=fileRepo.save(fr);
 			}
+			docDto.getLinked().clear();
 		}
+		//createDocuments(assemblyServ.auxDocuments(data.getUrl()), data,user);
 		return data;
 	}
 
@@ -1043,7 +1344,12 @@ public class ThingService {
 	 */
 	@Transactional
 	public ThingDTO storeDictionaries(Thing thing, ThingDTO data) throws ObjectNotFoundException {
-		thing.getDictionaries().clear();
+		if(thing.getID()>0) {
+			entityManager.refresh(thing);
+			thing.getDictionaries().clear();
+			boilerServ.saveThing(thing);
+			//entityManager.flush();
+		}
 		Set<Long> selected = new HashSet<Long>();
 		for(String key : data.getDictionaries().keySet()) {
 			DictionaryDTO dict = data.getDictionaries().get(key);
@@ -1065,6 +1371,7 @@ public class ThingService {
 		}
 		return data;
 	}
+
 	@Transactional
 	public ThingDTO storeDates(Concept node, ThingDTO data) throws ObjectNotFoundException {
 		DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE;
@@ -1126,6 +1433,30 @@ public class ThingService {
 			literalServ.createUpdateLiteral(key, data.getLiterals().get(key).getValue(), node);
 			if(key.equalsIgnoreCase("prefLabel") && data.getParentIndex()==-1) {
 				String newTitle= data.getLiterals().get(key).getValue();
+				if(newTitle.length()>0) {
+					if(data.getVarName().length()==0) {
+						data.setTitle(newTitle);
+					}else {
+						data.setTitle(messages.get(data.getVarName()));
+					}
+				}
+			}
+		}
+		return data;
+	}
+	/**
+	 * Store strings - the same values for any language unconditionally
+	 * @param node
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private ThingDTO storeStrings(Concept node, ThingDTO data) throws ObjectNotFoundException {
+		for(String key : data.getStrings().keySet()) {
+			literalServ.createUpdateString(key, data.getStrings().get(key).getValue(), node);
+			if(key.equalsIgnoreCase("prefLabel") && data.getParentIndex()==-1) {
+				String newTitle= data.getStrings().get(key).getValue();
 				if(newTitle.length()>0) {
 					if(data.getVarName().length()==0) {
 						data.setTitle(newTitle);
@@ -1244,14 +1575,15 @@ public class ThingService {
 				if(data.getActivityId()>0) {
 					Concept activity=closureServ.loadConceptById(data.getActivityId());
 					String prefLabel = literalServ.readPrefLabel(node);
-					if(prefLabel.length()>0 && data.getParentIndex()==0) {
+					if(prefLabel.length()>0 && data.getParentIndex()<1) {
 						data.setTitle(prefLabel);
 					}else {
 						data.setTitle(messages.get(data.getVarName()));
 					}
 					data.setActivityName(activity.getLabel());
 				}
-				data=createContent(data);
+				data=createContent(data,user);
+				data.setStrings(dtoServ.readAllStrings(data.getStrings(),node));
 				data.setLiterals(dtoServ.readAllLiterals(data.getLiterals(), node));
 				data.setDates(dtoServ.readAllDates(data.getDates(),node));
 				data.setNumbers(dtoServ.readAllNumbers(data.getNumbers(),node));
@@ -1369,13 +1701,12 @@ public class ThingService {
 	 */
 	@Transactional
 	public FileDTO fileLoad(FileDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
-		Long nodeIdL = data.getLinked().get(data.getDictNodeId());
-		long nodeId = 0;
-		if(nodeIdL != null) {
-			nodeId=nodeIdL;
+		Long nodeId = data.getLinked().get(data.getDictNodeId());
+		if(nodeId==null) {
+			nodeId=0l;
 		}
 		data.setNodeId(nodeId);
-		if(nodeId>0) {
+		if(data.getNodeId()>0) {
 			//load data from existing
 			Concept fileNode = closureServ.loadConceptById(data.getNodeId());
 			Optional<FileResource> fro = fileRepo.findByConcept(fileNode);
@@ -1404,7 +1735,7 @@ public class ThingService {
 				&& validServ.eMail(email) 
 				&& data.getDictNodeId()>0) {
 			//determine node ID
-			long fileNodeId =fileNodeId(data);
+			long fileNodeId = data.getNodeId();
 			Concept node = new Concept();
 			if(fileNodeId==0 ) {
 				//create a new file node and store it to data
@@ -1435,13 +1766,14 @@ public class ThingService {
 				fres.setFileSize(data.getFileSize());
 				fres.setMediatype(data.getMediaType());
 				fres=fileRepo.save(fres);
+
+				ThingDoc tdoc = new ThingDoc();
 				//link it to the thing, if possible
 				if(data.getThingNodeId()>0) {
 					Concept thingConc = closureServ.loadConceptById(data.getThingNodeId());
 					Thing thing = new Thing();
 					thing = boilerServ.loadThingByNode(thingConc, thing);
 					if(thing.getID()>0) {
-						ThingDoc tdoc = new ThingDoc();
 						for(ThingDoc td : thing.getDocuments()) {
 							if(td.getDictNode().getID()==data.getDictNodeId() 
 									&& td.getVarName().toUpperCase().equalsIgnoreCase(data.getVarName())) {
@@ -1459,6 +1791,13 @@ public class ThingService {
 						}
 						thing=thingRepo.save(thing);
 					}
+				}else {				//thing is not saved yet
+					tdoc.setConcept(node);
+					tdoc.setDictNode(dictItem);
+					tdoc.setDictUrl(data.getDictUrl());
+					tdoc.setDocUrl(data.getUrl());
+					tdoc.setVarName(data.getVarName());
+					tdoc=boilerServ.saveThingDoc(tdoc);
 				}
 			}else {
 				throw new ObjectNotFoundException("fileSave Access denied "+ user.getEmail()+"/"+data.getUrl(), logger);
@@ -1471,19 +1810,6 @@ public class ThingService {
 	}
 
 	/**
-	 * Determine file node ID from the stored
-	 * @param data
-	 * @return zero if new one
-	 */
-	public long fileNodeId(FileDTO data) {
-		long fileNodeId=0;
-		Long nodeIdL = data.getLinked().get(data.getDictNodeId());
-		if(nodeIdL != null) {
-			fileNodeId=nodeIdL;
-		}
-		return fileNodeId;
-	}
-	/**
 	 * reload a table with files
 	 * @param data
 	 * @param user
@@ -1491,7 +1817,7 @@ public class ThingService {
 	 * @throws ObjectNotFoundException 
 	 */
 	public FileDTO thingFiles(FileDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
-		data=createDocTable(data);
+		data=createDocTable(data,user);
 		return data;
 	}
 	/**
@@ -1638,6 +1964,10 @@ public class ThingService {
 	 * @throws ObjectNotFoundException 
 	 */
 	public ThingValuesDTO thingValuesExtract(UserDetailsDTO user, ThingDTO thing,  ThingValuesDTO data) throws ObjectNotFoundException {
+		data.getStrings().clear();
+		for(String key :thing.getLiterals().keySet()) {
+			data.getLiterals().put(key.toUpperCase(), thing.getLiterals().get(key).getValue());
+		}
 		data.getLiterals().clear();
 		for(String key :thing.getLiterals().keySet()) {
 			data.getLiterals().put(key.toUpperCase(), thing.getLiterals().get(key).getValue());
@@ -1704,5 +2034,47 @@ public class ThingService {
 		ret.setUrl(dictionaryDTO.getUrl());
 		return ret;
 	}
-
+	/**
+	 * Load special person data for selected person and aux url
+	 * @param data
+	 * @param user
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public PersonSpecialDTO personSpecialLoad(PersonSpecialDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		//who is selected
+		long personId = 0;
+		for(TableRow row : data.getTable().getRows()) {
+			if(row.getSelected()) {
+				personId = row.getDbID();
+				break;
+			}
+		}
+		if(personId>0) {
+			if(accessControlServ.personAllowed(personId, user)) {
+				//TODO load person data related to the person selected
+				Concept pconc = closureServ.loadConceptById(personId);
+				Thing thing = boilerServ.loadThingByNode(pconc);
+				Concept dconc = new Concept();
+				if(thing.getUrl().equalsIgnoreCase(data.getPresonDataUrl())) {
+					dconc=pconc;
+				}else {
+					for(ThingThing tt : thing.getThings()) {
+						if(tt.getUrl().equalsIgnoreCase(data.getPresonDataUrl())) {
+							dconc=tt.getConcept();
+							break;
+						}
+					}
+				}
+				data.setPersonDataId(dconc.getID());
+			}else {
+				throw new ObjectNotFoundException("personSpecialLoad. access to person denied ID is ",logger);
+			}
+		}else {
+			data.setSelected(false);
+		}
+		return data;	
+	}
 }
+

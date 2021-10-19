@@ -18,14 +18,16 @@ class ApplicationSelect extends Component{
         super(props)
         this.dictionary="appListDictionary"
         this.state={
+            identifier:Date.now().toString(),
             labels:{
                 manageapplications:'',
                 global_cancel:'',
             },
-            data:{},
+            data:{},    //DictionaryDTO
         }
         this.eventProcessor=this.eventProcessor.bind(this)
         this.loadData=this.loadData.bind(this)
+        this.applications=this.applications.bind(this)
     }
 
     /**
@@ -34,7 +36,7 @@ class ApplicationSelect extends Component{
       eventProcessor(event){
         let data=event.data
         if(data.subject=="onSelectionChange" && data.from==this.dictionary){
-            this.state.data[this.dictionary]=data.data
+            this.state.data=data.data
             this.loadData()
         }
     }
@@ -56,8 +58,27 @@ class ApplicationSelect extends Component{
         window.removeEventListener("message",this.eventProcessor)
     }
 
+    /**
+     * Show / hide the list of applications in accrdance with the dictionary choice
+     */
+     applications(){
+        let dictId=0
+        if(this.state.data.table != undefined && Fetchers.isGoodArray(this.state.data.table.rows)){
+            this.state.data.table.rows.forEach(row => {
+                if(row.selected){
+                    dictId=row.dbID
+                }
+            });
+        }
+        if(dictId>0){
+            return <ApplicationList dictItemId={dictId} recipient={this.state.identifier} /> 
+        }else{
+            return []
+        }
+    }
+
     render(){
-        if(this.state.data[this.dictionary] == undefined){
+        if(this.state.data.table == undefined){
             return []
         }
         return(
@@ -66,16 +87,12 @@ class ApplicationSelect extends Component{
                     <Col>
                         <Dictionary
                             identifier={this.dictionary}
-                            data={this.state.data[this.dictionary]}
+                            data={this.state.data}
                             display
                         />
                     </Col>
                     <Col>
-                        <div hidden={this.state.data.applications.url.length==0}>
-                            <ApplicationList
-                                data={this.state.data.applications}
-                            />
-                        </div>
+                        {this.applications()}
                     </Col>
                 </Row>
             </Container>

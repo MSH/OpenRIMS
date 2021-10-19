@@ -20,13 +20,13 @@ class WorkflowConfigurator extends Component{
         this.state={
             identifier:Date.now().toString(),
             data:{},                                //WorkflowDTO
-            currentIndex:0,
             labels:{
                 global_save:'',
                 global_cancel:'',
                 global_suspend:'',
                 workflows:'',
                 next:'',
+                insert:'',
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -40,27 +40,27 @@ class WorkflowConfigurator extends Component{
      * byAction - saved by the button Save, otherwise saved by "next" 
      */
     afterSave(data, byAction){
-        this.state.data.path[this.state.currentIndex]=data
+        this.state.data.path[this.state.data.selected]=data
         this.setState(this.state)
         if(data.valid){
             if(byAction){
-                this.state.currentIndex--
-                if(this.state.currentIndex>=0){
-                    this.state.data.path[this.state.currentIndex].repaint=true
+                this.state.data.selected--
+                if(this.state.data.selected>=0){
+                    this.state.data.path[this.state.data.selected].repaint=true
                     this.setState(this.state)
                 }else{
                     window.location="/"+Navigator.tabSetName()+"#"+Navigator.tabName()+"/workflows"
                 }
             }else{
-                this.state.currentIndex++
-                if(this.state.currentIndex>=this.state.data.path.length){
-                    Fetchers.postJSONNoSpinner("/api/admin/workflow/activity/add", this.state.data, (query,result)=>{
+                this.state.data.selected++
+                if(this.state.data.selected>=this.state.data.path.length){
+                    Fetchers.postJSON("/api/admin/workflow/activity/add", this.state.data, (query,result)=>{
                         this.state.data=result
-                        this.state.data.path[this.state.currentIndex].repaint=true
-                        this.setState(this.state)   //I believe that this.state.currentIndex rests the same
+                        this.state.data.path[this.state.data.selected].repaint=true
+                        this.setState(this.state)   //I believe that this.state.data.selected rests the same
                     })
                 }else{
-                    this.state.data.path[this.state.currentIndex].repaint=true
+                    this.state.data.path[this.state.data.selected].repaint=true
                     this.setState(this.state)
                 }
             }
@@ -77,8 +77,10 @@ class WorkflowConfigurator extends Component{
             let data=event.data
             if(data.to==this.state.identifier){
                 if(data.subject=="thingLoaded"){
-                    this.state.data.path[this.state.currentIndex]=data.data
+                    if(this.state.data.selected==0){
+                    this.state.data.path[0]=data.data
                     this.state.thingIdentifier=data.data.identifier
+                    }
                 }
                 if(data.subject=="saved"){
                     this.afterSave(data.data)
@@ -93,7 +95,7 @@ class WorkflowConfigurator extends Component{
         Spinner.show()
         window.addEventListener("message",this.eventProcessor)
         this.state.data.dictNodeId=this.props.dictNodeId
-        Fetchers.postJSONNoSpinner("/api/admin/workflow/configuration/load", this.state.data, (query,result)=>{
+        Fetchers.postJSON("/api/admin/workflow/configuration/load", this.state.data, (query,result)=>{
             this.state.data=result
             Locales.resolveLabels(this)
             this.setState(this.state)
@@ -102,7 +104,7 @@ class WorkflowConfigurator extends Component{
     }
 
     componentDidUpdate(){
-        if(this.state.data.path[this.state.currentIndex]!=undefined){
+        if(this.state.data.path[this.state.data.selected]!=undefined){
             Spinner.hide()
         }
         
@@ -127,13 +129,13 @@ class WorkflowConfigurator extends Component{
         )
         if(Fetchers.isGoodArray(this.state.data.path)){
             this.state.data.path.forEach((thing,index) => {
-                if(index<=this.state.currentIndex){
-                    if(index!=this.state.currentIndex){
+                if(index<=this.state.data.selected){
+                    if(index!=this.state.data.selected){
                         ret.push(
                             <BreadcrumbItem className="d-inline"  key={index}>
                                 <div className="btn btn-link p-0 border-0"
                                     onClick={()=>{
-                                this.state.currentIndex=index
+                                this.state.data.selected=index
                                 this.state.data.path[index].repaint=true
                                 this.setState(this.state)
                             }}
@@ -170,14 +172,17 @@ class WorkflowConfigurator extends Component{
         if(this.state.data.title==undefined || this.state.labels.locale==undefined){
             return []
         }
-        if(this.state.data.path[this.state.currentIndex]==undefined){
-            return[]
+        if(this.state.data.path== undefined){
+            return []
+        }
+        if(this.state.data.selected==-1){
+            this.state.data.selected=0
         }
         Spinner.hide()
         return(
             <Container fluid>
                  <Row>
-                    <Col xs='12' sm='12' lg='9' xl='9'>
+                    <Col xs='12' sm='12' lg='8' xl='8'>
                        <h4>{this.state.data.title}</h4>
                     </Col>
                     <Col xs='12' sm='12' lg='1' xl='1'>
@@ -199,21 +204,37 @@ class WorkflowConfigurator extends Component{
                         />
                     </Col>
                     <Col xs='12' sm='12' lg='1' xl='1'>
-                        <div hidden={this.state.currentIndex==0}>
+                        <ButtonUni
+                            label={this.state.labels.insert}
+                            onClick={()=>{
+                                Fetchers.postJSON("/api/admin/workflow/activity/insert", this.state.data, (query,result)=>{
+                                    this.state.data=result
+                                    this.state.data.path.forEach(element=>{
+                                        element.repaint=true
+                                    })
+                                    this.setState(this.state)
+                                })
+                            }}
+                            color="primary"
+                        />
+                    </Col>
+                    <Col xs='12' sm='12' lg='1' xl='1'>
+                        <div hidden={this.state.data.selected==0}>
                             <ButtonUni
                                 label={this.state.labels.global_suspend}
                                 onClick={()=>{
-                                    this.state.data.selected=this.state.currentIndex
-                                    Fetchers.postJSONNoSpinner("/api/admin/workflow/activity/suspend", this.state.data, (query,result)=>{
+                                    Fetchers.postJSON("/api/admin/workflow/activity/suspend", this.state.data, (query,result)=>{
                                         this.state.data=result
-                                        this.state.currentIndex=0
+                                        this.state.data.selected=0
+                                        this.state.data.path.forEach(element=>{
+                                            element.repaint=true
+                                        })
                                         this.setState(this.state)
                                     })
                                 }}
                                 color="warning"
                             />
                         </div>
-
                     </Col>
                 </Row>
                 <Row>
@@ -226,7 +247,7 @@ class WorkflowConfigurator extends Component{
                 <Row>
                     <Col>
                         <Thing key='activity'
-                            data={this.state.data.path[this.state.currentIndex]}
+                            data={this.state.data.path[this.state.data.selected]}
                             recipient={this.state.identifier}
                             readOnly={false}
                         />

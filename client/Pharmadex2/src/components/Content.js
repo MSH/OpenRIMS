@@ -11,6 +11,7 @@ import ToDoList from './ToDoList'
 import Monitoring from './Monitoring'
 import Reports from './Reports'
 import PrintPreview from './PrintPreview'
+import Spinner from './utils/Spinner'
 
 /**
  * Uniform content component
@@ -35,6 +36,7 @@ class Content extends Component{
         this.reviewerTab=this.reviewerTab.bind(this)
         this.inspectorTab=this.inspectorTab.bind(this)
         this.accountantTab=this.accountantTab.bind(this)
+        this.secretaryTab=this.secretaryTab.bind(this)
     }
     /**
      * Initial load tiles from the server
@@ -62,6 +64,9 @@ class Content extends Component{
                 break
             case("inspector"):
                 api="/api/inspector/content"
+                break
+            case("secretary"):
+                api="/api/secretary/content"
                 break
             }
         Fetchers.postJSONNoSpinner(api, this.state.data, (query,result)=>{
@@ -200,6 +205,8 @@ class Content extends Component{
                 return <ToDoList />
             case "reports":
                     return <Reports />
+            case "monitor":
+                return <Monitoring />
             default:
                 return this.paintRows()
         }
@@ -213,10 +220,26 @@ class Content extends Component{
                 return <ToDoList />
             case "reports":
                 return <Reports />
+            case "monitor":
+                return <Monitoring />
             default:
                 return this.paintRows()
         }
     }
+
+    /**
+     * "Tab" for a secretary 
+     */
+         secretaryTab(){
+            switch(Navigator.tabName().toLowerCase()){
+                case "todolist":
+                    return <ToDoList />
+                case "reports":
+                    return <Reports />
+                default:
+                    return this.paintRows()
+            }
+        }
 
 
     /**
@@ -240,6 +263,8 @@ class Content extends Component{
                 return (this.reviewerTab());
             case "accountant":
                 return (this.accountantTab());
+            case "secretary":
+                return (this.secretaryTab());
             default:
                 return this.paintRows();
         }
@@ -254,6 +279,7 @@ class Content extends Component{
         }
         return(
             <Container fluid className={"shadow mb-2 mt-1 bg-white"} style={{ minHeight:'80vh'}}>
+                <Spinner />
               {this.placeContent()}
             </Container>
         )
@@ -263,6 +289,6 @@ class Content extends Component{
 }
 export default Content
 Content.propTypes={
-    menu:PropTypes.oneOf(["landing","guest","admin", "moderator", "screener","reviewer","accountant","inspector"]).isRequired,      //tabset
+    menu:PropTypes.oneOf(["landing","guest","admin", "moderator", "screener","reviewer","accountant","inspector","secretary"]).isRequired,
     navigator:PropTypes.object.isRequired                                           //Navigator
 }

@@ -200,59 +200,25 @@ public class ResourceService {
 	public PersonSelectorDTO personSelectorTable(PersonSelectorDTO dto) throws ObjectNotFoundException {
 		TableQtb table = dto.getTable();
 		if(table.getHeaders().getHeaders().size()==0) {
-			table.setHeaders(headersPersonSelector(table.getHeaders()));
+			table.setHeaders(boilerServ.headersPersonSelector(table.getHeaders()));
 		}
 		//save selection
-		List<Long> selected = new ArrayList<Long>();
-		for(TableRow row : table.getRows()) {
-			if(row.getSelected()) {
-				selected.add(row.getDbID());
-			}
-		}
+		List<Long> selected = boilerServ.saveSelectedRows(table);
 		//get data
 		if(dto.getHistoryId()>0) {
 			History his = boilerServ.historyById(dto.getHistoryId());
 			String lang = LocaleContextHolder.getLocale().toString().toUpperCase();
 			String where = "appldataid='"+his.getApplicationData().getID() +
-					"' and personrooturl='"+dto.getPersonUrl()+
+					//"' and personrooturl='"+dto.getPersonUrl()+
 					"' and lang='"+lang+"'";
 			List<TableRow> rows =jdbcRepo.qtbGroupReport("select * from personlist","", where, table.getHeaders());
 			TableQtb.tablePage(rows, table);
-			//TODO fake for test!!!!
-			if(rows.size()>0) {
-				rows.get(0).setSelected(true);
-			}
 			//restore selections
-			if(selected.size()>0) {
-				for(TableRow row :table.getRows()) {
-					if(selected.contains(row.getDbID())) {
-						row.setSelected(true);
-					}else {
-						row.setSelected(false);
-					}
-				}
-			}
+			table=boilerServ.selectedRowsRestore(selected, table);
 		}
 		return dto;
 	}
 
-	/**
-	 * Headers for person's selector
-	 * @param headers
-	 * @return
-	 */
-	private Headers headersPersonSelector(Headers headers) {
-		headers.getHeaders().clear();
-		headers.getHeaders().add(TableHeader.instanceOf(
-				"pref",
-				"global_name",
-				true,
-				true,
-				true,
-				TableHeader.COLUMN_LINK,
-				0));
-		boilerServ.translateHeaders(headers);
-		return headers;
-	}
+
 
 }

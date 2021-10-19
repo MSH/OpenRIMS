@@ -25,8 +25,8 @@ public class ThingDoc implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22227217BE3E951CE0B4CC")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22227217BE3E951CE0B4CC", strategy="native")	
+	@GeneratedValue(generator="VAC22226E17C9085E9F706ED6")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22226E17C9085E9F706ED6", strategy="native")	
 	private long ID;
 	
 	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
@@ -35,9 +35,9 @@ public class ThingDoc implements Serializable {
 	@Basic(fetch=FetchType.LAZY)	
 	private org.msh.pdex2.model.r2.Concept dictNode;
 	
-	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
-	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.LOCK})	
-	@JoinColumns({ @JoinColumn(name="conceptID", referencedColumnName="ID") })	
+	@OneToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
+	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.SAVE_UPDATE, org.hibernate.annotations.CascadeType.LOCK})	
+	@JoinColumns({ @JoinColumn(name="conceptID") })	
 	@Basic(fetch=FetchType.LAZY)	
 	private org.msh.pdex2.model.r2.Concept concept;
 	

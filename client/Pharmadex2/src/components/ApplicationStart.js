@@ -8,7 +8,8 @@ import CollectorTable from './utils/CollectorTable'
 import Pharmadex from './Pharmadex'
 import ThingsManager from './ThingsManager'
 import CheckList from './CheckList'
-
+import AlertFloat from './utils/AlertFloat'
+import ActivityHistoryData from './ActivityHistoryData'
 /**
  * Starts an application
  * Contains component's display logic and nothing else
@@ -40,6 +41,8 @@ class ApplicationStart extends Component{
         this.loadHistory=this.loadHistory.bind(this)
         this.eventProcessor=this.eventProcessor.bind(this)
         this.headerFooter=this.headerFooter.bind(this)
+        this.activityHistory=this.activityHistory.bind(this)
+        this.historyTable=this.historyTable.bind(this)
     }
 
     /**
@@ -54,12 +57,17 @@ class ApplicationStart extends Component{
                     this.setState(this.state)
                 }
                 if(data.subject=="cancelThing"){
-                    window.location="/"+Navigator.tabSetName()+"#"+Navigator.tabName()
+                    //window.location="/"+Navigator.tabSetName()+"#"+Navigator.tabName()
+                    window.history.back()
                 }
                 if(data.subject=="conclude"){
                     this.state.submit=true
                     this.state.data=data.data
                     this.state.reference=true
+                    this.setState(this.state)
+                }
+                if(data.subject=="activityHistoryClose"){
+                    this.state.historyId=0
                     this.setState(this.state)
                 }
             }
@@ -179,7 +187,7 @@ class ApplicationStart extends Component{
                             <Button size="sm"
                             className="mr-1" color="info"
                             onClick={()=>{
-                                window.location="/"+Navigator.tabSetName()+"#"+Navigator.tabName()
+                                window.history.back()
                             }}
                             >{this.state.labels.global_cancel}</Button>{' '}
 
@@ -195,6 +203,54 @@ class ApplicationStart extends Component{
             </Row>
         )
     }
+    /**
+     * 
+     * @returns expanded activity record
+     */
+    activityHistory(){
+        if(this.state.historyId>0){
+            return <ActivityHistoryData historyId={this.state.historyId} recipient={this.state.identifier} />
+        }else{
+            return []
+        }
+    }
+    historyTable(){
+        if(this.state.history.table.rows.length==0){
+            return []
+        }
+        return(
+            <Row>
+                <Col>
+                    <CollectorTable
+                        tableData={this.state.history.table}
+                        loader={this.loadHistory}
+                        headBackground={Pharmadex.settings.tableHeaderBackground}
+                        linkProcessor={(rowNo, cell)=>{
+                            this.state.historyId=this.state.history.table.rows[rowNo].dbID
+                            this.setState(this.state)
+                        }}
+                        styleCorrector={(header)=>{
+                            if(header=='come'){
+                                return {width:'12%'}
+                            }
+                            if(header=='go'){
+                                return {width:'12%'}
+                            }
+                            if(header=='days'){
+                                return {width:'5%'}
+                            }
+                            if(header=='workflow'){
+                                return {width:'20%'}
+                            }
+                            if(header=='activity'){
+                                return {width:'15%'}
+                            }
+                        }}
+                    />
+                </Col>
+            </Row>
+        )
+    }
     render(){
         if(this.state.labels.locale == undefined || this.state.history.table==undefined){
             return []
@@ -202,21 +258,10 @@ class ApplicationStart extends Component{
         
         return(
             <Container fluid style={{fontSize:"0.8rem"}}>
-                <Row>
-                    <Col>
-                        <CollectorTable
-                            tableData={this.state.history.table}
-                            loader={this.loadHistory}
-                            headBackground={Pharmadex.settings.tableHeaderBackground}
-                            styleCorrector={(header)=>{
-                                if(header=='days'){
-                                    return {width:'10%'}
-                                }
-                            }}
-                        />
-                    </Col>
-                </Row>
+                {this.historyTable()}
+                {this.activityHistory()}
                 {this.headerFooter()}
+                <AlertFloat />
                 {this.content()}
                 {this.headerFooter()}
             </Container>   

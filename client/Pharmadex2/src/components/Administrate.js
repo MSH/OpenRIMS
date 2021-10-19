@@ -15,6 +15,9 @@ import DataFormPreview from './dataconfig/DataFormPreview'
 import Messages from './Messages'
 import Resources from './Resources'
 import Actions from './Actions'
+import ATCCodes from './ATCCodes'
+import Excipients from './Excipients'
+import Inns from './Inns'
 
 /**
  * Administrative functions for the supervisor
@@ -45,7 +48,8 @@ class Administrate extends Component{
                 configurations:'',
             },
             isOpen:false,
-            menu:''
+            menu:'',
+            identifier:Date.now().toString(),
         }
     }
     componentDidMount(){
@@ -100,6 +104,12 @@ class Administrate extends Component{
                 parStr = Navigator.parameterValue()
                 params=JSON.parse(parStr)
                 return <UserElement conceptId={params.conceptId} userId={params.userId} caller={params.caller}/>
+            case "atccodes":
+                return <ATCCodes recipient={this.state.identifier} readOnly={false}/>
+            case "excipients":
+                return <Excipients recipient={this.state.identifier} readOnly={false}/>
+            case "inns":
+                return <Inns recipient={this.state.identifier} readOnly={false}/>
             default:
                 return []
         }
@@ -224,10 +234,9 @@ class Administrate extends Component{
                                             </DropdownItem>
                                         </DropdownMenu>
                                         </UncontrolledDropdown>
-
-                                    <NavItem>
-                                        <NavLink href="/admin">{this.state.labels.global_exit}</NavLink>
-                                    </NavItem>
+                                        <NavItem>
+                                            <NavLink href="/admin">{this.state.labels.global_exit}</NavLink>
+                                        </NavItem>
                                 </Nav>
                             </Collapse>
                         </Navbar>

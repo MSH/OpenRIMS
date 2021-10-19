@@ -15,6 +15,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class ActivityDTO extends AllowValidation{
 	//a record related to this activity
 	private long  historyId=0;
+	//guest or not guest
+	private boolean guest=false;
 	//application as a set of data blocks
 	private List<ThingDTO> application = new ArrayList<ThingDTO>();
 	//all completed activities. The last activity is the current!
@@ -35,6 +37,13 @@ public class ActivityDTO extends AllowValidation{
 	}
 	public void setHistoryId(long historyId) {
 		this.historyId = historyId;
+	}
+	
+	public boolean isGuest() {
+		return guest;
+	}
+	public void setGuest(boolean guest) {
+		this.guest = guest;
 	}
 	public List<ThingDTO> getApplication() {
 		return application;

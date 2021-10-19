@@ -25,9 +25,15 @@ public class History implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22227217BE3E951C60B4C6")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22227217BE3E951C60B4C6", strategy="native")	
+	@GeneratedValue(generator="VAC22226E17C9085E9EB06ED0")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22226E17C9085E9EB06ED0", strategy="native")	
 	private long ID;
+	
+	@OneToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
+	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.SAVE_UPDATE, org.hibernate.annotations.CascadeType.LOCK})	
+	@JoinColumns({ @JoinColumn(name="amendedID") })	
+	@Basic(fetch=FetchType.LAZY)	
+	private org.msh.pdex2.model.r2.Concept amended;
 	
 	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
 	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.ALL, org.hibernate.annotations.CascadeType.DELETE_ORPHAN})	
@@ -246,6 +252,14 @@ public class History implements Serializable {
 	
 	public org.msh.pdex2.model.r2.Concept getActConfig() {
 		return actConfig;
+	}
+	
+	public void setAmended(org.msh.pdex2.model.r2.Concept value) {
+		this.amended = value;
+	}
+	
+	public org.msh.pdex2.model.r2.Concept getAmended() {
+		return amended;
 	}
 	
 	public String toString() {

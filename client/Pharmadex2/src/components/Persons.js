@@ -47,6 +47,13 @@ class Persons extends Component{
         Locales.resolveLabels(this)
     }
 
+    componentDidUpdate(){
+        if(this.props.data.thingNodeId != this.state.data.thingNodeId){
+            this.state.data=this.props.data
+            this.setState(this.state)
+        }
+    }
+
     componentWillUnmount(){
         window.removeEventListener("message",this.eventProcessor)
     }

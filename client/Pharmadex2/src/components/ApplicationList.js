@@ -16,7 +16,9 @@ class ApplicationList extends Component{
     constructor(props){
         super(props)
         this.state={
-            data:{},
+            data:{                                      //ApplicationsDTO
+                dictItemId:this.props.dictItemId
+            },
             labels:{
                 search:'',
                 global_add:'',
@@ -27,22 +29,21 @@ class ApplicationList extends Component{
         this.loadTable=this.loadTable.bind(this)
     }
     componentDidMount(){
-        this.state.data=this.props.data
-        this.props.data.justloaded=false
         Locales.resolveLabels(this)
+        this.loadTable()
     }
     componentDidUpdate(){
-        if(this.props.data.justloaded){
-            this.state.data=this.props.data
-            this.props.data.justloaded=false
-            this.setState(this.state)
+        if(this.state.data.dictItemId!=this.props.dictItemId){
+            this.state.data.dictItemId=this.props.dictItemId
+            this.loadTable()
         }
     }
+
     /**
      * Load a table only
      */
     loadTable(){
-        Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName()+"/applications/table", this.state.data, (query,result)=>{
+        Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/applications/table", this.state.data, (query,result)=>{
             this.state.data=result
             this.setState(this.state)
         })
@@ -85,8 +86,14 @@ class ApplicationList extends Component{
                             loader={this.loadTable}
                             headBackground={Pharmadex.settings.tableHeaderBackground}
                             styleCorrector={(header)=>{
+                                if(header=='come'){
+                                    return {width:'15%'}
+                                }
                                 if(header=='days'){
-                                    return {width:'10%'}
+                                    return {width:'5%'}
+                                }
+                                if(header=='activityurl'){
+                                    return {width:'15%'}
                                 }
                             }}
                             linkProcessor={(row,col)=>{
@@ -116,5 +123,6 @@ class ApplicationList extends Component{
 }
 export default ApplicationList
 ApplicationList.propTypes={
-    data:PropTypes.object.isRequired,       //ApplicationsDTO
+    dictItemId:PropTypes.number.isRequired,         //id of dict item selected
+    recipient:PropTypes.string.isRequired,          //the recipient of messages
 }

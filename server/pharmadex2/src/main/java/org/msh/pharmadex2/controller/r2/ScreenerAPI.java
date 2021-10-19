@@ -44,24 +44,5 @@ public class ScreenerAPI {
 		return data;
 	}
 	
-	/**
-	 * List of screener's applications
-	 * @param auth
-	 * @param data
-	 * @return
-	 * @throws DataNotFoundException
-	 */
-	@PostMapping("/api/screener/applications")
-	public ApplicationSelectDTO applications(Authentication auth, @RequestBody ApplicationSelectDTO data) throws DataNotFoundException {
-		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
-		try {
-			data=applServ.guestApplications(data, user);
-		} catch (ObjectNotFoundException e) {
-			throw new DataNotFoundException(e);
-		}
-		return data;
-	}
 	
-
-
 }

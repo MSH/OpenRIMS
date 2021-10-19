@@ -1,6 +1,8 @@
 import React , {Component} from 'react'
 import {ButtonGroup, Button} from 'reactstrap'
 import Fetchers from './utils/Fetchers'
+import Alerts from './utils/Alerts'
+import Navigator from './utils/Navigator'
 
 /**
  * Languages switch
@@ -13,13 +15,23 @@ class Languages extends Component{
         }
         this.createFlags=this.createFlags.bind(this)
         this.switchLanguage=this.switchLanguage.bind(this)
+        this.eventProcessor=this.eventProcessor.bind(this)
     }
-
     componentDidMount(){
+      window.addEventListener("message",this.eventProcessor)
       Fetchers.postJSONNoSpinner("/api/public/languages", this.state.data,(query,result)=>{
         this.state.data=result
         this.setState(this.state)
       })
+    }
+
+    componentWillUnmount(){
+      window.removeEventListener("message",this.eventProcessor)
+  }
+
+    eventProcessor(event){
+      let data=event.data
+      
     }
 
      /**
@@ -61,10 +73,10 @@ class Languages extends Component{
             if(value.localeAsString != this.state.data.selected.localeAsString){
               ret.push(
                 <Button size="sm" color="link" key={value.displayName} 
-                onClick={()=>{
-                  this.switchLanguage(value.localeAsString)
-                }}
-                >
+                      onClick={()=>{
+                        Alerts.warning("Did you save your job?", ()=>{this.switchLanguage(value.localeAsString)}, ()=>{})
+                      }}
+                      >
                     <img src={"/api/public/flag?"+"localeStr="+value.localeAsString} width="20" title={value.displayName} />
                 </Button>)
               }  

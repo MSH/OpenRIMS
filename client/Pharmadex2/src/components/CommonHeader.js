@@ -36,6 +36,8 @@ class CommonHeader extends Component{
                 return (<UserAuthMenu />)
             case "accountant":
                 return (<UserAuthMenu />)
+            case "secretary":
+                return (<UserAuthMenu />)
         }
     }
     render(){
@@ -58,6 +60,6 @@ class CommonHeader extends Component{
 }
 export default CommonHeader
 CommonHeader.propTypes={
-    menu:PropTypes.oneOf(["landing","guest","admin", "moderator", "screener","reviewer","accountant","inspector"]).isRequired,      //tabset
+    menu:PropTypes.oneOf(["landing","guest","admin", "moderator", "screener","reviewer","accountant","inspector","secretary"]).isRequired,      //tabset
     navigator:PropTypes.object.isRequired                                           //Navigator
 }

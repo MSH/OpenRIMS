@@ -1,100 +1,52 @@
 package org.msh.pharmadex2.dto;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pharmadex2.dto.form.AllowValidation;
-import org.msh.pharmadex2.dto.form.FormFieldDTO;
-import org.msh.pharmadex2.dto.form.OptionDTO;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-
 /**
- * Responsible for amendment data 
+ * Responsible for all amendment - related things - select object, etc
  * @author alexk
  *
  */
 @JsonIgnoreProperties(ignoreUnknown=true)
 public class AmendmentDTO extends AllowValidation {
-	private long nodeId=0l;
-	private String  title="";								//object name
-	private String  chapterTitle="";					//chapter name
-	//the table
+	private String url = "";
+	private String varName="";
+	private String pattern="";
+	private long dataNodeId=0l;
 	private TableQtb table = new TableQtb();
-	//the application to amend
-	private ThingDTO appl = new ThingDTO();
-	//the chapter to amend
-	private ThingDTO chapter = new ThingDTO();
-	//variables to amend
-	private TableQtb variables = new TableQtb();
-	//description of an amendment
-	private FormFieldDTO<String> description = FormFieldDTO.of("");
-	//auxiliary chapters that may be in the amendment
-	private List<ThingDTO> path = new ArrayList<ThingDTO>();
-	private int pathIndex=0;
+	public String getUrl() {
+		return url;
+	}
+	public void setUrl(String url) {
+		this.url = url;
+	}
+	public String getVarName() {
+		return varName;
+	}
+	public void setVarName(String varName) {
+		this.varName = varName;
+	}
 	
-	public long getNodeId() {
-		return nodeId;
+	public String getPattern() {
+		return pattern;
 	}
-	public void setNodeId(long nodeId) {
-		this.nodeId = nodeId;
+	public void setPattern(String pattern) {
+		this.pattern = pattern;
 	}
-
-	public String getTitle() {
-		return title;
+	public long getDataNodeId() {
+		return dataNodeId;
 	}
-	public void setTitle(String title) {
-		this.title = title;
-	}
-	public String getChapterTitle() {
-		return chapterTitle;
-	}
-	public void setChapterTitle(String chapterTitle) {
-		this.chapterTitle = chapterTitle;
+	public void setDataNodeId(long dataNodeId) {
+		this.dataNodeId = dataNodeId;
 	}
 	public TableQtb getTable() {
 		return table;
 	}
 	public void setTable(TableQtb table) {
 		this.table = table;
-	}
-	public ThingDTO getAppl() {
-		return appl;
-	}
-	public void setAppl(ThingDTO appl) {
-		this.appl = appl;
-	}
-	public ThingDTO getChapter() {
-		return chapter;
-	}
-	public void setChapter(ThingDTO chapter) {
-		this.chapter = chapter;
-	}
-	public List<ThingDTO> getPath() {
-		return path;
-	}
-	public void setPath(List<ThingDTO> path) {
-		this.path = path;
-	}
-	public int getPathIndex() {
-		return pathIndex;
-	}
-	public void setPathIndex(int pathIndex) {
-		this.pathIndex = pathIndex;
-	}
-	public TableQtb getVariables() {
-		return variables;
-	}
-	public void setVariables(TableQtb variables) {
-		this.variables = variables;
-	}
-	public FormFieldDTO<String> getDescription() {
-		return description;
-	}
-	public void setDescription(FormFieldDTO<String> description) {
-		this.description = description;
 	}
 	
 }

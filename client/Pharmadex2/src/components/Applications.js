@@ -5,11 +5,9 @@ import ApplicationSelect from './ApplicationSelect'
 import ApplicationStart from './ApplicationStart'
 import ActivityManager from './ActivityManager'
 import Locales from './utils/Locales'
-import Amendments from './Amendments'
-import Deregistration from './Deregistration'
-import AmendmentStart from './amendments/AmendmentStart'
-import RenewalMock from './mock/RenewalMock'
-import DeregMock from './mock/DeregMock copy'
+import AmendmentSelect from './AmendmentSelect'
+import RenewSelect from './RenewSelect'
+import DeRegistrationSelect from './DeRegistrationSelect'
 
 /**
  * Tab Application. Switch between ApplicationSelect and ApplicationProcess components
@@ -18,6 +16,7 @@ class Applications extends Component{
     constructor(props){
         super(props)
         this.state={
+            identifier:Date.now().toString(),
             menu:'',
             labels:{
                 global_exit:'',
@@ -29,12 +28,25 @@ class Applications extends Component{
             }
         }
         this.component=this.component.bind(this)
+        this.eventProcessor=this.eventProcessor.bind(this)
     }
+
+        /**
+     * Listen messages from other components
+     * @param {Window Event} event 
+     */
+         eventProcessor(event){
+            let data=event.data
+           
+        }
 
     componentDidMount(){
+        window.addEventListener("message",this.eventProcessor)
         Locales.resolveLabels(this)
     }
-
+    componentWillUnmount(){
+        window.removeEventListener("message",this.eventProcessor)
+    }
 
     component(){
         let parStr=""
@@ -49,15 +61,11 @@ class Applications extends Component{
                 data = JSON.parse(parStr)
                 return <ActivityManager historyId={data.historyId}/>
             case "amendments":
-                return <Amendments />
-            case "amendmentstart":
-                parStr = Navigator.parameterValue()
-                data = JSON.parse(parStr)
-                return <AmendmentStart data={data}/>
+                return <AmendmentSelect/>
             case "deregistration":
-                return <DeregMock />
+                return <DeRegistrationSelect />
             case "renew":
-                return <RenewalMock />
+                return <RenewSelect />
             default:
                 return <ApplicationSelect />
         }

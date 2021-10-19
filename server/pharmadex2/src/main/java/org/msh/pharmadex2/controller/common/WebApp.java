@@ -168,6 +168,9 @@ public class WebApp {
 				if(role.contains("reviewer")) {
 					return new RedirectView("/reviewer",true);
 				}
+				if(role.contains("secretary")) {
+					return new RedirectView("/secretary",true);
+				}
 				return new RedirectView("landing",true);		//default
 			}else {
 				return new RedirectView("landing",true);
@@ -175,7 +178,7 @@ public class WebApp {
 		}
 	}
 
-	@GetMapping({"/landing","/admin","/moderator","/guest","/screener","/inspector","/accountant","/reviewer"})
+	@GetMapping({"/landing","/admin","/moderator","/guest","/screener","/inspector","/accountant","/reviewer", "/secretary"})
 	public ModelAndView landing() {
 		return createWithBundles("application");
 	}

@@ -25,7 +25,7 @@ class Pharmadex extends Component{
     render(){
         return(
             <Container fluid>
-                    <Spinner />
+                    
                     <Alerts />
                     <Row>
                         <Col xs='12' sm='12' lg='12' xl='12'>

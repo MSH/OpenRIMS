@@ -60,6 +60,12 @@ public class AccessControlService {
 		if(isSupervisor(user)) {
 			return true;
 		}
+		if(isOwner(data, user)) {
+			return true;
+		}
+		if(isApplicationOwner(data, user)) {
+			return true;
+		}
 		//Executor of an activity has rights defined in the activity
 		if(data.getActivityId()>0) {
 			Concept activity=closureServ.loadConceptById(data.getActivityId());
@@ -211,6 +217,10 @@ public class AccessControlService {
 	 */
 	@Transactional
 	public boolean readAllowed(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		//an applicant of the workflow
+		if(isApplicationOwner(data, user)) {
+			return true;
+		}
 		//executor of this workflow
 		if(workflowExecutor(data, user) && workflowThing(data)) { 
 			return true;
@@ -224,8 +234,30 @@ public class AccessControlService {
 			return true;
 		}
 
-		return false;
+		return true;
 	}
+	/**
+	 * Is the user owner of application data?
+	 * @param data
+	 * @param user
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private boolean isApplicationOwner(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		if(data.getNodeId()==0) {
+			return true;
+		}
+		Concept conc = closureServ.loadConceptById(data.getNodeId());
+		List<History> hlist = boilerServ.historyByActivitydata(conc);
+		if(hlist.size()>0) {
+			Concept owner = closureServ.getParent(hlist.get(0).getApplicationData());
+			return sameEmail(owner.getIdentifier(), user.getEmail());
+		}else {
+			return false;
+		}
+	}
+
 	/**
 	 * Is this thing belong to the workflow
 	 * @param data
@@ -378,6 +410,41 @@ public class AccessControlService {
 	 */
 	public boolean isApplicant(UserDetailsDTO user) {
 		return user.getAllRoles().size()==0;
+	}
+	/**
+	 * Person data read allowed to person owner and any NMRA employee
+	 * @param personId
+	 * @param user
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public boolean personAllowed(long personId, UserDetailsDTO user) throws ObjectNotFoundException {
+		ThingDTO pers = new ThingDTO();
+		pers.setNodeId(personId);
+		if(isOwner(pers,user)) {
+			return true;
+		}
+		if(isEmployee(user)) {
+			return true;
+		}
+		return false;
+	}
+	/**
+	 * Is this user an NMRA employee
+	 * @param user
+	 * @return
+	 */
+	@Transactional
+	private boolean isEmployee(UserDetailsDTO user) {
+		if(user.getGranted().size()>0) {
+			if(user.getGranted().get(0).getAuthority().toUpperCase().contains("GUEST")) {
+				return false;
+			}else {
+				return true;
+			}
+		}else {
+			return false;
+		}
 	}
 
 

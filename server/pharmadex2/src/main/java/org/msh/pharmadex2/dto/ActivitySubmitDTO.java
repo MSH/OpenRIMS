@@ -29,6 +29,7 @@ public class ActivitySubmitDTO extends AllowValidation{
 		private boolean applicant=false;			//the special behavior for an applicant
 		private boolean reload=false;				//reload all unconditionally
 		private boolean reassign=false;			//re-assign and cancel only
+		private boolean reject=false;				//reject and return to user for clarification
 		public long getHistoryId() {
 			return historyId;
 		}
@@ -135,6 +136,12 @@ public class ActivitySubmitDTO extends AllowValidation{
 				}
 			}
 			return -1;
+		}
+		public boolean isReject() {
+			return reject;
+		}
+		public void setReject(boolean reject) {
+			this.reject = reject;
 		}
 			
 }

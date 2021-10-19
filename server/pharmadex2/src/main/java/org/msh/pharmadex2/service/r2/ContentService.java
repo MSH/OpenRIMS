@@ -81,30 +81,31 @@ public class ContentService {
 		DictionaryDTO dict = data.getDictionary();
 		dict.setUrl(urlDict);
 
-		if(dict.getPrevSelected() != null && dict.getPrevSelected().size() > 0 &&
-				dict.getPrevSelected().get(dict.getPrevSelected().size() - 1) != 0
-				&& data.isEditForm()) {
+		if(dict.getPath().size()==1) {
 			data.getTiles().clear();
 			data.getLayout().clear();
 			data.getLayoutByFree().clear();
-			
+
 			// грузим данные для выбранной страницы - словарь не перегружаем
-			long idpage = dict.getPrevSelected().get(dict.getPrevSelected().size() - 1);
+			//long idpage = dict.getPrevSelected().get(dict.getPrevSelected().size() - 1);
+			long idpage=dict.getPath().get(0).getId();
 			Concept page = closureServ.loadConceptById(idpage);
 			if(page != null){
 				List<Concept> children = literalServ.loadOnlyChilds(page);
 				for(Concept c:children) {
-					DictNodeDTO node = dictServ.createNode(c);
-					TileDTO tile = publicServ.createTile(dictServ.literalsLoad(node));
-					tile.setIdentifier(node.getIdentifier());
-					tile.setNodeID(node.getNodeId());
+					if(c.getActive()) {
+						DictNodeDTO node = dictServ.createNode(c);
+						TileDTO tile = publicServ.createTile(dictServ.literalsLoad(node));
+						tile.setIdentifier(node.getIdentifier());
+						tile.setNodeID(node.getNodeId());
 
-					if(tile.getImage().length() > 0) {
-						tile.setFree(!(tile.getNumRow() != -1 && tile.getNumCol() != -1));
-						data.getTiles().put(tile.getTitle(), tile);
+						if(tile.getImage().length() > 0) {
+							tile.setFree(!(tile.getNumRow() != -1 && tile.getNumCol() != -1));
+							data.getTiles().put(tile.getTitle(), tile);
+						}
 					}
 				}
-				
+
 				if(data.getTiles().size() > 0) {
 					updateLayoutFree(data);
 					updateLayout(data);
@@ -158,12 +159,12 @@ public class ContentService {
 					numC = 0;
 				}else
 					numC++;
-				
+
 				if(numC == 0) {
 					row = new LayoutRowDTO();
 					data.getLayoutByFree().add(row);
 				}
-				
+
 				LayoutCellDTO cell = new LayoutCellDTO();
 				cell.getVariables().add(tiles.get(i).getTitle());
 				row.getCells().add(cell);
@@ -174,7 +175,7 @@ public class ContentService {
 	@Transactional
 	private void updateLayout(TilesDTO data) throws ObjectNotFoundException {
 		data.getLayout().clear();
-		
+
 		Map<String, TileDTO> emptyTiles = new HashMap<String, TileDTO>();
 		/**
 		 * построим сетку 3х3 из пустых ячеек
@@ -196,7 +197,7 @@ public class ContentService {
 
 		// удалим старіе пустышки
 		List<String> removeEmpty = new ArrayList<String>();
-		
+
 		for(TileDTO tile:data.getTiles().values()) {
 			if(tile.isEmpty())
 				removeEmpty.add(tile.getTitle());
@@ -213,7 +214,7 @@ public class ContentService {
 		for(String k:removeEmpty) {
 			data.getTiles().remove(k);
 		}
-		
+
 		if(emptyTiles.keySet().size() > 0) {
 			data.getTiles().putAll(emptyTiles);
 		}
@@ -231,7 +232,7 @@ public class ContentService {
 		LayoutCellDTO cell = new LayoutCellDTO();
 		List<String> variables= new ArrayList<String>();
 		variables.add("administrate");
-		
+
 		cell.getVariables().addAll(variables);
 		row.getCells().add(cell);
 		data.getLayout().add(row);

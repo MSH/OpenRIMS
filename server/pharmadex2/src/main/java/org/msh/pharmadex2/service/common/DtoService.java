@@ -14,11 +14,13 @@ import org.msh.pdex2.model.old.User;
 import org.msh.pdex2.model.r2.Assembly;
 import org.msh.pdex2.model.r2.Checklistr2;
 import org.msh.pdex2.model.r2.Concept;
+import org.msh.pdex2.model.r2.Register;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.DataVariableDTO;
 import org.msh.pharmadex2.dto.DictNodeDTO;
 import org.msh.pharmadex2.dto.LocationDTO;
 import org.msh.pharmadex2.dto.QuestionDTO;
+import org.msh.pharmadex2.dto.RegisterDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.dto.form.OptionDTO;
@@ -278,6 +280,24 @@ public class DtoService {
 		return data;
 	}
 	/**
+	 * Create empty strings
+	 * @param data
+	 * @param strings
+	 * @return
+	 */
+	public  <T extends ThingDTO> T createStrings(T data, List<AssemblyDTO> strings) {
+		data.getStrings().clear();
+		if(strings != null) {
+			for(AssemblyDTO ad : strings) {
+				FormFieldDTO<String> fld = FormFieldDTO.of("", ad.isReadOnly(), ad.isTextArea());
+				data.getStrings().put(ad.getPropertyName(), fld);
+			}
+		}
+		return data;
+	}
+	
+	
+	/**
 	 * Create dates fields
 	 * @param data
 	 * @param dates
@@ -343,6 +363,20 @@ public class DtoService {
 			literals.get(key).setValue(val);
 		}
 		return literals;
+	}
+	/**
+	 * Read all strings
+	 * @param strings
+	 * @param node
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public Map<String, FormFieldDTO<String>> readAllStrings(Map<String, FormFieldDTO<String>> strings, Concept node) throws ObjectNotFoundException {
+		for(String key :strings.keySet()) {
+			String val = literalServ.readValue(key,node);
+			strings.get(key).setValue(val);
+		}
+		return strings;
 	}
 	
 	/**
@@ -530,4 +564,7 @@ public class DtoService {
 		ret.setAuxDataUrl(assm.getAuxDataUrl());
 		return ret;
 	}
+
+	
+
 }

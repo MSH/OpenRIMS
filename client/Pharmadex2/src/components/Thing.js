@@ -15,10 +15,13 @@ import ResourcesUsage from './ResourcesUsage'
 import PersonSelector from './PersonSelector'
 import Scheduler from './Scheduler'
 import Register from './Register'
+import PersonSpecial from './PersonSpecial'
+import Amended from './Amended'
 
 
 /**
  * Responsible for a ThingDTO
+ * issue thingUpdated event for each update!
  * @example
  * <Thing key='activity'
             data={thingDTO}
@@ -41,6 +44,7 @@ class Thing extends Component{
         this.paintCells=this.paintCells.bind(this)
         this.paintCell=this.paintCell.bind(this)
         this.heading=this.heading.bind(this)
+        this.strings=this.strings.bind(this)
         this.literal=this.literal.bind(this)
         this.dictionary=this.dictionary.bind(this)
         this.filesControl=this.filesControl.bind(this)
@@ -57,6 +61,8 @@ class Thing extends Component{
         this.registersControl=this.registersControl.bind(this)
         this.saveGuest=this.saveGuest.bind(this)
         this.postLoaded=this.postLoaded.bind(this)
+        this.personSpecControl=this.personSpecControl.bind(this)
+        this.amendmentsControl=this.amendmentsControl.bind(this)
     }
 
     /**
@@ -138,9 +144,15 @@ class Thing extends Component{
             }
         }
         if(data.to==this.state.identifier){
+            if(data.subject=='changeNodeId'){
+               this.state.data.nodeId=data.data
+               this.load()
+               return
+            }
             if(data.subject=='onSelectionChange'){
                 let name=data.data.varName
                 this.takeComponent(name,0,data.data)
+                Navigator.message(this.state.identifier, this.props.recipient, "thingUpdated", this.state.data)
             }
            if(data.subject=='runAction'){
                switch(data.data){
@@ -184,6 +196,7 @@ class Thing extends Component{
         this.load()
     }
     componentDidUpdate(){
+        Navigator.message(this.state.identifier, this.props.recipient, "thingUpdated", this.state.data)
         if(this.props.data.repaint){
             this.state.data=this.props.data
             this.props.data.repaint=false
@@ -211,6 +224,7 @@ class Thing extends Component{
     postLoaded(){
         this.state.data.identifier=this.state.identifier
         Navigator.message(this.state.identifier, "*","refreshData",this.state.data);
+        Locales.createLabels(this, "strings")
         Locales.createLabels(this, "literals")
         Locales.createLabels(this, "dates")
         Locales.createLabels(this, "numbers")
@@ -224,6 +238,8 @@ class Thing extends Component{
         Locales.createLabels(this,"schedulers")
         Locales.createLabels(this,'files')
         Locales.createLabels(this,'registers')
+        Locales.createLabels(this,'personspec')
+        Locales.createLabels(this,'amendments')
         if(this.state.data.activityName != undefined){
             this.state.labels[this.state.data.activityName]=''     //for activity names
         }
@@ -244,6 +260,36 @@ class Thing extends Component{
             return(
                 <h4 key={name}>{head}</h4>
             )
+        }
+    }
+
+    /**
+     * Place a literal in a row 
+     * @param {name (label of a literal)} name 
+     * @param {number to create a key} index 
+     */
+    strings(name, index){
+        let fieldDTO = this.state.data.strings[name]
+        if(fieldDTO != undefined){
+            let mode="text"
+            if(fieldDTO.textArea){
+                mode="textarea"
+            }
+            let readOnly=this.props.readOnly || fieldDTO.readOnly
+            return(
+                <Row key={index}>
+                    <Col>
+                        <ViewEdit edit={!readOnly} mode={mode} attribute={name}
+                        component={this} 
+                        data={this.state.data.strings}
+                        rows="6"
+                        hideEmpty
+                        />
+                    </Col>
+                </Row>
+            )
+        }else{
+            return[]
         }
     }
 
@@ -466,7 +512,7 @@ class Thing extends Component{
                     </Row>
                     <Row>
                         <Col>
-                            <ApplicationFiles data={files}
+                            <ApplicationFiles data={files} key={this.state.identifier+name}
                                             recipient={this.state.identifier}
                                             readOnly={this.props.readOnly}/>
                         </Col>
@@ -514,7 +560,7 @@ class Thing extends Component{
         }
     }
 
-        /**
+    /**
      * Responsible for person selection
      * @param {string} name 
      * @param {number} index 
@@ -546,6 +592,71 @@ class Thing extends Component{
             )
         }
     }
+
+    /**
+     * Responsible for the special person data
+     * @param {string} name 
+     * @param {number} index 
+     * @returns 
+     */
+        personSpecControl(name, index){
+            let res=this.state.data.personspec[name] 
+            if(res!=undefined){
+                return(
+                <Row key={index}>
+                    <Col>
+                        <Row hidden={this.state.data.personspec[name].valid} className="mb-1">
+                            <Col>
+                                <Alert color="danger" className="p-0 m-0">
+                                    <small>{this.state.data.personspec[name].identifier}</small>
+                                </Alert>
+                            </Col>
+                        </Row>
+                        <Row>
+                            <Col>
+                                <PersonSpecial data={res}
+                                                recipient={this.state.identifier}
+                                />
+                            </Col>
+                        </Row>
+                    </Col>
+                </Row>
+                )
+            }
+        }
+
+    /**
+     * Responsible for teh amended object selection
+     * @param {string} name 
+     * @param {number} index 
+     * @returns 
+     */
+        amendmentsControl(name, index){
+        let res=this.state.data.amendments[name] 
+        if(res!=undefined){
+            return(
+            <Row key={index}>
+                <Col>
+                    <Row hidden={this.state.data.amendments[name].valid} className="mb-1">
+                        <Col>
+                            <Alert color="danger" className="p-0 m-0">
+                                <small>{this.state.data.amendments[name].identifier}</small>
+                            </Alert>
+                        </Col>
+                    </Row>
+                    <Row hidden={this.props.readOnly}>
+                        <Col>
+                            <Amended data={res}
+                                            recipient={this.state.identifier}
+                            />
+                        </Col>
+                    </Row>
+                </Col>
+            </Row>
+            )
+        }
+    }
+
 
     /**
      * Responsible for schedulers
@@ -661,6 +772,11 @@ class Thing extends Component{
                 this.heading(name,index)
             )
         }
+        if(this.state.data.strings.hasOwnProperty(name)){
+            return (
+                this.strings(name,index)
+            )
+        }
         if(this.state.data.literals.hasOwnProperty(name)){
             return (
                 this.literal(name,index)
@@ -737,6 +853,24 @@ class Thing extends Component{
                 )
             }
         }
+        if(this.state.data.personspec.hasOwnProperty(name)){
+            if(data != undefined){
+                this.state.data.personspec[name]=data
+            }else{
+                return(
+                    this.personSpecControl(name, index)
+                )
+            }
+        }
+        if(this.state.data.amendments.hasOwnProperty(name)){
+            if(data != undefined){
+                this.state.data.amendments[name]=data
+            }else{
+                return(
+                    this.amendmentsControl(name, index)
+                )
+            }
+        }
     }
      /**
      * Place components inside a cell in rows
@@ -761,7 +895,7 @@ class Thing extends Component{
             let ret = []
             let lg='6'
             let xl='6'
-            if(this.props.narrow){
+            if(this.props.narrow || this.state.data.narrowLayout){
                 lg='12'
                 xl='12'
             }

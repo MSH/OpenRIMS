@@ -24,7 +24,7 @@ public class ThingServiceTest {
 	@Autowired
 	Messages messages;
 	
-	@Test
+	//@Test
 	public void loadThing() throws ObjectNotFoundException {
 		ThingDTO dto = new ThingDTO();
 		dto.setNodeId(20005l);

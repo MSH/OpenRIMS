@@ -59,16 +59,17 @@ class Register extends Component{
         if(this.state.labels.locale == undefined || this.state.data.reg_number==undefined){
             return []
         }
+        let edit = !this.state.data.readOnly
         return(
             <Container fluid>
                 <Row>
                     <Col>
-                        <ViewEditDate attribute='registration_date' component={this} edit />
+                        <ViewEditDate attribute='registration_date' component={this} edit={edit} />
                     </Col>
                 </Row>
                 <Row>
                     <Col xs='12' sm='12' lg='6'xl='6'>
-                        <ViewEdit mode='text' attribute='reg_number' component={this} edit/>
+                        <ViewEdit mode='text' attribute='reg_number' component={this} edit={edit}/>
                     </Col>
                     <Col xs='12' sm='12' lg='6'xl='6'>
                         <ViewEdit mode='text' attribute='prev' component={this}/>
@@ -76,7 +77,7 @@ class Register extends Component{
                 </Row>
                 <Row hidden={!this.state.data.expirable}>
                     <Col>
-                        <ViewEditDate attribute='expiry_date' component={this} edit />
+                        <ViewEditDate attribute='expiry_date' component={this} edit={edit} />
                     </Col>
                 </Row>
 

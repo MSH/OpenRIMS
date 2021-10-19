@@ -29,8 +29,8 @@ public class PublicOrganization implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22227217BE3E951BA0B4BD")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22227217BE3E951BA0B4BD", strategy="native")	
+	@GeneratedValue(generator="VAC22226E17C9085E9DE06EC9")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22226E17C9085E9DE06EC9", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
@@ -44,12 +44,6 @@ public class PublicOrganization implements Serializable {
 	@JoinColumns({ @JoinColumn(name="webresourceID") })	
 	@Basic(fetch=FetchType.LAZY)	
 	private org.msh.pdex2.model.r2.WebResource logo;
-	
-	@OneToOne(targetEntity=org.msh.pdex2.model.r2.Spatial.class)	
-	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.SAVE_UPDATE, org.hibernate.annotations.CascadeType.LOCK})	
-	@JoinColumns({ @JoinColumn(name="spatialdataID") })	
-	@Basic(fetch=FetchType.LAZY)	
-	private org.msh.pdex2.model.r2.Spatial spatial;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.r2.OrgRole.class)	
 	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.SAVE_UPDATE, org.hibernate.annotations.CascadeType.LOCK})	
@@ -73,20 +67,6 @@ public class PublicOrganization implements Serializable {
 	
 	public long getORMID() {
 		return getID();
-	}
-	
-	/**
-	 * This property links an organization to the administrative region(s) that it covers. The value of the properly should be the URI of the region as defined in an authoritative list of regions.
-	 */
-	public void setSpatial(org.msh.pdex2.model.r2.Spatial value) {
-		this.spatial = value;
-	}
-	
-	/**
-	 * This property links an organization to the administrative region(s) that it covers. The value of the properly should be the URI of the region as defined in an authoritative list of regions.
-	 */
-	public org.msh.pdex2.model.r2.Spatial getSpatial() {
-		return spatial;
 	}
 	
 	/**

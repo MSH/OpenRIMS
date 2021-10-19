@@ -96,6 +96,8 @@ public class WebSecurity {
 			.antMatchers("/api/accountant/**").hasAuthority("ROLE_ACCOUNTANT")
 			.antMatchers("/inspector/**").hasAuthority("ROLE_INSPECTOR")
 			.antMatchers("/api/inspector/**").hasAuthority("ROLE_INSPECTOR")
+			.antMatchers("/secretary/**").hasAuthority("ROLE_SECRETARY")
+			.antMatchers("/api/secretary/**").hasAuthority("ROLE_SECRETARY")
 			.anyRequest().denyAll()
 			.and()
 			.formLogin()
@@ -152,6 +154,8 @@ public class WebSecurity {
 			.antMatchers("/api/accountant/**").hasAuthority("ROLE_ACCOUNTANT")
 			.antMatchers("/inspector/**").hasAuthority("ROLE_INSPECTOR")
 			.antMatchers("/api/inspector/**").hasAuthority("ROLE_INSPECTOR")
+			.antMatchers("/secretary/**").hasAuthority("ROLE_SECRETARY")
+			.antMatchers("/api/secretary/**").hasAuthority("ROLE_SECRETARY")
 			.anyRequest().denyAll()
 			.and()
 			.oauth2Login().loginPage("/oauth_login")///oauth_login

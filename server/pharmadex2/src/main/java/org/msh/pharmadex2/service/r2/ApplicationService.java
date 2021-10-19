@@ -24,6 +24,7 @@ import org.msh.pdex2.model.r2.ThingThing;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.r2.Checklistr2Repo;
 import org.msh.pharmadex2.dto.ActivityDTO;
+import org.msh.pharmadex2.dto.ActivityHistoryDataDTO;
 import org.msh.pharmadex2.dto.ActivitySubmitDTO;
 import org.msh.pharmadex2.dto.ApplicationHistoryDTO;
 import org.msh.pharmadex2.dto.ApplicationOrActivityDTO;
@@ -33,6 +34,7 @@ import org.msh.pharmadex2.dto.CheckListDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.QuestionDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
+import org.msh.pharmadex2.dto.WorkflowParamDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
@@ -46,6 +48,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Application related services
@@ -85,38 +90,9 @@ public class ApplicationService {
 	private Messages messages;
 	@Autowired
 	private SystemService systemServ;
-	/**
-	 * Provide access to guest applications
-	 * @param data
-	 * @param user
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	public ApplicationSelectDTO guestApplications(ApplicationSelectDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
-		if(data.getAppListDictionary().getUrl().length()>0) {
-			//dictionary exists
-			List<Long> selected = data.getAppListDictionary().getPrevSelected();
-			if(selected.size()==1) {
-				long nodeId=selected.get(0);
-				Concept node = closureServ.loadConceptById(nodeId);
-				String appUrl = literalServ.readValue("applicationurl", node);
-				String applTitle=literalServ.readValue("prefLabel", node);
-				if(appUrl.length()>0) {
-					data=createGuestApplications(appUrl, applTitle, user.getEmail(),data);
-					data.getApplications().setDictItemId(nodeId);
-				}
-			}else {
-				data=cleanGuestApplication(data);
-			}
-		}else {
-			String dictUrl = assemblyServ.guestDictUrl();
-			data.getAppListDictionary().setUrl(dictUrl);
-			data.setAppListDictionary(dictServ.createDictionary(data.getAppListDictionary()));
-		}
-		//fine tune the dictionary
-		data.getAppListDictionary().setMult(false);
-		return data;
-	}
+	@Autowired
+	private ObjectMapper objectMapper;
+
 	/**
 	 * recreate only a table for selected applications
 	 * @param data
@@ -195,7 +171,7 @@ public class ApplicationService {
 				true,
 				true,
 				true,
-				TableHeader.COLUMN_LOCALDATETIME,
+				TableHeader.COLUMN_LOCALDATE,
 				0));
 		if(present) {
 			headers.getHeaders().add(TableHeader.instanceOf(
@@ -207,14 +183,7 @@ public class ApplicationService {
 					TableHeader.COLUMN_LONG,
 					0));
 		}
-		headers.getHeaders().add(TableHeader.instanceOf(
-				"applurl", 
-				"prod_app_type",
-				true,
-				false,
-				false,
-				TableHeader.COLUMN_I18,
-				0));
+
 		headers.getHeaders().add(TableHeader.instanceOf(
 				"activityurl", 
 				"activity",
@@ -223,18 +192,18 @@ public class ApplicationService {
 				false,
 				TableHeader.COLUMN_I18LINK,
 				0));
+
 		headers.getHeaders().add(TableHeader.instanceOf(
-				"applicant", 
-				"applicant",
+				"pref", 
+				"global_name",
 				true,
 				true,
 				true,
 				TableHeader.COLUMN_STRING,
 				0));
-
 		headers.getHeaders().add(TableHeader.instanceOf(
-				"pref", 
-				"global_name",
+				"notes", 
+				"description",
 				true,
 				true,
 				true,
@@ -293,9 +262,10 @@ public class ApplicationService {
 	/**
 	 * Headers for history table
 	 * @param headers
+	 * @param user 
 	 * @return
 	 */
-	private Headers historyHeaders(Headers headers) {
+	private Headers historyHeaders(Headers headers, UserDetailsDTO user) {
 		headers.getHeaders().add(TableHeader.instanceOf(
 				"come",
 				"global_date",
@@ -321,22 +291,39 @@ public class ApplicationService {
 				TableHeader.COLUMN_LONG,
 				0));
 		headers.getHeaders().add(TableHeader.instanceOf(
-				"activityurl",
-				"activity",
-				true,
-				true,
-				true,
-				TableHeader.COLUMN_I18,
-				0));
-		headers.getHeaders().add(TableHeader.instanceOf(
-				"executive",
-				"persons",
+				"workflow",
+				"workflows",
 				true,
 				true,
 				true,
 				TableHeader.COLUMN_STRING,
 				0));
-
+		headers.getHeaders().add(TableHeader.instanceOf(
+				"activity",
+				"activity",
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_I18LINK,
+				0));
+		if(!accServ.isApplicant(user)) {
+			headers.getHeaders().add(TableHeader.instanceOf(
+					"executive",
+					"persons",
+					true,
+					true,
+					true,
+					TableHeader.COLUMN_STRING,
+					0));
+		}
+		headers.getHeaders().add(TableHeader.instanceOf(
+				"notes",
+				"description",
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_STRING,
+				0));
 		headers=boilerServ.translateHeaders(headers);
 		headers.getHeaders().get(0).setSort(true);
 		headers.getHeaders().get(0).setSortValue(TableHeader.SORT_ASC);
@@ -366,12 +353,14 @@ public class ApplicationService {
 			data.setApplDictNodeId(dictNode.getID());
 			TableQtb table = data.getTable();
 			if(table.getHeaders().getHeaders().size()==0) {
-				table.setHeaders(historyHeaders(table.getHeaders()));
+				table.setHeaders(historyHeaders(table.getHeaders(),user));
 			}
-			String select = "select * from activity_data";
-			String where = "days>=0 and actConfigID is not null "
-					+ "and applNodeId="+his.getApplication().getID() +" and lang='"+LocaleContextHolder.getLocale().toString().toUpperCase()+"'";
-			List<TableRow> rows=jdbcRepo.qtbGroupReport(select, "", where, table.getHeaders());
+			jdbcRepo.application_history(his.getApplicationData().getID());
+			String where = "days>=0";
+			if(accServ.isApplicant(user)) {
+				where = where + " and go is not null";
+			}
+			List<TableRow> rows=jdbcRepo.qtbGroupReport("select * from application_history", "", where, table.getHeaders());
 			TableQtb.tablePage(rows, table);
 			boilerServ.translateRows(table);
 			table.setSelectable(accServ.isSupervisor(user));
@@ -401,8 +390,17 @@ public class ApplicationService {
 				//set access
 				data.setReadOnly(!accServ.sameEmail(executor.getIdentifier(), user.getEmail()));
 
-				//dictionary and data
-				String dictUrl = his.getActivity().getLabel();
+				//dictionary and data, maybe JSON encoded
+				String dictUrl="";
+				if(his.getActivity().getLabel()!=null) {
+					dictUrl = his.getActivity().getLabel();
+					try {
+						WorkflowParamDTO wdto = objectMapper.readValue(dictUrl, WorkflowParamDTO.class);
+						dictUrl=wdto.getChecklistUrl();
+					} catch (JsonProcessingException e) {
+						//nothing to do
+					}
+				}
 				Concept dictRoot = closureServ.loadRoot(dictUrl);
 				data.setDictUrl(dictUrl);
 				data.setTitle(literalServ.readPrefLabel(dictRoot));
@@ -689,7 +687,7 @@ public class ApplicationService {
 		}
 		//Responsibilities
 		List<Concept> parents = closureServ.loadParents(curHis.getApplication());
-		List<Concept> respNodes = dictServ.guestWorkflows(parents.get(0).getIdentifier());
+		List<Concept> respNodes = systemServ.guestWorkflows(parents.get(0).getIdentifier());
 		//Territory
 		String addrUrl = literalServ.readValue("addressurl", actConf);
 		Concept addr = new Concept();
@@ -777,6 +775,7 @@ public class ApplicationService {
 	 */
 	@Transactional
 	public ActivityDTO activityLoad(ActivityDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		data.setGuest(accServ.isApplicant(user));
 		data.getPath().clear();
 		data.getApplication().clear();
 		data.getData().clear();
@@ -791,9 +790,9 @@ public class ApplicationService {
 			//all completed activities
 			ThingDTO dto = new ThingDTO();
 			for(History his : allHis) {
-				if(his.getGo() != null && his.getID()!=curHis.getID()) {
+				if(his.getGo() != null && his.getID()!=curHis.getID() && !his.getCancelled()) {
 					dto = createActivity(user, his, true);
-					ThingDTO dt =createLoadActivityData(data, his, true);
+					ThingDTO dt =createLoadActivityData(data, his, user, true);
 					data.getPath().add(dto);
 					data.getData().add(dt);
 					//notes from the previous step
@@ -811,7 +810,7 @@ public class ApplicationService {
 				String dictUrl = curHis.getActivity().getLabel();
 				if(dictUrl!=null && dictUrl.toUpperCase().startsWith("DICTIONAR")) {
 					dto = createActivity(user, curHis,false);
-					ThingDTO dt =createLoadActivityData(data, curHis, false);
+					ThingDTO dt =createLoadActivityData(data, curHis, user, false);
 					data.getPath().add(dto);
 					data.getData().add(dt);
 					//notes from the previous step
@@ -834,12 +833,13 @@ public class ApplicationService {
 	 * Create or a data for an activity if one
 	 * @param data
 	 * @param history
+	 * @param user 
 	 * @param readOnly
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	private ThingDTO createLoadActivityData(ActivityDTO data, History history, boolean readOnly) throws ObjectNotFoundException {
+	private ThingDTO createLoadActivityData(ActivityDTO data, History history, UserDetailsDTO user, boolean readOnly) throws ObjectNotFoundException {
 		ThingDTO dto =new ThingDTO();
 		if(history.getDataUrl()!=null && history.getDataUrl().length()>0) {
 			dto.setUrl(history.getDataUrl());
@@ -850,9 +850,10 @@ public class ApplicationService {
 			if(history.getActivityData()!=null) {
 				dto.setNodeId(history.getActivityData().getID());
 			}
-			dto=thingServ.createContent(dto);
+			dto=thingServ.createContent(dto,user);
 			if(dto.getNodeId()>0) {
 				Concept node=closureServ.loadConceptById(dto.getNodeId());
+				dto.setStrings(dtoServ.readAllStrings(dto.getStrings(),node));
 				dto.setLiterals(dtoServ.readAllLiterals(dto.getLiterals(), node));
 				dto.setDates(dtoServ.readAllDates(dto.getDates(),node));
 				dto.setNumbers(dtoServ.readAllNumbers(dto.getNumbers(),node));
@@ -1079,13 +1080,13 @@ public class ApplicationService {
 	public ActivitySubmitDTO submitCreateData(UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		data.setApplicant(accServ.isApplicant(user));
 		if(data.getHistoryId()>0) {
-			if(data.isReload()) {
+			if(data.isReload()) {										//reload all three tables
 				data.getActions().getRows().clear();
 				data.getExecs().getRows().clear();
 				data.getNextJob().getRows().clear();
 				data.setReload(false);
 			}
-			if(data.isReloadExecs()) {
+			if(data.isReloadExecs()) {							//reload only executors, because a new activity has been selected
 				data.getExecs().getRows().clear();
 				data.setReloadExecs(false);
 			}
@@ -1093,7 +1094,7 @@ public class ApplicationService {
 			Concept userConc = closureServ.getParent(his.getActivity());
 			if(accServ.isMyActivity(his.getActivity(), user) || accServ.isSupervisor(user)) {
 				if(data.getActions().getRows().size()==0) {
-					data=createActions(user, data);
+					data=createActions(user, data);						//list of actions allowed
 				}
 				//determine the selected activity
 				int selected=-1;
@@ -1316,7 +1317,9 @@ public class ApplicationService {
 				}
 				data=validServ.submitApproveReject(curHis,user,data);
 				if(data.isValid()) {
-					allowed.add("4");
+					if(!data.isReject()) {
+						allowed.add("4");
+					}
 					allowed.add("5");
 				}
 			}
@@ -1408,9 +1411,6 @@ public class ApplicationService {
 			jdbcRepo.executorsActivity(nextActConfId);
 			List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from executors_activity", "", "", execTable.getHeaders());
 			execTable.setSelectable(true);
-			for(TableRow row : rows) {
-				row.setSelected(true);
-			}
 			TableQtb.tablePage(rows, execTable);
 		}
 		return execTable;
@@ -1459,8 +1459,10 @@ public class ApplicationService {
 	@Transactional
 	private TableQtb nextJobsTable(History his, TableQtb nextJob) {
 		if(nextJob.getRows().size()==0) {
+			List<Concept> path = closureServ.loadParents(his.getActConfig());
 			nextJob.setHeaders(headersNextJob(nextJob.getHeaders()));
-			jdbcRepo.workflowActivities(his.getApplConfig().getID());
+			//jdbcRepo.workflowActivities(his.getApplConfig().getID());
+			jdbcRepo.workflowActivities(path.get(0).getID());
 			List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from workflow_activities", "",
 					"bg!=1", nextJob.getHeaders());
 			nextJob.setSelectable(true);
@@ -1515,6 +1517,7 @@ public class ApplicationService {
 	public ActivityDTO activityHistoryIsMonitoring(UserDetailsDTO user, ActivityDTO data) throws ObjectNotFoundException {
 		if(data.getHistoryId()>0) {
 			data.clearErrors();
+			data.setGuest(accServ.isApplicant(user));
 			History his = boilerServ.historyById(data.getHistoryId());
 			if(his.getActConfig()==null) {
 				data.setIdentifier(messages.get("error_finishmonia"));
@@ -1532,9 +1535,10 @@ public class ApplicationService {
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException 
+	 * @throws JsonProcessingException 
 	 */
 	@Transactional
-	public ActivitySubmitDTO submitSend(UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
+	public ActivitySubmitDTO submitSend(UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException, JsonProcessingException {
 		History curHis=boilerServ.historyById(data.getHistoryId());
 		if(accServ.isActivityExecutor(curHis.getActivity(), user) || accServ.isSupervisor(user)) {
 			int actCode = data.actionSelected();
@@ -1577,12 +1581,12 @@ public class ApplicationService {
 				return data;
 			case 4:
 				data=validServ.submitApproveReject(curHis, user, data);
-				data=validServ.submitApproveRejectData(curHis, user, data);
+				data=validServ.submitApproveData(curHis, user, data);
 				data=submitApprove(curHis, user, data);
 				return data;
 			case 5:
 				data=validServ.submitApproveReject(curHis, user, data);
-				data=validServ.submitApproveRejectData(curHis, user, data);
+				data=validServ.submitRejectData(curHis, user, data);
 				data=submitReject(curHis, user, data);
 				return data;
 			case 6:
@@ -1601,17 +1605,65 @@ public class ApplicationService {
 	}
 
 	/**
-	 * Reject an application and move it to archive
+	 * Reject an application and move it to the applicant
 	 * @param curHis
 	 * @param user
 	 * @param data
 	 * @return
+	 * @throws ObjectNotFoundException 
+	 * @throws JsonProcessingException 
 	 */
-	private ActivitySubmitDTO submitReject(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) {
-		// TODO MOCK!!!!
-		data.setIdentifier(messages.get("EPERM_ABOUT"));
-		data.setValid(false);
+	@Transactional
+	private ActivitySubmitDTO submitReject(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException, JsonProcessingException {
+		cancelWorkflow(curHis, data);
+		Concept applicant = closureServ.getParent(curHis.getApplicationData());
+		rejectApplication(curHis, applicant.getIdentifier(), data);
 		return data;
+	}
+	/**
+	 * Reject the current application
+	 * @param curHis
+	 * @param applicantEmail
+	 * @param data
+	 * @throws ObjectNotFoundException 
+	 * @throws JsonProcessingException 
+	 */
+	@Transactional
+	private void rejectApplication(History curHis, String applicantEmail, ActivitySubmitDTO data) throws ObjectNotFoundException, JsonProcessingException {
+		ThingDTO tdto  = new ThingDTO();
+		tdto.setNodeId(curHis.getApplicationData().getID());
+		Concept applicant = closureServ.getParent(curHis.getApplication());
+		Concept application = closureServ.getParent(applicant);
+		tdto.setApplicationUrl(application.getIdentifier());
+		tdto.setApplDictNodeId(curHis.getApplDict().getID());
+
+		UserDetailsDTO user = new UserDetailsDTO();
+		user.setEmail(applicantEmail);
+		tdto=thingServ.loadThing(tdto, user);
+		tdto = thingServ.createApplication(tdto, applicantEmail, curHis.getApplicationData());
+		//add notes to the history data
+		History his = boilerServ.historyById(tdto.getHistoryId());
+		his.setPrevNotes(data.getNotes().getValue());
+		his=boilerServ.saveHistory(his);
+		/*Concept activity = createActivityNode("activity.reject", applicantEmail);
+		openHistory(null,curHis, null, activity, null,data.getNotes().getValue());		//there is no activity configuration for application itself
+		 */	}
+	/**
+	 * Cancel all opened activities in this workflow
+	 * @param curHis
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private void cancelWorkflow(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
+		curHis.setPrevNotes(data.getNotes().getValue());
+		List<History> allHis = boilerServ.historyAll(curHis.getApplication());
+		for(History his : allHis) {
+			if(his.getGo()==null) {
+				closeActivity(his, true);
+			}
+		}
 	}
 	/**
 	 * Submit to approve or reject
@@ -1829,6 +1881,7 @@ public class ApplicationService {
 	 */
 	public ActivitySubmitDTO submitAddActivity(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		if(data.isValid()) {
+			cancelUsersActivities(user, curHis);
 			List<Long> executors = data.executors();
 			long actConfId = data.nextActivity();
 			Concept actConf = closureServ.loadConceptById(actConfId);
@@ -1844,7 +1897,24 @@ public class ApplicationService {
 		}
 		return data;
 	}
-
+	
+	/**
+	 * Cancel all activities opened for this user
+	 * @param user
+	 * @param curHis
+	 * @throws ObjectNotFoundException 
+	 */
+	private void cancelUsersActivities(UserDetailsDTO user, History curHis) throws ObjectNotFoundException {
+		List<History> allHis = boilerServ.historyAll(curHis.getApplication());
+		for(History his :allHis) {
+			if(his.getGo()==null || his.getCancelled()) {
+				Concept uconc = closureServ.getParent(his.getActivity());
+				if(accServ.sameEmail(uconc.getIdentifier(), user.getEmail())) {
+					closeActivity(his, true);
+				}
+			}
+		}
+	}
 	/**
 	 * Try to done parallel activity or inform that this activity is the last (data.done=false)
 	 * @param user
@@ -1961,7 +2031,7 @@ public class ApplicationService {
 			data = thingServ.storeNumbers(node, data);
 			data = thingServ.storeLogical(node, data);
 			data = thingServ.storeDictionaries(thing,data);
-			data = thingServ.storeDocuments(thing, data);
+			data = thingServ.storeDocuments(thing, data, user);
 			data = thingServ.storeSchedule(user, node, thing, data);
 			data = thingServ.storeRegister(user, thing, data);
 			//title
@@ -1978,6 +2048,64 @@ public class ApplicationService {
 			}
 		}
 
+		return data;
+	}
+	/**
+	 * load data related to the activity in the past
+	 * @param data
+	 * @param userDto 
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public ActivityHistoryDataDTO activityHistoryData(ActivityHistoryDataDTO data, UserDetailsDTO userDto) throws ObjectNotFoundException {
+		if(data.getHistoryId()>0) {
+			History his = boilerServ.historyById(data.getHistoryId());
+			//breadcrumb
+			Concept wConc = his.getApplDict();
+			data.setWorkflow(literalServ.readPrefLabel(wConc));
+			Concept actConc = his.getActConfig();
+			data.setActivity(literalServ.readPrefLabel(actConc));
+			Concept dataConc = his.getApplicationData();
+			data.setPrefLabel(literalServ.readPrefLabel(dataConc));
+			//dates
+			LocalDate come = boilerServ.convertToLocalDateViaMilisecond(his.getCome());
+			data.getGlobal_startdate().setValue(come);
+			LocalDate go=null;
+			if(his.getGo() != null) {
+				go=boilerServ.convertToLocalDateViaMilisecond(his.getGo());
+				data.getCompleteddate().setValue(go);
+				data.setCompleted(true);
+			}else {
+				data.setCompleted(false);
+			}
+			//activity data
+			if(his.getActivityData() != null) {
+				data.setActivityDataId(his.getActivityData().getID());
+			}else {
+				data.setActivityDataId(0l);
+			}
+			//executor and notes
+			if(!accServ.isApplicant(userDto)) {
+				if(his.getPrevNotes() != null) {
+					data.getNotes().setValue(his.getPrevNotes());
+				}else {
+					data.getNotes().setValue("");
+				}
+				//executor
+				Concept activity = his.getActivity();
+				Concept exec=closureServ.getParent(activity);
+				User user = userServ.findByEmail(exec.getIdentifier());
+				if(user != null) {
+					Concept ucon = user.getConcept();
+					data.getExpert().setValue(literalServ.readPrefLabel(ucon));
+				}else {
+					data.getExpert().setValue("");
+				}
+			}
+		}else {
+			throw new ObjectNotFoundException("activityHistoryData. historyId is ZERO",logger);
+		}
 		return data;
 	}
 

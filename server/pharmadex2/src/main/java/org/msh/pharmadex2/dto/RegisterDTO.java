@@ -14,6 +14,7 @@ public class RegisterDTO extends AllowValidation {
 	private FormFieldDTO<LocalDate> expiry_date = FormFieldDTO.of(LocalDate.now());
 	private FormFieldDTO<String> reg_number = FormFieldDTO.of("");
 	private FormFieldDTO<String> prev = FormFieldDTO.of("");	//previous registration number, typically read only
+	private boolean readOnly=false;
 	//is this date expirable
 	private boolean expirable=false;
 	//to include to the thing
@@ -76,6 +77,12 @@ public class RegisterDTO extends AllowValidation {
 	}
 	public void setAppDataID(long appDataID) {
 		this.appDataID = appDataID;
+	}
+	public boolean isReadOnly() {
+		return readOnly;
+	}
+	public void setReadOnly(boolean readOnly) {
+		this.readOnly = readOnly;
 	}
 	
 }

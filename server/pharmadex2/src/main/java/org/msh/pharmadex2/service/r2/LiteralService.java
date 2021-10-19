@@ -85,7 +85,50 @@ public class LiteralService {
 		entityManager.refresh(parent);
 		return parent;
 	}
-
+	/**
+	 * Create and update string value
+	 * @param variableName
+	 * @param value
+	 * @param parent
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public Concept createUpdateString(String variableName, String value, Concept parent) throws ObjectNotFoundException {
+		//make parent managed
+		parent=closureServ.loadConceptById(parent.getID());
+		//literal
+		Concept literals = loadLiterals(parent);
+		//variable
+		Concept variable = loadVariable(literals, variableName);
+		//value
+		loadStringValue(variable, value);
+		//refresh
+		entityManager.refresh(parent);
+		return parent;
+	}
+	/**
+	 * Create/update value for all languages unconditionally
+	 * @param variable
+	 * @param value
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private Concept loadStringValue(Concept variable, String valueStr) throws ObjectNotFoundException {
+		Concept value = new Concept();
+		if(valueStr != null) {
+			valueStr=valueStr.trim();
+			List<String> languages = messages.getAllUsedUpperCase();
+			//load/create for all langs
+			for(String lang : languages) {
+				Concept rest = new Concept();
+				rest.setIdentifier(lang);
+				rest.setLabel(valueStr);
+				rest.setActive(true);
+				rest=closureServ.saveToTree(variable, rest);
+			}
+		}
+		return value;
+	}
 	/**
 	 * Create a new or update an existed literal for parent node
 	 * Current language will applied
@@ -123,6 +166,7 @@ public class LiteralService {
 	private Concept loadValue(Concept variable, String valueStr) throws ObjectNotFoundException{
 		Concept value = new Concept();
 		if(valueStr != null) {
+			valueStr=valueStr.trim();
 			String locale = LocaleContextHolder.getLocale().toString().toUpperCase();
 			List<String> languages = messages.getAllUsedUpperCase();
 			//create value anyway
@@ -414,12 +458,5 @@ public class LiteralService {
 	public String readDescription(Concept node) throws ObjectNotFoundException {
 		return readValue(DESCRIPTION, node);
 	}
-
-
-
-
-
-
-
 
 }

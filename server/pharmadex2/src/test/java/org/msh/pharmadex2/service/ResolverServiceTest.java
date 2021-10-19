@@ -93,4 +93,11 @@ public class ResolverServiceTest {
 			System.out.println(key+"=>"+model.get(key));
 		}
 	}
+	//@Test
+	public void character() throws ObjectNotFoundException {
+		ResourceDTO fres = new ResourceDTO();
+		fres.setHistoryId(1868);
+		Map<String, Object> ret = resolverServ.resolve("character/pharmacist/prefLabel", fres);
+		System.out.println(ret);
+	}
 }

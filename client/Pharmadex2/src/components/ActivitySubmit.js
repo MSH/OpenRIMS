@@ -20,6 +20,7 @@ class ActivitySubmit extends Component{
                 historyId:this.props.historyId,
                 supervisor:this.props.supervisor,
                 reassign:this.props.reassign,
+                reject:this.props.reject
             },                                                  // ActivitySubmitDTO
             labels:{
                 nextactivity:'',
@@ -71,6 +72,8 @@ class ActivitySubmit extends Component{
     }
 
     componentDidUpdate(){
+        this.state.data.reject=this.props.reject
+        this.state.data.reassign=this.props.reassign
         if(this.state.data.historyId != this.props.historyId || this.state.data.supervisor != this.props.supervisor){
             this.state.data.historyId=this.props.historyId
             this.state.data.supervisor=this.props.supervisor
@@ -297,6 +300,7 @@ ActivitySubmit.propTypes={
     historyId : PropTypes.number.isRequired,    //history id of the activity
     supervisor: PropTypes.bool.isRequired,      //initiated by supervisor
     reassign:   PropTypes.bool.isRequired,       //reassign only
+    reject:PropTypes.bool.isRequired,            //return to applicant
     recipient : PropTypes.string.isRequired,    //for messages
     readonly:PropTypes.bool,                    //for future extension
 }

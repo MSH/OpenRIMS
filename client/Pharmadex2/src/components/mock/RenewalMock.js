@@ -62,6 +62,7 @@ class RenewalMock extends Component{
     content(){
         let data={}
         if(this.state.index==0){
+            console.log("ifififif")
             if(this.state.data.url == undefined){
             data.nodeId=0;
             data.url="mock.renewal"
@@ -72,6 +73,7 @@ class RenewalMock extends Component{
                 <Thing data={data} recipient={this.state.identifier} />
             )
         }else{
+            console.log("else")
             data.url=this.state.choice.url
             data.applDictNodeId=this.state.choice.dictNodeId
             data.historyId=0

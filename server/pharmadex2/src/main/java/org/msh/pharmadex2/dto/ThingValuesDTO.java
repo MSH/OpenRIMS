@@ -23,6 +23,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class ThingValuesDTO  extends AllowValidation{
 	private String url="";
 	private long nodeId=0;
+	private Map<String, String> strings = new LinkedHashMap<String, String>();
 	private Map<String, String> literals = new LinkedHashMap<String, String>();
 	private Map<String, Long> numbers = new LinkedHashMap<String, Long>();
 	private Map<String, LocalDate> dates = new LinkedHashMap<String, LocalDate>();
@@ -44,6 +45,13 @@ public class ThingValuesDTO  extends AllowValidation{
 	}
 	public void setNodeId(long nodeId) {
 		this.nodeId = nodeId;
+	}
+	
+	public Map<String, String> getStrings() {
+		return strings;
+	}
+	public void setStrings(Map<String, String> strings) {
+		this.strings = strings;
 	}
 	public Map<String, String> getLiterals() {
 		return literals;

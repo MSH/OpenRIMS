@@ -44,6 +44,6 @@ class About extends Component{
 }
 export default About
 About.propTypes={
-    menu:PropTypes.oneOf(["landing","guest","admin", "moderator", "screener","reviewer","accountant","inspector"]).isRequired,      //tabset
+    menu:PropTypes.oneOf(["landing","guest","admin", "moderator", "screener","reviewer","accountant","inspector","secretary"]).isRequired,
     navigator:PropTypes.object.isRequired                                           //Navigator
 }

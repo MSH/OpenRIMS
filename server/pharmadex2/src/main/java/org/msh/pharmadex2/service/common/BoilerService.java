@@ -11,8 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import javax.swing.plaf.TableHeaderUI;
-
 import org.msh.pdex2.dto.i18n.Language;
 import org.msh.pdex2.dto.table.Headers;
 import org.msh.pdex2.dto.table.TableCell;
@@ -32,6 +30,8 @@ import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.model.r2.Register;
 import org.msh.pdex2.model.r2.Scheduler;
 import org.msh.pdex2.model.r2.Thing;
+import org.msh.pdex2.model.r2.ThingDoc;
+import org.msh.pdex2.model.r2.ThingRegister;
 import org.msh.pdex2.model.r2.ThingScheduler;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.common.QueryRepository;
@@ -42,6 +42,8 @@ import org.msh.pdex2.repository.r2.FileResourceRepo;
 import org.msh.pdex2.repository.r2.HistoryRepo;
 import org.msh.pdex2.repository.r2.RegisterRepo;
 import org.msh.pdex2.repository.r2.SchedulerRepo;
+import org.msh.pdex2.repository.r2.ThingDocRepo;
+import org.msh.pdex2.repository.r2.ThingRegisterRepo;
 import org.msh.pdex2.repository.r2.ThingRepo;
 import org.msh.pdex2.repository.r2.ThingSchedulerRepo;
 import org.msh.pharmadex2.service.r2.ClosureService;
@@ -90,9 +92,13 @@ public class BoilerService {
 	@Autowired
 	private ThingSchedulerRepo thingSchedRepo;
 	@Autowired
+	private ThingRegisterRepo thingRegRepo;
+	@Autowired
 	private RegisterRepo registerRepo;
 	@Autowired
 	private JdbcRepository jdbcRepo;
+	@Autowired
+	private ThingDocRepo thingDocRepo;
 	/**
 	 * Convert resource bundle to DTO
 	 * @param bundle
@@ -213,9 +219,11 @@ public class BoilerService {
 	 */
 	@Transactional
 	public Thing loadThingByNode(Concept node, Thing thing) {
-		Optional<Thing> reto= thingRepo.findByConcept(node);
-		if(reto.isPresent()) {
-			thing = reto.get();
+		if(node.getID()>0) {
+			Optional<Thing> reto= thingRepo.findByConcept(node);
+			if(reto.isPresent()) {
+				thing = reto.get();
+			}
 		}
 		return thing;
 	}
@@ -342,6 +350,7 @@ public class BoilerService {
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
+	@Transactional
 	public Assembly assemblyByVariable(Concept var, boolean strict) throws ObjectNotFoundException {
 		Optional<Assembly> asm = assmRepo.findByPropertyName(var);
 		if(asm.isPresent()) {
@@ -631,6 +640,100 @@ public class BoilerService {
 	public List<Register> registersByApplData(Concept appData) {
 		List<Register> ret = registerRepo.findAllByAppDataOrderByRegisteredAtAsc(appData);
 		return ret;
+	}
+
+
+	/**
+	 * GEt a histroy record by activity data
+	 * @param conc
+	 * @return
+	 */
+	public List<History> historyByActivitydata(Concept conc) {
+		List<History> ret = historyRepo.findByActivityData(conc);
+		return ret;
+	}
+
+	/**
+	 * Save all selected rows in the table to a list
+	 * @param table
+	 * @return
+	 */
+	public List<Long> saveSelectedRows(TableQtb table) {
+		List<Long> selected = new ArrayList<Long>();
+		for(TableRow row : table.getRows()) {
+			if(row.getSelected()) {
+				selected.add(row.getDbID());
+			}
+		}
+		return selected;
+	}
+
+	/**
+	 * Restore selections in the table
+	 * @param selected
+	 * @param table
+	 * @return
+	 */
+	public TableQtb selectedRowsRestore(List<Long> selected, TableQtb table) {
+		if(selected.size()>0) {
+			for(TableRow row :table.getRows()) {
+				if(selected.contains(row.getDbID())) {
+					row.setSelected(true);
+				}else {
+					row.setSelected(false);
+				}
+			}
+		}
+		return table;
+	}
+
+	/**
+	 * Headers for person's selector table
+	 * Here it is because of mutual use by services Resource and Amendment
+	 * @param headers
+	 * @return
+	 */
+	public Headers headersPersonSelector(Headers headers) {
+		headers.getHeaders().clear();
+		headers.getHeaders().add(TableHeader.instanceOf(
+				"pref",
+				"global_name",
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_LINK,
+				0));
+		translateHeaders(headers);
+		return headers;
+	}
+	/**
+	 * Get all thing registers by concept
+	 * @param concept
+	 * @return ThingRet with ID==0 if not found
+	 */
+	@Transactional
+	public List<ThingRegister> thingRegisterByNode(Concept concept) {
+		List<ThingRegister> ret = thingRegRepo.findAllByConcept(concept);
+		return ret;
+	}
+	/**
+	 * Save a link to a documet
+	 * @param ret
+	 * @return
+	 */
+	@Transactional
+	public ThingDoc saveThingDoc(ThingDoc ret) {
+		ret = thingDocRepo.save(ret);
+		return ret;
+	}
+	@Transactional
+	public ThingDoc thingDocByNode(Concept docNode) throws ObjectNotFoundException {
+		Optional<ThingDoc> tdo = thingDocRepo.findByConcept(docNode);
+		if(tdo.isPresent()) {
+			return tdo.get();
+		}else {
+			throw new ObjectNotFoundException("ThingDocByNode. Can't find ThingDoc by concept. Id is "+docNode.getID());
+		}
 	}
 
 }

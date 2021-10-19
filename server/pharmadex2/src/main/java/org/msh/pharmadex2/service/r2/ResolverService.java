@@ -19,7 +19,6 @@ import org.msh.pdex2.model.r2.ThingDict;
 import org.msh.pdex2.model.r2.ThingDoc;
 import org.msh.pdex2.model.r2.ThingScheduler;
 import org.msh.pdex2.model.r2.ThingThing;
-import org.msh.pdex2.repository.r2.ThingRepo;
 import org.msh.pharmadex2.dto.AddressValuesDTO;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.DictValuesDTO;
@@ -111,7 +110,7 @@ public class ResolverService {
 				logger.warn("valueToString. Object not found for datatype "+ dataType +" will return empty string", logger);
 				return "";
 			}
-			
+
 		}
 
 	}
@@ -132,6 +131,10 @@ public class ResolverService {
 		if(expr!=null && expr.length()>0) {
 			if(historyId>0) {
 				List<String> urls = Arrays.asList(expr.split("/"));
+
+				if(urls.get(0).equalsIgnoreCase("character")) {
+					return resolveCharacter(urls,fres,ret);
+				}
 
 				if(urls.get(0).equalsIgnoreCase("person")) {
 					//resolve from person node
@@ -170,6 +173,62 @@ public class ResolverService {
 			}
 		}else {
 			throw new ObjectNotFoundException("resolve. Expression is empty",logger);
+		}
+		return ret;
+	}
+
+	/**
+	 * Resolve PersonSpecial assignment
+	 * @param urls
+	 * @param fres
+	 * @param ret
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private Map<String, Object> resolveCharacter(List<String> urls, ResourceDTO fres, Map<String, Object> ret) throws ObjectNotFoundException {
+		long historyId=fres.getHistoryId();
+		if(urls.size()>2) {		//character/pharmacist/prefLabel@literal
+			if(historyId>0) {
+				History his = boilerServ.historyById(historyId);
+				Thing thing = boilerServ.loadThingByNode(his.getApplicationData());
+				long characterId = 0;
+				for(ThingThing tt : thing.getThings()) {
+					if(tt.getVarname().equalsIgnoreCase(urls.get(1))) {
+						String idStr = tt.getConcept().getLabel();
+						if(idStr != null) {
+							try {
+								characterId= new Long(idStr);
+							} catch (NumberFormatException e) {
+								//nothing to do
+							}
+						}
+					}
+				}
+				if(characterId>0) {
+					Concept topConcept=closureServ.loadConceptById(characterId);
+					urls=urls.subList(1,urls.size());		//character
+					//search for concept
+					int lastIndex=urls.size()-1;
+					if(lastIndex>=1) {
+						String varName=urls.get(lastIndex);
+						urls=urls.subList(1, lastIndex);
+						Concept var=topConcept;
+						for(String v : urls) {
+							var=nextConcept(v, var);
+						}
+						ret=readVariable(varName, var, ret);
+					}else {
+						logger.error("resolveCharacter. Variable is not defined. "+urls);
+					}
+				}else {
+					logger.error("resolveCharacter. character not found. Variable is " + urls.get(1));
+				}
+			}else {
+				logger.error("resolveCharacter. HistoryID is zero");
+			}
+		}else {
+			logger.error("reslveCharacter. Path should contain at least 3 componetns. Actual is " + urls.size());
 		}
 		return ret;
 	}
@@ -292,7 +351,7 @@ public class ResolverService {
 			value.put("registeredBS1",boilerServ.localDateToNepali(valReg.getRegistration_date().getValue(),false));
 			value.put("expiredBS1",boilerServ.localDateToNepali(valReg.getExpiry_date().getValue(),false));
 		}
-		
+
 		return value;
 	}
 	/**
@@ -314,6 +373,7 @@ public class ResolverService {
 		List<AssemblyDTO> dictionaries = assemblyServ.auxDictionaries(varThing.getUrl());
 		List<AssemblyDTO> documents = assemblyServ.auxDocuments(varThing.getUrl());
 		List<AssemblyDTO> schedulers = assemblyServ.auxSchedulers(varThing.getUrl());
+		List<AssemblyDTO> personSpec = assemblyServ.auxPersonSpecials(varThing.getUrl());
 
 		for(AssemblyDTO ad : literals) {
 			if(ad.getPropertyName().equalsIgnoreCase(varName)) {
@@ -328,7 +388,7 @@ public class ResolverService {
 				}
 			}
 		}
-		
+
 		for(AssemblyDTO ad : numbers) {
 			if(ad.getPropertyName().equalsIgnoreCase(varName)) {
 				String valStr = literalServ.readValue(varName, var);
@@ -380,6 +440,7 @@ public class ResolverService {
 				value=scheduler(ad,varName,var,value);
 			}
 		}
+
 		if(value == null) {
 			logger.warn("readVariable. Value not found for "+varName,logger);
 		}
@@ -388,7 +449,7 @@ public class ResolverService {
 		}
 		return value;
 	}
-	
+
 	/**
 	 * Scheduler with converter "date"
 	 * @param ad
@@ -430,8 +491,8 @@ public class ResolverService {
 					logger.warn("document. Value filename is empty for "+varName);
 				}
 				filenames.add(fname);
-					//value.put("filename", fname);
-				
+				//value.put("filename", fname);
+
 				Concept dict = td.getDictNode();//closureServ.loadConceptById(td.getDictNode().getID());
 				String preflabel = literalServ.readPrefLabel(dict);
 				preflabels.add(preflabel);
@@ -448,13 +509,13 @@ public class ResolverService {
 			String choice = String.join(", ", filenames);
 			String preflabel = String.join("/", preflabels);
 			String desc = String.join("/", descr);
-			
+
 			value.put("filename", fname);
 			value.put("preflabel", preflabel);
 			value.put("description", desc);
 			value.put("choice", choice);
 		}
-		
+
 		return value;
 	}
 	/**

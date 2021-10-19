@@ -2,6 +2,7 @@ package org.msh.pharmadex2.service.r2;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -31,6 +32,7 @@ import org.msh.pharmadex2.dto.ResourceDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.TileDTO;
 import org.msh.pharmadex2.dto.WorkflowDTO;
+import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
@@ -97,18 +99,19 @@ public class SupervisorService {
 	 * Create or load workflow configuration
 	 * @param user 
 	 * @param data
+	 * @param user 
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public WorkflowDTO workflowConfiguration(WorkflowDTO data) throws ObjectNotFoundException {
+	public WorkflowDTO workflowConfiguration(WorkflowDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		if(data.getDictNodeId()>0) {
 			Concept dictNode = closureServ.loadConceptById(data.getDictNodeId());
 			data.setTitle(literalServ.readPrefLabel(dictNode));
 			String url = literalServ.readValue("applicationurl", dictNode);
 			if(url.length()>5){
 				Concept firstActivity=closureServ.loadRoot("configuration."+url.toLowerCase());
-				List<ThingDTO> path = createPath(firstActivity, new ArrayList<ThingDTO>());
+				List<ThingDTO> path = createPath(firstActivity, new ArrayList<ThingDTO>(),user);
 				data.getPath().clear();
 				data.getPath().addAll(path);
 			}else {
@@ -121,6 +124,7 @@ public class SupervisorService {
 	}
 	/**
 	 * Create a path from levels
+	 * @param user 
 	 * @param  
 	 * @param firstActivity
 	 * @param arrayList
@@ -128,17 +132,17 @@ public class SupervisorService {
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	private List<ThingDTO> createPath(Concept activityNode, List<ThingDTO> path) throws ObjectNotFoundException {
+	private List<ThingDTO> createPath(Concept activityNode, List<ThingDTO> path, UserDetailsDTO user) throws ObjectNotFoundException {
 		ThingDTO dto =new ThingDTO();
 		if(activityNode.getActive()) {
 			dto.setUrl("activity.configuration");
 			dto.setNodeId(activityNode.getID());
-			dto = thingServ.createContent(dto);
+			dto = thingServ.createContent(dto,user);
 			path.add(dto);
 		}
 		List<Concept> nextLevel = literalServ.loadOnlyChilds(activityNode);
 		for(Concept anode : nextLevel) {
-			path = createPath(anode, path);
+			path = createPath(anode, path,user);
 		}
 		for(ThingDTO td :path) {
 			if(td.getNodeId()>0) {
@@ -154,11 +158,12 @@ public class SupervisorService {
 	/**
 	 * Load activity configuration or user data configuration
 	 * @param data
+	 * @param user 
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public ThingDTO thingLoad(ThingDTO data) throws ObjectNotFoundException {
+	public ThingDTO thingLoad(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		if(data.getNodeId()>0) {
 			Concept node= closureServ.loadConceptById(data.getNodeId());
 			Thing thing = new Thing();
@@ -173,7 +178,8 @@ public class SupervisorService {
 			}else {
 				data.setTitle(messages.get(data.getVarName()));
 			}
-			data=thingServ.createContent(data);
+			data=thingServ.createContent(data,user);
+			data.setStrings(dtoServ.readAllStrings(data.getStrings(),node));
 			data.setLiterals(dtoServ.readAllLiterals(data.getLiterals(), node));
 			data.setDates(dtoServ.readAllDates(data.getDates(),node));
 			data.setNumbers(dtoServ.readAllNumbers(data.getNumbers(),node));
@@ -187,11 +193,12 @@ public class SupervisorService {
 	/**
 	 * Create empty activity and add it to the end of path
 	 * @param data
+	 * @param user 
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public WorkflowDTO workflowActivityAdd(WorkflowDTO data) throws ObjectNotFoundException {
+	public WorkflowDTO workflowActivityAdd(WorkflowDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		ThingDTO dto =new ThingDTO();
 		dto.setUrl("activity.configuration");
 		dto.setTitle(messages.get("newactivity"));
@@ -201,7 +208,7 @@ public class SupervisorService {
 			long parentId= data.getPath().get(lastPath).getNodeId();
 			if(parentId>0) {
 				dto.setParentId(parentId);
-				dto = thingServ.createContent(dto);
+				dto = thingServ.createContent(dto,user);
 				data.getPath().add(dto);
 				return data;
 			}else {
@@ -214,17 +221,20 @@ public class SupervisorService {
 	/**
 	 * Suspend the current activity
 	 * @param data
+	 * @param user 
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public WorkflowDTO workflowActivitySuspend(WorkflowDTO data) throws ObjectNotFoundException {
+	public WorkflowDTO workflowActivitySuspend(WorkflowDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		if(data.getSelected()>=0) {
 			ThingDTO selected = data.getPath().get(data.getSelected());
 			Concept actConf = closureServ.loadConceptById(selected.getNodeId());
 			actConf.setActive(false);
 			actConf=closureServ.save(actConf);
-			data=workflowConfiguration(data);
+			data.setSelected(0);
+			data.getPath().clear();
+			data=workflowConfiguration(data,user);
 		}
 		return data;
 	}
@@ -538,16 +548,17 @@ public class SupervisorService {
 	/**
 	 * Preview a thing created from data definition
 	 * @param data
+	 * @param user 
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	public DataPreviewDTO dataCollectionDefinitionPreview(DataPreviewDTO data) throws ObjectNotFoundException {
+	public DataPreviewDTO dataCollectionDefinitionPreview(DataPreviewDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		if(data.getNodeId()>0) {
 			Concept node = closureServ.loadConceptById(data.getNodeId());
 			data.getThing().setUrl(node.getIdentifier());
 			data.getThing().setReadOnly(false);
 			data.getThing().setTitle(messages.get("preview"));
-			data.setThing(thingServ.createContent(data.getThing()));
+			data.setThing(thingServ.createContent(data.getThing(),user));
 		}else {
 			throw new ObjectNotFoundException("dataCollectionDefinitionPreview. Node ID is ZERO",logger);
 		}
@@ -713,7 +724,7 @@ public class SupervisorService {
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public ThingDTO resourceSave(ThingDTO data) throws ObjectNotFoundException {
+	public ThingDTO resourceSave(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		data=validServ.resource(data, true);
 		if(data.isValid()) {
 			if(data.getNodeId()>0 && data.getUrl().length()>0) {
@@ -728,7 +739,7 @@ public class SupervisorService {
 				data = thingServ.storeNumbers(node, data);
 				data = thingServ.storeLogical(node,data);
 				data = thingServ.storeDictionaries(thing,data);
-				data = thingServ.storeDocuments(thing, data);
+				data = thingServ.storeDocuments(thing, data,user);
 				//store a thing
 				thing=boilerServ.saveThing(thing);
 			}else {
@@ -753,7 +764,7 @@ public class SupervisorService {
 		}else {
 			throw new ObjectNotFoundException("resourceSuspend. Node ID is ZERO",logger);
 		}
-	
+
 	}
 
 	public MessageDTO messagesLoad(MessageDTO data) throws ObjectNotFoundException {
@@ -828,7 +839,7 @@ public class SupervisorService {
 						rm = list.get(0);
 						if(list.size() == 1 && rm.getId() == data.getSelectedIds().get(rb.getLocale().toUpperCase())) {
 							// это редактирование записи
-							
+
 							rm.setMessage_value(value);
 
 							resourceMessageRepo.save(rm);
@@ -880,7 +891,7 @@ public class SupervisorService {
 		headers.getHeaders().get(0).setSortValue(TableHeader.SORT_ASC);
 		return headers;
 	}
-	
+
 	/**
 	 * Duplicate the data configuration to the url
 	 * old_data_configuration.copy
@@ -918,9 +929,82 @@ public class SupervisorService {
 			dv.setVarNodeId(0);
 			dv=dataCollectionVariableSave(dv);
 		}
-		
+
 		return data;
 	}
+	/**
+	 * Insert an activity before the current.
+	 * Works differently for the first activity
+	 * @param data
+	 * @param user 
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public WorkflowDTO workflowActivityInsert(WorkflowDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		int selected = data.getSelected();
+		if(selected>-1 && selected < data.getPath().size()) {
+			ThingDTO thing=data.getPath().get(selected);
+			Concept node = closureServ.loadConceptById(thing.getNodeId());
+			Concept parent = closureServ.getParent(node);
+			if(parent==null) {
+				data = insertRootActivity(node, data,user);
+			}else {
+				data= insertActivityBetween(parent, node, data,user);
+			}
+		}else {
+			throw new ObjectNotFoundException("workflowActivityInsert Bad selection "+selected,logger);
+		}
+		return data;
+	}
+	/**
+	 * Insert an activity between parent and node
+	 * @param parent
+	 * @param node
+	 * @param data 
+	 * @param user 
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private WorkflowDTO insertActivityBetween(Concept parent, Concept node, WorkflowDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		//node to insert
+		Instant instant = Instant.now();
+		long timeStampMillis = instant.toEpochMilli();
+		Concept iNode = closureServ.loadRoot(timeStampMillis+"");
+		//move whole tree from the node to the new node
+		jdbcRepo.moveSubTree(node, iNode);
+		//move result tree to the parent
+		jdbcRepo.moveSubTree(iNode, parent);
+		//restore the path
+		data.getPath().clear();
+		data=workflowConfiguration(data,user);
+		return data;
+	}
+
+	/**
+	 * Insert root activity
+	 * @param thing
+	 * @param data
+	 * @param user 
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private WorkflowDTO insertRootActivity(Concept root, WorkflowDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		//create new root
+		String url = root.getIdentifier();
+		root.setIdentifier(root.getID()+"");
+		root=closureServ.save(root);
+		Concept newRoot = closureServ.loadRoot(url);
+		//move whole tree to the new root
+		jdbcRepo.moveSubTree(root, newRoot);
+		//restore the path
+		data.getPath().clear();
+		data=workflowConfiguration(data,user);
+		return data;
+	}
+
 
 
 }
