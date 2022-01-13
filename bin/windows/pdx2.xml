@@ -1,0 +1,8 @@
+<service>
+    <id>pdx2</id>
+    <name>pdx2</name>
+    <description>1Pdx2 application</description>
+    <env name="MYAPP_HOME" value="%BASE%"/>
+    <executable>java</executable>
+    <arguments>-jar "%BASE%\pharmadex2-0.0.1.jar"</arguments>
+</service>
