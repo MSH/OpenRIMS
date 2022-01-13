@@ -1,7 +1,6 @@
 package org.msh.pharmadex2.service.common;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -29,6 +28,7 @@ import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.common.UserRepo;
 import org.msh.pdex2.repository.r2.ConceptRepo;
 import org.msh.pdex2.repository.r2.UserDictRepo;
+import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.UserElementDTO;
@@ -38,7 +38,6 @@ import org.msh.pharmadex2.dto.auth.UserRoleDto;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.service.r2.AssemblyService;
-import org.msh.pharmadex2.service.r2.ClosureService;
 import org.msh.pharmadex2.service.r2.DictService;
 import org.msh.pharmadex2.service.r2.LiteralService;
 import org.msh.pharmadex2.service.r2.SystemService;
@@ -624,12 +623,12 @@ public class UserService implements UserDetailsService {
 		//prepare dictionaries
 		data.setRoles(systemServ.userRolesDict(data.getRoles()));
 		data.setAreas(systemServ.addressDictionary(data.getAreas()));
-		
+
 		data.setApplications(systemServ.applicationsDictionary(data.getApplications()));
 		data.setRenewal(systemServ.renewalDict(data.getRenewal()));
 		data.setAmendments(systemServ.amendmentDictionary(data.getAmendments()));
 		data.setDeregistration(systemServ.deregistrationDict(data.getDeregistration()));
-		
+
 		data.getApplications().setMult(true);
 		data.getAmendments().setMult(true);
 		data.getRenewal().setMult(true);
@@ -815,6 +814,9 @@ public class UserService implements UserDetailsService {
 				List<User> t1Resp = findClosestTo(tResp,addr);
 				if(t1Resp.size()>0) {
 					terrUsers.addAll(t1Resp);
+					if(terrUsers.size()==0) {
+						terrUsers.addAll(findAllCountryResponsible(respUsers));
+					}
 				}else {
 					terrUsers.addAll(respUsers);
 				}
@@ -844,6 +846,30 @@ public class UserService implements UserDetailsService {
 		return ret;
 	}
 	/**
+	 * Users, responsible for all country
+	 * @param respUsers
+	 * @return
+	 */
+	@Transactional
+	private List<User> findAllCountryResponsible(List<User> respUsers) {
+		List<User> ret = new ArrayList<User>();
+		boolean found=false;
+		for(User u :respUsers) {
+			found=false;
+			for(UserDict ud : u.getDictionaries()) {
+				if(ud.getUrl().equalsIgnoreCase(SystemService.DICTIONARY_ADMIN_UNITS)) {
+					found=true;
+					break;
+				}
+			}
+			if(!found) {
+				ret.add(u);
+			}
+		}
+		return ret;
+	}
+
+	/**
 	 * Find the best suitable users responsible for territory in addr 
 	 * @param users
 	 * @param addr
@@ -853,7 +879,7 @@ public class UserService implements UserDetailsService {
 	private List<User> findClosestTo(List<User> users, Concept addr) throws ObjectNotFoundException {
 		List<User> ret = new ArrayList<User>();
 		//determine address
-		Thing athing = boilerServ.loadThingByNode(addr);
+		Thing athing = boilerServ.thingByNode(addr);
 		Concept dictNode= new Concept();
 		for(ThingDict td :athing.getDictionaries()) {
 			if(td.getUrl().contentEquals(SystemService.DICTIONARY_ADMIN_UNITS)) {
@@ -886,8 +912,8 @@ public class UserService implements UserDetailsService {
 	}
 
 	/**
-	 * Select all users with responsibles restricted by territory
-	 * @param users
+	 * Select all users with responsible restricted by territory or for all territories
+	 * @param users list of 
 	 * @return
 	 */
 	private List<User> findTerritoryResponsible(List<User> users) {

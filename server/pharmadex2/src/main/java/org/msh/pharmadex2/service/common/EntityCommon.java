@@ -16,7 +16,7 @@ import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.dto.form.Magic;
 import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.dto.form.YesNoType;
-import org.msh.pharmadex2.service.r2.ClosureService;
+import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.service.r2.LiteralService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -113,6 +113,7 @@ public class EntityCommon {
 	@Transactional
 	public void castValue(String identifier, Object value, String name, Object obj) throws ObjectNotFoundException {
 		try {
+			@SuppressWarnings("rawtypes")
 			Class clazz = PropertyUtils.getPropertyType(obj, name);
 			if(clazz.getSimpleName().contains("Concept")) {
 				//variable or dictionary item?

@@ -10,6 +10,7 @@ import FieldInput from './form/FieldInput'
  * A component responcible for literals (load, display,edit)
  * Provides useful static utilities as well
  * Accept message "getData", reply to it with data DictElementDTO
+ * issues onLiteralUpdated event from componentDidUpdate
  * @example
  * <Literals
  *  identifier="node"                   
@@ -90,6 +91,11 @@ class Literals extends Component{
             Literals.cleanUp(this.state.data.literals)
             this.load()
         }
+        let recipient='*'
+        if(this.props.recipient != undefined){
+            recipient=this.props.recipient
+        }
+        Navigator.message(this.props.identifier, recipient, "onLiteralUpdated", this.state.data)
     }
 
     componentWillUnmount(){
@@ -157,6 +163,7 @@ class Literals extends Component{
 export default Literals
 Literals.propTypes={
     identifier: PropTypes.string.isRequired,    //unique name of the instance of component for messages.
+    recipient: PropTypes.string,                //recipient of messages
     url:PropTypes.string.isRequired,            //url of literals tree for future reference only
     parentId:PropTypes.number.isRequired,       //id of parent component for future reference only
     nodeId:PropTypes.number.isRequired,         //id of this component, if no zero, will be loaded

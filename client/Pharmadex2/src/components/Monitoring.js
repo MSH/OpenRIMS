@@ -9,6 +9,7 @@ import CollectorTable from './utils/CollectorTable'
 import ButtonUni from './form/ButtonUni'
 import ActivityManager from './ActivityManager'
 import SearchControl from './utils/SearchControl'
+import Downloader from './utils/Downloader'
 
 /**
  * Responsible for assigned activities. Any user, except an applicant
@@ -26,6 +27,7 @@ class ToDoList extends Component{
                 search:'',
                 actual:'',
                 scheduled:'',
+                exportExcel:'',
             },
             data:{},
         }
@@ -73,7 +75,19 @@ class ToDoList extends Component{
                         <Col xs='12' sm='12' lg='4' xl='4'>
                             <SearchControl key="1" label={this.state.labels.search} table={this.state.data.table} loader={this.loadData}/>
                         </Col>
-                    <Col xs='12' sm='12' lg='8' xl='8'/>
+                        <Col xs='0' sm='0' lg='6' xl='6'/>
+                        <Col xs='12' sm='12' lg='2' xl='2' className="d-flex justify-content-end">
+                        <ButtonUni
+                            label={this.state.labels.exportExcel}
+                            onClick={()=>{
+                                let downloader = new Downloader();
+                                Fetchers.setJustLoaded(this.state.data,false)
+                                downloader.postDownload("/api/"+Navigator.tabSetName()+ "/my/monitoring/actual/excel",
+                                this.state.data, "monitoring_actual.xlsx");
+                            }} 
+                            color={"info"}
+                                />
+                        </Col>
                     </Row>
                     <Row>
                         <Col>
@@ -111,7 +125,19 @@ class ToDoList extends Component{
                         <Col xs='12' sm='12' lg='4' xl='4'>
                             <SearchControl key='3' label={this.state.labels.search} table={this.state.data.scheduled} loader={this.loadData}/>
                         </Col>
-                    <Col xs='12' sm='12' lg='8' xl='8'/>
+                        <Col xs='0' sm='0' lg='6' xl='6'/>
+                        <Col xs='12' sm='12' lg='2' xl='2' className="d-flex justify-content-end">
+                        <ButtonUni
+                            label={this.state.labels.exportExcel}
+                            onClick={()=>{
+                                let downloader = new Downloader();
+                                Fetchers.setJustLoaded(this.state.data,false)
+                                downloader.postDownload("/api/"+Navigator.tabSetName()+ "/my/monitoring/scheduled/excel",
+                                this.state.data, "monitoring_scheduled.xlsx");
+                            }} 
+                            color={"info"}
+                                />
+                        </Col>
                     </Row>
                     <Row>
                         <Col>

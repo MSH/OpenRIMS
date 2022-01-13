@@ -10,10 +10,10 @@ import org.msh.pharmadex2.dto.form.AllowValidation;
  */
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
 public class RegisterDTO extends AllowValidation {
+	private String numberPrefix="";
 	private FormFieldDTO<LocalDate> registration_date = FormFieldDTO.of(LocalDate.now());
 	private FormFieldDTO<LocalDate> expiry_date = FormFieldDTO.of(LocalDate.now());
 	private FormFieldDTO<String> reg_number = FormFieldDTO.of("");
-	private FormFieldDTO<String> prev = FormFieldDTO.of("");	//previous registration number, typically read only
 	private boolean readOnly=false;
 	//is this date expirable
 	private boolean expirable=false;
@@ -23,6 +23,13 @@ public class RegisterDTO extends AllowValidation {
 	private long nodeID=0l;
 	private long appDataID=0l;
 	
+	
+	public String getNumberPrefix() {
+		return numberPrefix;
+	}
+	public void setNumberPrefix(String numberPrefix) {
+		this.numberPrefix = numberPrefix;
+	}
 	public FormFieldDTO<LocalDate> getRegistration_date() {
 		return registration_date;
 	}
@@ -42,12 +49,6 @@ public class RegisterDTO extends AllowValidation {
 		this.reg_number = reg_number;
 	}
 	
-	public FormFieldDTO<String> getPrev() {
-		return prev;
-	}
-	public void setPrev(FormFieldDTO<String> prev) {
-		this.prev = prev;
-	}
 	public boolean isExpirable() {
 		return expirable;
 	}
@@ -83,6 +84,13 @@ public class RegisterDTO extends AllowValidation {
 	}
 	public void setReadOnly(boolean readOnly) {
 		this.readOnly = readOnly;
+	}
+	/**
+	 * Has the number been assigned?
+	 * @return
+	 */
+	public boolean empty() {
+		return getReg_number().getValue().length()==0;
 	}
 	
 }

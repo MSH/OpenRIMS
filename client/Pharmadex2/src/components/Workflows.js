@@ -42,7 +42,9 @@ class Workflows extends Component{
                             dictNodeId:data.data.prevSelected[0]
                         }
                         let paramStr=JSON.stringify(param)
-                        Navigator.navigate("administrate", "workflowconfigurator",paramStr) 
+                        if(paramStr.length>2){
+                            Navigator.navigate("administrate", "workflowconfigurator",paramStr)
+                        } 
                     }
                 }
         }

@@ -20,7 +20,13 @@ class Pharmadex extends Component{
         this.state={}
         this.nav= new Navigator(this)
     }
-
+    /**
+     * 
+     * @returns common wait
+     */
+    static wait(){
+        return <div> <i className="blink fas fa-circle-notch fa-spin" style={{color:'#D3D3D3'}}/></div>
+    }
 
     render(){
         return(

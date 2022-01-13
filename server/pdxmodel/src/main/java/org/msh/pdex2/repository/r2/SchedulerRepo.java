@@ -9,5 +9,4 @@ import org.springframework.data.repository.CrudRepository;
 public interface SchedulerRepo extends CrudRepository<Scheduler, Long> {
 
 	Optional<Scheduler> findByConcept(Concept concept);
-
 }

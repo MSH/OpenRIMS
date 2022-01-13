@@ -16,6 +16,7 @@ import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.model.r2.Thing;
 import org.msh.pdex2.model.r2.ThingThing;
 import org.msh.pdex2.model.r2.UserDict;
+import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
@@ -40,8 +41,6 @@ public class AccessControlService {
 	@Autowired
 	private LiteralService literalServ;
 	@Autowired
-	private AssemblyService assemblyServ;
-	@Autowired
 	private UserService userServ;
 	@Autowired
 	private BoilerService boilerServ;
@@ -56,56 +55,10 @@ public class AccessControlService {
 	 */
 	@Transactional
 	public boolean createAllowed(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
-		//A user with Supervisor role has all rights
-		if(isSupervisor(user)) {
-			return true;
-		}
-		if(isOwner(data, user)) {
-			return true;
-		}
-		if(isApplicationOwner(data, user)) {
-			return true;
-		}
-		//Executor of an activity has rights defined in the activity
-		if(data.getActivityId()>0) {
-			Concept activity=closureServ.loadConceptById(data.getActivityId());
-			Concept executor = closureServ.getParent(activity);
-			if(sameEmail(executor.getIdentifier(), user.getEmail())) {
-				return true;
-			}else {
-				return false;
-			}
-		}else {
-			//activity is INIT
-			if(user.getGranted().size()==0 || user.getGranted().get(0).getAuthority().equalsIgnoreCase("ROLE_GUEST")) {
-				//user can create things that defined for this activity and activity itself
-				return writableByConfiguration(data);
-			}else {
-				return false;
-			}
-		}
+		//TODO some more sophiscated ??
+		return true;
 	}
 
-	/**
-	 * This thing is writable in activity given
-	 * It means that executor can modify it
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	public boolean writableByConfiguration(ThingDTO data) throws ObjectNotFoundException {
-		List<AssemblyDTO> things =  assemblyServ.auxThings(data.getUrl());
-		List<String> urls = new ArrayList<String>();
-		urls.add(data.getUrl().toUpperCase());
-		for(AssemblyDTO thing : things) {
-			urls.add(thing.getUrl().toUpperCase());
-		}
-		if(urls.contains(data.getUrl().toUpperCase())) {
-			return true;
-		}else {
-			return false;
-		}
-	}
 	/**
 	 * Compare eMails
 	 * @param email1
@@ -217,25 +170,11 @@ public class AccessControlService {
 	 */
 	@Transactional
 	public boolean readAllowed(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
-		//an applicant of the workflow
-		if(isApplicationOwner(data, user)) {
-			return true;
-		}
-		//executor of this workflow
-		if(workflowExecutor(data, user) && workflowThing(data)) { 
-			return true;
-		}
-		//grant at least read access to the owner
-		if(isOwner(data,user)) {
-			return true;
-		}
-		//can write, can read
-		if(writeAllowed(data,user)) {
-			return true;
-		}
-
+		//TODO more advanced??	
 		return true;
 	}
+
+
 	/**
 	 * Is the user owner of application data?
 	 * @param data
@@ -270,7 +209,7 @@ public class AccessControlService {
 			//take a thing
 			Concept node = closureServ.loadConceptById(data.getNodeId());
 			Thing thing = new Thing();
-			thing = boilerServ.loadThingByNode(node, thing);
+			thing = boilerServ.thingByNode(node, thing);
 			//build a list of activity node ids
 			Map<String, List<Concept>> allActivities = boilerServ.workflowActivities(data.getActivityId());
 			Set<Long> aIds = new LinkedHashSet<Long>();
@@ -332,25 +271,34 @@ public class AccessControlService {
 	}
 
 	/**
-	 * Executor of the  activity allowed to write in accordance with the rights defined for this activity
+	 * Write allowed only to thing owner
+	 * If thing has not owner - only to sysadmin
 	 * @param data
 	 * @param user
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	public boolean writeAllowed(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
-		if(data.getActivityId()>0) {
-			Concept activityNode = closureServ.loadConceptById(data.getActivityId());
-			if(activityNode.getActive()) {
-				if(isActivityExecutor(activityNode, user)) {
-					return writableByConfiguration(data);
-				}
+		if(data.getNodeId()>0) {
+			Concept node = closureServ.loadConceptById(data.getNodeId());
+			List<Concept> parents = closureServ.loadParents(node);
+			if(isSupervisor(user)) {
+				return true;
 			}else {
-				//disable edit anything in the passed activities
-				return false;
+				String email=parents.get(1).getIdentifier();
+				if(email!=null) {
+					if(sameEmail(email, user.getEmail())) {
+						return true;
+					}else {
+						return isSupervisor(user);
+					}
+				}else {
+					return isSupervisor(user);
+				}
 			}
+		}else {
+			return createAllowed(data, user);
 		}
-		return writableByConfiguration(data);
 	}
 
 	/**
@@ -419,6 +367,9 @@ public class AccessControlService {
 	 * @throws ObjectNotFoundException 
 	 */
 	public boolean personAllowed(long personId, UserDetailsDTO user) throws ObjectNotFoundException {
+		if(isSupervisor(user)) {
+			return true;
+		}
 		ThingDTO pers = new ThingDTO();
 		pers.setNodeId(personId);
 		if(isOwner(pers,user)) {

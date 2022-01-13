@@ -17,6 +17,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  */
 @JsonIgnoreProperties(ignoreUnknown=true)
 public class FileDTO extends AllowValidation{
+	//changed for amendment
+	private boolean changed=false;
 	//url under which a file should be saved
 	private String url="";
 	//url of a dictionary to get a root and then a level
@@ -42,6 +44,12 @@ public class FileDTO extends AllowValidation{
 	//stored uploads for the current session
 	private Map<Long,Long> linked = new LinkedHashMap<Long, Long>(); // (dictNodeId, nodeId)
 
+	public boolean isChanged() {
+		return changed;
+	}
+	public void setChanged(boolean changed) {
+		this.changed = changed;
+	}
 	public String getUrl() {
 		return url;
 	}

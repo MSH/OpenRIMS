@@ -5,6 +5,7 @@ import Fetchers from './utils/Fetchers'
 import Navigator from './utils/Navigator'
 import Dictionary from './Dictionary'
 import ApplicationList from './ApplicationList'
+import AmendmentAdd from './AmendmentAdd'
 
 /**
  * Responsible for add new, send existing and inspect approved amendments
@@ -16,7 +17,7 @@ class AmendmentSelect extends Component{
             identifier:Date.now().toString(),
             data:{},                            //DictionaryDTO
             labels:{
-                amdmt_type:''
+                amdmt_type:'',
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -60,7 +61,23 @@ class AmendmentSelect extends Component{
             });
         }
         if(amdTypeId>0){
-            return <ApplicationList dictItemId={amdTypeId} recipient={this.state.identifier} /> 
+            return <ApplicationList dictItemId={amdTypeId} recipient={this.state.identifier} noadd /> 
+        }else{
+            return []
+        }
+    }
+
+    amendmentAdd(){
+        let amdTypeId=0
+        if(this.state.data.table != undefined && Fetchers.isGoodArray(this.state.data.table.rows)){
+            this.state.data.table.rows.forEach(row => {
+                if(row.selected){
+                    amdTypeId=row.dbID
+                }
+            });
+        }
+        if(amdTypeId>0){
+            return <AmendmentAdd dictItemId={amdTypeId} recipient={this.state.identifier} />
         }else{
             return []
         }
@@ -82,15 +99,21 @@ class AmendmentSelect extends Component{
                         <Row>
                             <Col>
                                 <Dictionary
-                                data={this.state.data}
-                                identifier={this.state.identifier+"_dict"}
-                                display
+                                    data={this.state.data}
+                                    identifier={this.state.identifier+"_dict"}
+                                    display
                                 />
                             </Col>
                         </Row>
                     </Col>
                     <Col xs='12' sm='12' lg='6' xl='6'>
                         {this.applications()}
+                    </Col>
+                </Row>
+              
+                <Row>
+                    <Col xs='12' sm='12' lg='12' xl='12'>
+                        {this.amendmentAdd()}
                     </Col>
                 </Row>
             </Container>

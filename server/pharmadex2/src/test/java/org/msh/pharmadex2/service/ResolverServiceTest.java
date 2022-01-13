@@ -1,34 +1,24 @@
 package org.msh.pharmadex2.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.ByteArrayInputStream;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.LinkedHashMap;
+import java.time.LocalDate;
+import java.util.Locale;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.msh.pdex2.exception.ObjectNotFoundException;
-import org.msh.pdex2.model.r2.Concept;
-import org.msh.pdex2.model.r2.FileResource;
-import org.msh.pdex2.model.r2.Thing;
 import org.msh.pharmadex2.Pharmadex2Application;
 import org.msh.pharmadex2.controller.common.DocxView;
 import org.msh.pharmadex2.dto.ResourceDTO;
-import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
-import org.msh.pharmadex2.service.r2.ClosureService;
+import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.service.r2.ResolverService;
 import org.msh.pharmadex2.service.r2.ResourceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.servlet.ModelAndView;
 
 /**
  * Test variable resolve
@@ -47,34 +37,7 @@ public class ResolverServiceTest {
 	@Autowired
 	ClosureService closureServ;
 	
-	//@Test
-	public void topConcept() throws ObjectNotFoundException {
-		Concept conc = resolverServ.topConcept("pharmacy.site", 322);
-		assertEquals(20005, conc.getID());
-		conc=resolverServ.topConcept("pharmacy.site.inspection.reports", 322);
-		assertEquals(20298, conc.getID());
-	}
-	//@Test
-	@Transactional
-	public void nextConcept() throws ObjectNotFoundException {
-		Concept top = resolverServ.topConcept("pharmacy.site", 322);
-		Concept conc = resolverServ.nextConcept("classifiers", top);
-		Thing claThi = boilerServ.loadThingByNode(conc);
-		assertEquals(4, claThi.getDictionaries().size());
-	}
 	
-	//@Test
-	@Transactional
-	public void readVariable() throws ObjectNotFoundException {
-		Concept top = resolverServ.topConcept("pharmacy.site", 322);
-		Map<String,Object> val = resolverServ.readVariable("prefLabel", top, new LinkedHashMap<String, Object>());
-		assertNotNull(val.get("literal"));
-		val = resolverServ.readVariable("wadano", top, new LinkedHashMap<String, Object>());
-		assertNotNull(val.get("number"));
-		Concept payment = resolverServ.nextConcept("payment", top);
-		val=resolverServ.readVariable("dateofpayment", payment, new LinkedHashMap<String, Object>());
-		assertNotNull(val.get("date"));
-	}
 	/**
 	 * Prepare a model from MS word file
 	 * @throws ObjectNotFoundException 
@@ -99,5 +62,37 @@ public class ResolverServiceTest {
 		fres.setHistoryId(1868);
 		Map<String, Object> ret = resolverServ.resolve("character/pharmacist/prefLabel", fres);
 		System.out.println(ret);
+	}
+	//@Test
+	public void persons() throws ObjectNotFoundException {
+		ResourceDTO fres = new ResourceDTO();
+		fres.setHistoryId(2058);
+		Map<String, Object> ret = resolverServ.resolve("/pharmacists/pharmacists/0/pharmacist_qualification/person_academic", fres);
+		System.out.println(ret);
+	}
+	
+	@Test
+	public void resolveNepaliToString() {
+		Locale locale = new Locale("ne","NP'");
+		String str = String.format(locale,"%,d", 1234567890);
+		str=boilerServ.numberToNepali(str);
+		System.out.println(str);
+		str=boilerServ.localDateToNepali(LocalDate.now(), false);
+		System.out.println(str);
+		str=boilerServ.localDateToNepali(LocalDate.now(), true);
+		System.out.println(str);
+		LocalDate ld = LocalDate.now().minusYears(2);
+		int fullNep = boilerServ.fullYearsNepali(ld);
+		System.out.println("minus two years - "+ fullNep);
+		ld=ld.minusDays(1);
+		fullNep = boilerServ.fullYearsNepali(ld);
+		System.out.println("minus two years and a day - "+ fullNep);
+		ld=ld.plusYears(4);
+		fullNep = boilerServ.fullYearsNepali(ld);
+		System.out.println("plus 4 years - "+ fullNep);
+		ld=ld.plusDays(2);
+		fullNep = boilerServ.fullYearsNepali(ld);
+		System.out.println("and plus two days - "+ fullNep);
+		
 	}
 }

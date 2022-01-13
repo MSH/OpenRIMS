@@ -125,6 +125,26 @@ public class PublicAPI{
 	}
 
 	/**
+	 * Load the NMRA footer
+	 * @return
+	 * @throws DataNotFoundException 
+	 */
+	@RequestMapping(value="api/public/footer.svg", method = RequestMethod.GET)
+	public ResponseEntity<Resource> nmraFooter() throws DataNotFoundException {
+		Resource res;
+		try {
+			res = resourceServ.footer();
+			return ResponseEntity.ok()
+					.contentType(MediaType.parseMediaType("image/svg+xml"))
+					.header("filename","nmra.svg")
+					.body(res);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+	
+	
+	/**
 	 * Get an SVG flag to switch the language
 	 * @return
 	 */

@@ -100,7 +100,7 @@ class PrintPreview extends Component{
         return(
             <Container fluid>
                 <Row>
-                    <Col>
+                    <Col xs='12' sm='12' lg='2' xl='2'>
                         <div className="mb-1 d-flex justify-content-end">
                             <Button size="sm" className="mr-1 d-print-none" color="info"
                                     onClick={()=>{

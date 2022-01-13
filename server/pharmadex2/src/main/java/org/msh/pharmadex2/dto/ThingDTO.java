@@ -31,6 +31,9 @@ public class ThingDTO extends AllowValidation {
 	private boolean application=false;	//load application instead the current activity
 	private long activityId=0;					//id of the activity node to determine the executor
 	private String activityName="";		//name of an activity to use in on screen forms
+	//new amendment related
+	 private String prefLabel="";				//prefLable by default
+     private long modiUnitId=0;				//ID of data unit to amend
 	
 	//address of a thing consists of url, parentId, nodeId
 	private String url="";						//root url of a thing, i.e. object.business.persons. Mandatory. It identifies things data. The active thing will be placed url-owner-thing
@@ -48,11 +51,11 @@ public class ThingDTO extends AllowValidation {
 	private boolean readOnly=false;																									//is read only?																						
 
 	//thing data
-	private Map<String, String> heading = new LinkedHashMap<String, String>();																	//simple heading
+	private Map<String, HeadingDTO> heading = new LinkedHashMap<String, HeadingDTO>();																	//simple heading
 	private Map<String,FormFieldDTO<String>> strings = new LinkedHashMap<String, FormFieldDTO<String>>();					//strings - text field, no languages 
 	private Map<String, FormFieldDTO<String>> literals = new LinkedHashMap<String, FormFieldDTO<String>>();					//text fields
 	private Map<String, FormFieldDTO<LocalDate>> dates = new LinkedHashMap<String, FormFieldDTO<LocalDate>>();			//date fields
-	private Map<String, FormFieldDTO<Long>> numbers = new LinkedHashMap<String, FormFieldDTO<Long>>();	//numbers, only big decimals
+	private Map<String, FormFieldDTO<Long>> numbers = new LinkedHashMap<String, FormFieldDTO<Long>>();					//numbers, only big decimals
 	private Map<String, FormFieldDTO<OptionDTO>> logical = new LinkedHashMap<String, FormFieldDTO<OptionDTO>>();		//Yes,No,NA
 	private Map<String,DictionaryDTO> dictionaries = new LinkedHashMap<String, DictionaryDTO>();										//classifiers (dictionaries)
 	private Map<String, AddressDTO> addresses = new LinkedHashMap<String, AddressDTO>();												//addresses
@@ -65,6 +68,7 @@ public class ThingDTO extends AllowValidation {
 	private Map<String,SchedulerDTO> schedulers = new LinkedHashMap<String, SchedulerDTO>();										//with workflow should be run
 	private Map<String,RegisterDTO> registers = new LinkedHashMap<String, RegisterDTO>();												//filing system registers
 	private Map<String,AmendmentDTO> amendments = new LinkedHashMap<String, AmendmentDTO>();								//ameded data
+	private Map<String,AtcDTO> atc = new LinkedHashMap<String, AtcDTO>();																		//atc codes
 	private ActionBarDTO actionBar= new ActionBarDTO();																										//action bar for it
 	
 	//The main static path - things that should be filled
@@ -131,6 +135,19 @@ public class ThingDTO extends AllowValidation {
 	}
 	public void setActivityName(String activityName) {
 		this.activityName = activityName;
+	}
+	
+	public String getPrefLabel() {
+		return prefLabel;
+	}
+	public void setPrefLabel(String prefLabel) {
+		this.prefLabel = prefLabel;
+	}
+	public long getModiUnitId() {
+		return modiUnitId;
+	}
+	public void setModiUnitId(long modiUnitId) {
+		this.modiUnitId = modiUnitId;
 	}
 	public String getUrl() {
 		return url;
@@ -202,10 +219,10 @@ public class ThingDTO extends AllowValidation {
 		this.readOnly = readOnly;
 	}
 	
-	public Map<String, String> getHeading() {
+	public Map<String, HeadingDTO> getHeading() {
 		return heading;
 	}
-	public void setHeading(Map<String, String> heading) {
+	public void setHeading(Map<String, HeadingDTO> heading) {
 		this.heading = heading;
 	}
 	public Map<String, FormFieldDTO<String>> getStrings() {
@@ -310,6 +327,13 @@ public class ThingDTO extends AllowValidation {
 	}
 	public void setAmendments(Map<String, AmendmentDTO> amendments) {
 		this.amendments = amendments;
+	}
+	
+	public Map<String, AtcDTO> getAtc() {
+		return atc;
+	}
+	public void setAtc(Map<String, AtcDTO> atc) {
+		this.atc = atc;
 	}
 	public List<ThingDTO> getPath() {
 		return path;

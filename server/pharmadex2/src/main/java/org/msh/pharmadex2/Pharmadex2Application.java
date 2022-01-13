@@ -2,9 +2,11 @@ package org.msh.pharmadex2;
 
 import java.util.Locale;
 
+import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pharmadex2.service.common.ContextServices;
 import org.msh.pharmadex2.service.common.UserService;
+import org.msh.pharmadex2.service.r2.SystemService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
@@ -36,6 +38,8 @@ public class Pharmadex2Application implements WebMvcConfigurer  {
 	@Autowired
 	UserService userService;
 	@Autowired
+	SystemService systemService;
+	@Autowired
 	Messages messages;
 	@Value( "${spring.web.locale:en_US}" )
 	String defaultLocaleName;
@@ -54,6 +58,11 @@ public class Pharmadex2Application implements WebMvcConfigurer  {
 				messages.loadLanguages();
 				contextServ.removeAllContexts();
 				userService.assignDefaultPasswords();
+				try {
+					systemService.checkDictionaries();
+				} catch (ObjectNotFoundException e) {
+					e.printStackTrace();
+				}
 			}
 		};
 	}

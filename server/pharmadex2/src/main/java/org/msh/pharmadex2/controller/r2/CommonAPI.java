@@ -7,13 +7,15 @@ import org.msh.pharmadex2.dto.DictNodeDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.ExcipientsDTO;
 import org.msh.pharmadex2.dto.InnsDTO;
+import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.UserFormDTO;
 import org.msh.pharmadex2.exception.DataNotFoundException;
 import org.msh.pharmadex2.service.common.UserService;
-import org.msh.pharmadex2.service.r2.AtcService;
+import org.msh.pharmadex2.service.r2.AtcInnExcService;
 import org.msh.pharmadex2.service.r2.ContentService;
 import org.msh.pharmadex2.service.r2.DictService;
 import org.msh.pharmadex2.service.r2.PubOrgService;
+import org.msh.pharmadex2.service.r2.ThingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -38,7 +40,9 @@ public class CommonAPI {
 	@Autowired
 	PubOrgService orgServ;
 	@Autowired
-	AtcService atcServ;
+	AtcInnExcService atcServ;
+	@Autowired
+	ThingService thingServ;
 	
 	/**
 	 * Get user's details for just authenticated user. For edit/display
@@ -185,7 +189,7 @@ public class CommonAPI {
 	@PostMapping("/api/common/atc/load/table")
 	public AtcDTO atcLoadTable(@RequestBody AtcDTO data) throws DataNotFoundException {
 			try {
-				data=atcServ.loadTable(data);
+				data=atcServ.loadAtcTable(data);
 			} catch (ObjectNotFoundException e) {
 				throw new DataNotFoundException(e);
 			}
@@ -230,5 +234,20 @@ public class CommonAPI {
 				throw new DataNotFoundException(e);
 			}
 			return data;
+	}
+	/**
+	 * Thing's help button processor
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException 
+	 */
+	@PostMapping("/api/*/common/thing/help")
+	public ThingDTO commonThingHelp(@RequestBody ThingDTO data) throws DataNotFoundException {
+		try {
+			data=thingServ.help(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e); 
+		} 
+		return data;
 	}
 }

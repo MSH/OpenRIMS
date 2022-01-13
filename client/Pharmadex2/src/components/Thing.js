@@ -1,8 +1,9 @@
 import React , {Component} from 'react'
-import {Container,Row,Col,Alert, Breadcrumb, BreadcrumbItem, NavItem} from 'reactstrap'
+import {Container,Row,Col,Alert, Button} from 'reactstrap'
 import PropTypes from 'prop-types'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
+import FieldsComparator from './form/FieldsComparator'
 import Navigator from './utils/Navigator'
 import ViewEdit from './form/ViewEdit'
 import ViewEditOption from './form/ViewEditOption'
@@ -17,11 +18,14 @@ import Scheduler from './Scheduler'
 import Register from './Register'
 import PersonSpecial from './PersonSpecial'
 import Amended from './Amended'
+import ATCCodes from './ATCCodes'
+import Pharmadex from './Pharmadex'
 
 
 /**
  * Responsible for a ThingDTO
- * issue thingUpdated event for each update!
+ * thingUpdated event for each update!
+ * smart auto fill is included
  * @example
  * <Thing key='activity'
             data={thingDTO}
@@ -34,6 +38,8 @@ import Amended from './Amended'
 class Thing extends Component{
     constructor(props){
         super(props)
+        this.autoFillKey=undefined              //prefLabel strings, literals none of above
+        this.comparator=undefined               //for auto fill too
         this.state={
             identifier:Date.now().toString(),  //my address for messages
             data:this.props.data,             //ThingDTO         
@@ -46,42 +52,68 @@ class Thing extends Component{
         this.heading=this.heading.bind(this)
         this.strings=this.strings.bind(this)
         this.literal=this.literal.bind(this)
-        this.dictionary=this.dictionary.bind(this)
-        this.filesControl=this.filesControl.bind(this)
         this.resourcesControl=this.resourcesControl.bind(this)
         this.dateFiled=this.dateFiled.bind(this)
         this.load=this.load.bind(this)
         this.save=this.save.bind(this)
-        this.addressControl=this.addressControl.bind(this)
+        this.prefLabel=this.prefLabel.bind(this)
+        this.storeLocal=this.storeLocal.bind(this)
+        this.autoFillAll=this.autoFillAll.bind(this)
+        this.autoFillFormField=this.autoFillFormField.bind(this)
         this.personsControl=this.personsControl.bind(this)
         this.numberFiled=this.numberFiled.bind(this)
         this.logicalFiled=this.logicalFiled.bind(this)
         this.personSelectorControl=this.personSelectorControl.bind(this)
-        this.schedulersControl=this.schedulersControl.bind(this)
-        this.registersControl=this.registersControl.bind(this)
         this.saveGuest=this.saveGuest.bind(this)
         this.postLoaded=this.postLoaded.bind(this)
         this.personSpecControl=this.personSpecControl.bind(this)
         this.amendmentsControl=this.amendmentsControl.bind(this)
+        this.helpButton=this.helpButton.bind(this)
+    }
+    /**
+     * GEt prefLabel
+     * @returns Extract prefLabel. Returns undefined in case no prefLabel
+     */
+    prefLabel(){
+        let key=undefined
+        if(this.state.data != undefined && this.state.data.literals != undefined){
+            if(this.state.data.literals.prefLabel!=undefined){
+                key=this.state.data.literals.prefLabel.value
+            }
+        }
+        if(key==undefined && this.state.data.strings != undefined){
+            if(this.state.data.strings.prefLabel != undefined){
+                key=this.state.data.strings.prefLabel.value
+            }
+        }
+        return key
+    }
+    /**
+     * Common actions after the save
+     * Currently only for auto fill feature
+     */
+    storeLocal(){
+        let key=this.prefLabel();
+        Fetchers.storeThing(this.state.data, key)
     }
 
     /**
-     * Guest Applications should be saved by own wayh
+     * Guest Applications should be saved by own way
      * savedByAction means saved by Save button
      */
          saveGuest(savedByAction){
             Fetchers.postJSONNoSpinner("/api/guest/thing/save/application",this.state.data,(query,result)=>{
                 this.state.data=result
                 if(this.state.data.valid){
-                    if(savedByAction){
-                        Navigator.message(this.state.identifier, this.props.recipient, "savedByAction",this.state.data)
-                    }else{
-                        Navigator.message(this.state.identifier, this.props.recipient, "saved", this.state.data)
-                    }
+                    this.storeLocal()
                 }else{
                     this.setState(this.state)
                 }
-                
+                if(savedByAction){
+                    Navigator.message(this.state.identifier, this.props.recipient, "savedByAction",this.state.data)
+                }else{
+                    Navigator.message(this.state.identifier, this.props.recipient, "saved", this.state.data)
+                }
             })
         }
     /**
@@ -92,6 +124,7 @@ class Thing extends Component{
         Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName()+"/thing/save",this.state.data,(query,result)=>{
             this.state.data=result
             if(this.state.data.valid){
+                this.storeLocal()
                 if(savedByAction){
                     Navigator.message(this.state.identifier, this.props.recipient, "savedByAction",this.state.data)
                 }else{
@@ -190,12 +223,91 @@ class Thing extends Component{
         }
     }
 
-
     componentDidMount(){
         window.addEventListener("message",this.eventProcessor)
         this.load()
     }
+    /**
+     * Fill out a filed in the form
+     * @example
+     * autoFillFor
+     */
+    autoFillFormField(fields, key, value){
+        if(fields && key){
+            if(fields[key]){
+                fields[key].value=value
+            }
+        }
+    }
+    /**
+     * Auto fill strings, litrals, numbers, dates, dictionaries
+     * @param {ThingDTO} data 
+     */
+    autoFillAll(data){
+        if(data.strings != undefined && this.state.data.strings != undefined){
+            let keys = Object.keys(data.strings)
+            keys.forEach(key => {
+               this.autoFillFormField(this.state.data.strings, key,data.strings[key].value)
+            });
+        }
+        if(data.literals!=undefined && this.state.data.literals != undefined){
+            let keys = Object.keys(data.literals)
+            keys.forEach(key => {
+                this.autoFillFormField(this.state.data.literals, key,data.literals[key].value)
+             });
+        }
+        if(data.dates!=undefined && this.state.data.dates != undefined){
+            let keys = Object.keys(data.dates)
+            keys.forEach(key => {
+                this.autoFillFormField(this.state.data.dates, key,data.dates[key].value)
+             });
+        }
+        if(data.numbers!=undefined && this.state.data.numbers != undefined){
+            let keys = Object.keys(data.numbers)
+            keys.forEach(key => {
+                this.autoFillFormField(this.state.data.numbers, key,data.numbers[key].value)
+            });
+        }
+        if(data.dictionaries!=undefined && this.state.data.dictionaries != undefined){
+            let keys = Object.keys(data.dictionaries)
+            keys.forEach(key => {
+                let dict=this.state.data.dictionaries[key]
+                if(dict){
+                    this.state.data.dictionaries[key]=data.dictionaries[key]
+                    this.state.data.dictionaries[key].reload=true
+                }
+            })
+        }
+        if(data.addresses!=undefined && this.state.data.addresses != undefined){
+            let keys = Object.keys(data.addresses)
+            keys.forEach(key => {
+                let addr=this.state.data.addresses[key]
+                if(addr){
+                    data.addresses.nodeId=0                             //it will be a new address, not linked one
+                    this.state.data.addresses[key]=data.addresses[key]
+                    this.state.data.addresses[key].reload=true
+                }
+            })
+        }
+        this.setState(this.state.data)
+    }
+
     componentDidUpdate(){
+        if(this.comparator!= undefined && this.state.data.nodeId==0){
+            let changed = this.comparator.checkChanges()
+            this.comparator= new FieldsComparator(this,this.autoFillKey)
+            if( Fetchers.isGoodArray(changed)){
+                changed.forEach((element)=>{
+                    if(element=='prefLabel'){
+                        let data=Fetchers.readThing(this.prefLabel())
+                        if(data != undefined){
+                            this.comparator=undefined           //the latch!
+                            this.autoFillAll(data);
+                        }
+                    }
+                })
+            }
+        }
         Navigator.message(this.state.identifier, this.props.recipient, "thingUpdated", this.state.data)
         if(this.props.data.repaint){
             this.state.data=this.props.data
@@ -240,26 +352,57 @@ class Thing extends Component{
         Locales.createLabels(this,'registers')
         Locales.createLabels(this,'personspec')
         Locales.createLabels(this,'amendments')
+        Locales.createLabels(this,'atc')
         if(this.state.data.activityName != undefined){
             this.state.labels[this.state.data.activityName]=''     //for activity names
         }
         Locales.resolveLabels(this)
+        //set field comparator for auto-fill feature
+         this.autoFillKey=undefined
+         if(this.state.data.nodeId==0){
+            if(this.state.data && this.state.data.literals){
+                if(this.state.data.literals.prefLabel){
+                    this.autoFillKey="literals"
+                }
+            }
+            if(!this.autoFillKey && this.state.data.strings){
+                if(this.state.data.strings.prefLabel){
+                    this.autoFillKey="strings"
+                }
+            }
+            if(this.autoFillKey){
+                this.comparator= new FieldsComparator(this,this.autoFillKey);
+            }
+        }else{
+            this.comparator=undefined       //the latch!
+        }
         Navigator.message(this.state.identifier, this.props.recipient,"thingLoaded",this.state.data);
     }
     componentWillUnmount(){
         window.removeEventListener("message",this.eventProcessor)
     }
     /**
-     * 
+     * Heading or link
      * @param {name of heading} name 
      * @param {number to create a key} index 
      */
     heading(name,index){
         let head = this.state.data.heading[name]
         if(head != undefined){
-            return(
-                <h4 key={name}>{head}</h4>
-            )
+            if(head.url==undefined || head.url.length==0){
+                return(
+                    <h4 key={index}>{head.value}</h4>
+                )
+            }else{
+                return (
+                    <Button key={index} color="link" size='sm'
+                    onClick={()=>{
+                        window.open(head.url,'_blank').focus()
+                    }}>
+                        {head.value}
+                    </Button>
+                )
+            }
         }
     }
 
@@ -276,8 +419,12 @@ class Thing extends Component{
                 mode="textarea"
             }
             let readOnly=this.props.readOnly || fieldDTO.readOnly
+            let mark=""
+            if(fieldDTO.mark){
+                mark= "markedbycolor"
+            }
             return(
-                <Row key={index}>
+                <Row key={index} className={mark}>
                     <Col>
                         <ViewEdit edit={!readOnly} mode={mode} attribute={name}
                         component={this} 
@@ -306,8 +453,12 @@ class Thing extends Component{
                 mode="textarea"
             }
             let readOnly=this.props.readOnly || fieldDTO.readOnly
+            let mark=""
+            if(fieldDTO.mark){
+                mark= "markedbycolor"
+            }
             return(
-                <Row key={index}>
+                <Row key={index} className={mark}>
                     <Col>
                         <ViewEdit edit={!readOnly} mode={mode} attribute={name}
                         component={this} 
@@ -332,8 +483,12 @@ class Thing extends Component{
         let fieldDTO = this.state.data.dates[name]
         if(fieldDTO != undefined){
             let readOnly=this.props.readOnly || fieldDTO.readOnly
+            let mark=""
+            if(fieldDTO.mark){
+                mark= "markedbycolor"
+            }
             return(
-                <Row key={index}>
+                <Row key={index} className={mark}>
                     <Col>
                         <ViewEditDate 
                             edit={!readOnly} 
@@ -359,8 +514,12 @@ class Thing extends Component{
         let fieldDTO = this.state.data.numbers[name]
         if(fieldDTO != undefined){
             let readOnly=this.props.readOnly || fieldDTO.readOnly
+            let mark=""
+            if(fieldDTO.mark){
+                mark= "markedbycolor"
+            }
             return(
-                <Row key={index}>
+                <Row key={index} className={mark}>
                     <Col>
                         <ViewEdit
                             mode="number" 
@@ -387,8 +546,12 @@ class Thing extends Component{
         let fieldDTO = this.state.data.logical[name]
         if(fieldDTO != undefined){
             let readOnly=this.props.readOnly || fieldDTO.readOnly
+            let mark=""
+            if(fieldDTO.mark){
+                mark= "markedbycolor"
+            }
             return(
-                <Row key={index}>
+                <Row key={index} className={mark}>
                     <Col>
                         <ViewEditOption
                             edit={!readOnly} 
@@ -401,125 +564,6 @@ class Thing extends Component{
             )
         }else{
             return[]
-        }
-    }
-
-    /**
-     * Responsible for dictionaries
-     * @param {string} name 
-     * @param {number} index 
-     */
-    dictionary(name, index){
-        let dict=this.state.data.dictionaries[name]
-        if(dict == undefined){
-            return []
-        }
-        let readOnly=this.props.readOnly || dict.readOnly
-        if(readOnly){
-            dict.readOnly=true
-        }
-        dict.varName=name
-        return(
-            <Row key={index}>
-                <Col>
-                    <Row>
-                        <Col>
-                            <h6>{this.state.labels[name]}</h6>
-                        </Col>
-                    </Row>
-                    <Row hidden={this.state.data.dictionaries[name].valid}>
-                        <Col>
-                            <Alert color="danger" className="p-0 m-0">
-                                <small>{this.state.data.dictionaries[name].identifier}</small>
-                            </Alert>
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col>
-                            <Dictionary identifier={name} recipient={this.state.identifier} data={dict} display/>
-                        </Col>
-                    </Row>
-                    
-                </Col>
-            </Row>
-        )
-    }
-    /**
-     * Responsible for addrress
-     * @param {string} name 
-     * @param {number} index 
-     */
-    addressControl(name,index){
-        let addr = this.state.data.addresses[name]
-        if(addr==undefined){
-            return []
-        }
-    return(
-        <Row key={index}>
-            <Col>
-                <Row>
-                    <Col>
-                        <h6>{this.state.labels[name]}</h6>
-                    </Col>
-                </Row>
-                <Row hidden={addr.valid}>
-                        <Col>
-                            <Alert color="danger" className="p-0 m-0">
-                                <small>{addr.identifier}</small>
-                            </Alert>
-                        </Col>
-                </Row>
-                <Row>
-                    <Col>
-                        <AddressForm
-                                data={addr}
-                                recipient={this.state.identifier}
-                                readOnly={this.props.readOnly}
-                        />
-                    </Col>
-                </Row>
-            </Col>
-        </Row>
-        )
-    }
-
-    /**
-     * Responsible for files 
-     * @param {string} name 
-     * @param {number} index 
-     * @returns 
-     */
-    filesControl(name, index){
-        let files=this.state.data.documents[name] 
-        if(files!=undefined){
-            if(this.props.readOnly){
-                files.readOnly=true
-            }
-            return(
-            <Row key={index}>
-                <Col>
-                    <Row>
-                        <Col>
-                            <h6>{this.state.labels[name]}</h6>
-                        </Col>
-                    </Row>
-                    <Row hidden={files.valid}>
-                        <Col>
-                            <Alert color="danger" className="p-0 m-0">
-                                <small>{files.identifier}</small>
-                            </Alert>
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col>
-                            <ApplicationFiles data={files} key={this.state.identifier+name}
-                                            recipient={this.state.identifier}
-                                            readOnly={this.props.readOnly}/>
-                        </Col>
-                    </Row>
-                </Col>
-            </Row>
-            )
         }
     }
 
@@ -538,6 +582,7 @@ class Thing extends Component{
             if(this.props.readOnly){
                 res.readOnly=true
             }
+            res.reload=true
             return(
             <Row key={index}>
                 <Col>
@@ -551,7 +596,8 @@ class Thing extends Component{
                             <ResourcesUsage data={res}
                                             thing={this.state.data}
                                             recipient={this.state.identifier}
-                                            readOnly={this.props.readOnly}/>
+                                            readOnly={this.props.readOnly}
+                                            key={this.state.identifier+index}/>
                         </Col>
                     </Row>
                 </Col>
@@ -626,9 +672,10 @@ class Thing extends Component{
         }
 
     /**
-     * Responsible for teh amended object selection
+     * Responsible for the amended object selection
      * @param {string} name 
      * @param {number} index 
+     * @deprecated
      * @returns 
      */
         amendmentsControl(name, index){
@@ -648,69 +695,6 @@ class Thing extends Component{
                         <Col>
                             <Amended data={res}
                                             recipient={this.state.identifier}
-                            />
-                        </Col>
-                    </Row>
-                </Col>
-            </Row>
-            )
-        }
-    }
-
-
-    /**
-     * Responsible for schedulers
-     * @param {string} name 
-     * @param {number} index 
-     * @returns 
-     */
-        schedulersControl(name, index){
-        let res=this.state.data.schedulers[name] 
-        if(res!=undefined){
-            return(
-            <Row key={index}>
-                <Col>
-                    <Row>
-                        <Col>
-                            <h6>{this.state.labels[name]}</h6>
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col>
-                            <Scheduler data={res}
-                                            recipient={this.state.identifier}
-                                            readOnly={this.props.readOnly || this.state.data.readOnly}
-                            />
-                        </Col>
-                    </Row>
-                </Col>
-            </Row>
-            )
-        }
-    }
-
-       /**
-     * Responsible for registers
-     * @param {string} name 
-     * @param {number} index 
-     * @returns 
-     */
-    registersControl(name, index){
-        let res=this.state.data.registers[name] 
-        if(res!=undefined){
-            return(
-            <Row key={index}>
-                <Col>
-                    <Row>
-                        <Col>
-                            <h6>{this.state.labels[name]}</h6>
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col>
-                            <Register data={res}
-                                            recipient={this.state.identifier}
-                                            readOnly={this.props.readOnly || this.state.data.readOnly}
                             />
                         </Col>
                     </Row>
@@ -802,7 +786,9 @@ class Thing extends Component{
                 this.state.data.dictionaries[name]=data
             }else{
                 return(
-                    this.dictionary(name,index)
+                   // this.dictionary(name,index)
+                   Dictionary.placeDictionary(name,this.state.data.dictionaries[name],index,
+                    this.props.readOnly,this.state.identifier,this.state.labels[name])
                 )
             }
         }
@@ -811,7 +797,9 @@ class Thing extends Component{
                 this.state.data.addresses[name]=data
             }else{
                 return(
-                    this.addressControl(name,index)
+                    //this.addressControl(name,index)
+                    AddressForm.place(this.state.data.addresses[name],index,
+                        this.props.readOnly,this.state.identifier,this.state.labels[name])
                 )
             }
         }
@@ -820,7 +808,9 @@ class Thing extends Component{
                 this.state.data.documents[name]=data
             }else{
                 return(
-                    this.filesControl(name,index)
+                    //this.filesControl(name,index)
+                    ApplicationFiles.place(this.state.data.documents[name],index,
+                        this.props.readOnly,this.state.identifier,this.state.labels[name])
                 )
             }
         }
@@ -836,12 +826,16 @@ class Thing extends Component{
         }
         if(this.state.data.schedulers.hasOwnProperty(name)){
             return(
-                this.schedulersControl(name,index)
+                //this.schedulersControl(name,index)
+                Scheduler.place(this.state.data.schedulers[name],index,
+                    this.props.readOnly,this.state.identifier,this.state.labels[name])
             )
         }
         if(this.state.data.registers.hasOwnProperty(name)){
             return(
-                this.registersControl(name,index)
+                //this.registersControl(name,index)
+                Register.place(this.state.data.registers[name],index,
+                    this.props.readOnly,this.state.identifier,this.state.labels[name])
             )
         }
         if(this.state.data.persons.hasOwnProperty(name)){
@@ -871,6 +865,22 @@ class Thing extends Component{
                 )
             }
         }
+        if(this.state.data.atc.hasOwnProperty(name)){
+            if(data != undefined){
+                this.state.data.atc[name]=data
+            }else{
+                return(
+                    ATCCodes.thingControl(
+                            this.state.labels[name],
+                            this.state.data.atc[name],
+                            this.state.identifier,
+                            this.props.readOnly,
+                            index
+                    )
+                )
+            }
+        }
+        return(<h6>No components to display</h6>)
     }
      /**
      * Place components inside a cell in rows
@@ -907,6 +917,8 @@ class Thing extends Component{
                         </Col>
                     )
                 })
+            }else{
+                //ret.push(<h6>PaintCells. Cells are undefined</h6>)
             }
             return ret;
         }
@@ -924,13 +936,35 @@ class Thing extends Component{
                         </Row>
                     )
                 });
+            }else{
+                //ret.push(<h6>PaintRows. Layout is undefined</h6>)
             }
             return ret;
         }
-
+        helpButton(){
+            return (
+                <Row hidden={this.props.readOnly || this.state.data.readOnly} className='p-0 m-0'>
+                <Col className="d-flex justify-content-end p-0 m-0">
+                    <Button
+                        size='lg'
+                        className="p-0 m-0"
+                        color="link"
+                        onClick={()=>{
+                            Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/common/thing/help", this.state.data, (query,result)=>{
+                                this.state.data=result
+                                this.setState(this.state)
+                            })
+                        }}
+                    >
+                        <i className="far fa-question-circle"></i>
+                    </Button>
+                </Col>
+            </Row>
+            )
+        }
     render(){
         if(this.state.data.literals==undefined || this.state.labels.locale==undefined){
-            return <div> <i className="blink fas fa-circle-notch fa-spin" style={{color:'#D3D3D3'}}/></div>
+            return Pharmadex.wait()
             
         }
         let mainLabels=this.state.data.mainLabels
@@ -946,11 +980,13 @@ class Thing extends Component{
         }
         return(
             <Container fluid>
+                {this.helpButton()}
                 <Row>
                     <Col>
                         {this.paintRows()}
                     </Col>
                 </Row>
+                {this.helpButton()}
             </Container>
         )
     }

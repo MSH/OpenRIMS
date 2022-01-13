@@ -15,6 +15,9 @@ package org.msh.pdex2.model.r2;
 
 import java.io.Serializable;
 import javax.persistence.*;
+/**
+ * Responsible to application data relations. Allows logical relations between branches of different trees.
+ */
 @Entity
 @org.hibernate.annotations.Proxy(lazy=false)
 @Table(name="thing")
@@ -25,9 +28,15 @@ public class Thing implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22226E17C9085E9F206ED4")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22226E17C9085E9F206ED4", strategy="native")	
+	@GeneratedValue(generator="VAC22227217E2154D03B03FD3")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227217E2154D03B03FD3", strategy="native")	
 	private long ID;
+	
+	@OneToOne(targetEntity=org.msh.pdex2.model.r2.ThingOld.class)	
+	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.ALL, org.hibernate.annotations.CascadeType.DELETE_ORPHAN})	
+	@JoinColumns({ @JoinColumn(name="thingoldID") })	
+	@Basic(fetch=FetchType.LAZY)	
+	private org.msh.pdex2.model.r2.ThingOld oldValue;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
 	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.ALL, org.hibernate.annotations.CascadeType.DELETE_ORPHAN})	
@@ -85,6 +94,18 @@ public class Thing implements Serializable {
 	@JoinColumn(name="thingID", nullable=true)	
 	@org.hibernate.annotations.LazyCollection(org.hibernate.annotations.LazyCollectionOption.TRUE)	
 	private java.util.Set<org.msh.pdex2.model.r2.ThingAmendment> amendments = new java.util.HashSet<org.msh.pdex2.model.r2.ThingAmendment>();
+	
+	@OneToMany(targetEntity=org.msh.pdex2.model.r2.ThingAtc.class)	
+	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.ALL, org.hibernate.annotations.CascadeType.DELETE_ORPHAN})	
+	@JoinColumn(name="thingID", nullable=true)	
+	@org.hibernate.annotations.LazyCollection(org.hibernate.annotations.LazyCollectionOption.TRUE)	
+	private java.util.Set<org.msh.pdex2.model.r2.ThingAtc> atcodes = new java.util.HashSet<org.msh.pdex2.model.r2.ThingAtc>();
+	
+	@OneToMany(targetEntity=org.msh.pdex2.model.r2.ThingIngredient.class)	
+	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.ALL, org.hibernate.annotations.CascadeType.DELETE_ORPHAN})	
+	@JoinColumn(name="thingID", nullable=true)	
+	@org.hibernate.annotations.LazyCollection(org.hibernate.annotations.LazyCollectionOption.TRUE)	
+	private java.util.Set<org.msh.pdex2.model.r2.ThingIngredient> ingredients = new java.util.HashSet<org.msh.pdex2.model.r2.ThingIngredient>();
 	
 	private void setID(long value) {
 		this.ID = value;
@@ -198,6 +219,32 @@ public class Thing implements Serializable {
 		return amendments;
 	}
 	
+	
+	public void setAtcodes(java.util.Set<org.msh.pdex2.model.r2.ThingAtc> value) {
+		this.atcodes = value;
+	}
+	
+	public java.util.Set<org.msh.pdex2.model.r2.ThingAtc> getAtcodes() {
+		return atcodes;
+	}
+	
+	
+	public void setIngredients(java.util.Set<org.msh.pdex2.model.r2.ThingIngredient> value) {
+		this.ingredients = value;
+	}
+	
+	public java.util.Set<org.msh.pdex2.model.r2.ThingIngredient> getIngredients() {
+		return ingredients;
+	}
+	
+	
+	public void setOldValue(org.msh.pdex2.model.r2.ThingOld value) {
+		this.oldValue = value;
+	}
+	
+	public org.msh.pdex2.model.r2.ThingOld getOldValue() {
+		return oldValue;
+	}
 	
 	public String toString() {
 		return String.valueOf(getID());

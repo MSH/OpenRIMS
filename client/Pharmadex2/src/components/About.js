@@ -32,7 +32,7 @@ class About extends Component{
                         <small>{this.state.labels.footermessage}</small>
                     </Col>
                     <Col xs='12' sm='12' lg='2' xl='2' className="d-flex justify-content-end align-items-center">
-                        <a href="https://mtapsprogram.org/resources/pharmadex" target="_blank"><img src="/img/ddanet.svg" height={30} /> </a>
+                        <a href="https://mtapsprogram.org/resources/pharmadex" target="_blank"><img src="api/public/footer.svg" height={30} /> </a>
                     </Col>
                 </Row>
 

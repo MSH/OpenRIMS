@@ -19,6 +19,7 @@ public class FormFieldDTO<T> extends FieldSuggest{
 	private boolean textArea=false;
 	private T value = null;
 	private int bdScale=2;		//Big decimal scale
+	private boolean mark=false;	//mark this field by color
 
 	public FormFieldDTO() {
 		super();
@@ -73,7 +74,13 @@ public class FormFieldDTO<T> extends FieldSuggest{
 	public void setBdScale(int bdScale) {
 		this.bdScale = bdScale;
 	}
+	public boolean isMark() {
+		return mark;
+	}
 
+	public void setMark(boolean mark) {
+		this.mark = mark;
+	}
 
 	@Override
 	public String toString() {

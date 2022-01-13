@@ -14,18 +14,16 @@ import org.msh.pdex2.model.old.User;
 import org.msh.pdex2.model.r2.Assembly;
 import org.msh.pdex2.model.r2.Checklistr2;
 import org.msh.pdex2.model.r2.Concept;
-import org.msh.pdex2.model.r2.Register;
+import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.DataVariableDTO;
 import org.msh.pharmadex2.dto.DictNodeDTO;
 import org.msh.pharmadex2.dto.LocationDTO;
 import org.msh.pharmadex2.dto.QuestionDTO;
-import org.msh.pharmadex2.dto.RegisterDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.service.r2.AssemblyService;
-import org.msh.pharmadex2.service.r2.ClosureService;
 import org.msh.pharmadex2.service.r2.DictService;
 import org.msh.pharmadex2.service.r2.LiteralService;
 import org.slf4j.Logger;
@@ -308,6 +306,7 @@ public class DtoService {
 		if(dates != null) {
 			for(AssemblyDTO date :dates) {
 				FormFieldDTO<LocalDate> fld = FormFieldDTO.of(LocalDate.now());
+				fld.setReadOnly(date.isReadOnly());
 				data.getDates().put(date.getPropertyName(), fld);
 			}
 		}
@@ -324,6 +323,7 @@ public class DtoService {
 		if(numbers != null) {
 			for(AssemblyDTO num :numbers) {
 				FormFieldDTO<Long> fld = FormFieldDTO.of(0l);
+				fld.setReadOnly(num.isReadOnly());
 				data.getNumbers().put(num.getPropertyName(), fld);
 			}
 		}
@@ -342,6 +342,7 @@ public class DtoService {
 			for(AssemblyDTO alog : logicals) {
 				OptionDTO opt = enumToOptionDTO(YesNoNA.NA, YesNoNA.values());
 				FormFieldDTO<OptionDTO> fld = FormFieldDTO.of(opt);
+				fld.setReadOnly(alog.isReadOnly());
 				data.getLogical().put(alog.getPropertyName(),fld);
 			}
 		}
@@ -485,6 +486,7 @@ public class DtoService {
 		data.getMaxLen().setValue(new Long(assm.getMax()));
 		data.getMinLen().setValue(new Long(assm.getMin()));
 		data.getMult().setValue(logicalOpt(assm.getMult(),data.getMult().getValue()));
+		data.getUnique().setValue(logicalOpt(assm.getUnique(), data.getUnique().getValue()));
 		data.setNodeId(node.getID());
 		data.getOrd().setValue(new Long(assm.getOrd()));
 		data.getReadOnly().setValue(logicalOpt(assm.getReadOnly(),data.getReadOnly().getValue()));
@@ -556,7 +558,10 @@ public class DtoService {
 		ret.setMinDate(LocalDate.now().plusMonths(assm.getMin()));
 		ret.setMinQauntity(assm.getMin());
 		ret.setMult(assm.getMult());
+		ret.setUnique(assm.getUnique());
 		ret.setPropertyName(assm.getPropertyName().getIdentifier());
+		String description = literalServ.readDescription(assm.getPropertyName());
+		ret.setDescription(description);
 		ret.setReadOnly(assm.getReadOnly());
 		ret.setRequired(assm.getRequired());
 		ret.setTextArea(assm.getMult());

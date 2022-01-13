@@ -16,6 +16,7 @@ import org.msh.pdex2.model.old.Query;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.common.QueryRepository;
+import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AddressDTO;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.DictNodeDTO;
@@ -881,6 +882,7 @@ public class DictService {
 	public DictionaryDTO createDictionary(DictionaryDTO data) throws ObjectNotFoundException {
 		Concept root=closureServ.loadRoot(data.getUrl());
 		data.setSystem(checkSystem(root));
+		data.setMaxDepth(jdbcRepo.dict_depth(data.getUrl()));
 		String home=literalServ.readValue("prefLabel", root);
 		data.setHome(home);
 		//determine the algorithm 
@@ -1071,6 +1073,24 @@ public class DictService {
 		}else {
 			throw new ObjectNotFoundException("mockChoice No Dictionary selection", logger);
 		}
+	}
+	/**
+	 * Create or get a simple dictionary
+	 * @param url
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public void checkDictionary(String url) throws ObjectNotFoundException {
+		Concept root = closureServ.loadRoot(url);
+		String prefLabel = literalServ.readPrefLabel(root);
+		if(prefLabel.length()==0) {
+			literalServ.createUpdatePrefLabel(messages.get("aminunits"), root);
+		}
+		String description=literalServ.readDescription(root);
+		if(description.length()==0) {
+			literalServ.createUpdateDescription("", root);
+		}
+
 	}
 
 

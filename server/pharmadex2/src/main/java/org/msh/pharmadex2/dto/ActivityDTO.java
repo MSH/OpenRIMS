@@ -13,10 +13,14 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  */
 @JsonIgnoreProperties(ignoreUnknown=true)
 public class ActivityDTO extends AllowValidation{
+	//amendment related path from amended unit to application
+	List<DataUnitDTO> modiPath = new ArrayList<DataUnitDTO>();
 	//a record related to this activity
 	private long  historyId=0;
 	//guest or not guest
 	private boolean guest=false;
+	//is this application host?
+	private boolean host=false;
 	//application as a set of data blocks
 	private List<ThingDTO> application = new ArrayList<ThingDTO>();
 	//all completed activities. The last activity is the current!
@@ -32,6 +36,12 @@ public class ActivityDTO extends AllowValidation{
 	private boolean done=false;
 	
 	
+	public List<DataUnitDTO> getModiPath() {
+		return modiPath;
+	}
+	public void setModiPath(List<DataUnitDTO> modiPath) {
+		this.modiPath = modiPath;
+	}
 	public long getHistoryId() {
 		return historyId;
 	}
@@ -44,6 +54,13 @@ public class ActivityDTO extends AllowValidation{
 	}
 	public void setGuest(boolean guest) {
 		this.guest = guest;
+	}
+	
+	public boolean isHost() {
+		return host;
+	}
+	public void setHost(boolean host) {
+		this.host = host;
 	}
 	public List<ThingDTO> getApplication() {
 		return application;

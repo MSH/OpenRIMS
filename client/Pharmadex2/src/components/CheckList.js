@@ -54,8 +54,16 @@ class CheckList extends Component{
             return
         }
         if(data.from==this.props.recipient){
+            if(data.subject=="saveChecklistSilent"){
+                Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName()+"/application/checklist/save", 
+                this.state.data, (query,result)=>{
+                    this.state.data=result
+                    Navigator.message(this.state.identifier,this.props.recipient,"checklist_saved_silently", this.state.data)
+                });
+            }
             if(data.subject=="saveAll" || data.subject=='saveChecklist' || data.subject=='saveAllGuest'){
                 this.save();
+                Navigator.message(this.state.identifier,this.props.recipient,"checklist_saved", this.state.data)
             }
             if(data.subject=="submit"){
                 this.state.submit=true
@@ -86,6 +94,7 @@ class CheckList extends Component{
             this.setState(this.state)
         })
     }
+
 
     save(){
         Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName()+"/application/checklist/save", 

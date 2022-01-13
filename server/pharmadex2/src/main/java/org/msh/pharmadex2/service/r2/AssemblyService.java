@@ -12,13 +12,13 @@ import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.r2.Assembly;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.Thing;
-import org.msh.pharmadex2.dto.ActionBarDTO;
+import org.msh.pdex2.model.r2.ThingDict;
+import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.LayoutCellDTO;
 import org.msh.pharmadex2.dto.LayoutRowDTO;
 import org.msh.pharmadex2.dto.ReportConfigDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
-import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.common.DtoService;
 import org.slf4j.Logger;
@@ -36,12 +36,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class AssemblyService {
 
 
+	public static final String ACTIVITY_CONFIG_FINALIZE = "finalize";
 	private static final String ACTIVITY_CONFIGURATION = "activity.configuration";
 	private static final String OBJECT_SITE_CLASSIFIERS = "object.site.classifiers";
-	private static final String SAVE_ACTION = "save_action";
 	private static final Logger logger = LoggerFactory.getLogger(AssemblyService.class);
-	private static final String DICTIONARY_WORKFLOW_ACTIVITIES = "dictionary.workflow.activities";
-	
+
 	@Autowired
 	private ClosureService closureServ;
 	@Autowired
@@ -107,56 +106,9 @@ public class AssemblyService {
 	 */
 	public List<AssemblyDTO> auxStrings(String url) throws ObjectNotFoundException {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
-		List<Assembly> assms = boilerServ.loadDataConfiguration(url);
-		for(Assembly assm : assms) {
-			if(assm.getClazz().equalsIgnoreCase("strings")) {
-				ret.add(dtoServ.assemblyDto(assm));
-			}
-		}
-		return ret;
-	}
-	/**
-	 * Create empty auxiliary literals for the url given
-	 * @param url url given
-	 * @param activityName 
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	@Transactional
-	public List<AssemblyDTO> auxLiterals(String url) throws ObjectNotFoundException {
-		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
-				if(url.toUpperCase().startsWith("DICTIONARY.")) {
-					{
-						AssemblyDTO fld = new AssemblyDTO();
-						fld.setRequired(false);
-						fld.setReadOnly(false);
-						fld.setTextArea(false);
-						fld.setPropertyName("URL");
-						ret.add(fld);	
-					}
-				}
-
-		// Configure a activity constructor. Not a mock!
-		if(url.toUpperCase().startsWith(ACTIVITY_CONFIGURATION.toUpperCase())) {
+		if(url.equalsIgnoreCase(ACTIVITY_CONFIGURATION)) {
 			BigDecimal min = BigDecimal.valueOf(3l);
 			BigDecimal max= BigDecimal.valueOf(80l);
-			{
-				AssemblyDTO fld = new AssemblyDTO();
-				fld.setRequired(true);
-				fld.setReadOnly(false);
-				fld.setTextArea(false);
-				fld.setMin(min);
-				fld.setMax(max);
-				fld.setPropertyName("prefLabel");
-				ret.add(fld);	
-			}
-			{
-				AssemblyDTO fld = new AssemblyDTO();
-				fld.setReadOnly(false);
-				fld.setTextArea(true);
-				fld.setPropertyName("description");
-				ret.add(fld);	
-			}
 			{
 				AssemblyDTO fld = new AssemblyDTO();
 				fld.setRequired(true);
@@ -192,6 +144,60 @@ public class AssemblyService {
 				ret.add(fld);	
 			}
 		}
+		if(ret.size()==0) {
+			List<Assembly> assms = boilerServ.loadDataConfiguration(url);
+			for(Assembly assm : assms) {
+				if(assm.getClazz().equalsIgnoreCase("strings")) {
+					ret.add(dtoServ.assemblyDto(assm));
+				}
+			}
+		}
+		return ret;
+	}
+	/**
+	 * Create empty auxiliary literals for the url given
+	 * @param url url given
+	 * @param activityName 
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public List<AssemblyDTO> auxLiterals(String url) throws ObjectNotFoundException {
+		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
+		if(url.toUpperCase().startsWith("DICTIONARY.")) {
+			{
+				AssemblyDTO fld = new AssemblyDTO();
+				fld.setRequired(false);
+				fld.setReadOnly(false);
+				fld.setTextArea(false);
+				fld.setPropertyName("URL");
+				ret.add(fld);	
+			}
+		}
+
+		// Configure a activity constructor. Not a mock!
+		if(url.toUpperCase().startsWith(ACTIVITY_CONFIGURATION.toUpperCase())) {
+			BigDecimal min = BigDecimal.valueOf(3l);
+			BigDecimal max= BigDecimal.valueOf(80l);
+			{
+				AssemblyDTO fld = new AssemblyDTO();
+				fld.setRequired(true);
+				fld.setReadOnly(false);
+				fld.setTextArea(false);
+				fld.setMin(min);
+				fld.setMax(max);
+				fld.setPropertyName("prefLabel");
+				ret.add(fld);	
+			}
+			{
+				AssemblyDTO fld = new AssemblyDTO();
+				fld.setReadOnly(false);
+				fld.setTextArea(true);
+				fld.setPropertyName("description");
+				ret.add(fld);	
+			}
+	
+		}
 
 		if(url.equalsIgnoreCase(SystemService.DICTIONARY_HOST_APPLICATIONS)) {
 			{
@@ -201,7 +207,7 @@ public class AssemblyService {
 				ret.add(fld);
 			}
 		}
-		
+
 		if(url.equalsIgnoreCase(SystemService.DICTIONARY_SHUTDOWN_APPLICATIONS)) {
 			{
 				AssemblyDTO fld = new AssemblyDTO();
@@ -210,7 +216,7 @@ public class AssemblyService {
 				ret.add(fld);
 			}
 		}
-		
+
 		/**
 		 * Applications implemented
 		 */
@@ -218,7 +224,7 @@ public class AssemblyService {
 				|| url.equalsIgnoreCase(SystemService.DICTIONARY_GUEST_AMENDMENTS)
 				|| url.equalsIgnoreCase(SystemService.DICTIONARY_GUEST_RENEWAL)
 				|| url.equalsIgnoreCase(SystemService.DICTIONARY_GUEST_DEREGISTRATION)
-			) {
+				) {
 			{
 				AssemblyDTO fld = new AssemblyDTO();
 				fld.setRequired(true);
@@ -241,23 +247,6 @@ public class AssemblyService {
 			}
 		}
 
-		/**
-		 * Activities implemented
-		 */
-		if(url.equalsIgnoreCase(DICTIONARY_WORKFLOW_ACTIVITIES)) {
-			{
-				AssemblyDTO fld = new AssemblyDTO();
-				fld.setRequired(true);
-				fld.setPropertyName("activityurl");
-				ret.add(fld);
-			}
-			{
-				AssemblyDTO fld = new AssemblyDTO();
-				fld.setRequired(false);
-				fld.setPropertyName("activitydataurl");
-				ret.add(fld);
-			}
-		}
 
 		// Tiles
 		if(url.equalsIgnoreCase(SystemService.ROOT_SYSTEM_TILES)) {
@@ -315,7 +304,7 @@ public class AssemblyService {
 	 */
 	public List<AssemblyDTO> auxAddresses(String url) throws ObjectNotFoundException {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
-		
+
 		if(ret.size()==0) {
 			List<Assembly> assms = boilerServ.loadDataConfiguration(url);
 			for(Assembly assm : assms) {
@@ -385,17 +374,12 @@ public class AssemblyService {
 				assm.setPropertyName("background");
 				ret.add(assm);
 			}
-			{
-				AssemblyDTO assm = new AssemblyDTO();
-				assm.setPropertyName("finalize");
-				ret.add(assm);
-			}
 		}
 		//*********************************** read from configuration ***************************************************
 		if(ret.size()==0) {
 			List<Assembly> assms = boilerServ.loadDataConfiguration(url);
 			for(Assembly assm : assms) {
-				if(assm.getClazz().equalsIgnoreCase("logicals")) {
+				if(assm.getClazz().equalsIgnoreCase("logical")) {
 					ret.add(dtoServ.assemblyDto(assm));
 				}
 			}
@@ -523,7 +507,7 @@ public class AssemblyService {
 				LayoutCellDTO cell2 = new LayoutCellDTO();
 				cell2.getVariables().add("executives");
 				cell2.getVariables().add("background");
-				cell2.getVariables().add("finalize");
+				cell2.getVariables().add(ACTIVITY_CONFIG_FINALIZE);
 				row.getCells().add(cell2);
 
 				ret.add(row);
@@ -579,375 +563,398 @@ public class AssemblyService {
 		}
 		return ret;
 	}
-		/**
-		 * Get dictionaries by root URL
-		 * @param url
-		 * @param init 
-		 * @return
-		 * @throws ObjectNotFoundException 
-		 */
-		public List<AssemblyDTO> auxDictionaries(String url) throws ObjectNotFoundException {
-			List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
+	/**
+	 * Get dictionaries by root URL
+	 * @param url
+	 * @param init 
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public List<AssemblyDTO> auxDictionaries(String url) throws ObjectNotFoundException {
+		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
 
-			if(url.equalsIgnoreCase(ACTIVITY_CONFIGURATION)) {
-				{
-					AssemblyDTO assm = new AssemblyDTO();
-					assm.setMult(false);
-					assm.setPropertyName("executives");
-					assm.setRequired(true);
-					assm.setUrl("dictionary.system.roles");
-					ret.add(assm);
-				}
+		if(url.equalsIgnoreCase(ACTIVITY_CONFIGURATION)) {
+			{
+				AssemblyDTO assm = new AssemblyDTO();
+				assm.setMult(false);
+				assm.setPropertyName("executives");
+				assm.setRequired(true);
+				assm.setUrl(SystemService.DICTIONARY_SYSTEM_ROLES);
+				ret.add(assm);
 			}
-
-
-			if(url.equalsIgnoreCase(SystemService.ROOT_SYSTEM_TILES)) {
-				for(int i=0; i < 6; i++) {
-					AssemblyDTO assm = new AssemblyDTO();
-					assm.setMult(false);
-					assm.setPropertyName("tile" + i);
-					assm.setRequired(false);
-					assm.setUrl(SystemService.ROOT_SYSTEM_TILES);
-					ret.add(assm);
-				}
+			{
+				AssemblyDTO assm = new AssemblyDTO();
+				assm.setMult(false);
+				assm.setPropertyName(ACTIVITY_CONFIG_FINALIZE);
+				assm.setRequired(true);
+				assm.setUrl(SystemService. DICTIONARY_SYSTEM_FINALIZATION );
+				ret.add(assm);
 			}
-			if(ret.size()==0) {
-				List<Assembly> assms = boilerServ.loadDataConfiguration(url);
-				for(Assembly assm : assms) {
-					if(assm.getClazz().equalsIgnoreCase("dictionaries")) {
-						ret.add(dtoServ.assemblyDto(assm));
-					}
-				}
-			}
-			return ret;
-		}
-
-		/**
-		 * Auxiliarry persons definitions
-		 * @param url
-		 * @return
-		 * @throws ObjectNotFoundException 
-		 */
-		public List<AssemblyDTO> auxPersons(String url) throws ObjectNotFoundException {
-			List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
-			//TODO system persons, maybe
-			if(ret.size()==0) {
-				List<Assembly> assms = boilerServ.loadDataConfiguration(url);
-				for(Assembly assm : assms) {
-					if(assm.getClazz().equalsIgnoreCase("persons")) {
-						ret.add(dtoServ.assemblyDto(assm));
-					}
-				}
-			}
-			return ret;
-		}
-		
-		/**
-		 * Person selector is using mainly by resources to determine variables
-		 * @param url
-		 * @return
-		 * @throws ObjectNotFoundException 
-		 */
-		public List<AssemblyDTO> auxPersonSelector(String url) throws ObjectNotFoundException {
-			List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
-			//TODO hardcoded definitions
-			if(ret.size()==0) {
-				List<Assembly> assms = boilerServ.loadDataConfiguration(url);
-				for(Assembly assm : assms) {
-					if(assm.getClazz().equalsIgnoreCase("personselector")) {
-						ret.add(dtoServ.assemblyDto(assm));
-					}
-				}
-			}
-			return ret;
-		}
-		/**
-		 * Special persons
-		 * @param url
-		 * @return
-		 * @throws ObjectNotFoundException 
-		 */
-		public List<AssemblyDTO> auxPersonSpecials(String url) throws ObjectNotFoundException {
-			List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
-			//TODO hardcoded definitions
-			if(ret.size()==0) {
-				List<Assembly> assms = boilerServ.loadDataConfiguration(url);
-				for(Assembly assm : assms) {
-					if(assm.getClazz().equalsIgnoreCase("personspec")) {
-						ret.add(dtoServ.assemblyDto(assm));
-					}
-				}
-			}
-			return ret;
-		}
-		/**
-		 * Auxiliary schedulers
-		 * @param url
-		 * @return
-		 * @throws ObjectNotFoundException 
-		 */
-		public List<AssemblyDTO> auxSchedulers(String url) throws ObjectNotFoundException {
-			List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
-			//TODO hardcoded definitions
-			if(ret.size()==0) {
-				List<Assembly> assms = boilerServ.loadDataConfiguration(url);
-				for(Assembly assm : assms) {
-					if(assm.getClazz().equalsIgnoreCase("schedulers")) {
-						ret.add(dtoServ.assemblyDto(assm));
-					}
-				}
-			}
-			return ret;
-		}
-		/**
-		 * Read registers definitions
-		 * @param url
-		 * @return
-		 * @throws ObjectNotFoundException
-		 */
-		public List<AssemblyDTO> auxRegisters(String url) throws ObjectNotFoundException {
-			List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
-			// TODO hardcoded definitions...
-			if(ret.size()==0) {
-				List<Assembly> assms = boilerServ.loadDataConfiguration(url);
-				for(Assembly assm : assms) {
-					if(assm.getClazz().equalsIgnoreCase("registers")) {
-						ret.add(dtoServ.assemblyDto(assm));
-					}
-				}
-			}
-			return ret;
-		}
-		/**
-		 * Read configurations for amendment definition
-		 * @param url
-		 * @param  
-		 * @return
-		 * @throws ObjectNotFoundException 
-		 */
-		public List<AssemblyDTO> auxAmendments(String url) throws ObjectNotFoundException {
-			List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
-			// TODO hardcoded definitions...
-			if(ret.size()==0) {
-				List<Assembly> assms = boilerServ.loadDataConfiguration(url);
-				for(Assembly assm : assms) {
-					if(assm.getClazz().equalsIgnoreCase("amendments")) {
-						ret.add(dtoServ.assemblyDto(assm));
-					}
-				}
-			}
-			return ret;
-		}
-		
-		/**
-		 * Mock form actions
-		 * @param url
-		 * @param activity
-		 * @return
-		 */
-		public ActionBarDTO formActions(String url) {
-			ActionBarDTO ret = new ActionBarDTO();
-			ret.getActions().add(SAVE_ACTION);
-			return ret;
 		}
 
 
-		/**
-		 * Email of executor of an activity of the next activity from the configuration
-		 * @param url
-		 * @param activity
-		 * @return
-		 * @throws ObjectNotFoundException 
-		 */
-		public String executorEmail(String url, String activity) throws ObjectNotFoundException {
-			//TODO MOCK!!!!!
-			return "alex.kurasoff@gmail.com";
-		}
-
-		/**
-		 * Get a name of the start activity
-		 * @param applicationURL
-		 * @return
-		 */
-		public String startActivityName(String applicationURL) {
-			return "INIT";
-		}
-		/**
-		 * Files under this dictionary url are shared for all applications/activities
-		 * @param dictUrl
-		 * @return
-		 */
-		public boolean sharedFiles(String dictUrl) {
-			if(dictUrl.equalsIgnoreCase("dictionary.pharmacy.registration.business.documents")) {
-				return true;
+		if(url.equalsIgnoreCase(SystemService.ROOT_SYSTEM_TILES)) {
+			for(int i=0; i < 6; i++) {
+				AssemblyDTO assm = new AssemblyDTO();
+				assm.setMult(false);
+				assm.setPropertyName("tile" + i);
+				assm.setRequired(false);
+				assm.setUrl(SystemService.ROOT_SYSTEM_TILES);
+				ret.add(assm);
 			}
-			return false;
 		}
-		/**
-		 * URL of business types dictionary
-		 * @return
-		 */
-		public String businessesDictUrl() {
-			return "dictionary.business.structure";
-		}
-		/**
-		 * Label for new created 
-		 * @param url
-		 * @return null if not defined
-		 */
-		public String initLabel(String url) {
-			return "INIT";
-		}
-
-		public String adminUnitsDict() {
-			return "dictionary.admin.units";
-		}
-
-		/**
-		 * get url for activity data
-		 * @param identifier url of the process
-		 * @param actName
-		 * @return
-		 */
-		public String activityUrl(String identifier, String actName) {
-			return actName.toLowerCase()+"."+identifier.toLowerCase();
-		}
-
-		/**
-		 * Get default value of aux data URL for auxPathVar given
-		 * @param url common data url
-		 * @param auxPathVar
-		 * @return empty string if not found
-		 * @throws ObjectNotFoundException 
-		 */
-		@Transactional
-		public String auxDataUrl(String url, String auxPathVar) throws ObjectNotFoundException {
+		if(ret.size()==0) {
 			List<Assembly> assms = boilerServ.loadDataConfiguration(url);
 			for(Assembly assm : assms) {
-				if(assm.getPropertyName().getIdentifier().equalsIgnoreCase(auxPathVar)) {
-					return assm.getAuxDataUrl();
+				if(assm.getClazz().equalsIgnoreCase("dictionaries")) {
+					ret.add(dtoServ.assemblyDto(assm));
 				}
 			}
-			return "";
 		}
+		return ret;
+	}
 
-		/**
-		 * Get the current 
-		 * @param data 
-		 * @param dictNodeId
-		 * @param varName
-		 * @return
-		 * @throws ObjectNotFoundException 
-		 */
-		@Transactional
-		public AssemblyDTO auxPathConfig(ThingDTO data, long dictNodeId, String varName) throws ObjectNotFoundException {
-			AssemblyDTO ret = new AssemblyDTO();
-			if(dictNodeId>0) {
-				//configuration is in a dictionary
-				Concept dictNode = closureServ.loadConceptById(dictNodeId);
-				String urlStr=literalServ.readValue("URL", dictNode);
-				if(urlStr.length()>0) {
-					ret.setUrl(urlStr);
-				}else {
-					throw new ObjectNotFoundException("auxPathConfig. Bad dictionary choice. URL is undefined ", logger);
+	/**
+	 * Auxiliarry persons definitions
+	 * @param url
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public List<AssemblyDTO> auxPersons(String url) throws ObjectNotFoundException {
+		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
+		//TODO system persons, maybe
+		if(ret.size()==0) {
+			List<Assembly> assms = boilerServ.loadDataConfiguration(url);
+			for(Assembly assm : assms) {
+				if(assm.getClazz().equalsIgnoreCase("persons")) {
+					ret.add(dtoServ.assemblyDto(assm));
 				}
+			}
+		}
+		return ret;
+	}
+
+	/**
+	 * Person selector is using mainly by resources to determine variables
+	 * @param url
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public List<AssemblyDTO> auxPersonSelector(String url) throws ObjectNotFoundException {
+		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
+		//TODO hardcoded definitions
+		if(ret.size()==0) {
+			List<Assembly> assms = boilerServ.loadDataConfiguration(url);
+			for(Assembly assm : assms) {
+				if(assm.getClazz().equalsIgnoreCase("personselector")) {
+					ret.add(dtoServ.assemblyDto(assm));
+				}
+			}
+		}
+		return ret;
+	}
+	/**
+	 * Special persons
+	 * @param url
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public List<AssemblyDTO> auxPersonSpecials(String url) throws ObjectNotFoundException {
+		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
+		//TODO hardcoded definitions
+		if(ret.size()==0) {
+			List<Assembly> assms = boilerServ.loadDataConfiguration(url);
+			for(Assembly assm : assms) {
+				if(assm.getClazz().equalsIgnoreCase("personspec")) {
+					ret.add(dtoServ.assemblyDto(assm));
+				}
+			}
+		}
+		return ret;
+	}
+	/**
+	 * Auxiliary schedulers
+	 * @param url
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public List<AssemblyDTO> auxSchedulers(String url) throws ObjectNotFoundException {
+		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
+		//TODO hardcoded definitions
+		if(ret.size()==0) {
+			List<Assembly> assms = boilerServ.loadDataConfiguration(url);
+			for(Assembly assm : assms) {
+				if(assm.getClazz().equalsIgnoreCase("schedulers")) {
+					ret.add(dtoServ.assemblyDto(assm));
+				}
+			}
+		}
+		return ret;
+	}
+	/**
+	 * Read registers definitions
+	 * @param url
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	public List<AssemblyDTO> auxRegisters(String url) throws ObjectNotFoundException {
+		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
+		// TODO hardcoded definitions...
+		if(ret.size()==0) {
+			List<Assembly> assms = boilerServ.loadDataConfiguration(url);
+			for(Assembly assm : assms) {
+				if(assm.getClazz().equalsIgnoreCase("registers")) {
+					ret.add(dtoServ.assemblyDto(assm));
+				}
+			}
+		}
+		return ret;
+	}
+	/**
+	 * Read configurations for amendment definition
+	 * @param url
+	 * @param  
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public List<AssemblyDTO> auxAmendments(String url) throws ObjectNotFoundException {
+		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
+		// TODO hardcoded definitions...
+		if(ret.size()==0) {
+			List<Assembly> assms = boilerServ.loadDataConfiguration(url);
+			for(Assembly assm : assms) {
+				if(assm.getClazz().equalsIgnoreCase("amendments")) {
+					ret.add(dtoServ.assemblyDto(assm));
+				}
+			}
+		}
+		return ret;
+	}
+	/**
+	 * ATC codes
+	 * @param url
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public List<AssemblyDTO> auxAtc(String url) throws ObjectNotFoundException {
+		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
+		// TODO hardcoded definitions...
+		if(ret.size()==0) {
+			List<Assembly> assms = boilerServ.loadDataConfiguration(url);
+			for(Assembly assm : assms) {
+				if(assm.getClazz().equalsIgnoreCase("atc")) {
+					ret.add(dtoServ.assemblyDto(assm));
+				}
+			}
+		}
+		return ret;
+	}
+
+	/**
+	 * URL of business types dictionary
+	 * @return
+	 */
+	public String businessesDictUrl() {
+		return "dictionary.business.structure";
+	}
+	/**
+	 * Label for new created 
+	 * @param url
+	 * @return null if not defined
+	 */
+	public String initLabel(String url) {
+		return "INIT";
+	}
+
+	public String adminUnitsDict() {
+		return "dictionary.admin.units";
+	}
+
+	/**
+	 * get url for activity data
+	 * @param identifier url of the process
+	 * @param actName
+	 * @return
+	 */
+	public String activityUrl(String identifier, String actName) {
+		return actName.toLowerCase()+"."+identifier.toLowerCase();
+	}
+
+	/**
+	 * Get default value of aux data URL for auxPathVar given
+	 * @param url common data url
+	 * @param auxPathVar
+	 * @return empty string if not found
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public String auxDataUrl(String url, String auxPathVar) throws ObjectNotFoundException {
+		List<Assembly> assms = boilerServ.loadDataConfiguration(url);
+		for(Assembly assm : assms) {
+			if(assm.getPropertyName().getIdentifier().equalsIgnoreCase(auxPathVar)) {
+				return assm.getAuxDataUrl();
+			}
+		}
+		return "";
+	}
+
+	/**
+	 * Get the current 
+	 * @param data 
+	 * @param dictNodeId
+	 * @param varName
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public AssemblyDTO auxPathConfig(ThingDTO data, long dictNodeId, String varName) throws ObjectNotFoundException {
+		AssemblyDTO ret = new AssemblyDTO();
+		if(dictNodeId>0) {
+			//configuration is in a dictionary
+			Concept dictNode = closureServ.loadConceptById(dictNodeId);
+			String urlStr=literalServ.readValue("URL", dictNode);
+			if(urlStr.length()>0) {
+				ret.setUrl(urlStr);
 			}else {
-				//configuration is in a variable configuration
-				if(data.getParentId()==0) {
-					throw new ObjectNotFoundException("auxPathConfig. Parent ID is ZERO", logger);
-				}
-				Concept parent = closureServ.loadConceptById(data.getParentId());
-				Thing parentThing = boilerServ.loadThingByNode(parent);
-				List<Assembly> assms = boilerServ.loadDataConfiguration(parentThing.getUrl());
-				for(Assembly assm : assms) {
-					if(assm.getPropertyName().getIdentifier().equalsIgnoreCase(varName)){
-						String urlStr=assm.getAuxDataUrl();
-						if(urlStr.length()>0) {
-							ret.setUrl(urlStr);
-						}else {
-							throw new ObjectNotFoundException("auxPathConfig. Please, configure auxDataUrl for "+data+"/"+varName, logger);
-						}
+				throw new ObjectNotFoundException("auxPathConfig. Bad dictionary choice. URL is undefined ", logger);
+			}
+		}else {
+			//configuration is in a variable configuration
+			if(data.getParentId()==0) {
+				throw new ObjectNotFoundException("auxPathConfig. Parent ID is ZERO", logger);
+			}
+			Concept parent = closureServ.loadConceptById(data.getParentId());
+			Thing parentThing = boilerServ.thingByNode(parent);
+			List<Assembly> assms = boilerServ.loadDataConfiguration(parentThing.getUrl());
+			for(Assembly assm : assms) {
+				if(assm.getPropertyName().getIdentifier().equalsIgnoreCase(varName)){
+					String urlStr=assm.getAuxDataUrl();
+					if(urlStr.length()>0) {
+						ret.setUrl(urlStr);
+					}else {
+						throw new ObjectNotFoundException("auxPathConfig. Please, configure auxDataUrl for "+data+"/"+varName, logger);
 					}
 				}
 			}
-			return ret;
 		}
-		/**
-		 * Mock to load reports configurations
-		 * @return
-		 */
-		public Map<String, ReportConfigDTO> reportConfigLoad(){
-			Map<String, ReportConfigDTO> ret = new LinkedHashMap<String, ReportConfigDTO>();
-			{
-				ReportConfigDTO dto = new ReportConfigDTO();
-				dto.setDataUrl("pharmacy.site");
-				dto.setDictStageUrl("dictionary.host.applications");
-				dto.setAddressUrl("pharamcy.site.address");
-				dto.setOwnerUrl("pharmacy.site.owners");
-				dto.setInspectAppUrl("application.pharmacy.inspection");
-				dto.setRenewAppUrl("application.pharmacy.renew");
-				dto.setRegisterAppUrl("pharmacy.site.certificate");
-				dto.setRegistered(true);
-				ret.put(dto.getDataUrl(), dto);
-			}
-			{
-				ReportConfigDTO dto = new ReportConfigDTO();
-				dto.setDataUrl("importer.site");
-				dto.setDictStageUrl("dictionary.host.applications");
-				dto.setAddressUrl("importer.site.address");
-				dto.setOwnerUrl("importer.site.owners");
-				dto.setInspectAppUrl("application.importer.inspection");
-				dto.setRenewAppUrl("application.importer.renew");
-				dto.setRegisterAppUrl("importer.site.certificate");
-				dto.setRegistered(true);
-				ret.put(dto.getDataUrl(), dto);
-			}
-			
-			{
-				ReportConfigDTO dto = new ReportConfigDTO();
-				dto.setDataUrl("ws.site");
-				dto.setDictStageUrl("dictionary.host.applications");
-				dto.setAddressUrl("ws.site.address");
-				dto.setOwnerUrl("ws.site.owners");
-				dto.setInspectAppUrl("application.ws.inspection");
-				dto.setRenewAppUrl("application.ws.renew");
-				dto.setRegisterAppUrl("ws.site.certificate");
-				dto.setRegistered(true);
-				ret.put(dto.getDataUrl(), dto);
-			}
-			{
-				ReportConfigDTO dto = new ReportConfigDTO();
-				dto.setDataUrl("import.permit");
-				dto.setRegisterAppUrl("register.import.permit");
-				dto.setRegistered(true);
-				dto.setApplicantRestriction(true);
-				ret.put(dto.getDataUrl(), dto);
-			}
-			return ret;
-		}
-		/**
-		 * Get report configuration by report url
-		 * @param url
-		 * @return
-		 */
-		public ReportConfigDTO reportConfig(String url) {
-			Map<String, ReportConfigDTO> data = reportConfigLoad();
-			if(url.equalsIgnoreCase("report.pharmacy.registered")) {
-				return data.get("pharmacy.site");
-			}
-			if(url.equalsIgnoreCase("report.importer.registered")) {
-				return data.get("importer.site");
-			}
-			if(url.equalsIgnoreCase("report.ws.registered")) {
-				return data.get("ws.site");
-			}
-			if(url.equalsIgnoreCase("report.import.permit.valid")) {
-				return data.get("import.permit");
-			}
-			return new ReportConfigDTO();
-		}
-
-
-
-	
+		return ret;
 	}
+	/**
+	 * Mock to load reports configurations
+	 * @deprecated
+	 * @return
+	 */
+	public Map<String, ReportConfigDTO> reportConfigLoad(){
+		Map<String, ReportConfigDTO> ret = new LinkedHashMap<String, ReportConfigDTO>();
+		{
+			ReportConfigDTO dto = new ReportConfigDTO();
+			dto.setDataUrl("pharmacy.site");
+			dto.setDictStageUrl("dictionary.host.applications");
+			dto.setAddressUrl("pharamcy.site.address");
+			dto.setOwnerUrl("pharmacy.site.owners");
+			dto.setInspectAppUrl("application.pharmacy.inspection");
+			dto.setRenewAppUrl("application.pharmacy.renew");
+			dto.setRegisterAppUrl("pharmacy.site.certificate");
+			dto.setRegistered(true);
+			ret.put(dto.getDataUrl(), dto);
+		}
+		{
+			ReportConfigDTO dto = new ReportConfigDTO();
+			dto.setDataUrl("retail.site.owned.persons");
+			dto.setDictStageUrl("dictionary.host.applications");
+			dto.setAddressUrl("nepal.address");
+			dto.setOwnerUrl("site.owners.persons");
+			dto.setInspectAppUrl("application.pharmacy.inspection");
+			dto.setRenewAppUrl("application.pharmacy.renew");
+			dto.setRegisterAppUrl("pharmacy.site.certificate");
+			dto.setRegistered(true);
+			ret.put(dto.getDataUrl(), dto);
+		}
+		{
+			ReportConfigDTO dto = new ReportConfigDTO();
+			dto.setDataUrl("importer.site");
+			dto.setDictStageUrl("dictionary.host.applications");
+			dto.setAddressUrl("importer.site.address");
+			dto.setOwnerUrl("importer.site.owners");
+			dto.setInspectAppUrl("application.importer.inspection");
+			dto.setRenewAppUrl("application.importer.renew");
+			dto.setRegisterAppUrl("importer.site.certificate");
+			dto.setRegistered(true);
+			ret.put(dto.getDataUrl(), dto);
+		}
+
+		{
+			ReportConfigDTO dto = new ReportConfigDTO();
+			dto.setDataUrl("ws.site");
+			dto.setDictStageUrl("dictionary.host.applications");
+			dto.setAddressUrl("ws.site.address");
+			dto.setOwnerUrl("ws.site.owners");
+			dto.setInspectAppUrl("application.ws.inspection");
+			dto.setRenewAppUrl("application.ws.renew");
+			dto.setRegisterAppUrl("ws.site.certificate");
+			dto.setRegistered(true);
+			ret.put(dto.getDataUrl(), dto);
+		}
+		{
+			ReportConfigDTO dto = new ReportConfigDTO();
+			dto.setDataUrl("import.permit");
+			dto.setRegisterAppUrl("register.import.permit");
+			dto.setRegistered(true);
+			dto.setApplicantRestriction(true);
+			ret.put(dto.getDataUrl(), dto);
+		}
+		return ret;
+	}
+	/**
+	 * Get report configuration by configuration ID
+	 * @param url
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public ReportConfigDTO reportConfig(ReportConfigDTO reportConfigDTO) throws ObjectNotFoundException {
+		ReportConfigDTO ret = reportConfigDTO;
+		if(ret.getNodeId() >0) {
+			Concept node=closureServ.loadConceptById(ret.getNodeId());
+			ret.setTitle(literalServ.readPrefLabel(node));
+			ret.setAddressUrl(literalServ.readValue("address_url", node));
+			ret.setApplicantRestriction(false); //TODO
+			ret.setDataUrl(urlFromDictionary(node, "application"));
+			ret.setDictStageUrl(urlFromDictionary(node, "stage"));
+			ret.setApplicantUrl(literalServ.readValue("applicanturl", node));
+			ret.setInspectAppUrl(literalServ.readValue("inspection_url", node));
+			ret.setOwnerUrl(literalServ.readValue("owners_url", node));
+			ret.setRegisterAppUrl(literalServ.readValue("certificate_url", node));
+			ret.setRegistered(true);
+			ret.setRenewAppUrl(literalServ.readValue("renewal_url", node));
+		}
+		return ret;
+	}
+	/**
+	 * Get a url from a node selected in a dictionary linked to a report configuration
+	 * @param node
+	 * @param variable
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private String urlFromDictionary(Concept node, String variable) throws ObjectNotFoundException {
+		String ret="";
+		Thing thing = new Thing();
+		thing = boilerServ.thingByNode(node,thing); 
+		if(thing.getID()>0) {
+			Concept dictNode=new Concept();
+			for(ThingDict td : thing.getDictionaries()) {
+				if(td.getVarname().equalsIgnoreCase(variable)) {
+					dictNode=td.getConcept();
+					break;
+				}
+			}
+			if(dictNode.getID()>0) {
+				ret=literalServ.readValue("url", dictNode);
+			}
+		}
+		return ret;
+	}
+
+}

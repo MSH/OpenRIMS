@@ -15,6 +15,9 @@ package org.msh.pdex2.model.old;
 
 import java.io.Serializable;
 import javax.persistence.*;
+/**
+ * Responsible for store data between HTML calls
+ */
 @Entity
 @org.hibernate.annotations.Proxy(lazy=false)
 @Table(name="context")
@@ -25,8 +28,8 @@ public class Context implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22226F179FFCD4B3203838")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22226F179FFCD4B3203838", strategy="native")	
+	@GeneratedValue(generator="VAC22227217E2144F47209152")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227217E2144F47209152", strategy="native")	
 	private long ID;
 	
 	@OneToMany(targetEntity=org.msh.pdex2.model.old.Criteria.class)	

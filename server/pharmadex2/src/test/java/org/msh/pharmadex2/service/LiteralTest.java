@@ -9,7 +9,7 @@ import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pharmadex2.Pharmadex2Application;
-import org.msh.pharmadex2.service.r2.ClosureService;
+import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.service.r2.LiteralService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

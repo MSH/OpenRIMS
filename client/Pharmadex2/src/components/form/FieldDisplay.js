@@ -92,7 +92,7 @@ class FieldDisplay extends Component{
                 if(value!='0'){
                     return value;
                 }else{
-                    return''
+                    return'0'
                 }
         //    }
         }
@@ -136,6 +136,9 @@ class FieldDisplay extends Component{
         if(text == undefined){
             return []
         }
+        if(this.props.nolabel){
+            return []
+        }
         if(text.length>0){
             return(
                 <Label for={key+"display"} >
@@ -159,7 +162,7 @@ class FieldDisplay extends Component{
         if(text != 'undefined'){
             return(
             <FormGroup>
-                   {this.notEmptyLabel()}     
+                {this.notEmptyLabel()}     
                 <Container fluid style={{fontSize:'0.8rem'}}>
                     {text}
                     <FormText color="danger">{data[this.props.attribute].suggest}</FormText>

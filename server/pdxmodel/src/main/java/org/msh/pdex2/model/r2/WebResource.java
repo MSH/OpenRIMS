@@ -15,6 +15,9 @@ package org.msh.pdex2.model.r2;
 
 import java.io.Serializable;
 import javax.persistence.*;
+/**
+ * Not used yet
+ */
 @Entity
 @org.hibernate.annotations.Proxy(lazy=false)
 @Table(name="webresource")
@@ -25,8 +28,8 @@ public class WebResource implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22226E17C9085E9E006ECA")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22226E17C9085E9E006ECA", strategy="native")	
+	@GeneratedValue(generator="VAC22227217E2154D02F03FC9")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227217E2154D02F03FC9", strategy="native")	
 	private long ID;
 	
 	@Column(name="Url", nullable=true, length=255)	

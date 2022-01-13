@@ -15,6 +15,9 @@ package org.msh.pdex2.model.r2;
 
 import java.io.Serializable;
 import javax.persistence.*;
+/**
+ * Allows use reference to one or more persons in the application - owners, pharmacists, etc
+ */
 @Entity
 @org.hibernate.annotations.Proxy(lazy=false)
 @Table(name="thingperson")
@@ -25,8 +28,8 @@ public class ThingPerson implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22226E17C9085E9FA06ED8")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22226E17C9085E9FA06ED8", strategy="native")	
+	@GeneratedValue(generator="VAC22227217E2154D04003FD7")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227217E2154D04003FD7", strategy="native")	
 	private long ID;
 	
 	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	

@@ -19,7 +19,7 @@ class PrintPreview extends Component{
     constructor(props){
         super(props)
         this.state={
-            data:this.props.data,                                      //ThingDTO.java path to fill out things                                               
+            data:this.props.data,                        //ThingDTO.java path to fill out things                                               
             identifier:Date.now().toString(),           //address for messages for this object
             recipient:this.props.recipient,             //recipient of messages from this object
             labels:{
@@ -102,6 +102,7 @@ class PrintPreview extends Component{
             <Container fluid>
                 <Row>
                     <Col xs='12' sm='12' lg='10' xl='10'>
+                        <h4>{this.state.data.title}</h4>
                     </Col>
                     <Col xs='12' sm='12' lg='2' xl='2'>
                         <div className="mb-1 d-flex justify-content-end">

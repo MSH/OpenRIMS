@@ -71,7 +71,7 @@ public class WebApp {
 		SecurityContextHolder.clearContext();
 		ModelAndView ret = new ModelAndView("login");
 		//common fields
-		ret.addObject("application", "DDAnet");
+		ret.addObject("application", messages.get("system_name"));
 		ret.addObject("username", messages.get("login"));
 		ret.addObject("usernamePlease", messages.get("loginmessage"));
 		ret.addObject("password", messages.get("password"));
@@ -109,7 +109,7 @@ public class WebApp {
 		SecurityContextHolder.clearContext();
 		ModelAndView ret = new ModelAndView("logingoogle");
 		//common fields
-		ret.addObject("application", "DDAnet");
+		ret.addObject("application", messages.get("system_name"));
 		//OATH2 
 		ret.addObject("oath2",messages.get("oath2"));
 		ret.addObject("Google", messages.get("Google"));

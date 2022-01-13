@@ -1,16 +1,22 @@
 package org.msh.pharmadex2.controller.r2;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
+import javax.servlet.http.HttpServletResponse;
+
 import org.msh.pdex2.exception.ObjectNotFoundException;
+import org.msh.pdex2.i18n.Messages;
+import org.msh.pharmadex2.controller.common.ExcelView;
 import org.msh.pharmadex2.dto.ActivityDTO;
 import org.msh.pharmadex2.dto.ActivityHistoryDataDTO;
 import org.msh.pharmadex2.dto.ActivitySubmitDTO;
 import org.msh.pharmadex2.dto.ApplicationHistoryDTO;
 import org.msh.pharmadex2.dto.ApplicationsDTO;
 import org.msh.pharmadex2.dto.CheckListDTO;
-import org.msh.pharmadex2.dto.DataConfigDTO;
+import org.msh.pharmadex2.dto.DataUnitDTO;
 import org.msh.pharmadex2.dto.FileDTO;
 import org.msh.pharmadex2.dto.PersonDTO;
 import org.msh.pharmadex2.dto.PersonSpecialDTO;
@@ -21,6 +27,7 @@ import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.exception.DataNotFoundException;
 import org.msh.pharmadex2.service.common.UserService;
 import org.msh.pharmadex2.service.common.ValidationService;
+import org.msh.pharmadex2.service.r2.AmendmentService;
 import org.msh.pharmadex2.service.r2.ApplicationService;
 import org.msh.pharmadex2.service.r2.PdfService;
 import org.msh.pharmadex2.service.r2.ResourceService;
@@ -40,6 +47,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.ModelAndView;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -57,6 +65,8 @@ public class ActivityAPI {
 	@Autowired
 	private ApplicationService applServ;
 	@Autowired
+	private AmendmentService amendServ;
+	@Autowired
 	private ThingService thingServ;
 	@Autowired
 	private ObjectMapper objectMapper;
@@ -68,6 +78,8 @@ public class ActivityAPI {
 	ResourceService resourceServ;
 	@Autowired
 	PdfService pdfServ;
+	@Autowired
+	Messages messages;
 
 
 	@PostMapping({ "/api/*/my/activities"})
@@ -85,7 +97,50 @@ public class ActivityAPI {
 		data = applServ.myMonitoring(data, user);
 		return data;
 	}
+	
+	@PostMapping("/api/*/my/monitoring/actual/excel")
+	public ModelAndView myMonitoringActualExcel(Authentication auth, 
+			@RequestBody ApplicationsDTO data,
+			HttpServletResponse response) {
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		data.getTable().getHeaders().setPageSize(Integer.MAX_VALUE);
+		data = applServ.myMonitoring(data, user);
+		Map<String, Object> model = new HashMap<String, Object>();
+		//Sheet Name
+		model.put(ExcelView.SHEETNAME, messages.get("actual"));
+		//Title
+		model.put(ExcelView.TITLE, messages.get("monitoring"));
+		//Headers List
+		model.put(ExcelView.HEADERS, data.getTable().getHeaders().getHeaders());
+		//Rows
+		model.put(ExcelView.ROWS, data.getTable().getRows());
+		response.setHeader( HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"monitoring_actual.xlsx\"");
+		response.setHeader("filename", "monitoring_actual.xlsx");       
+		return new ModelAndView(new ExcelView(), model);
+	}
 
+	@PostMapping("/api/*/my/monitoring/scheduled/excel")
+	public ModelAndView myMonitoringScheduledExcel(Authentication auth, 
+			@RequestBody ApplicationsDTO data,
+			HttpServletResponse response) {
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		data.getScheduled().getHeaders().setPageSize(Integer.MAX_VALUE);
+		data = applServ.myMonitoring(data, user);
+		Map<String, Object> model = new HashMap<String, Object>();
+		//Sheet Name
+		model.put(ExcelView.SHEETNAME, messages.get("scheduled"));
+		//Title
+		model.put(ExcelView.TITLE, messages.get("monitoring"));
+		//Headers List
+		model.put(ExcelView.HEADERS, data.getScheduled().getHeaders().getHeaders());
+		//Rows
+		model.put(ExcelView.ROWS, data.getScheduled().getRows());
+		response.setHeader( HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"monitoring_scheduled.xlsx\"");
+		response.setHeader("filename", "monitoring_scheduled.xlsx");       
+		return new ModelAndView(new ExcelView(), model);
+	}
+	
+	
 	/**
 	 * Load the activity Creates a path the bread crumb reads
 	 * 
@@ -180,8 +235,12 @@ public class ActivityAPI {
 	public ThingDTO thingSaveOthers(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
 		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
 		try {
-			data = applServ.thingSaveUnderParent(data,user);
-		} catch (ObjectNotFoundException e) {
+			if(data.getParentId()>0) {
+				data = applServ.thingSaveUnderParent(data,user);
+			}else {
+				data=thingServ.save(data, user);
+			}
+		} catch (ObjectNotFoundException | JsonProcessingException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
@@ -190,7 +249,7 @@ public class ActivityAPI {
 	@PostMapping({ "/api/*/thing/validate"})
 	public ThingDTO thingValidate(@RequestBody ThingDTO data) throws DataNotFoundException {
 		try {
-			data = validServ.thing(data);
+			data = validServ.thing(data,true);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -265,7 +324,7 @@ public class ActivityAPI {
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping({ "/api/*/thing/file/save"})
-	public FileDTO fileSave(Authentication auth, @RequestParam("dto") String jsonDto,
+	public FileDTO thingFileSave(Authentication auth, @RequestParam("dto") String jsonDto,
 			@RequestParam("file") Optional<MultipartFile> file) throws DataNotFoundException {
 		FileDTO data = new FileDTO();
 		try {
@@ -366,6 +425,7 @@ public class ActivityAPI {
 	 * @throws DataNotFoundException
 	 * @throws ObjectNotFoundException
 	 */
+	@Deprecated
 	@RequestMapping(value = { "/api/*/resource/download/param={param}"}, method = RequestMethod.GET)
 	public ResponseEntity<Resource> resourceDownload(@PathVariable(value = "param", required = true) String jsonStr)
 			throws DataNotFoundException, ObjectNotFoundException {
@@ -382,6 +442,12 @@ public class ActivityAPI {
 			throw new DataNotFoundException(e);
 		}
 	}
+	/**
+	 * New upload to bypass "get" length limitation
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
 	@PostMapping("/api/*/resource/download/form")
 	public ResponseEntity<Resource> resourceDownloadForm(@RequestBody ResourceDTO data)
 			throws DataNotFoundException {
@@ -562,6 +628,29 @@ public class ActivityAPI {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data=thingServ.personSpecialLoad(data, user);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
+	/**
+	 * Data unit's things to display
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/*/activity/amendment/path")
+	public DataUnitDTO amendmentPath(Authentication auth, @RequestBody DataUnitDTO data)
+			throws DataNotFoundException {
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		try {
+			ThingDTO th = new ThingDTO();
+			th.setNodeId(data.getNodeId());
+			thingServ.path(th);
+			data.getPath().clear();
+			data.getPath().addAll(th.getPath());
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}

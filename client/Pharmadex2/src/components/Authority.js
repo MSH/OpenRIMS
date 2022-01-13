@@ -31,7 +31,6 @@ class Authority extends Component{
                 arearesponsibility:''
             }
         }
-        this.onGetData=this.onGetData.bind(this)
         this.createBreadCrumb=this.createBreadCrumb.bind(this)
         this.eventProcessor=this.eventProcessor.bind(this)
         this.cancel=this.cancel.bind(this)
@@ -51,54 +50,14 @@ class Authority extends Component{
         return ret
     }
 
-    /**
-     * Get data from a component
-     * @param {name:'onGetData',sender:sender,data:this.state.data of the sender} data 
-     */
-    onGetData(data){
-        let key=data.from
-        this.state.keys.push(key)
-        if(key.length>0){
-
-            //place data
-            if(this.state.data[key]==undefined){
-                if(this.state.data.dictionaries[key]==undefined){
-
-                }else{
-                    this.state.data.dictionaries[key]=data.data
-                }
-            }else{
-                this.state.data[key]=data.data
-            }
-
-            //check finalization
-            if(this.isCollected()){
-                Fetchers.postJSONNoSpinner("/api/admin/organization/save", this.state.data,(query,result)=>{
-                    if(result.valid){
-                        //return to the caller
-                        let caller=this.props.caller
-                        Navigator.navigate(caller.tab,caller.component,caller.parameter)
-                    }else{
-                        this.state.data=result
-                        this.setState(this.state)
-                    }
-                })
-            }
-        }
-    }
-    /**
-     * Check component pooling completion
-     * @returns true if all data has been collected from components
-     */
-    isCollected(){
-        return true
-    }
-
     eventProcessor(event){
         let data=event.data
-        if(data.from != this.identifier && (data.to=="*" || data.to==this.identifier)){
-            if(data.subject=="onGetData"){
-                this.onGetData(data)   //in answer to ask data
+        if(data.to==this.identifier){
+            if(data.subject=='onSelectionChange'){
+                this.state.data.dictionaries[data.from]=data.data
+            }
+            if(data.subject=='onLiteralUpdated'){
+                this.state.data.node=data.data
             }
         }
     }
@@ -112,6 +71,7 @@ class Authority extends Component{
         this.state.data.node.parentId=this.props.parentId
         this.state.data.node.nodeId=this.props.nodeId
         Fetchers.postJSONNoSpinner("/api/admin/organization/load", this.state.data,(query,result)=>{
+            Fetchers.setJustLoaded(result,false)
             this.state.data=result;
             Locales.createLabels(this)
             Locales.resolveLabels(this)
@@ -180,7 +140,8 @@ class Authority extends Component{
             </Row>
               <Row>
                   <Col xs='12' sm='12' lg='6' xl='6'>
-                    <Literals identifier="node" url={this.props.url} parentId={this.props.parentId} nodeId={this.props.nodeId} />
+                    <Literals identifier="node" url={this.props.url} parentId={this.props.parentId} nodeId={this.props.nodeId}
+                        recipient={this.identifier} />
                   </Col>
                   <Col  xs='12' sm='12' lg='6' xl='6'>
                    {this.dictionaries()}
@@ -191,8 +152,17 @@ class Authority extends Component{
                     <ButtonUni
                             label={this.state.labels.save}
                             onClick={()=>{
-                                this.state.keys=[]
-                                Navigator.message(this.identifier,"*","askData",{}) //ask all components for data, real save after complete reply
+                                Fetchers.postJSONNoSpinner("/api/admin/organization/save", this.state.data,(query,result)=>{
+                                    if(result.valid){
+                                        //return to the caller
+                                        let caller=this.props.caller
+                                        this.state.data=result
+                                        this.cancel()
+                                    }else{
+                                        this.state.data=result
+                                        this.setState(this.state)
+                                    }
+                                })
                             }}
                             outline
                             color="primary"

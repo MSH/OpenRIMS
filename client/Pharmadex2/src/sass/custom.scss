@@ -48,6 +48,10 @@ label{
   overflow-x: hidden!important
 }
 
+.markedbycolor{
+  background-color: #FFFFE0
+}
+
 /* @group Blink */
 .blink {
   -webkit-animation: blink .75s linear infinite;

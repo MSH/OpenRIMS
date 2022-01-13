@@ -15,6 +15,9 @@ package org.msh.pdex2.model.r2;
 
 import java.io.Serializable;
 import javax.persistence.*;
+/**
+ * Responsible for data configuration
+ */
 @Entity
 @org.hibernate.annotations.Proxy(lazy=false)
 @Table(name="assembly")
@@ -27,8 +30,8 @@ public class Assembly implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22226E17C9085E9E906ECF")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22226E17C9085E9E906ECF", strategy="native")	
+	@GeneratedValue(generator="VAC22227217E2154D03603FCE")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227217E2154D03603FCE", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
@@ -75,6 +78,9 @@ public class Assembly implements Serializable {
 	
 	@Column(name="AuxDataUrl", nullable=true, length=255)	
 	private String auxDataUrl;
+	
+	@Column(name="`Unique`", nullable=false, length=1)	
+	private boolean unique = false;
 	
 	private void setID(long value) {
 		this.ID = value;
@@ -256,6 +262,14 @@ public class Assembly implements Serializable {
 	
 	public String getAuxDataUrl() {
 		return auxDataUrl;
+	}
+	
+	public void setUnique(boolean value) {
+		this.unique = value;
+	}
+	
+	public boolean getUnique() {
+		return unique;
 	}
 	
 	public void setPropertyName(org.msh.pdex2.model.r2.Concept value) {

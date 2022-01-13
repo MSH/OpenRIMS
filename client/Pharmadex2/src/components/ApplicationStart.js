@@ -143,6 +143,8 @@ class ApplicationStart extends Component{
                                     applDictNodeId={this.props.data.applDictNodeId}
                                     historyId={this.props.data.historyId}
                                     recipient={this.state.identifier}
+                                    modiUnitId={this.props.data.modiUnitId}                      // id of data unit selected to modify
+                                    prefLabel={this.props.data.prefLabel}                        // preflabel by default
                                            />
                     </Col>
                 </Row>
@@ -261,9 +263,9 @@ class ApplicationStart extends Component{
                 {this.historyTable()}
                 {this.activityHistory()}
                 {this.headerFooter()}
-                <AlertFloat />
                 {this.content()}
                 {this.headerFooter()}
+                <AlertFloat />
             </Container>   
         )
     }
@@ -276,7 +278,9 @@ ApplicationStart.propTypes={
         {
             url:PropTypes.string.isRequired,            //url of an application, i.e. application.guest
             applDictNodeId:PropTypes.number,            //id of dictionary node that describes an application
-            historyId:PropTypes.number.isRequired,      //id of the histry record to determine activity and data. Zero means new   
+            historyId:PropTypes.number.isRequired,      //id of the histry record to determine activity and data. Zero means new
+            modiUnitId:PropTypes.number,                //id of data unit selected to modify
+            prefLabel:PropTypes.string,                 //preflabel by default, if needed
         }
     ).isRequired       
 }

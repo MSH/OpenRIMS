@@ -31,8 +31,10 @@ import org.msh.pdex2.model.r2.Register;
 import org.msh.pdex2.model.r2.Scheduler;
 import org.msh.pdex2.model.r2.Thing;
 import org.msh.pdex2.model.r2.ThingDoc;
+import org.msh.pdex2.model.r2.ThingPerson;
 import org.msh.pdex2.model.r2.ThingRegister;
 import org.msh.pdex2.model.r2.ThingScheduler;
+import org.msh.pdex2.model.r2.ThingThing;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.common.QueryRepository;
 import org.msh.pdex2.repository.r2.AssemblyRepo;
@@ -43,10 +45,12 @@ import org.msh.pdex2.repository.r2.HistoryRepo;
 import org.msh.pdex2.repository.r2.RegisterRepo;
 import org.msh.pdex2.repository.r2.SchedulerRepo;
 import org.msh.pdex2.repository.r2.ThingDocRepo;
+import org.msh.pdex2.repository.r2.ThingPersonRepo;
 import org.msh.pdex2.repository.r2.ThingRegisterRepo;
 import org.msh.pdex2.repository.r2.ThingRepo;
 import org.msh.pdex2.repository.r2.ThingSchedulerRepo;
-import org.msh.pharmadex2.service.r2.ClosureService;
+import org.msh.pdex2.repository.r2.ThingThingRepo;
+import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.service.r2.LiteralService;
 import org.msh.pharmadex2.service.r2.SystemService;
 import org.slf4j.Logger;
@@ -99,6 +103,10 @@ public class BoilerService {
 	private JdbcRepository jdbcRepo;
 	@Autowired
 	private ThingDocRepo thingDocRepo;
+	@Autowired
+	private ThingThingRepo thingThingRepo;
+	@Autowired
+	private ThingPersonRepo thingPersonRepo;
 	/**
 	 * Convert resource bundle to DTO
 	 * @param bundle
@@ -218,11 +226,11 @@ public class BoilerService {
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public Thing loadThingByNode(Concept node, Thing thing) {
+	public Thing thingByNode(Concept node, Thing thing) {
 		if(node.getID()>0) {
-			Optional<Thing> reto= thingRepo.findByConcept(node);
-			if(reto.isPresent()) {
-				thing = reto.get();
+			List<Thing> retl= thingRepo.findByConcept(node);
+			if(retl.size()>0) {
+				thing = retl.get(0);
 			}
 		}
 		return thing;
@@ -233,10 +241,10 @@ public class BoilerService {
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	public Thing loadThingByNode(Concept node) throws ObjectNotFoundException {
-		Optional<Thing> reto= thingRepo.findByConcept(node);
-		if(reto.isPresent()) {
-			return reto.get();
+	public Thing thingByNode(Concept node) throws ObjectNotFoundException {
+		List<Thing> retl= thingRepo.findByConcept(node);
+		if(retl.size()>0) {
+			return retl.get(0);
 		}
 		throw new ObjectNotFoundException("loadThingByNode. Thing not found. Node id is " +node.getID());
 	}
@@ -313,12 +321,23 @@ public class BoilerService {
 		return thingRepo.save(thing);
 	}
 	/**
-	 * load all history for application. Sort by Come
-	 * @param application
+	 * History by Application data - full history, order is natural - by ID -
+	 * @param applicationData
 	 * @return
 	 */
 	@Transactional
-	public List<History> historyAll(Concept application) {
+	public List<History> historyAll(Concept applicationData) {
+		List<History> ret = historyRepo.findAllByApplicationDataOrderByID(applicationData);
+		return ret;
+	}
+
+	/**
+	 * load all history for application. Sort by Come
+	 * @param application
+	 * @return empty list if no
+	 */
+	@Transactional
+	public List<History> historyAllByApplication(Concept application) {
 		List<History> ret = historyRepo.findAllByApplicationOrderByCome(application);
 		return ret;
 	}
@@ -380,8 +399,7 @@ public class BoilerService {
 	 */
 	public List<Assembly> loadDataConfiguration(String url) throws ObjectNotFoundException {
 		List<Assembly> ret = new ArrayList<Assembly>();
-		Concept root = closureServ.loadRoot(SystemService.DATA_COLLECTIONS_ROOT);
-		List<Concept> datas = literalServ.loadOnlyChilds(root);
+		List<Concept> datas = loadAllDataConfigurations();
 		List<Concept> vars = new ArrayList<Concept>();
 		for(Concept dat : datas) {
 			if(dat.getIdentifier().equalsIgnoreCase(url) && dat.getActive()) {
@@ -397,6 +415,17 @@ public class BoilerService {
 			ret=assmRepo.findAllByPropertyNameIn(vars, Sort.by(Sort.Direction.ASC,"row", "col", "ord"));
 		}
 		return ret;
+	}
+	/**
+	 * Load a list of variables that configured under the URL
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	@Transactional
+	public List<Concept> loadAllDataConfigurations() throws ObjectNotFoundException {
+		Concept root = closureServ.loadRoot(SystemService.DATA_COLLECTIONS_ROOT);
+		List<Concept> datas = literalServ.loadOnlyChilds(root);
+		return datas;
 	}
 	/**
 	 * Load file resource by node ID
@@ -479,7 +508,8 @@ public class BoilerService {
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	public Scheduler loadSchedulerByNode(Concept concept) throws ObjectNotFoundException {
+	@Transactional
+	public Scheduler schedulerByNode(Concept concept) throws ObjectNotFoundException {
 		Optional<Scheduler> schedo = schedRepo.findByConcept(concept);
 		if(schedo.isPresent()) {
 			return schedo.get();
@@ -494,7 +524,7 @@ public class BoilerService {
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	public Scheduler loadSchedulerById(long id) throws ObjectNotFoundException {
+	public Scheduler schedulerById(long id) throws ObjectNotFoundException {
 		Optional<Scheduler> schedo = schedRepo.findById(id);
 		if(schedo.isPresent()) {
 			return schedo.get();
@@ -551,34 +581,19 @@ public class BoilerService {
 	/**
 	 * finf all registration records with regNum given
 	 * @param regNum
+	 * @param url 
 	 * @return
+	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public List<Register> registerByNumber(String regNum) {
-		List<Register> ret = registerRepo.findAllByRegister(regNum.trim());
-		if(ret==null) {
-			ret = new ArrayList<Register>();
-		}
+	public List<Register> registerByUrlAndNumber(String regNum, String url) throws ObjectNotFoundException {
+		Concept conc = closureServ.loadRoot(url);
+		List<Register> ret = new ArrayList<Register>();
+		ret = registerRepo.findAllByConceptAndRegister(conc,regNum.trim());
 		return ret;
 	}
-	/**
-	 * Get previous registration number 
-	 * @param url
-	 * @return
-	 */
-	@Transactional
-	public String registerPrev(String url) {
-		jdbcRepo.readRegisterByUrl(url);
-		Headers head = new Headers();
-		head.getHeaders().add(TableHeader.instanceOf("regno", TableHeader.COLUMN_STRING));
-		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from site_registers", "", "", head);
-		String ret= "?????";
-		if(rows.size()>0) {
-			TableRow row = rows.get(rows.size()-1);
-			return row.getRow().get(0).getValue();
-		}
-		return ret;
-	}
+
+
 	/**
 	 * Convert the local date to Nepali date string
 	 * @param dt
@@ -586,7 +601,7 @@ public class BoilerService {
 	 * @return
 	 */
 	public String localDateToNepali(LocalDate ldt, boolean full) {
-		List<Integer> nums = new ArrayList<Integer>();
+		/*List<Integer> nums = new ArrayList<Integer>();
 		nums.add(0x966); // zero
 		nums.add(0x967); // one
 		nums.add(0x968); // two
@@ -597,7 +612,7 @@ public class BoilerService {
 		nums.add(0x96D); // seven
 		nums.add(0x96E); // eight
 		nums.add(0x96F); // nine
-
+		 */
 		Date dt = localDateToDate(ldt);
 		DateBS dateBS = DateConverter.convertADToBS(dt);
 		String year = dateBS.getYear()+"";
@@ -616,32 +631,61 @@ public class BoilerService {
 		str=str.trim();
 		String ret=str;
 		if(full) {
-			for (int i = 0; i < str.length(); i++) {
-				String ch=str.substring(i, i+1);
-				if(ch.length()==1) {
-					if(ch.equals("-")) {
-						sb.append("-");
-					}else {
-						Integer code= Integer.valueOf(ch);
-						sb.append(Character.toChars(nums.get(code.intValue())));
+			/*	for (int i = 0; i < str.length(); i++) {
+					String ch=str.substring(i, i+1);
+					if(ch.length()==1) {
+						if(ch.equals("-")) {
+							sb.append("-");
+						}else {
+							Integer code= Integer.valueOf(ch);
+							sb.append(Character.toChars(nums.get(code.intValue())));
+						}
 					}
 				}
-			}
-			ret  = sb.toString();
+				ret  = sb.toString();*/
+			ret=numberToNepali(str);
 		}
 		return ret;
 	}
 	/**
-	 * Get all records from the journal fro this application data 
-	 * @param appData
+	 * Convert formatted number to Nepali characters
+	 * @param str
 	 * @return
 	 */
-	@Transactional
-	public List<Register> registersByApplData(Concept appData) {
-		List<Register> ret = registerRepo.findAllByAppDataOrderByRegisteredAtAsc(appData);
+	public String numberToNepali(String str) {
+		List<Integer> nums = new ArrayList<Integer>();
+		nums.add(0x966); // zero
+		nums.add(0x967); // one
+		nums.add(0x968); // two
+		nums.add(0x969); // three
+		nums.add(0x96A); // four
+		nums.add(0x96B); // five
+		nums.add(0x96C); // six
+		nums.add(0x96D); // seven
+		nums.add(0x96E); // eight
+		nums.add(0x96F); // nine
+		String ret=str;
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < str.length(); i++) {
+			String ch=str.substring(i, i+1);
+			if(ch.length()==1) {
+				Integer code;
+				try {
+					code = Integer.valueOf(ch);
+					Integer chCode=nums.get(code.intValue());
+					if(chCode!=null) {
+						sb.append(Character.toChars(chCode));
+					}else {
+						sb.append(ch);
+					}
+				} catch (NumberFormatException e) {
+					sb.append(ch);
+				}
+			}
+		}
+		ret  = sb.toString();
 		return ret;
 	}
-
 
 	/**
 	 * GEt a histroy record by activity data
@@ -728,12 +772,246 @@ public class BoilerService {
 	}
 	@Transactional
 	public ThingDoc thingDocByNode(Concept docNode) throws ObjectNotFoundException {
-		Optional<ThingDoc> tdo = thingDocRepo.findByConcept(docNode);
-		if(tdo.isPresent()) {
-			return tdo.get();
+		List<ThingDoc> tdol = thingDocRepo.findByConcept(docNode);
+		if(tdol.size()>0) {
+			return tdol.get(0);
 		}else {
 			throw new ObjectNotFoundException("ThingDocByNode. Can't find ThingDoc by concept. Id is "+docNode.getID());
 		}
 	}
+	/**
+	 * Home node of this node. Assumed that home and this nodes are existing
+	 * @param node
+	 * @return home node of the node
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public Concept homeNode(Concept node) throws ObjectNotFoundException {
+		List<ThingThing> ttList =thingThingRepo.findByConcept(node);
+		if(ttList.size()>0) {
+			Thing thing = thingByThingThing(ttList.get(0), true);
+			return thing.getConcept();
+		}else {
+			return node;
+		}
+	}
+	/**
+	 * Load all thingdoc by url
+	 * @param url
+	 * @return
+	 */
+	@Transactional
+	public List<ThingDoc> thingDocsByUrl(String url) {
+		List<ThingDoc> retl = thingDocRepo.findByDocUrl(url);
+		return retl;
+	}
+	/**
+	 * Find thing by ThingDoc
+	 * @param td
+	 * @param exception
+	 * @return thing with ID==0 if not found or exception
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public Thing thingByThingDoc(ThingDoc td, boolean exception) throws ObjectNotFoundException {
+		Optional<Thing> thingo = thingRepo.findByDocuments(td);
+		if(thingo.isPresent()) {
+			return thingo.get();
+		}else {
+			if(exception) {
+				throw new ObjectNotFoundException("loadThingByThingDoc. Thing not found, ThingDoc ID is "+td.getID(),logger);
+			}else {
+				return new Thing();
+			}
+		}
+	}
+	/**
+	 * Thing doc by file node
+	 * @param node
+	 * @return new ThingDoc if not found
+	 */
+	@Transactional
+	public ThingDoc loadThingDocByFileNode(Concept node) {
+		List<ThingDoc> tdl = thingDocRepo.findByConcept(node);
+		if(tdl.size()>0) {
+			return tdl.get(0);
+		}else {
+			return new ThingDoc();
+		}
+	}
+	/**
+	 * Full Nepali years from ld to the current
+	 * @param ld
+	 * @return
+	 */
+	public int fullYearsNepali(LocalDate ld) {
+		int years=0;
+		DateBS nowBs = DateConverter.convertADToBS(new Date());
+		DateBS ldBs = DateConverter.convertADToBS(localDateToDate(ld));
+		int monthsNow = nowBs.getYear()*12+ldBs.getMonth();
+		int monthsLd = ldBs.getYear()*12+ldBs.getMonth();
+		int monthDif=monthsNow-monthsLd;	//months between
+		years=monthDif/12; //full years between
+		int rem =monthDif % 12;	//additional months
+		if(rem==0) {						//the same month
+			if(years>0) {
+				if(nowBs.getDay()<=ldBs.getDay()) {	//not full year, compare to the date in the past
+					years--;
+				}
+			}
+			if(years<0) {
+				if(nowBs.getDay()>ldBs.getDay()) {	//not full year compare to the date in the future
+					years++;
+				}
+			}
+		}
+		return years;
+	}
+	/**
+	 * Load ThingThing by it's concept. Mainly to determine variable name or root node itself
+	 * @param dataNode
+	 * @param strict - raise an exception, otherwise return null if not fount
+	 * @return exception or null, if not found
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public ThingThing thingThing(Concept dataNode, boolean strict) throws ObjectNotFoundException {
+		if(dataNode!=null) {
+			List<ThingThing> retl = thingThingRepo.findByConcept(dataNode);
+			if(retl.size()>0) {
+				return retl.get(0);
+			}else {
+				if(strict) {
+					throw new ObjectNotFoundException("thingthing by concept not found. Concept ID is "+dataNode.getID(),logger);
+				}else {
+					return null;
+				}
+			}
+		}else {
+			if(strict) {
+				throw new ObjectNotFoundException("thingthing by concept not found. Concept is NULL",logger);
+			}else {
+				return null;
+			}
+		}
+	}
+	/**
+	 * Load a Thing to which ThingThing linked to
+	 * @param tt
+	 * @param strict false - return null, true - raise an exception
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public Thing thingByThingThing(ThingThing tt, boolean strict) throws ObjectNotFoundException {
+		if(tt!=null) {
+			List<Thing> retl = thingRepo.findByThings(tt);
+			if(retl!=null && retl.size()>0) {
+				return retl.get(0);
+			}else {
+				if(strict) {
+					throw new ObjectNotFoundException("ThingByThingThing. Thing not found. ID is "+tt.getID(), logger);
+				}else {
+					return null;
+				}
+			}
+		}else {
+			if(strict) {
+				throw new ObjectNotFoundException("ThingByThingThing. ThingThing is null", logger);
+			}else {
+				return null;
+			}
+		}
+	}
+	/**
+	 * Load ThingPerson by concept
+	 * @param concept
+	 * @param strict
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public ThingPerson thingPerson(Concept concept, boolean strict) throws ObjectNotFoundException {
+		if(concept!=null) {
+			List<ThingPerson> retl = thingPersonRepo.findByConcept(concept);
+			if(retl!=null && retl.size()>0) {
+				return retl.get(0);
+			}else {
+				if(strict) {
+					throw new ObjectNotFoundException("ThingPerson. ThingPerson not found. Concept ID is "+concept.getID(), logger);
+				}else {
+					return null;
+				}
+			}
+		}else {
+			if(strict) {
+				throw new ObjectNotFoundException("ThingPerson. Concept is null", logger);
+			}else {
+				return null;
+			}
+		}
+	}
+	
+	/**
+	 * Load thing by ThingPerson
+	 * @param tp
+	 * @param strict
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public Thing thingByThingPerson(ThingPerson tp, boolean strict) throws ObjectNotFoundException {
+		if(tp!=null) {
+			List<Thing> retl=thingRepo.findByPersons(tp);
+			if(retl!=null && retl.size()>0) {
+				return retl.get(0);
+			}else {
+				if(strict) {
+					throw new ObjectNotFoundException("ThingByThingPerson. Thing not found. ThingPerson ID is "+tp.getID(), logger);
+				}else {
+					return null;
+				}
+			}
+		}else {
+			if(strict) {
+				throw new ObjectNotFoundException("ThingByThingPerson. ThingPerson is null", logger);
+			}else {
+				return null;
+			}
+		}
+	}
 
+	/**
+	 * Get a list of schedulers that suit the parameters
+	 * @param id
+	 * @param dataUrl
+	 * @return list that may be empty
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public List<Scheduler> schedulerList(String dataUrl, long id) throws ObjectNotFoundException {
+		List<Scheduler> ret = new ArrayList<Scheduler>();
+		jdbcRepo.scheduler_list(dataUrl, id);
+		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from scheduler_list", "", "", new Headers());
+		for(TableRow row : rows) {
+			ret.add(schedulerById(row.getDbID()));
+		}
+		return ret;
+	}
+	/**
+	 * Load all activities that suits application url and application data
+	 * @param applUrl
+	 * @param applData
+	 * @return empty list if not found
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public List<History> activities(String applUrl, Concept applData) throws ObjectNotFoundException {
+		List<History> ret = new ArrayList<History>();
+		jdbcRepo.application_list(applUrl,applData.getID());
+		Headers headers = new Headers();
+		headers.setPageSize(Integer.MAX_VALUE);
+		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from application_list", "", "", headers);
+		for(TableRow row : rows) {
+			ret.add(historyById(row.getDbID()));
+		}
+		return ret;
+	}
 }

@@ -20,6 +20,7 @@ import org.msh.pdex2.model.enums.YesNoNA;
 import org.msh.pdex2.model.r2.Closure;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.repository.r2.ClosureRepo;
+import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.dto.form.OptionDTO;
@@ -458,5 +459,24 @@ public class LiteralService {
 	public String readDescription(Concept node) throws ObjectNotFoundException {
 		return readValue(DESCRIPTION, node);
 	}
+	/**
+	 * Find a concept of literal variable 
+	 * @param variableName
+	 * @param node
+	 * @return empty concept if not found
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public Concept literalConcept(String variableName, Concept node) throws ObjectNotFoundException {
+		Concept literals = loadLiterals(node);
+		List<Concept> variables = closureServ.loadLevel(literals);
+		for(Concept variable : variables) {
+			if(variable.getIdentifier().equalsIgnoreCase(variableName)) {
+				return variable;
+			}
+		}
+		return new Concept();
+	}
+
 
 }

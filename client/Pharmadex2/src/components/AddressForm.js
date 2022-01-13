@@ -1,5 +1,5 @@
 import React , {Component} from 'react'
-import {Row, Col, Label} from 'reactstrap'
+import {Row, Col, Label,Alert} from 'reactstrap'
 import PropTypes from 'prop-types'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
@@ -37,6 +37,52 @@ class AddressForm extends Component{
         this.eventProcessor=this.eventProcessor.bind(this)
         this.loadCenterZoom=this.loadCenterZoom.bind(this)
     }
+    /**
+     * Return changed style
+     * @param {AddressDTO} addr 
+     */
+    static changed(addr){
+        if(addr.changed){
+            return "markedbycolor"
+        }else{
+            return ""
+        }
+    }
+
+    /**
+     * Place an address to Thing.js or any other
+     * @returns This component Writable or read only
+     */
+    static place(addr, index, readOnly,identifier, label){
+        return(
+            <Row key={index} className={AddressForm.changed(addr)}>
+            <Col>
+                <Row>
+                    <Col>
+                        <h6>{label}</h6>
+                    </Col>
+                </Row>
+                <Row hidden={addr.valid}>
+                        <Col>
+                            <Alert color="danger" className="p-0 m-0">
+                                <small>{addr.identifier}</small>
+                            </Alert>
+                        </Col>
+                </Row>
+                <Row>
+                    <Col>
+                        <AddressForm
+                                key={identifier+index}
+                                data={addr}
+                                recipient={identifier}
+                                readOnly={readOnly}
+                        />
+                    </Col>
+                </Row>
+            </Col>
+        </Row>
+        )
+    }
 
     /**
      * Listen messages from other components
@@ -65,7 +111,12 @@ class AddressForm extends Component{
     }
 
     componentDidUpdate(){
-        //this.state.data = this.props.data
+       if(this.props.data.reload){
+           delete this.props.data.reload
+           this.state.data=this.props.data
+           this.state.data.dictionary.reload=true
+           this.setState(this.state.data)
+       }
     }
     
     loadCenterZoom(){

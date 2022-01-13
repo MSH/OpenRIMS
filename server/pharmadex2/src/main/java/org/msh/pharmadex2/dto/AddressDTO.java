@@ -15,6 +15,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties(ignoreUnknown=true)
 public class AddressDTO extends AllowValidation{
 	private boolean readOnly=false;
+	private boolean changed=false;
 	private DictionaryDTO dictionary = new DictionaryDTO();
 	private GisLocationDTO homecenter = new GisLocationDTO();
 	
@@ -37,6 +38,12 @@ public class AddressDTO extends AllowValidation{
 	public void setReadOnly(boolean readOnly) {
 		this.readOnly = readOnly;
 	}
+	public boolean isChanged() {
+		return changed;
+	}
+	public void setChanged(boolean changed) {
+		this.changed = changed;
+	}
 	public DictionaryDTO getDictionary() {
 		return dictionary;
 	}
@@ -49,19 +56,6 @@ public class AddressDTO extends AllowValidation{
 	public void setMarker(LocationDTO marker) {
 		this.marker = marker;
 	}
-	/*public Map<Long, LocationDTO> getLocations() {
-		return locations;
-	}
-	public void setLocations(Map<Long, LocationDTO> locations) {
-		this.locations = locations;
-	}
-	public Map<Long, Integer> getZooms() {
-		return zooms;
-	}
-	public void setZooms(Map<Long, Integer> zooms) {
-		this.zooms = zooms;
-	}*/
-	
 	public String getVarName() {
 		return varName;
 	}
@@ -86,5 +80,6 @@ public class AddressDTO extends AllowValidation{
 	public void setNodeId(long nodeId) {
 		this.nodeId = nodeId;
 	}
+
 	
 }

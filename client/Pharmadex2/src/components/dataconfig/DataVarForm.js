@@ -201,11 +201,16 @@ class DataVarForm extends Component{
                     <Col xs='12' sm='12' lg='6' xl='6'>
                         <ViewEdit mode='text' attribute='auxUrl' component={this} edit/>
                     </Col>
-                    <Col xs='12' sm='12' lg='4' xl='4'>
-                        <ViewEdit mode='text' attribute='fileTypes' component={this} edit/>
-                    </Col>
                     <Col xs='12' sm='12' lg='2' xl='2'>
                         <ViewEditOption attribute='readOnly' component={this} edit/>
+                    </Col>
+                    <Col xs='12' sm='12' lg='2' xl='2'>
+                        <ViewEditOption attribute='unique' component={this} edit/>
+                    </Col>
+                </Row>
+                <Row>
+                    <Col>
+                        <ViewEdit mode='text' attribute='fileTypes' component={this} edit/>
                     </Col>
                 </Row>
                 

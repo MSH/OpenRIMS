@@ -15,6 +15,9 @@ package org.msh.pdex2.model.old;
 
 import java.io.Serializable;
 import javax.persistence.*;
+/**
+ * REsponsiblr to store SQL query text. Only for queries taht is not a part of stored procedures
+ */
 @Entity
 @org.hibernate.annotations.Proxy(lazy=false)
 @Table(name="query")
@@ -25,8 +28,8 @@ public class Query implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22226F179FFCD4B340383A")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22226F179FFCD4B340383A", strategy="native")	
+	@GeneratedValue(generator="VAC22227217E2144F47509154")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227217E2144F47509154", strategy="native")	
 	private long ID;
 	
 	@Column(name="`Key`", nullable=true, length=255)	

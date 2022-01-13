@@ -15,6 +15,9 @@ package org.msh.pdex2.model.r2;
 
 import java.io.Serializable;
 import javax.persistence.*;
+/**
+ * Responsible to link dictionaries with the users
+ */
 @Entity
 @org.hibernate.annotations.Proxy(lazy=false)
 @Table(name="userdict")
@@ -25,8 +28,8 @@ public class UserDict implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22226E17C9085E9ED06ED1")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22226E17C9085E9ED06ED1", strategy="native")	
+	@GeneratedValue(generator="VAC22227217E2154D03903FD0")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227217E2154D03903FD0", strategy="native")	
 	private long ID;
 	
 	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	

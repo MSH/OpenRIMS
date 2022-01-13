@@ -15,6 +15,9 @@ package org.msh.pdex2.model.old;
 
 import java.io.Serializable;
 import javax.persistence.*;
+/**
+ * Old style roles list
+ */
 @Entity
 @org.hibernate.annotations.Proxy(lazy=false)
 @Table(name="role")
@@ -25,8 +28,8 @@ public class Role implements Serializable {
 	
 	@Column(name="roleId", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22226F179FFCD4B2803835")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22226F179FFCD4B2803835", strategy="identity")	
+	@GeneratedValue(generator="VAC22227217E2144F4690914F")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227217E2144F4690914F", strategy="identity")	
 	private int roleId;
 	
 	@Column(name="createdDate", nullable=true)	

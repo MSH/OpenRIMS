@@ -13,6 +13,7 @@ import org.msh.pharmadex2.dto.DictionariesDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.MessageDTO;
 import org.msh.pharmadex2.dto.PublicOrgDTO;
+import org.msh.pharmadex2.dto.ReportConfigDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
 import org.msh.pharmadex2.dto.RootNodeDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
@@ -26,6 +27,7 @@ import org.msh.pharmadex2.service.r2.ApplicationService;
 import org.msh.pharmadex2.service.r2.ContentService;
 import org.msh.pharmadex2.service.r2.DictService;
 import org.msh.pharmadex2.service.r2.PubOrgService;
+import org.msh.pharmadex2.service.r2.ReportService;
 import org.msh.pharmadex2.service.r2.SupervisorService;
 import org.msh.pharmadex2.service.r2.SystemService;
 import org.msh.pharmadex2.service.r2.ThingService;
@@ -35,10 +37,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 /**
  * Common API for all authenticated users
+ * 
  * @author alexk
  *
  */
@@ -64,20 +65,22 @@ public class AdminAPI {
 	Messages messages;
 	@Autowired
 	private SystemService systemServ;
-	
+	@Autowired
+	private ReportService reportServ;
 
 	/**
 	 * Tiles for landing page
+	 * 
 	 * @param data
 	 * @return
-	 * @throws DataNotFoundException 
+	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/admin/content")
 	public ContentDTO adminContent(@RequestBody ContentDTO data) throws DataNotFoundException {
 		try {
-			data=contentService.loadContent(data, "admin");
-			if(data.getTiles().size()==0) {
-				data=contentService.adminTile(data);
+			data = contentService.loadContent(data, "admin");
+			if (data.getTiles().size() == 0) {
+				data = contentService.adminTile(data);
 			}
 			return data;
 		} catch (ObjectNotFoundException e) {
@@ -85,12 +88,12 @@ public class AdminAPI {
 		}
 	}
 
-
 	/**
 	 * Load the dictionary element
+	 * 
 	 * @param data
 	 * @return
-	 * @throws DataNotFoundException 
+	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/admin/organization/load")
 	public PublicOrgDTO organizationLoad(@RequestBody PublicOrgDTO data) throws DataNotFoundException {
@@ -111,8 +114,10 @@ public class AdminAPI {
 		}
 		return data;
 	}
+
 	/**
 	 * Make an organization inactive for selection
+	 * 
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException
@@ -130,7 +135,7 @@ public class AdminAPI {
 	@PostMapping("/api/admin/list/users")
 	public UserElementDTO listUsers(@RequestBody UserElementDTO data) throws DataNotFoundException {
 		try {
-			data=userService.listUsers(data);
+			data = userService.listUsers(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -140,23 +145,26 @@ public class AdminAPI {
 	@PostMapping("/api/admin/user/load")
 	public UserElementDTO userLoad(@RequestBody UserElementDTO data) throws DataNotFoundException {
 		try {
-			data=userService.userLoad(data);
+			data = userService.userLoad(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
 	}
+
 	@PostMapping("/api/admin/user/save")
 	public UserElementDTO userSave(@RequestBody UserElementDTO data) throws DataNotFoundException {
 		try {
-			data=userService.userSave(data);
+			data = userService.userSave(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
 	}
+
 	/**
 	 * unlink a user from organization. Mainly to link to another organization
+	 * 
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException
@@ -164,14 +172,16 @@ public class AdminAPI {
 	@PostMapping("/api/admin/user/suspend")
 	public UserElementDTO userSuspend(@RequestBody UserElementDTO data) throws DataNotFoundException {
 		try {
-			data=userService.userSuspend(data);
+			data = userService.userSuspend(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
 	}
+
 	/**
 	 * Save a node
+	 * 
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException
@@ -179,14 +189,16 @@ public class AdminAPI {
 	@PostMapping("/api/admin/dictionary/node/save")
 	public DictNodeDTO dictionaryNodeSave(@RequestBody DictNodeDTO data) throws DataNotFoundException {
 		try {
-			data=dictServ.save(data);
+			data = dictServ.save(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
 	}
+
 	/**
 	 * Save a node
+	 * 
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException
@@ -194,7 +206,7 @@ public class AdminAPI {
 	@PostMapping("/api/admin/dictionary/node/suspend")
 	public DictNodeDTO dictionaryNodeSuspend(@RequestBody DictNodeDTO data) throws DataNotFoundException {
 		try {
-			data=dictServ.nodeSuspend(data);
+			data = dictServ.nodeSuspend(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -203,6 +215,7 @@ public class AdminAPI {
 
 	/**
 	 * All dicts
+	 * 
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException
@@ -210,7 +223,7 @@ public class AdminAPI {
 	@PostMapping("/api/admin/dictionary/all")
 	public DictionariesDTO dictionaryAll(@RequestBody DictionariesDTO data) throws DataNotFoundException {
 		try {
-			data=dictServ.all(data);
+			data = dictServ.all(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -219,6 +232,7 @@ public class AdminAPI {
 
 	/**
 	 * Load a node
+	 * 
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException
@@ -226,7 +240,7 @@ public class AdminAPI {
 	@PostMapping("/api/admin/root/node/load")
 	public RootNodeDTO rootNodeLoad(@RequestBody RootNodeDTO data) throws DataNotFoundException {
 		try {
-			data=dictServ.rootNode(data);
+			data = dictServ.rootNode(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -235,6 +249,7 @@ public class AdminAPI {
 
 	/**
 	 * Save a node
+	 * 
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException
@@ -242,7 +257,7 @@ public class AdminAPI {
 	@PostMapping("/api/admin/root/node/save")
 	public RootNodeDTO rootNodeSave(@RequestBody RootNodeDTO data) throws DataNotFoundException {
 		try {
-			data=dictServ.rootNodeSave(data);
+			data = dictServ.rootNodeSave(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -281,6 +296,7 @@ public class AdminAPI {
 
 	/**
 	 * load "dictionary.guest.applications"
+	 * 
 	 * @param auth
 	 * @param data
 	 * @return
@@ -289,7 +305,7 @@ public class AdminAPI {
 	@PostMapping("/api/admin/stages/workflow")
 	public Dict2DTO stagesWorkflow(@RequestBody Dict2DTO data) throws DataNotFoundException {
 		try {
-			data= systemServ.stagesWorkflow(data);
+			data = systemServ.stagesWorkflow(data);
 			return data;
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
@@ -298,95 +314,104 @@ public class AdminAPI {
 
 	/**
 	 * load/create configuration for workflow for known dictNodeId
+	 * 
 	 * @param auth
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/admin/workflow/configuration/load")
-	public WorkflowDTO workflowConfigurationLoad(Authentication auth,@RequestBody WorkflowDTO data) throws DataNotFoundException {
+	public WorkflowDTO workflowConfigurationLoad(Authentication auth, @RequestBody WorkflowDTO data)
+			throws DataNotFoundException {
 		try {
 			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-			data=superVisServ.workflowConfiguration(data,user);
+			data = superVisServ.workflowConfiguration(data, user);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
 	}
 
-	/**
-	 * Load activity or user data configuration
-	 * @param data
-	 * @return
-	 * @throws DataNotFoundException
-	 */
-	@PostMapping("/api/admin/thing/load")
-	public ThingDTO thingLoad(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
-		if(data.getNodeId()>0) {
-			try {
-				UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-				data=superVisServ.thingLoad(data,user);
-			} catch (ObjectNotFoundException e) {
-				throw new DataNotFoundException(e);
-			}
-		}
-		return data;
-	}
-
+	/*	*//** 2011-11-11 DEPRECATED and useless!!!
+			 * Load activity or user data configuration
+			 * 
+			 * @param data
+			 * @return
+			 * @throws DataNotFoundException
+			 *//*
+				@PostMapping("/api/admin/thing/load")
+				public ThingDTO thingLoad(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
+				if(data.getNodeId()>0) {
+					try {
+						UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+						data=superVisServ.thingLoad(data,user);
+					} catch (ObjectNotFoundException e) {
+						throw new DataNotFoundException(e);
+					}
+				}
+				return data;
+				}*/
 
 	/**
 	 * Append an new created activity to workflow to the end of path
+	 * 
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/admin/workflow/activity/add")
-	public WorkflowDTO workflowActivityAdd(Authentication auth,@RequestBody WorkflowDTO data) throws DataNotFoundException {
+	public WorkflowDTO workflowActivityAdd(Authentication auth, @RequestBody WorkflowDTO data)
+			throws DataNotFoundException {
 		try {
 			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-			data=superVisServ.workflowActivityAdd(data,user);
+			data = superVisServ.workflowActivityAdd(data, user);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
 	}
-	
+
 	/**
 	 * Insert an activity before the current one
+	 * 
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/admin/workflow/activity/insert")
-	public WorkflowDTO workflowActivityInsert(Authentication auth,@RequestBody WorkflowDTO data) throws DataNotFoundException {
+	public WorkflowDTO workflowActivityInsert(Authentication auth, @RequestBody WorkflowDTO data)
+			throws DataNotFoundException {
 		try {
 			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-			data=superVisServ.workflowActivityInsert(data,user);
+			data = superVisServ.workflowActivityInsert(data, user);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
 	}
-	
+
 	/**
 	 * Suspend an activity and remove from the path
+	 * 
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/admin/workflow/activity/suspend")
-	public WorkflowDTO workflowActivitySuspend(Authentication auth,@RequestBody WorkflowDTO data) throws DataNotFoundException {
+	public WorkflowDTO workflowActivitySuspend(Authentication auth, @RequestBody WorkflowDTO data)
+			throws DataNotFoundException {
 		try {
 			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-			data=superVisServ.workflowActivitySuspend(data,user);
+			data = superVisServ.workflowActivitySuspend(data, user);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
 	}
-	
+
 	/**
 	 * Load table with data collections
+	 * 
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException
@@ -394,76 +419,88 @@ public class AdminAPI {
 	@PostMapping("/api/admin/data/collections/load")
 	public DataConfigDTO dataCollectionsLoad(@RequestBody DataConfigDTO data) throws DataNotFoundException {
 		try {
-			data=superVisServ.dataCollectionsLoad(data);
+			data = superVisServ.dataCollectionsLoad(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
 	}
+
 	/**
 	 * Load a definition of a data collection
+	 * 
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/admin/data/collection/definition/load")
-	public DataCollectionDTO dataCollectionDefinitionLoad(@RequestBody DataCollectionDTO data) throws DataNotFoundException {
+	public DataCollectionDTO dataCollectionDefinitionLoad(@RequestBody DataCollectionDTO data)
+			throws DataNotFoundException {
 		try {
-			data=superVisServ.dataCollectionDefinitionLoad(data);
+			data = superVisServ.dataCollectionDefinitionLoad(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
 	}
+
 	/**
 	 * Save a definition of a data collection
+	 * 
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/admin/data/collection/definition/save")
-	public DataCollectionDTO dataCollectionDefinitionSave(@RequestBody DataCollectionDTO data) throws DataNotFoundException {
+	public DataCollectionDTO dataCollectionDefinitionSave(@RequestBody DataCollectionDTO data)
+			throws DataNotFoundException {
 		try {
-			data=superVisServ.dataCollectionDefinitionSave(data);
+			data = superVisServ.dataCollectionDefinitionSave(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
 	}
+
 	/**
 	 * Suspend a data storage (will not be used)
+	 * 
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/admin/data/collection/definition/suspend")
-	public DataCollectionDTO dataCollectionDefinitionSuspend(@RequestBody DataCollectionDTO data) throws DataNotFoundException {
+	public DataCollectionDTO dataCollectionDefinitionSuspend(@RequestBody DataCollectionDTO data)
+			throws DataNotFoundException {
 		try {
-			data=superVisServ.dataCollectionDefinitionSuspend(data);
+			data = superVisServ.dataCollectionDefinitionSuspend(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
 	}
-	
+
 	/**
 	 * Suspend a data storage (will not be used)
+	 * 
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/admin/data/collection/definition/duplicate")
-	public DataCollectionDTO dataCollectionDefinitionDuplicate(@RequestBody DataCollectionDTO data) throws DataNotFoundException {
+	public DataCollectionDTO dataCollectionDefinitionDuplicate(@RequestBody DataCollectionDTO data)
+			throws DataNotFoundException {
 		try {
-			data=superVisServ.dataCollectionDefinitionDuplicate(data);
+			data = superVisServ.dataCollectionDefinitionDuplicate(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
 	}
-	
+
 	/**
-	 * Load structure and screen layout for a data collection given  
+	 * Load structure and screen layout for a data collection given
+	 * 
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException
@@ -471,14 +508,16 @@ public class AdminAPI {
 	@PostMapping("/api/admin/data/collection/variables/load")
 	public DataConfigDTO dataCollectionVariablesLoad(@RequestBody DataConfigDTO data) throws DataNotFoundException {
 		try {
-			data=superVisServ.dataCollectionVariablesLoad(data);
+			data = superVisServ.dataCollectionVariablesLoad(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
 	}
+
 	/**
 	 * Load a variable
+	 * 
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException
@@ -486,15 +525,16 @@ public class AdminAPI {
 	@PostMapping("/api/admin/data/configuration/variable/load")
 	public DataVariableDTO dataCollectionVariableLoad(@RequestBody DataVariableDTO data) throws DataNotFoundException {
 		try {
-			data=superVisServ.dataCollectionVariableLoad(data);
+			data = superVisServ.dataCollectionVariableLoad(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
 	}
-	
+
 	/**
 	 * Save a variable definition
+	 * 
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException
@@ -502,62 +542,66 @@ public class AdminAPI {
 	@PostMapping("/api/admin/data/configuration/variable/save")
 	public DataVariableDTO dataCollectionVariableSave(@RequestBody DataVariableDTO data) throws DataNotFoundException {
 		try {
-			data=superVisServ.dataCollectionVariableSave(data);
+			data = superVisServ.dataCollectionVariableSave(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
 	}
-	
+
 	/**
 	 * Suspend a variable definition
+	 * 
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/admin/data/configuration/variable/suspend")
-	public DataVariableDTO dataCollectionVariableSuspend(@RequestBody DataVariableDTO data) throws DataNotFoundException {
+	public DataVariableDTO dataCollectionVariableSuspend(@RequestBody DataVariableDTO data)
+			throws DataNotFoundException {
 		try {
-			data=superVisServ.dataCollectionVariableSuspend(data);
+			data = superVisServ.dataCollectionVariableSuspend(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
 	}
-	
+
 	@PostMapping("/api/admin/data/collection/definition/preview")
-	public DataPreviewDTO dataCollectionDefinitionPreview(Authentication auth,@RequestBody DataPreviewDTO data) throws DataNotFoundException {
+	public DataPreviewDTO dataCollectionDefinitionPreview(Authentication auth, @RequestBody DataPreviewDTO data)
+			throws DataNotFoundException {
 		try {
 			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-			data=superVisServ.dataCollectionDefinitionPreview(data,user);
+			data = superVisServ.dataCollectionDefinitionPreview(data, user);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
 	}
-	
+
 	/**
 	 * Load all messages from table resource_message
+	 * 
 	 * @param data
 	 * @return
-	 * @throws DataNotFoundException 
+	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/admin/messages/load")
 	public MessageDTO messagesLoad(@RequestBody MessageDTO data) throws DataNotFoundException {
 		try {
-			data=superVisServ.messagesLoad(data);
+			data = superVisServ.messagesLoad(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
-		
+
 	}
-	
+
 	@PostMapping("/api/admin/messages/save")
 	public MessageDTO messagesSave(@RequestBody MessageDTO data) throws DataNotFoundException {
 		try {
-			data=superVisServ.messagesSave(data);
-			
+			data = superVisServ.messagesSave(data);
+
 			// reload messages
 			messages.getMessages().clear();
 			messages.loadLanguages();
@@ -565,68 +609,73 @@ public class AdminAPI {
 			throw new DataNotFoundException(e);
 		}
 		return data;
-		
+
 	}
-	
+
 	@PostMapping("/api/admin/reloadmessages")
 	public String reloadMessages(@RequestBody String data) throws DataNotFoundException {
 		messages.getMessages().clear();
 		messages.loadLanguages();
 		return data;
 	}
+
 	/**
 	 * Responsible for a list of resources
+	 * 
 	 * @param data
 	 * @return
-	 * @throws DataNotFoundException 
+	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/admin/resources/load")
 	public ResourceDTO resourcesLoad(@RequestBody ResourceDTO data) throws DataNotFoundException {
 		try {
-			data=superVisServ.resourcesLoad(data);
+			data = superVisServ.resourcesLoad(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
-		
+
 	}
+
 	/**
 	 * Responsible for save a resource definition to the database
+	 * 
 	 * @param data
 	 * @return
-	 * @throws DataNotFoundException 
-	 * @throws ObjectNotFoundException 
+	 * @throws DataNotFoundException
+	 * @throws ObjectNotFoundException
 	 */
 	@PostMapping("/api/admin/resource/definition/save")
 	public ResourceDTO resurceDefinitionSave(@RequestBody ResourceDTO data) throws DataNotFoundException {
 		try {
-			data=superVisServ.resourceDefinitionSave(data);
+			data = superVisServ.resourceDefinitionSave(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
 	}
-	
+
 	/**
 	 * Responsible for suspend the resource definition
+	 * 
 	 * @param data
 	 * @return
-	 * @throws DataNotFoundException 
-	 * @throws ObjectNotFoundException 
+	 * @throws DataNotFoundException
+	 * @throws ObjectNotFoundException
 	 */
 	@PostMapping("/api/admin/resource/definition/suspend")
 	public ResourceDTO resurceDefinitionSuspend(@RequestBody ResourceDTO data) throws DataNotFoundException {
 		try {
-			data=superVisServ.resourceDefinitionSuspend(data);
+			data = superVisServ.resourceDefinitionSuspend(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
 	}
-	
+
 	/**
-	 * Prepare thing in accordance with the resource selected
-	* url and nodeId
+	 * Prepare thing in accordance with the resource selected url and nodeId
+	 * 
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException
@@ -634,43 +683,55 @@ public class AdminAPI {
 	@PostMapping("/api/admin/resource/thing/prepare")
 	public ThingDTO resourceThingPrepare(@RequestBody ResourceDTO data) throws DataNotFoundException {
 		try {
-			ThingDTO ret=superVisServ.resourceThingPrepare(data);
+			ThingDTO ret = superVisServ.resourceThingPrepare(data);
 			return ret;
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 	}
+
 	/**
 	 * Save a thing represent a resource
+	 * 
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/admin/resource/save")
-	public ThingDTO resourceSave(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
+	public ThingDTO resourceSave(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
 		try {
 			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-			data=superVisServ.resourceSave(data,user);
+			data = superVisServ.resourceSave(data, user);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
 	}
-	
-	
+
 	/**
 	 * Load the system dictionary "Actions"
+	 * 
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/admin/processes/actions")
 	public DictionaryDTO processesActions(@RequestBody DictionaryDTO data) throws DataNotFoundException {
-			try {
-				data=systemServ.submitActionDictionary();
-				return data;
-			} catch (ObjectNotFoundException e) {
-				throw new DataNotFoundException(e);
-			}
+		try {
+			data = systemServ.submitActionDictionary();
+			return data;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+
+	@PostMapping("/api/admin/report/configuration/load")
+	public ReportConfigDTO reportConfigurationLoad(@RequestBody ReportConfigDTO data) throws DataNotFoundException {
+		try {
+			data = reportServ.reportConfigurationLoad(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
 	}
 }

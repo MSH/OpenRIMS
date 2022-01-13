@@ -1,11 +1,7 @@
 package org.msh.pharmadex2;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -13,32 +9,22 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.util.IOUtils;
 import org.apache.poi.xwpf.usermodel.Document;
-import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.junit.jupiter.api.Test;
 import org.msh.pdex2.exception.ObjectNotFoundException;
-import org.msh.pdex2.model.r2.Concept;
-import org.msh.pdex2.model.r2.FileResource;
-import org.msh.pdex2.model.r2.Thing;
-import org.msh.pharmadex2.Pharmadex2Application;
+import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.controller.common.CustomXWPFDocument;
 import org.msh.pharmadex2.controller.common.DocxView;
 import org.msh.pharmadex2.dto.ResourceDTO;
-import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
-import org.msh.pharmadex2.service.r2.ClosureService;
 import org.msh.pharmadex2.service.r2.ResolverService;
 import org.msh.pharmadex2.service.r2.ResourceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.servlet.ModelAndView;
 
 /**
  * Test variable resolve
@@ -78,7 +64,7 @@ public class DoxViewTest {
 		}
 	}
 	
-	//@Test
+	@Test
 	public void insertImageOther() throws ObjectNotFoundException, IOException, InvalidFormatException {
 		Path pathFile = Paths.get("src","test","resources", "Invoice2000-1.docx");
 		File file = pathFile.toFile();

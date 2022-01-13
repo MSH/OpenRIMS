@@ -1,24 +1,32 @@
 package org.msh.pharmadex2.dto;
 
 import org.msh.pdex2.dto.table.TableQtb;
+import org.msh.pharmadex2.dto.form.AllowValidation;
 
-public class AtcDTO {
+public class AtcDTO extends AllowValidation{
 
-	private String title = "ATC codes";
+	private String url = "";
+	private String varName="";
 	private TableQtb table = new TableQtb();
 	private TableQtb selectedtable = new TableQtb();
-	
 	private boolean readOnly=false;
 	//show only selected rows
 	private boolean selectedOnly=false;
 
-	
-	public String getTitle() {
-		return title;
+	public String getUrl() {
+		return url;
 	}
 
-	public void setTitle(String title) {
-		this.title = title;
+	public void setUrl(String url) {
+		this.url = url;
+	}
+
+	public String getVarName() {
+		return varName;
+	}
+
+	public void setVarName(String varName) {
+		this.varName = varName;
 	}
 
 	public TableQtb getTable() {

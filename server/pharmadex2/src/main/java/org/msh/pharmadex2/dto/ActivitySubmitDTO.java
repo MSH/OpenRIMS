@@ -27,6 +27,7 @@ public class ActivitySubmitDTO extends AllowValidation{
 		private TableQtb actions = new TableQtb();	//set of actions
 		private boolean supervisor=false;		//the action has been initiated by the supervisor
 		private boolean applicant=false;			//the special behavior for an applicant
+		private String applicantEmail="";			//applcant email
 		private boolean reload=false;				//reload all unconditionally
 		private boolean reassign=false;			//re-assign and cancel only
 		private boolean reject=false;				//reject and return to user for clarification
@@ -84,6 +85,13 @@ public class ActivitySubmitDTO extends AllowValidation{
 		}
 		public void setApplicant(boolean applicant) {
 			this.applicant = applicant;
+		}
+		
+		public String getApplicantEmail() {
+			return applicantEmail;
+		}
+		public void setApplicantEmail(String applicantEmail) {
+			this.applicantEmail = applicantEmail;
 		}
 		public boolean isReload() {
 			return reload;

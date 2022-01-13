@@ -6,7 +6,8 @@ import Fetchers from './utils/Fetchers'
 import Navigator from './utils/Navigator'
 import ButtonUni from './form/ButtonUni'
 import Thing from './Thing'
-import Spinner from './utils/Spinner'
+import SpinnerMain from './utils/SpinnerMain'
+import Pharmadex from './Pharmadex'
 
 /**
  * Responsible for workflow configuration process
@@ -18,6 +19,7 @@ class WorkflowConfigurator extends Component{
     constructor(props){
         super(props)
         this.state={
+            wait:false,                             //for the first time
             identifier:Date.now().toString(),
             data:{},                                //WorkflowDTO
             labels:{
@@ -32,6 +34,7 @@ class WorkflowConfigurator extends Component{
         this.eventProcessor=this.eventProcessor.bind(this)
         this.createBreadCrumb=this.createBreadCrumb.bind(this)
         this.afterSave=this.afterSave.bind(this)
+        this.content=this.content.bind(this)
     }
 
     /**
@@ -78,8 +81,8 @@ class WorkflowConfigurator extends Component{
             if(data.to==this.state.identifier){
                 if(data.subject=="thingLoaded"){
                     if(this.state.data.selected==0){
-                    this.state.data.path[0]=data.data
-                    this.state.thingIdentifier=data.data.identifier
+                        this.state.data.path[0]=data.data
+                        this.state.thingIdentifier=data.data.identifier
                     }
                 }
                 if(data.subject=="saved"){
@@ -92,20 +95,21 @@ class WorkflowConfigurator extends Component{
         }
 
     componentDidMount(){
-        Spinner.show()
+        SpinnerMain.show()
         window.addEventListener("message",this.eventProcessor)
         this.state.data.dictNodeId=this.props.dictNodeId
         Fetchers.postJSON("/api/admin/workflow/configuration/load", this.state.data, (query,result)=>{
             this.state.data=result
             Locales.resolveLabels(this)
             this.setState(this.state)
+            SpinnerMain.hide()
         })
         
     }
 
     componentDidUpdate(){
         if(this.state.data.path[this.state.data.selected]!=undefined){
-            Spinner.hide()
+            SpinnerMain.hide()
         }
         
     }
@@ -135,6 +139,7 @@ class WorkflowConfigurator extends Component{
                             <BreadcrumbItem className="d-inline"  key={index}>
                                 <div className="btn btn-link p-0 border-0"
                                     onClick={()=>{
+                                SpinnerMain.show()
                                 this.state.data.selected=index
                                 this.state.data.path[index].repaint=true
                                 this.setState(this.state)
@@ -167,18 +172,48 @@ class WorkflowConfigurator extends Component{
             )
         return ret
     }
-
+    /**
+     * Display a content
+     */
+    content(){
+        return(
+            <div>
+            <Row>
+            <Col>
+                <Breadcrumb>
+                    {this.createBreadCrumb()}
+                </Breadcrumb>
+            </Col>
+        </Row>
+        <Row>
+            <Col>
+                <Thing key='activity'
+                    data={this.state.data.path[this.state.data.selected]}
+                    recipient={this.state.identifier}
+                    readOnly={false}
+                />
+            </Col>
+        </Row>
+        <Row>
+            <Col>
+                <Breadcrumb>
+                    {this.createBreadCrumb()}
+                </Breadcrumb>
+            </Col>
+        </Row>
+        </div>
+        )
+    }
     render(){
         if(this.state.data.title==undefined || this.state.labels.locale==undefined){
-            return []
+            return Pharmadex.wait()
         }
         if(this.state.data.path== undefined){
-            return []
+            return Pharmadex.wait()
         }
         if(this.state.data.selected==-1){
             this.state.data.selected=0
         }
-        Spinner.hide()
         return(
             <Container fluid>
                  <Row>
@@ -237,22 +272,7 @@ class WorkflowConfigurator extends Component{
                         </div>
                     </Col>
                 </Row>
-                <Row>
-                    <Col>
-                        <Breadcrumb>
-                            {this.createBreadCrumb()}
-                        </Breadcrumb>
-                    </Col>
-                </Row>
-                <Row>
-                    <Col>
-                        <Thing key='activity'
-                            data={this.state.data.path[this.state.data.selected]}
-                            recipient={this.state.identifier}
-                            readOnly={false}
-                        />
-                    </Col>
-                </Row>
+              {this.content()}
             </Container>
         )
     }

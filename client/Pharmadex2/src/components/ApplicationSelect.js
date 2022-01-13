@@ -9,7 +9,7 @@ import Navigator from './utils/Navigator'
 /**
  * Applications for guest user
  * Provides possibility to choice an application type from a left dictionary
- * and, then, refresh a list of activities (left)
+ * and, then, refresh a list of activities (right)
  * @example
  * <ApplicationSelect />
  */

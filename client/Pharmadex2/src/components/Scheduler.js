@@ -32,6 +32,33 @@ class Scheduler extends Component{
         this.table=this.table.bind(this)
         this.loader=this.loader.bind(this)
     }
+    /**
+     * Create a scheduler for Thing.js
+     * @returns a scheduler ready to place to Thing.js
+     */
+    static place(res,index, readOnly,identifier,label){
+        if(res!=undefined){
+            return(
+            <Row key={index}>
+                <Col>
+                    <Row>
+                        <Col>
+                            <h6>{label}</h6>
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col>
+                            <Scheduler data={res}
+                                            recipient={identifier}
+                                            readOnly={readOnly || res.readOnly}
+                            />
+                        </Col>
+                    </Row>
+                </Col>
+            </Row>
+            )
+        }
+    }
 
     /**
      * Listen messages from other components

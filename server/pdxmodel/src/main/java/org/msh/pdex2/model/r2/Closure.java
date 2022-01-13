@@ -15,6 +15,9 @@ package org.msh.pdex2.model.r2;
 
 import java.io.Serializable;
 import javax.persistence.*;
+/**
+ * Responsible for tree-like relations between concepts. A part of "closure tree" pattern
+ */
 @Entity
 @org.hibernate.annotations.Proxy(lazy=false)
 @Table(name="closure")
@@ -25,8 +28,8 @@ public class Closure implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22226E17C9085E9E306ECC")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22226E17C9085E9E306ECC", strategy="native")	
+	@GeneratedValue(generator="VAC22227217E2154D03103FCB")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227217E2154D03103FCB", strategy="native")	
 	private long ID;
 	
 	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	

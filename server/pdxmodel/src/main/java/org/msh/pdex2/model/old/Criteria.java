@@ -15,6 +15,9 @@ package org.msh.pdex2.model.old;
 
 import java.io.Serializable;
 import javax.persistence.*;
+/**
+ * Responsible to group data stored between HTMl calls
+ */
 @Entity
 @org.hibernate.annotations.Proxy(lazy=false)
 @Table(name="criteria")
@@ -25,8 +28,8 @@ public class Criteria implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22226F179FFCD4B3303839")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22226F179FFCD4B3303839", strategy="native")	
+	@GeneratedValue(generator="VAC22227217E2144F47309153")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227217E2144F47309153", strategy="native")	
 	private long ID;
 	
 	@Column(name="Name", nullable=true, length=255)	

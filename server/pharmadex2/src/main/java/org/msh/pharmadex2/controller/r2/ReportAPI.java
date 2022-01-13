@@ -7,13 +7,13 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletResponse;
 
+import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.exception.ObjectNotFoundException;
-import org.msh.pdex2.i18n.Messages;
 import org.msh.pharmadex2.controller.common.ExcelView;
+import org.msh.pharmadex2.dto.ApplicationEventsDTO;
 import org.msh.pharmadex2.dto.ReportDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
-import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.exception.DataNotFoundException;
 import org.msh.pharmadex2.service.common.UserService;
 import org.msh.pharmadex2.service.r2.PdfService;
@@ -41,29 +41,8 @@ public class ReportAPI {
 	private ThingService thingServ;
 	@Autowired
 	private PdfService pdfServ;
-	@Autowired
-	private Messages messages;
-	
-	/**
-	 * Load any configured report
-	 * @param auth
-	 * @param data
-	 * @return
-	 * @throws DataNotFoundException
-	 */
-	@PostMapping("/api/*/report/load")
-	public ReportDTO futurePharma(Authentication auth, @RequestBody ReportDTO data) throws DataNotFoundException {
-		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
-		try {
-			data=reportServ.load(user, data);
-			return data;
-		} catch (ObjectNotFoundException e) {
-			throw new DataNotFoundException(e);
-		}
-	}
 	/**
 	 * Reset all data to the initial state
-	 * The first element of the breadcrumb has been pressed
 	 * @param auth
 	 * @param data
 	 * @return
@@ -80,23 +59,6 @@ public class ReportAPI {
 		}
 	}
 	
-	/**
-	 * Set the path of the dictionary, reset table, reset thing
-	 * @param auth
-	 * @param data
-	 * @return
-	 * @throws DataNotFoundException
-	 */
-	@PostMapping("/api/*/report/reset/path")
-	public ReportDTO resetPath(Authentication auth, @RequestBody ReportDTO data) throws DataNotFoundException {
-		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
-		try {
-			data=reportServ.resetPath(user, data);
-			return data;
-		} catch (ObjectNotFoundException e) {
-			throw new DataNotFoundException(e);
-		}
-	}
 	
 	/**
 	 * Set the path of the dictionary, reset table, reset thing
@@ -107,7 +69,7 @@ public class ReportAPI {
 	 */
 	@PostMapping("/api/*/report/application")
 	public ReportDTO application(Authentication auth, @RequestBody ReportDTO data) throws DataNotFoundException {
-		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data.setThing(thingServ.path(data.getThing()));
 			data.setThing(reportServ.regTable(data.getThing()));
@@ -150,15 +112,12 @@ public class ReportAPI {
 			) throws DataNotFoundException {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		List<String> pathStr = new ArrayList<String>();
-		for(OptionDTO opt : data.getDict().getPath()) {
-			pathStr.add(opt.getCode());
-		}
 		try {
-			data.getTable().getHeaders().setPageSize(Integer.MAX_VALUE);
 			data=reportServ.load(user, data);
+			data.getTable().getHeaders().setPageSize(Integer.MAX_VALUE);
 			Map<String, Object> model = new HashMap<String, Object>();
 			//Sheet Name
-			model.put(ExcelView.SHEETNAME, data.getDict().getHome());
+			model.put(ExcelView.SHEETNAME, data.getConfig().getTitle());
 			//Title
 			model.put(ExcelView.TITLE, String.join(",", pathStr));
 			//Headers List
@@ -171,6 +130,66 @@ public class ReportAPI {
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
+	}
+	
+	/**
+	 * Load a table with reports available for the user
+	 * @param auth
+	 * @param data
+	 * @return
+	 */
+	@PostMapping("/api/*/report/all")
+	public TableQtb reportAll(Authentication auth, @RequestBody TableQtb data) {
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		data=reportServ.all(user, data);
+		return data;
+	}
+	/**
+	 * load report selected as a table of report items
+ 	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/*/report/load")
+	public ReportDTO load(Authentication auth, @RequestBody ReportDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		try {
+			data=reportServ.load(user, data);
+			return data;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+	
+	/**
+	 * Load events for an application drilled down
+	 * @param auth
+	 * @param data
+	 * @return
+	 */
+	@PostMapping("/api/*/report/application/events")
+	public ApplicationEventsDTO applicationEvents(Authentication auth, @RequestBody ApplicationEventsDTO data) {
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		data=reportServ.applicationEvents(user,data);
+		return data;
+	}
+	/**
+	 * Load data regarding an event
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException 
+	 */
+	@PostMapping("/api/*/report/application/events/data")
+	public ApplicationEventsDTO applicationEventsData(Authentication auth, @RequestBody ApplicationEventsDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		try {
+			data=reportServ.applicationEventsData(user,data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
 	}
 	
 }

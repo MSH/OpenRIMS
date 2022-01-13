@@ -15,6 +15,9 @@ package org.msh.pdex2.model.r2;
 
 import java.io.Serializable;
 import javax.persistence.*;
+/**
+ * REsponsible to keep relation between organization and organization role
+ */
 @Entity
 @org.hibernate.annotations.Proxy(lazy=false)
 @Table(name="orgrole")
@@ -25,8 +28,8 @@ public class OrgRole implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22226E17C9085E9E506ECD")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22226E17C9085E9E506ECD", strategy="native")	
+	@GeneratedValue(generator="VAC22227217E2154D03203FCC")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227217E2154D03203FCC", strategy="native")	
 	private long ID;
 	
 	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	

@@ -17,7 +17,7 @@ import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pharmadex2.Pharmadex2Application;
 import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
-import org.msh.pharmadex2.service.r2.ClosureService;
+import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.service.r2.DictService;
 import org.msh.pharmadex2.service.r2.LiteralService;
 import org.springframework.beans.factory.annotation.Autowired;

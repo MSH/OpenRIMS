@@ -1,5 +1,5 @@
 import React , {Component} from 'react'
-import {Container,Row, Col, Card, CardBody, CardHeader, Label} from 'reactstrap'
+import {Container,Row, Col, Card, CardBody, CardHeader, Alert} from 'reactstrap'
 import PropTypes from 'prop-types'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
@@ -43,6 +43,62 @@ class ApplicationFiles extends Component{
     }
 
     /**
+     * Return changed style
+     * @param {FileDTO} addr 
+     */
+         static changed(files){
+            if(files.changed){
+                return "markedbycolor"
+            }else{
+                return ""
+            }
+        }
+
+    /**
+     * Place this component to ThingDTO
+     * @param {FileDTO} files 
+     * @param {number} index 
+     * @param {boolean} readOnly 
+     * @param {string} identifier 
+     * @param {string} label 
+     * @returns 
+     */
+    static place(files,index,readOnly,identifier,label){
+        if(files!=undefined){
+            if(readOnly){
+                files.readOnly=true
+            }
+            files.reload=true
+            return(
+            <Row key={index} className={ApplicationFiles.changed(files)}>
+                <Col>
+                    <Row>
+                        <Col>
+                            <h6>{label}</h6>
+                        </Col>
+                    </Row>
+                    <Row hidden={files.valid}>
+                        <Col>
+                            <Alert color="danger" className="p-0 m-0">
+                                <small>{files.identifier}</small>
+                            </Alert>
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col>
+                            <ApplicationFiles data={files} key={identifier+index}
+                                            recipient={identifier}
+                                            readOnly={readOnly}
+                            />
+                        </Col>
+                    </Row>
+                </Col>
+            </Row>
+            )
+        }
+    }
+
+    /**
      * Listen messages from other components. Only to my address
      * @param {Window Event} event 
      */
@@ -58,6 +114,11 @@ class ApplicationFiles extends Component{
         Locales.resolveLabels(this)
     }
     componentDidUpdate(){
+        if(this.props.data.reload){
+            delete this.props.data.reload
+            this.state.data=this.props.data
+            this.setState(this.state.data)
+        }
         if(this.props.data.thingNodeId!=this.state.data.thingNodeId){
             this.state.data=this.props.data
             this.tableLoader()
@@ -192,6 +253,8 @@ class ApplicationFiles extends Component{
                                         hidden={this.hiddenSaveBtn()}
                                         label={this.state.labels.global_save}
                                         onClick={()=>{
+                                            this.state.data.editor = false
+                                            this.setState(this.state)
                                             this.save()
                                         }}
                                         color="success"

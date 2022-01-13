@@ -11,6 +11,8 @@ import CheckList from './CheckList'
 import ActivitySubmit from './ActivitySubmit'
 import ActivityHistoryData from './ActivityHistoryData'
 import AlertFloat from './utils/AlertFloat'
+import Alerts from './utils/Alerts'
+import AmendmentActivity from './AmendmentActivity'
 
 /**
  * Manages an activity
@@ -27,7 +29,8 @@ class ActivityManager extends Component{
             send:false,                        //display breadcrumb "send"
             hist:false,                        //initially closed
             supervisor:false,                   //action has been initiated by the supervisor
-            pathIndex:0,
+            pathIndex:0,                        //activity index
+            modiIndex:0,                        //right part selection in case of modification processing
             identifier:Date.now().toString(),
             labels:{
                 global_save:'',
@@ -40,7 +43,9 @@ class ActivityManager extends Component{
                 done:'',
                 activitycancelled:'',
                 app_save_success:'',
-                return_action:''
+                return_action:'',
+                save_error:'',
+                backDlg_war:'',
             },
             history:{ //history table
                 historyId:this.props.historyId
@@ -70,6 +75,17 @@ class ActivityManager extends Component{
         eventProcessor(event){
             let data=event.data
             if(data.to==this.state.identifier){
+                if(data.subject=="checklist_saved_silently"){
+                    if(!data.data.valid){
+                        this.state.send=false
+                        this.state.reject=false
+                        Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.save_error, color:'danger'})
+                    }else{
+                        this.state.send=true
+                        this.state.reject=true
+                    }
+                    this.setState(this.state)
+                }
                 if(data.subject=='activityHistoryClose'){
                     this.state.historyId=0
                     this.state.hist=false
@@ -78,6 +94,9 @@ class ActivityManager extends Component{
                 if(data.subject=="savedByAction" || data.subject=="cancelThing"){
                         this.state.saveCounter--
                         if(this.state.saveCounter==0){
+                            if(data.subject=="savedByAction"){
+                                this.state.data.data[this.state.pathIndex]=data.data
+                            }
                             Navigator.message(this.state.identifier, "*", 'show.alert.pharmadex.2', this.state.labels.app_save_success)
                             if(this.state.submit){ 
                                 this.state.submit=false
@@ -86,7 +105,7 @@ class ActivityManager extends Component{
                                         Navigator.message(this.state.identifier, this.props.recipient, 'reload', {})
                                         window.location="/"+Navigator.tabSetName()+"#"+Navigator.tabName()
                                     }else{
-                                        this.state.send=true
+                                        this.state.send=true    //turn of ActivitySubmit form
                                         this.setState(this.state)
                                     }
                                 })
@@ -222,7 +241,7 @@ class ActivityManager extends Component{
     dataThing(){
         if(this.state.data.data.length>0){
             if(this.state.data.data[this.state.pathIndex].url.length>0){
-                //this.state.data.data[this.state.pathIndex].repaint=true
+                this.state.data.data[this.state.pathIndex].repaint=true
                 return(
                     <Thing
                         data={this.state.data.data[this.state.pathIndex]}
@@ -290,6 +309,7 @@ class ActivityManager extends Component{
         }
     }
 
+ 
     /**
      * Activity data or send after submit data
      */
@@ -303,7 +323,6 @@ class ActivityManager extends Component{
                 </Row>
             )
         }
-        
         return(
         <Row>
             <Col xs='12' sm='12' lg='6' xl='6' className="overflow-auto scrollPnl p-0 m-0" style={{maxHeight:'70vh'}}>
@@ -316,6 +335,11 @@ class ActivityManager extends Component{
                 </Row>
             </Col>
             <Col xs='12' sm='12' lg='6' xl='6' className="overflow-auto scrollPnl p-0 m-0" style={{maxHeight:'70vh'}}>
+                <Row>
+                    <Col>
+                        <AmendmentActivity data={this.state.data} recipient={this.state.identifier} />
+                    </Col>
+                </Row>
                 <Row>
                     <Col>
                         {this.dataThing()}
@@ -371,25 +395,28 @@ class ActivityManager extends Component{
                                 this.state.saveCounter=1    //save only checklist
                             }
                             this.state.submit=true
-                            Navigator.message(this.state.identifier,"*","saveAll",{})
+                            Navigator.message(this.state.identifier,"*","saveAll",{})           //To CheckList.js and Thing.js 
+                                                                                                // Reply will be cancelThing and savedByAction 
                          }}
                         >{this.state.labels.global_submit}</Button>{' '}
 
                         <Button size="sm" hidden={!this.state.conclude || this.state.send || this.state.data.guest}
                          className="mr-1" color="secondary"
                          onClick={()=>{
+                           Alerts.warning(this.state.labels.backDlg_war,()=>{
                             this.state.send=true
                             this.state.reassign=true
                             this.setState(this.state)
+                           }, ()=>{})
                          }}
                         >{this.state.labels.route_action}</Button>{' '}
 
-                        <Button size="sm" hidden={!this.state.conclude || this.state.send || this.state.data.guest}
+                        <Button size="sm" hidden={!this.state.conclude || this.state.send || this.state.data.guest || this.state.data.host}
                             className="mr-1" color="warning"
                             onClick={()=>{
                                 this.state.send=true
                                 this.state.reject=true
-                                this.setState(this.state)
+                                Navigator.message(this.state.identifier,"*","saveChecklistSilent",{})
                             }}
                         >{this.state.labels.return_action}</Button>{' '}
 

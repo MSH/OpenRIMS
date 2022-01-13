@@ -2,11 +2,9 @@ package org.msh.pharmadex2.service.r2;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
@@ -15,11 +13,11 @@ import org.msh.pdex2.model.r2.PublicOrgSubject;
 import org.msh.pdex2.model.r2.PublicOrganization;
 import org.msh.pdex2.repository.r2.PubOrgRepo;
 import org.msh.pdex2.repository.r2.PubOrgSubjRepo;
+import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.DictNodeDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.PublicOrgDTO;
-import org.msh.pharmadex2.service.common.DtoService;
 import org.msh.pharmadex2.service.common.EntityService;
 import org.msh.pharmadex2.service.common.ValidationService;
 import org.slf4j.Logger;

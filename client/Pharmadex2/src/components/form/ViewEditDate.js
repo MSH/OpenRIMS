@@ -26,7 +26,7 @@ class ViewEditDate extends Component{
         if(this.props.edit){
             return <FieldDate data={data} attribute={this.props.attribute} component={this.props.component} />
         }else{
-            return <FieldDisplay data={data} mode='date' attribute={this.props.attribute} component={this.props.component}/>
+            return <FieldDisplay data={data} mode='date' attribute={this.props.attribute} component={this.props.component} nolabel={this.props.nolabel}/>
         }
     }
 

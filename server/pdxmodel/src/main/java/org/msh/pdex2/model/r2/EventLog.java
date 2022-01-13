@@ -15,6 +15,9 @@ package org.msh.pdex2.model.r2;
 
 import java.io.Serializable;
 import javax.persistence.*;
+/**
+ * Log for application events
+ */
 @Entity
 @org.hibernate.annotations.Proxy(lazy=false)
 @Table(name="eventlog")
@@ -25,8 +28,8 @@ public class EventLog implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22226E17C9085E9FD06EDA")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22226E17C9085E9FD06EDA", strategy="native")	
+	@GeneratedValue(generator="VAC22227217E2154D04203FD9")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227217E2154D04203FD9", strategy="native")	
 	private long ID;
 	
 	@Column(name="Email", nullable=true, length=255)	

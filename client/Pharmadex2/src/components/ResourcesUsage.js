@@ -37,6 +37,14 @@ class ResourcesUsage extends Component{
         Locales.resolveLabels(this)
     }
 
+    componentDidUpdate(){
+        if(this.props.data.reload){
+            delete this.props.data.reload
+            this.state.data=this.props.data
+            this.setState(this.state)
+        }
+    }
+
     componentWillUnmount(){
         window.removeEventListener("message",this.eventProcessor)
     }

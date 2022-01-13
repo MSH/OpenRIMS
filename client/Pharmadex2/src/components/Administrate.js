@@ -18,6 +18,7 @@ import Actions from './Actions'
 import ATCCodes from './ATCCodes'
 import Excipients from './Excipients'
 import Inns from './Inns'
+import ReportConfigurator from './reports/ReportConfigurator'
 
 /**
  * Administrative functions for the supervisor
@@ -40,6 +41,7 @@ class Administrate extends Component{
                 global_exit:'',
                 workflows:'',
                 dataconfigurator:'',
+                reports:'',
                 messages:'',
                 resources:'',
                 processes:'',
@@ -90,6 +92,8 @@ class Administrate extends Component{
                     }
                 }
                 return <DataConfigurator nodeId={params.nodeId} vars={params.nodeId!=0}/>
+            case "reports":
+                return <ReportConfigurator/>
             case "messages":
                 return <Messages/>
             case "dataformpreview":
@@ -217,6 +221,17 @@ class Administrate extends Component{
                                                         <div>
                                                             <i className="fas fa-xs fa-adjust mr-1"></i>
                                                             {this.state.labels.dataconfigurator}
+                                                        </div>
+                                                    </NavLink>
+                                                </NavItem>
+                                            </DropdownItem>
+                                            <DropdownItem>
+                                                <NavItem>
+                                                    <NavLink active={this.state.menu=='reports' || this.state.menu=='reportconfig'}
+                                                        href="/admin#administrate/reports">
+                                                        <div>
+                                                            <i className="fas fa-xs fa-table mr-1"></i>
+                                                            {this.state.labels.reports}
                                                         </div>
                                                     </NavLink>
                                                 </NavItem>

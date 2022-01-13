@@ -10,7 +10,7 @@ import org.msh.pharmadex2.Pharmadex2Application;
 import org.msh.pharmadex2.dto.WorkflowParamDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.r2.ApplicationService;
-import org.msh.pharmadex2.service.r2.ClosureService;
+import org.msh.pdex2.services.r2.ClosureService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 

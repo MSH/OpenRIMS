@@ -237,6 +237,34 @@ class Fetchers{
             return state
         }
     }
+    /**
+     * Store an object to the session storage
+     * @param {any JS object} thing 
+     * @param {string} key to session storage 
+     */
+    static storeThing(thing, key){
+        if(key != undefined){
+            let value = JSON.stringify(thing)
+            window.sessionStorage.removeItem(key)
+            window.sessionStorage.setItem(key,value)
+        }
+
+    }
+    /**
+     * Read object from the session storage
+     * @param {string} key possible key in the session storage
+     * @returns the object or undefined if the objectt is not found
+     */
+    static readThing(key){
+        let ret = undefined
+        if(key != undefined){
+            if(window.sessionStorage.getItem(key)){
+                let value=window.sessionStorage.getItem(key)
+                ret=JSON.parse(value)
+            }
+        }
+        return ret
+    }
 
 }
 export default Fetchers

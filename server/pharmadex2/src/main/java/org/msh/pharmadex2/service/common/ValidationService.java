@@ -4,12 +4,13 @@ import java.time.LocalDate;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 
+import org.msh.pdex2.dto.table.Headers;
 import org.msh.pdex2.dto.table.TableHeader;
-import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
@@ -20,13 +21,16 @@ import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.model.r2.Register;
 import org.msh.pdex2.model.r2.Thing;
+import org.msh.pdex2.model.r2.ThingDict;
 import org.msh.pdex2.model.r2.ThingPerson;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.common.UserRepo;
+import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.ActivitySubmitDTO;
 import org.msh.pharmadex2.dto.AddressDTO;
 import org.msh.pharmadex2.dto.AmendmentDTO;
 import org.msh.pharmadex2.dto.AssemblyDTO;
+import org.msh.pharmadex2.dto.AtcDTO;
 import org.msh.pharmadex2.dto.CheckListDTO;
 import org.msh.pharmadex2.dto.DataCollectionDTO;
 import org.msh.pharmadex2.dto.DataVariableDTO;
@@ -50,8 +54,8 @@ import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.service.r2.AccessControlService;
 import org.msh.pharmadex2.service.r2.AssemblyService;
-import org.msh.pharmadex2.service.r2.ClosureService;
 import org.msh.pharmadex2.service.r2.LiteralService;
+import org.msh.pharmadex2.service.r2.SystemService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -217,7 +221,7 @@ public class ValidationService {
 		data.setNode(node(data.getNode(),"",strict));
 		for(String key : data.getDictionaries().keySet()) {
 			DictionaryDTO dict=data.getDictionaries().get(key);
-			dict=dictionary(dict);
+			dict=dictionary(dict,"",strict);
 		}
 		data.propagateValidation();
 		return data;
@@ -225,24 +229,29 @@ public class ValidationService {
 	/**
 	 * Validate a dictionary
 	 * @param dict
+	 * @param description 
+	 * @param strict 
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	private DictionaryDTO dictionary(DictionaryDTO dict) throws ObjectNotFoundException {
-		dict.clearErrors();
-		if(dict.isRequired()) {
-			long sumIds=dict.getSelection().getValue().getId() * dict.getSelection().getValue().getOptions().size();		//value exists, list is empty
-			for(Long id : dict.getPrevSelected()) {
-				sumIds+=id;
-			}
-			if(sumIds==0 ) {
-				dict.setValid(false);
-				dict.setIdentifier(messages.get("error_dictionaryempty"));
+	private DictionaryDTO dictionary(DictionaryDTO dict, String description, boolean strict) throws ObjectNotFoundException {
+		if(dict!= null) {
+			dict.clearErrors();
+			if(dict.isRequired()) {
+				long sumIds=dict.getSelection().getValue().getId() * dict.getSelection().getValue().getOptions().size();		//value exists, list is empty
+				for(Long id : dict.getPrevSelected()) {
+					sumIds+=id;
+				}
+				if(sumIds==0 ) {
+					dict.setValid(false);
+					dict.setStrict(strict);
+					dict.setIdentifier(messages.get("error_dictionaryempty") +". "+ description);
+				}else {
+					dict.clearErrors();
+				}
 			}else {
 				dict.clearErrors();
 			}
-		}else {
-			dict.clearErrors();
 		}
 		return dict;
 	}
@@ -275,82 +284,88 @@ public class ValidationService {
 	/**
 	 * General thing validation in accjrdance with thing URL
 	 * @param data
+	 * @param strict 
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public ThingDTO thing(ThingDTO data) throws ObjectNotFoundException {
+	public ThingDTO thing(ThingDTO data, boolean strict) throws ObjectNotFoundException {
 		data.clearErrors();
-		
+
 		List<AssemblyDTO> s = assemblyServ.auxStrings(data.getUrl());
 		for(AssemblyDTO str : s) {
 			if(str.isRequired()) {
-				mandatoryLiteral(data.getStrings().get(str.getPropertyName()), str);
+				mandatoryString(data, str, strict);
 			}
 		}
 		List<AssemblyDTO> lits = assemblyServ.auxLiterals(data.getUrl());
 		for(AssemblyDTO lit : lits) {
 			if(lit.isRequired()) {
-				mandatoryLiteral(data.getLiterals().get(lit.getPropertyName()), lit);
+				mandatoryLiteral(data, lit,strict);
 			}
 		}
 		List<AssemblyDTO> dats = assemblyServ.auxDates(data.getUrl());
 		for(AssemblyDTO dat : dats) {
 			if(dat.isRequired()) {
-				mandatoryDate(data.getDates().get(dat.getPropertyName()),dat);
+				mandatoryDate(data.getDates().get(dat.getPropertyName()),dat, strict);
 			}
 		}
 		List<AssemblyDTO> nums = assemblyServ.auxNumbers(data.getUrl());
 		for(AssemblyDTO num : nums) {
 			if(num.isRequired()) {
-				mandatoryNumber(data.getNumbers().get(num.getPropertyName()),num);
+				mandatoryNumber(data.getNumbers().get(num.getPropertyName()),num,strict);
 			}
 		}
 		List<AssemblyDTO> dicts = assemblyServ.auxDictionaries(data.getUrl());
 		for(AssemblyDTO dic : dicts) {
 			if(dic.isRequired()) {
 				DictionaryDTO dict = data.getDictionaries().get(dic.getPropertyName());
-				dictionary(dict);
+				dictionary(dict,dic.getDescription(),strict);
 			}
 		}
 		List<AssemblyDTO> addrs = assemblyServ.auxAddresses(data.getUrl());
 		for(AssemblyDTO addr : addrs) {
 			if(addr.isRequired()) {
-				mandatoryAddress(data.getAddresses().get(addr.getPropertyName()));
+				mandatoryAddress(data.getAddresses().get(addr.getPropertyName()),strict);
 			}
 		}
 		List<AssemblyDTO> docs = assemblyServ.auxDocuments(data.getUrl());
 		for(AssemblyDTO doc: docs) {
 			if(doc.isRequired()) {
-				mandatoryDoc(data.getDocuments().get(doc.getPropertyName()));
+				mandatoryDoc(data.getDocuments().get(doc.getPropertyName()),doc,strict);
 			}
 		}
 		List<AssemblyDTO> schds = assemblyServ.auxSchedulers(data.getUrl());
 		for(AssemblyDTO sch : schds) {
 			if(sch.isRequired()) {
-				mandatoryScheduler(sch, data.getSchedulers().get(sch.getPropertyName()));
+				mandatoryScheduler(sch, data.getSchedulers().get(sch.getPropertyName()),strict);
 			}
 		}
 		List<AssemblyDTO> regs = assemblyServ.auxRegisters(data.getUrl());
 		for(AssemblyDTO reg : regs) {
 			if(reg.isRequired()) {
-				mandatoryRegister(reg, data.getRegisters().get(reg.getPropertyName()));
+				mandatoryRegister(reg, data.getRegisters().get(reg.getPropertyName()),strict);
 			}
 		}
 		List<AssemblyDTO> pers = assemblyServ.auxPersons(data.getUrl());
 		for(AssemblyDTO per : pers) {
 			if(per.isRequired()) {
-				mandatoryPersons(data, per.getPropertyName());
+				mandatoryPersons(data, per.getPropertyName(),per,strict);
 			}
 		}
 
 		List<AssemblyDTO> personSpec = assemblyServ.auxPersonSpecials(data.getUrl());
 		for(AssemblyDTO per : personSpec) {
 			if(per.isRequired()) {
-				mandatoryPersonSpec(data, per.getPropertyName());
+				mandatoryPersonSpec(data, per.getPropertyName(),per,strict);
 			}
 		}
-
+		List<AssemblyDTO> atc = assemblyServ.auxAtc(data.getUrl());
+		for(AssemblyDTO a : atc) {
+			if(a.isRequired()) {
+				mandatoryAtc(data,a.getPropertyName(),a,strict);
+			}
+		}
 		List<AssemblyDTO> things = assemblyServ.auxThings(data.getUrl());
 		for(AssemblyDTO thing :things) {
 			if(thing.isRequired()) {
@@ -360,14 +375,34 @@ public class ValidationService {
 		data.propagateValidation();
 		return data;
 	}
+	/**
+	 * This ATC component is mandatory
+	 * @param data
+	 * @param propertyName
+	 * @param strict 
+	 * @param a 
+	 */
+	private void mandatoryAtc(ThingDTO data, String propertyName, AssemblyDTO a, boolean strict) {
+		AtcDTO dto = data.getAtc().get(propertyName);
+		if(dto.getSelectedtable().getRows().size()==0) {
+			dto.setValid(false);
+			dto.setStrict(strict);
+			dto.setIdentifier(messages.get("atc_noatc")+" "+a.getDescription());
+		}else {
+			dto.setValid(true);
+			dto.setIdentifier("");
+		}
+	}
 
 	/**
 	 * Special person, like Pharmacist
 	 * @param data
 	 * @param propertyName
+	 * @param strict 
+	 * @param per 
 	 * @throws ObjectNotFoundException 
 	 */
-	private void mandatoryPersonSpec(ThingDTO data, String propertyName) throws ObjectNotFoundException {
+	private void mandatoryPersonSpec(ThingDTO data, String propertyName, AssemblyDTO per, boolean strict) throws ObjectNotFoundException {
 		PersonSpecialDTO dto = data.getPersonspec().get(propertyName);
 		//person should be selected
 		List<TableRow> rows = dto.getTable().getRows();
@@ -380,7 +415,8 @@ public class ValidationService {
 			}
 			if(selected==0) {
 				dto.setValid(false);
-				dto.setIdentifier(messages.get("error_dictionaryempty"));
+				dto.setStrict(strict);
+				dto.setIdentifier(messages.get("error_dictionaryempty")+" "+per.getDescription());
 			}
 		}
 	}
@@ -388,10 +424,11 @@ public class ValidationService {
 	/**
 	 * Register record should...
 	 * @param ar
+	 * @param strict 
 	 * @param registerDTO
 	 * @throws ObjectNotFoundException 
 	 */
-	private void mandatoryRegister(AssemblyDTO ar, RegisterDTO dto) throws ObjectNotFoundException {
+	private void mandatoryRegister(AssemblyDTO ar, RegisterDTO dto, boolean strict) throws ObjectNotFoundException {
 		dto.clearErrors();
 		LocalDate regDate = dto.getRegistration_date().getValue();
 		LocalDate expDate = dto.getExpiry_date().getValue();
@@ -406,23 +443,28 @@ public class ValidationService {
 		LocalDate maxDate = createdAt;
 		LocalDate minDate = createdAt.minusMonths(1);
 		String errorMess = messages.get("valuerangeerror")+" " + minDate +", " + maxDate;
+		if(ar.getDescription().length()>0) {
+			errorMess=errorMess + " " + ar.getDescription();
+		}
 		if(regDate.isBefore(minDate) || regDate.isAfter(maxDate)) {
 			dto.getRegistration_date().invalidate(errorMess);
+			dto.setStrict(strict);
 		}
 		//register number should be not empty, not duplicated for url given
-		if(regNum.length()>=3 && regNum.length()<=255) {
-			List<Register> rr = boilerServ.registerByNumber(regNum);
+		if(regNum.length()>=1 && regNum.length()<=255) {
+			List<Register> rr = boilerServ.registerByUrlAndNumber(regNum, dto.getUrl());
 			if(rr.size()>1) {
-				dto.getReg_number().invalidate(messages.get("registrationexists"));
+				dto.getReg_number().invalidate(messages.get("registrationexists") + " " + ar.getDescription());
+				dto.setStrict(strict);
 			}else {
 				if(rr.size()==1) {
 					if(rr.get(0).getConcept().getID()!=dto.getNodeID()) {
-						dto.getReg_number().invalidate(messages.get("registrationexists"));
+						dto.getReg_number().invalidate(messages.get("registrationexists") + " "+ar.getDescription());
 					}
 				}
 			}
 		}else {
-			suggest(dto.getReg_number(), 3, 255, true);
+			suggest(dto.getReg_number(), 3, 255, strict);
 		}
 		//expiration date should fit an interval if defined
 		if(ar.isMult()) {
@@ -430,7 +472,8 @@ public class ValidationService {
 			minDate = createdAt.plusMonths(1);
 			errorMess = messages.get("valuerangeerror")+" " + regDate.plusMonths(2) +", " + maxDate;
 			if(expDate.isBefore(minDate) || expDate.isAfter(maxDate)) {
-				dto.getExpiry_date().invalidate(errorMess);
+				dto.getExpiry_date().invalidate(errorMess+" "+ar.getDescription());
+				dto.setStrict(strict);
 			}
 		}
 		dto.propagateValidation();
@@ -438,12 +481,13 @@ public class ValidationService {
 
 	/**
 	 * Schedule data should fit into interval
+	 * @param strict 
 	 * @param sch 
 	 * @param data
 	 * @param propertyName
 	 * @throws ObjectNotFoundException 
 	 */
-	private void mandatoryScheduler(AssemblyDTO ad, SchedulerDTO schDTO) throws ObjectNotFoundException {
+	private void mandatoryScheduler(AssemblyDTO ad, SchedulerDTO schDTO, boolean strict) throws ObjectNotFoundException {
 		schDTO.clearErrors();
 		LocalDate createdAt = schDTO.getCreatedAt();
 		if(createdAt != null) {
@@ -466,17 +510,18 @@ public class ValidationService {
 	 * Quantity of persons. Only on the strict validation 
 	 * @param data
 	 * @param propertyName
+	 * @param strict 
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	private void mandatoryPersons(ThingDTO data, String propertyName) throws ObjectNotFoundException {
+	private void mandatoryPersons(ThingDTO data, String propertyName, AssemblyDTO apers, boolean strict) throws ObjectNotFoundException {
 		if(data.isStrict()) {
 			if(data.getNodeId()>0) {
 				for(String key : data.getPersons().keySet()) {
 					data.getPersons().get(key).clearErrors();
 				}
 				Concept node = closureServ.loadConceptById(data.getNodeId());
-				Thing thing = boilerServ.loadThingByNode(node);
+				Thing thing = boilerServ.thingByNode(node);
 				int counter=0;
 				for(ThingPerson tp : thing.getPersons()) {
 					if(tp.getVarName().equalsIgnoreCase(propertyName)) {
@@ -485,11 +530,13 @@ public class ValidationService {
 				}
 				if(counter==0) {
 					data.getPersons().get(propertyName).setValid(false);
-					data.getPersons().get(propertyName).setIdentifier(messages.get("mandatorypersons"));
+					data.getPersons().get(propertyName).setStrict(strict);
+					data.getPersons().get(propertyName).setIdentifier(messages.get("mandatorypersons")+" "+apers.getDescription());
 				}
 			}else {
 				data.getPersons().get(propertyName).setValid(false);
-				data.getPersons().get(propertyName).setIdentifier(messages.get("mandatorypersons"));
+				data.getPersons().get(propertyName).setStrict(strict);
+				data.getPersons().get(propertyName).setIdentifier(messages.get("mandatorypersons")+" "+apers.getDescription());
 			}
 		}
 	}
@@ -506,16 +553,27 @@ public class ValidationService {
 	/**
 	 * All documents are required
 	 * @param filesDTO
+	 * @param strict 
 	 * @throws ObjectNotFoundException 
 	 */
-	private void mandatoryDoc(FileDTO filesDTO) throws ObjectNotFoundException {
+	private void mandatoryDoc(FileDTO filesDTO, AssemblyDTO doc, boolean strict) throws ObjectNotFoundException {
 		if(filesDTO==null) {
 			return;
 		}
 		filesDTO.clearErrors();
 		if (filesDTO.getLinked()==null || filesDTO.getLinked().size()==0) {
 			filesDTO.setValid(false);
-			filesDTO.setIdentifier(messages.get("upload_file"));
+			filesDTO.setIdentifier(messages.get("upload_file") +" " +doc.getDescription());
+		}else {
+			Set<Long> keys = filesDTO.getLinked().keySet();
+			long sumlo=0l;
+			for(Long key : keys) {
+				sumlo+=filesDTO.getLinked().get(key);
+			}
+			if(sumlo==0) {
+				filesDTO.setValid(false);
+				filesDTO.setIdentifier(messages.get("upload_file")+" "+ doc.getDescription());
+			}
 		}
 		filesDTO.propagateValidation();
 		return;
@@ -525,20 +583,23 @@ public class ValidationService {
 	 * Address should be defined
 	 * @param data
 	 * TODO something more advanced!!!
+	 * @param strict 
 	 * @throws ObjectNotFoundException 
 	 */
-	private void mandatoryAddress(AddressDTO data) throws ObjectNotFoundException {
+	private void mandatoryAddress(AddressDTO data, boolean strict) throws ObjectNotFoundException {
 		if(data!=null) {
 			data.clearErrors();
 			data.getDictionary().clearErrors();
-			dictionary(data.getDictionary());
+			dictionary(data.getDictionary(),"",strict);
 			if(!data.getDictionary().isValid()) {
 				data.setValid(false);
+				data.setStrict(strict);
 				data.setIdentifier(messages.get("addressisempty"));
 				return;
 			}
 			if(data.getMarker().isEmpty()) {
 				data.setValid(false);
+				data.setStrict(strict);
 				data.setIdentifier(messages.get("selectgislocation"));
 				return;
 			}
@@ -549,17 +610,23 @@ public class ValidationService {
 	 * Check mandatory date
 	 * @param formFieldDTO
 	 * @param dat - rules to check date
+	 * @param strict 
 	 */
-	private void mandatoryDate(FormFieldDTO<LocalDate> dateFld, AssemblyDTO dat) {
+	private void mandatoryDate(FormFieldDTO<LocalDate> dateFld, AssemblyDTO dat, boolean strict) {
 		if(dateFld != null) {
 			String errorMess = messages.get("valuerangeerror")+" " + dat.getMinDate()+", " + dat.getMaxDate();
+			if(dat.getDescription().length()>0){
+				errorMess=errorMess +" "+dat.getDescription();
+			}
 			if(dateFld.getValue() != null) {
 				LocalDate val = dateFld.getValue();
 				if(val.isBefore(dat.getMinDate()) || val.isAfter(dat.getMaxDate())) {
 					dateFld.invalidate(errorMess);
+					dateFld.setStrict(strict);
 				}
 			}else {
 				dateFld.invalidate(errorMess);
+				dateFld.setStrict(strict);
 			}
 		}
 	}
@@ -567,15 +634,20 @@ public class ValidationService {
 	 * Check mandatory number
 	 * @param numFld
 	 * @param num
+	 * @param strict 
 	 */
-	private void mandatoryNumber(FormFieldDTO<Long> numFld, AssemblyDTO num) {
+	private void mandatoryNumber(FormFieldDTO<Long> numFld, AssemblyDTO num, boolean strict) {
 		String errorMess = messages.get("valuerangeerror") +" "+ num.getMin()+", " + num.getMax();
+		if(num.getDescription().length()>0) {
+			errorMess=errorMess+" "+num.getDescription();
+		}
 		if(numFld != null) {
 			numFld.clearValidation();
 			if(numFld.getValue()!=null) {
 				Long val = numFld.getValue();
 				if(val.compareTo(num.getMin().longValue())<0 || val.compareTo(num.getMax().longValue())>0){
 					numFld.invalidate(errorMess);
+					numFld.setStrict(strict);
 				}
 			}
 		}
@@ -583,17 +655,104 @@ public class ValidationService {
 
 	/**
 	 * Check mandatory literal
-	 * @param litFld
+	 * @param thingDTO
 	 * @param lit
 	 * TODO more precisely, using lit
+	 * @param strict 
+	 * @throws ObjectNotFoundException 
 	 */
-	private void mandatoryLiteral(FormFieldDTO<String> litFld, AssemblyDTO lit) {
-		if(litFld != null) {
-			if(litFld.getValue().length()<lit.getMin().intValue() || litFld.getValue().length()>lit.getMax().intValue()) {
-				suggest(litFld, lit.getMin().intValue(), lit.getMax().intValue(), true);
+	private void mandatoryLiteral(ThingDTO thingDTO, AssemblyDTO lit, boolean strict) throws ObjectNotFoundException {
+		FormFieldDTO<String> data=thingDTO.getLiterals().get(lit.getPropertyName());
+		if(data != null) {
+			if(data.getValue().length()<lit.getMin().intValue() || data.getValue().length()>lit.getMax().intValue()) {
+				suggest(data, lit.getMin().intValue(), lit.getMax().intValue(), strict);
+				help(data, lit.getDescription());
+			}else {
+				//check unique
+				if(lit.isUnique()) {
+					if(!uniqueLiteral(thingDTO, lit.getPropertyName(), data.getValue())) {
+						data.setError(true);
+						data.setStrict(strict);
+						data.setSuggest(messages.get("valueshouldbeunique"));
+						help(data, lit.getDescription());
+					}
+				}
 			}
 		}
 	}
+
+	/**
+	 * Check mandatory string
+	 * @param thingDTO
+	 * @param lit
+	 * TODO more precisely, using lit
+	 * @param strict 
+	 * @throws ObjectNotFoundException 
+	 */
+	private void mandatoryString(ThingDTO thingDTO, AssemblyDTO lit, boolean strict) throws ObjectNotFoundException {
+		FormFieldDTO<String> data=thingDTO.getStrings().get(lit.getPropertyName());
+		if(data != null) {
+			if(data.getValue().length()<lit.getMin().intValue() || data.getValue().length()>lit.getMax().intValue()) {
+				suggest(data, lit.getMin().intValue(), lit.getMax().intValue(), strict);
+				help(data, lit.getDescription());
+			}else {
+				//check unique
+				if(lit.isUnique()) {
+					if(!uniqueLiteral(thingDTO, lit.getPropertyName(), data.getValue())) {
+						data.setError(true);
+						data.setStrict(strict);
+						data.setSuggest(messages.get("valuehouldbeunique"));
+						help(data, lit.getDescription());
+					}
+				}
+			}
+		}
+	}
+	/**
+	 * Add help message to the error
+	 * @param data
+	 * @param description
+	 */
+	private void help(FormFieldDTO<String> data, String description) {
+		String suggest = data.getSuggest();
+		if(description.length()>0) {
+			data.setSuggest(suggest+" "+description);
+		}		
+	}
+
+	/**
+	 * Check is this literal on the current language unique for this URL, and variable name
+	 * @param thingDTO
+	 * @param propertyName
+	 * @param value
+	 * @throws ObjectNotFoundException 
+	 */
+	private boolean uniqueLiteral(ThingDTO thingDTO, String propertyName, String value) throws ObjectNotFoundException {
+		//literal concept ID
+		long litId=0;
+		if(thingDTO.getNodeId()>0) {
+			Concept node = closureServ.loadConceptById(thingDTO.getNodeId());
+			Concept literal = literalServ.literalConcept(propertyName, node);
+			if(literal.getID()>0) {
+				litId=literal.getID();
+			}
+		}
+		//all literals with a value given
+		if(thingDTO.getUrl().length()>0) {
+			Concept root = closureServ.loadRoot(thingDTO.getUrl());
+			jdbcRepo.literal_values(root.getID(), propertyName);
+			Headers headers = new Headers();
+			headers.getHeaders().add(TableHeader.instanceOf("varvalue", TableHeader.COLUMN_STRING));
+			List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from literal_values", "", "varvalue='"+value+"'", headers);
+			for(TableRow row : rows) {
+				if(row.getDbID()!=litId) {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
 	/**
 	 * All questions should be answered
 	 * @param data
@@ -636,7 +795,7 @@ public class ValidationService {
 				data.setValid(false);
 				return data;
 			}
-			Thing thing = boilerServ.loadThingByNode(aco);
+			Thing thing = boilerServ.thingByNode(aco);
 			if(thing.getID()>0) {
 				if(thing.getDictionaries().size()==0) {
 					data.setIdentifier(messages.get("badconfiguration")+" ROLES ZERO config root is " + configRoot.getID());
@@ -802,7 +961,7 @@ public class ValidationService {
 	 */
 	@Transactional
 	public ThingDTO resource(ThingDTO data, boolean strict) throws ObjectNotFoundException {
-		data=thing(data);
+		data=thing(data,strict);
 		return data;
 	}
 
@@ -844,7 +1003,7 @@ public class ValidationService {
 	 */
 	public ActivitySubmitDTO actionCancel(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		data.clearErrors();
-		List<History> allHis = boilerServ.historyAll(curHis.getApplication());
+		List<History> allHis = boilerServ.historyAllByApplication(curHis.getApplication());
 		if(curHis.getGo()==null) {																			//current is opened
 			if(isActivityBackground(curHis.getActConfig())) {
 				for(History h : allHis) {
@@ -1014,17 +1173,14 @@ public class ValidationService {
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public ActivitySubmitDTO submitApproveReject(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
+	public ActivitySubmitDTO submitApprove(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		data.clearErrors();
-		if(data.isReject()) {
-			return data;
-		}
 		if(!data.isReassign()) {
 			Concept exec = closureServ.getParent(curHis.getActivity());
 			if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {
 				if(isActivityForeground(curHis.getActConfig())) {
 					if(curHis.getGo()==null) {
-						if(isActivityLatest(curHis)) {
+						if(isActivityFinalAction(curHis, SystemService.FINAL_ACCEPT)) {
 							return data;
 						}
 					}
@@ -1036,28 +1192,74 @@ public class ValidationService {
 		return data;
 	}
 	/**
-	 * Is this activity the finalization activity
+	 * is it Finalize.AMEND action in amendment workflow?
+	 * @param curHis
+	 * @param user 
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	public ActivitySubmitDTO submitAmendment(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
+		data.clearErrors();
+		if(!data.isReassign()) {
+			Concept exec = closureServ.getParent(curHis.getActivity());
+			if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {
+				if(isAmendmentWorkflow(curHis)) {
+					if(isActivityForeground(curHis.getActConfig())) {
+						if(curHis.getGo()==null) {
+							if(isActivityFinalAction(curHis, SystemService.FINAL_AMEND)) {
+								return data;
+							}else {
+								data.setIdentifier(messages.get("error_activityinappropriate"));
+								data.setValid(false);
+							}
+						}
+					}
+				}else {
+					data.setIdentifier(messages.get("error_workflowinappropriate"));
+					data.setValid(false);
+				}
+			}
+		}
+		return data;
+	}
+
+	/**
+	 * Is this workflow to implement an amendment
 	 * @param curHis
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public boolean isActivityLatest(History curHis) throws ObjectNotFoundException {
-		YesNoNA result = dtoServ.readLogicalLiteral("finalize", curHis.getActConfig());
-		if(result.equals(YesNoNA.YES)) {
-			return true;
+	private boolean isAmendmentWorkflow(History curHis) throws ObjectNotFoundException {
+		if(curHis.getApplicationData()!=null) {
+			Thing thing = boilerServ.thingByNode(curHis.getApplicationData());
+			return thing.getAmendments().size()>0;
 		}
-		TableQtb fgActs = new TableQtb();
-		fgActs.getHeaders().getHeaders().add(TableHeader.instanceOf("pref", TableHeader.COLUMN_STRING));
-		jdbcRepo.workflowActivities(curHis.getApplConfig().getID());
-		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from workflow_activities", "",
-				"bg!=1", fgActs.getHeaders());
-		if(rows.size()==1) {
-			return true;
-		}
-		for(int i=1; i<rows.size();i++) {
-			if(rows.get(i).getDbID()==curHis.getActConfig().getID()) {
-				return i==rows.size()-1;
+		return false;
+	}
+
+	/**
+	 * Is this activity the finalization action
+	 * @param curHis
+	 * @param finalAction 
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public boolean isActivityFinalAction(History curHis, String finalAction) throws ObjectNotFoundException {
+		Concept actConf = curHis.getActConfig();
+		if(actConf!=null) {
+			if(!isActivityBackground(actConf)) {
+				Thing th = new Thing();
+				th=boilerServ.thingByNode(actConf,th);
+				if(th.getID()>0) {
+					for(ThingDict td :th.getDictionaries()) {
+						if(td.getVarname().equalsIgnoreCase(AssemblyService.ACTIVITY_CONFIG_FINALIZE)) {
+							return td.getConcept().getIdentifier().equalsIgnoreCase(finalAction);
+						}
+					}
+				}
 			}
 		}
 		return false;
@@ -1075,7 +1277,7 @@ public class ValidationService {
 		data.clearErrors();
 		if(!data.isReject()) {
 			//if(!data.isReassign()) {
-				return data;
+			return data;
 			//}
 		}
 		error(data, messages.get("error_submitaddactivity"), true);
@@ -1112,7 +1314,7 @@ public class ValidationService {
 	 */
 	public ActivitySubmitDTO submitNextOrRouteData(History curHis, ActivitySubmitDTO data, List<Long> executors) throws ObjectNotFoundException {
 		data.clearErrors();
-		List<History> allHis = boilerServ.historyAll(curHis.getApplication());
+		List<History> allHis = boilerServ.historyAllByApplication(curHis.getApplication());
 		for(History h : allHis) {
 			if(h.getGo()==null) {																			//opened
 				if(h.getActConfig()!= null && h.getActConfig().getID()==curHis.getActConfig().getID()) {			//same activity configuration
@@ -1173,8 +1375,10 @@ public class ValidationService {
 	public ActivitySubmitDTO submitAddActivityData(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		long addAct = data.nextActivity();
 		List<Long> executors=data.executors();
-		if(addAct>0 && executors.size()>0) {
-			data=submitNextOrRouteData(curHis, data, executors);
+		if(addAct>0 && (executors.size()>0 ||data.getApplicantEmail().length()>0)) {
+			if(data.getApplicantEmail().length()==0) {
+				data=submitNextOrRouteData(curHis, data, executors);
+			}
 			data=submitNotesIsMandatory(curHis, data);
 			return data;
 		}
@@ -1193,17 +1397,23 @@ public class ValidationService {
 		return data;
 	}
 	/**
-	 * Any extra requirements to data yet
+	 * Approve action should run at least one follow up (scheduled) action
 	 * @param curHis
 	 * @param user
 	 * @param data
 	 * @return
 	 */
 	public ActivitySubmitDTO submitApproveData(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) {
-		// TODO for future extensions
+		if(data.isValid()) {
+			int sch = data.getScheduled().getRows().size();
+			if(sch==0) {
+				data.setValid(false);
+				data.setIdentifier(messages.get("shouldbefollowup"));
+			}
+		}
 		return data;
 	}
-	
+
 	/**
 	 * Any extra requirements to data yet
 	 * @param curHis
@@ -1235,6 +1445,24 @@ public class ValidationService {
 			dto.setIdentifier(messages.get("error_dictionaryempty"));
 		}
 		return dto;
+	}
+
+	/**
+	 * Is his application from HOST dictionary
+	 * @param applDict
+	 * @return
+	 */
+	@Transactional
+	public boolean isHostApplication(Concept applDict) {
+		if(applDict!=null) {
+			Concept parent = closureServ.getParent(applDict);
+			if(parent != null) {
+				return parent.getIdentifier().toUpperCase().contains("HOST");
+			}else {
+				return false;
+			}
+		}
+		return false;
 	}
 
 }

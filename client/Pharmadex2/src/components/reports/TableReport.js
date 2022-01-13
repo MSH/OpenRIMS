@@ -1,5 +1,5 @@
 import React , {Component} from 'react'
-import {Container, Row, Col,Breadcrumb,BreadcrumbItem, Nav, NavItem} from 'reactstrap'
+import {Container, Row, Col, Button} from 'reactstrap'
 import PropTypes from 'prop-types'
 import Locales from '../utils/Locales'
 import Fetchers from '../utils/Fetchers'
@@ -10,10 +10,11 @@ import Pharmadex from '../Pharmadex'
 import CollectorTable from '../utils/CollectorTable'
 import Thing from '../Thing'
 import Downloader from '../utils/Downloader'
+import ApplicationEvents from '../applevents/ApplicationEvents'
 
 /**
  * Responsible for a table for report
- * Just copy it
+ * It issues onDrillDown and onDrillUp
  */
 class TableReport extends Component{
     constructor(props){
@@ -26,6 +27,7 @@ class TableReport extends Component{
                 exportExcel:'',
                 search:'',
                 global_showPrint:'',
+                cancel:'',
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -41,6 +43,12 @@ class TableReport extends Component{
      */
         eventProcessor(event){
             let data=event.data
+            if(data.from==this.props.recipient){
+                if(data.subject=='refreshReportTable'){
+                    this.state.data.thing.nodeId=0
+                    this.setState(this.state)
+                }
+            }
         }
 
     componentDidMount(){
@@ -51,85 +59,7 @@ class TableReport extends Component{
     componentWillUnmount(){
         window.removeEventListener("message",this.eventProcessor)
     }
-    /**
-     * Create the breadcrumb from the path in the dictionary to initate seamless integration to it
-     */
-    createBreadCrumb(){
-        let ret = []
-        let className="btn btn-link p-0 border-0"
-        if(this.state.data.readOnly|| this.props.readOnly){
-            className='d-inline-flex'
-        }
-        //dictionary home
-        ret.push(
-            <BreadcrumbItem key={this.state.data.dict.home}>
-                <div className={className} style={{fontSize:'0.8rem'}}
-                             onClick={()=>{
-                            Navigator.message(this.state.identifier, this.props.recipient, "reportRootDictionary", {})
-                        }}>
-                    {this.state.data.dict.home}
-                </div>
-                <div hidden={!this.props.readOnly}>
-                    {this.state.data.dict.home}
-                </div>
-            </BreadcrumbItem>
-            )
-        // the rest of the dictionary
-        let path=this.state.data.dict.path
-        if(Fetchers.isGoodArray(path)){
-            path.forEach((field, index) => {
-                ret.push(
-                    <BreadcrumbItem  key={index}>
-                        <div className={className} style={{fontSize:'0.8rem'}}
-                            onClick={()=>{
-                                Navigator.message(this.state.identifier, this.props.recipient, "reportPathDictionary", field)
-                        }}>
-                            {field.code}
-                        </div>
-                    </BreadcrumbItem>
-                )
-            });
-        }
-        //the last item in the dictionary
-        let selectedRow={}
-        this.state.data.dict.table.rows.forEach(row=>{
-            if(row.selected){
-                selectedRow=row
-            }
-        })
-        if(selectedRow.dbID != undefined){
-            let lbl=selectedRow.row[0].value
-            ret.push(
-                <BreadcrumbItem  key={selectedRow.dbID}>
-                    <div hidden={this.state.data.thing.nodeId==0} className={className} style={{fontSize:'0.8rem'}}
-                        onClick={()=>{
-                            this.state.data.thing={
-                                nodeId:0
-                            }
-                            this.setState(this.state)
-                        }}>
-                        {lbl}
-                    </div>
-                    <span hidden={this.state.data.thing.nodeId>0}>
-                        {lbl}
-                    </span>
-                </BreadcrumbItem>
-            )
-           
-        }
-         //the selected thing
-         if(this.state.title.length>0 && this.state.data.thing.nodeId>0){
-            ret.push(
-                <BreadcrumbItem  key={this.state.title}>
-                    <span>
-                        {this.state.title}
-                    </span>
-                </BreadcrumbItem>
-            )
-        }
 
-        return ret
-    }
     /**
      * Paint full thing
      */
@@ -138,22 +68,25 @@ class TableReport extends Component{
         let path=this.state.data.thing.path
         if(Fetchers.isGoodArray(path)){
             ret.push(
+                <ApplicationEvents key='ae1' appldataid={this.state.data.thing.nodeId} recipient={this.state.identifier} />
+            )
+            ret.push(
                 <Row key="showprintform" className='mb-1'>
                     <Col xs='12' sm='12' lg='10' xl='10'>
                     </Col>
                     <Col xs='12' sm='12' lg='2' xl='2'>
-                    <ButtonUni
-                        label= {this.state.labels.global_showPrint}
-                        color='info'
-                        onClick={()=>{
-                            let data={
-                                nodeId:this.state.data.thing.nodeId
-                            }
-                            let param = JSON.stringify(data)
-                            var url = "/" + Navigator.tabSetName() + "#reports/printpreview/" + encodeURI(param)
-                            let w = window.open(url, "_blank")
-                        }}/>
-                    </Col>
+                        <ButtonUni
+                            label= {this.state.labels.global_showPrint}
+                            color='info'
+                            onClick={()=>{
+                                let data={
+                                    nodeId:this.state.data.thing.nodeId
+                                }
+                                let param = JSON.stringify(data)
+                                var url = "/" + Navigator.tabSetName() + "#reports/printpreview/" + encodeURI(param)
+                                let w = window.open(url, "_blank")
+                            }}/>
+                        </Col>
                 </Row>
             )
             ret.push(
@@ -187,6 +120,7 @@ class TableReport extends Component{
             this.state.data=result
             this.state.title=result.thing.path[0].title
             this.setState(this.state)
+            Navigator.message(this.state.identifier, this.props.recipient, "onDrillDown", this.state.data.thing.title)
         })
     }
     /**
@@ -203,15 +137,13 @@ class TableReport extends Component{
                 </Row>
             )
         }else{
+            Navigator.message(this.state.identifier, this.props.recipient, "onDrillUp", {})
             return(
                 <Row>
                     <Col>
                         <Row className='mb-1'>
-                            <Col xs='12' sm='12' lg='4' xl='4'>
+                            <Col xs='12' sm='12' lg='10' xl='10'>
                                 <SearchControl label={this.state.labels.search} table={this.state.data.table} loader={this.loadTable} />
-                            </Col>
-                            <Col xs='12' sm='12' lg='6' xl='6'>
-
                             </Col>
                             <Col xs='12' sm='12' lg='2' xl='2'>
                                 <ButtonUni
@@ -269,13 +201,6 @@ class TableReport extends Component{
         }
         return(
             <Container fluid>
-                <Row className='mb-1'>
-                    <Col>
-                        <Breadcrumb>
-                            {this.createBreadCrumb()}
-                        </Breadcrumb>
-                    </Col>
-                </Row>
                {this.content()}
             </Container>
         )

@@ -11,17 +11,18 @@ import org.msh.pharmadex2.dto.form.AllowValidation;/**
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties(ignoreUnknown=true)
 public class ReportDTO extends AllowValidation {
-	//Set of reports for a role
-	private DictionaryDTO dict = new DictionaryDTO();
+	//configuration
+	private ReportConfigDTO config;
 	//table for report
 	private TableQtb table = new TableQtb();
 	//thing for report drill-down
 	private ThingDTO thing = new ThingDTO();
-	public DictionaryDTO getDict() {
-		return dict;
+	
+	public ReportConfigDTO getConfig() {
+		return config;
 	}
-	public void setDict(DictionaryDTO dict) {
-		this.dict = dict;
+	public void setConfig(ReportConfigDTO config) {
+		this.config = config;
 	}
 	public TableQtb getTable() {
 		return table;

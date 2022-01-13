@@ -13,7 +13,7 @@ public interface RegisterRepo extends CrudRepository<Register, Long> {
 
 	List<Register> findAllByRegister(String trim);
 
-	List<Register> findAllByAppDataOrderByRegisteredAtAsc(Concept appData);
+	List<Register> findAllByConceptAndRegister(Concept conc, String trim);
 
 
 }

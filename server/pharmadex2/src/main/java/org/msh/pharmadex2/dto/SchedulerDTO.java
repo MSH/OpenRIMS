@@ -16,10 +16,9 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class SchedulerDTO extends AllowValidation {
 	//visible
 	private FormFieldDTO<LocalDate> schedule = FormFieldDTO.of(LocalDate.now());
-	private TableQtb table = new TableQtb();
 	//invisible
-	private long nodeId=0;									//node of this schedule record
-	private long applDataID=0;							//applicant data
+	private long nodeId=0;									//data unit ID
+	private long conceptId=0;								//concept ID
 	private String varName="";							//variable inside the thing
 	private String dataUrl="";								//where to store
 	private String processUrl="";					//what will be run
@@ -32,18 +31,17 @@ public class SchedulerDTO extends AllowValidation {
 	public void setSchedule(FormFieldDTO<LocalDate> schedule) {
 		this.schedule = schedule;
 	}
-	public TableQtb getTable() {
-		return table;
-	}
-	public void setTable(TableQtb table) {
-		this.table = table;
-	}
-	
 	public long getNodeId() {
 		return nodeId;
 	}
 	public void setNodeId(long nodeId) {
 		this.nodeId = nodeId;
+	}
+	public long getConceptId() {
+		return conceptId;
+	}
+	public void setConceptId(long conceptId) {
+		this.conceptId = conceptId;
 	}
 	public String getVarName() {
 		return varName;
@@ -63,12 +61,7 @@ public class SchedulerDTO extends AllowValidation {
 	public void setProcessUrl(String processUrl) {
 		this.processUrl = processUrl;
 	}
-	public long getApplDataID() {
-		return applDataID;
-	}
-	public void setApplDataID(long applDataID) {
-		this.applDataID = applDataID;
-	}
+
 	public LocalDate getCreatedAt() {
 		return createdAt;
 	}

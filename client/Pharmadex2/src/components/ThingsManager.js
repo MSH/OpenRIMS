@@ -5,7 +5,8 @@ import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
 import Navigator from './utils/Navigator'
 import Thing from './Thing'
-import Spinner from './utils/Spinner'
+import SpinnerMain from './utils/SpinnerMain'
+import Register from './Register'
 
 
 /**
@@ -37,6 +38,8 @@ class ThingsManager extends Component{
                 application:this.props.application,
                 applDictNodeId:this.props.applDictNodeId,
                 readOnly:this.props.readOnly,
+                prefLabel:this.props.prefLabel,
+                modiUnitId:this.props.modiUnitId,
             },                                            
             identifier:Date.now().toString(),           //address for messages for this object
             recipient:this.props.recipient,             //recipient of messages from this object
@@ -54,6 +57,7 @@ class ThingsManager extends Component{
         this.afterSave=this.afterSave.bind(this)
         this.paintCurrentThing=this.paintCurrentThing.bind(this)
         this.createAuxBreadCrumb=this.createAuxBreadCrumb.bind(this)
+        this.paintRegister=this.paintRegister.bind(this)
     } 
     /**
      * Propagate values from the master thing to the rest of path
@@ -72,20 +76,17 @@ class ThingsManager extends Component{
 
     }
 
+
     /**
      * The current thing is saved
      * data - the thing
      * byAction - saved by the button Save, otherwise saved by "next" or "conclude" 
      */
     afterSave(data, byAction){
-        Spinner.hide()
+        
         if(data.valid){
-            if(this.state.data.auxPath.length==0){
-               // this.state.data.path[this.state.data.pathIndex]=data
-            }else{
-               // this.state.data.auxPath[this.state.data.auxPathIndex]=data
-            }
             if(this.state.data.auxPath.length>0){
+                this.state.data.auxPath[this.state.data.auxPathIndex]=data
                 //process aux path
                 let auxLength=this.state.data.auxPath.length
                 if(this.state.data.auxPathIndex==0){
@@ -108,7 +109,6 @@ class ThingsManager extends Component{
                 }else{
                     //NEXT has been pressed
                     if(this.state.data.auxPathIndex<(auxLength-1)){
-                        this.state.data.auxPath[this.state.data.auxPathIndex]=data
                         this.state.data.auxPathIndex++
                     }else{
                         this.state.data.auxPath=[]
@@ -117,32 +117,36 @@ class ThingsManager extends Component{
                 }
                 this.setState(this.state)
                 return
-            }
-           if(this.state.conclude){
-               //message to ApplicaionStart
-               Navigator.message(this.state.identifier, this.props.recipient, "conclude", this.state.data.path[0])
-               return
-           }
-           if(data.pathIndex==0){
-               this.state.data.path.forEach((pt, index)=>{
-                   //propagate master to the rest of path
-                   this.propagateMaster(pt,data,this.state.data.pathIndex)
-                })
-           }
-            if(byAction){
-                //movement backward,save has been pressed
-                if(this.state.data.pathIndex>0){
-                    this.state.data.pathIndex--
-                    this.setState(this.state)
-                }else{
-                    Navigator.message(this.state.identifier, this.props.recipient,"cancelThing",{})
-                }
             }else{
-                //movement forward, next has been pressed
+                ////////////////// REGULAR PATH ////////////////////////////////////////////
                 this.state.data.path[this.state.data.pathIndex]=data
-                this.state.data.pathIndex++
+                if(this.state.conclude){
+                    //message to ApplicaionStart
+                    Navigator.message(this.state.identifier, this.props.recipient, "conclude", this.state.data.path[0])
+                    return
+                }
+                if(data.pathIndex==0){
+                    this.state.data.path.forEach((pt, index)=>{
+                    //propagate master to the rest of path
+                        this.propagateMaster(pt,data,this.state.data.pathIndex)
+                    })
+                }
+                if(byAction){
+                //movement backward,save has been pressed
+                    if(this.state.data.pathIndex>0){
+                        this.state.data.pathIndex--
+                        this.setState(this.state)
+                    }else{
+                        Navigator.message(this.state.identifier, this.props.recipient,"cancelThing",{})
+                    }
+                }else{
+                    //movement forward, next has been pressed
+                    this.state.data.pathIndex++
+                }
             }
             this.setState(this.state)
+        }else{
+            SpinnerMain.hide()
         }
     }
 
@@ -168,6 +172,9 @@ class ThingsManager extends Component{
                 return
             }
             if(data.to==this.state.identifier){
+                if(data.subject=="register_loaded"){
+                    this.state.register=data.data
+                }
                 if(data.subject=="thingLoaded"){
                     this.state.thingIdentifier=data.data.identifier
                     if(this.state.data.auxPath.length>0){
@@ -175,6 +182,7 @@ class ThingsManager extends Component{
                     }else{
                         this.state.data.path[this.state.data.pathIndex]=data.data
                     }
+                    setTimeout(SpinnerMain.hide,500)
                 }
                 if(data.subject=="saved"){
                     this.afterSave(data.data)
@@ -202,6 +210,7 @@ class ThingsManager extends Component{
      * load a path until submit for the current application/activity
      */
     loadPath(){
+        SpinnerMain.show()
         Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/activity/path", this.state.data, (query,result)=>{
             this.state.data=result
             this.setState(this.state)
@@ -220,7 +229,8 @@ class ThingsManager extends Component{
         if(this.state.data.path != undefined && this.state.data.path[index] != undefined){
             index=this.state.data.pathIndex
             data=this.state.data.path[index]
-            data.repaint=true                   //repaint it!
+            let norepaint = (index==0 && data.nodeId==0) //to avoid double register on the first form
+            data.repaint=!norepaint                   //repaint it!
         }
         //aux has a priority!
         if(this.state.data.auxPath != undefined && this.state.data.auxPath.length>0){
@@ -303,7 +313,7 @@ class ThingsManager extends Component{
                 <BreadcrumbItem className="d-inline"  key={this.state.data.pathIndex+1}>
                     <div className="btn btn-link p-0 border-0"
                         onClick={()=>{
-                            Spinner.show()
+                            SpinnerMain.show()
                             Navigator.message(this.state.identifier, this.state.thingIdentifier, "saveGuest", {})
                         }}
                     >
@@ -353,7 +363,7 @@ class ThingsManager extends Component{
                         <BreadcrumbItem className="d-inline"  key={this.state.data.pathIndex+1}>
                             <div className="btn btn-link p-0 border-0"
                                 onClick={()=>{
-                                    Spinner.show()
+                                    SpinnerMain.show()
                                     Navigator.message(this.state.identifier, this.state.thingIdentifier, "saveGuest", {})
                                 }}
                             >
@@ -384,6 +394,20 @@ class ThingsManager extends Component{
         }
         return ret
     }
+    /**
+     * paint register or not
+     */
+    paintRegister(){
+        if(this.state.register != undefined){
+            return(
+                <Register
+                    data={this.state.register}
+                    recipient={this.state.identifier}
+                    readonly
+                />
+            )
+        }
+    }
     render(){
         if(this.state.data.path == undefined){
             return []
@@ -398,6 +422,9 @@ class ThingsManager extends Component{
                     <Col className="d-flex justify-content-end">
                         <h4>{" " + currentIndex
                                     +" "+ this.state.labels.of +" " + (this.state.data.path.length+this.state.data.auxPath.length)}</h4>
+                    </Col>
+                    <Col>
+                        {this.paintRegister()}
                     </Col>
                 </Row>
                 <Row hidden={this.props.readOnly}>
@@ -427,11 +454,13 @@ class ThingsManager extends Component{
 }
 export default ThingsManager
 ThingsManager.propTypes={
-    applicationUrl:PropTypes.string.isRequired,      //an url of the application
+    applicationUrl:PropTypes.string,                //an url of the application, deprecated in favor to applDictNodeId
     applDictNodeId:PropTypes.number,                //application description's node
     historyId:PropTypes.number.isRequired,          //link to the history record.
     application:PropTypes.bool,                     //load an application instead the current activity
     recipient:PropTypes.string.isRequired,          //recipient for messages (identifier)
     narrow:PropTypes.bool,                          // single or double columns layout, default double
     readOnly:PropTypes.bool,                        // read only or not, default editable
+    modiUnitId:PropTypes.number,                    // id of data unit selected to modify
+    prefLabel:PropTypes.string,                     // preflabel by default
 }

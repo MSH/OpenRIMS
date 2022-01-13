@@ -8,7 +8,7 @@ import CollectorTable from './utils/CollectorTable'
 import ButtonUni from './form/ButtonUni'
 import Navigator from './utils/Navigator'
 import Pharmadex from './Pharmadex'
-
+import Spinner from './utils/Spinner'
 /**
  * List of applications with possibility to add new ones
  */
@@ -63,10 +63,11 @@ class ApplicationList extends Component{
                     <Col xs='12' sm='12' lg='10' xl='10'>
                         <SearchControl label={this.state.labels.search} table={this.state.data.table} loader={this.loadTable} />
                     </Col>
-                    <Col xs='12' sm='12' lg='2' xl='2' hidden={Navigator.tabSetName()!='guest'}>
+                    <Col xs='12' sm='12' lg='2' xl='2' hidden={Navigator.tabSetName()!='guest' || this.props.noadd}>
                         <ButtonUni
                             label={this.state.labels.global_add}
                             onClick={()=>{
+                                Spinner.show()
                                 let data={
                                     url:this.state.data.url,
                                     applDictNodeId:this.state.data.dictItemId,
@@ -125,4 +126,5 @@ export default ApplicationList
 ApplicationList.propTypes={
     dictItemId:PropTypes.number.isRequired,         //id of dict item selected
     recipient:PropTypes.string.isRequired,          //the recipient of messages
+    noadd:PropTypes.bool,                           //disable "add" button
 }

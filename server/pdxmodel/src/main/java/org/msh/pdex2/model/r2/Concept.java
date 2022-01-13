@@ -16,7 +16,7 @@ package org.msh.pdex2.model.r2;
 import java.io.Serializable;
 import javax.persistence.*;
 /**
- * The relaxed implementation of the SCOS concept model. The closure table is using to implement tree hirerarchy
+ * The relaxed implementation of the SCOS concept model. The closure table is using to implement the tree
  */
 @Entity
 @org.hibernate.annotations.Proxy(lazy=false)
@@ -29,8 +29,8 @@ public class Concept implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22226E17C9085E9E206ECB")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22226E17C9085E9E206ECB", strategy="native")	
+	@GeneratedValue(generator="VAC22227217E2154D03003FCA")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227217E2154D03003FCA", strategy="native")	
 	private long ID;
 	
 	@Column(name="Identifier", nullable=true, length=255)	

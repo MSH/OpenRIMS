@@ -15,6 +15,9 @@ package org.msh.pdex2.model.old;
 
 import java.io.Serializable;
 import javax.persistence.*;
+/**
+ * Responsible for NMRA users configurations
+ */
 @Entity
 @org.hibernate.annotations.Proxy(lazy=false)
 @Table(name="`user`")
@@ -25,8 +28,8 @@ public class User implements Serializable {
 	
 	@Column(name="userId", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22226F179FFCD4B2D03836")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22226F179FFCD4B2D03836", strategy="native")	
+	@GeneratedValue(generator="VAC22227217E2144F47009150")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227217E2144F47009150", strategy="native")	
 	private long userId;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	

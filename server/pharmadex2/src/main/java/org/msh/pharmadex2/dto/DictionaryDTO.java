@@ -16,6 +16,8 @@ import org.msh.pharmadex2.dto.form.OptionDTO;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties(ignoreUnknown=true)
 public class DictionaryDTO extends AllowValidation{
+	//for amendments etc
+	private boolean changed;		
 	//url of the dictionary
 	private String url="";
 	//id of url concept, used to keep dictionary related literals
@@ -25,6 +27,8 @@ public class DictionaryDTO extends AllowValidation{
 	//name of a dictionary, for use as "home" link in the breadcrumb
 	private String home="";
 	private List<OptionDTO> path = new ArrayList<OptionDTO>();
+	// max depth for this dictionary
+	private int maxDepth=0;
 	//selected in all dictionaries
 	private FormFieldDTO<OptionDTO> selection=FormFieldDTO.of(new OptionDTO());
 	//select from here
@@ -44,6 +48,12 @@ public class DictionaryDTO extends AllowValidation{
 	//this dictionary should be in read-only mode
 	private boolean readOnly=false;
 
+	public boolean isChanged() {
+		return changed;
+	}
+	public void setChanged(boolean changed) {
+		this.changed = changed;
+	}
 	public String getUrl() {
 		return url;
 	}
@@ -132,6 +142,12 @@ public class DictionaryDTO extends AllowValidation{
 		this.pathSelected = pathSelected;
 	}
 
+	public int getMaxDepth() {
+		return maxDepth;
+	}
+	public void setMaxDepth(int maxDepth) {
+		this.maxDepth = maxDepth;
+	}
 	public boolean isSelectedOnly() {
 		return selectedOnly;
 	}
@@ -162,6 +178,7 @@ public class DictionaryDTO extends AllowValidation{
 		ret.setValid(isValid());
 		ret.setPathSelected(getPathSelected());
 		ret.setSelectedOnly(isSelectedOnly());
+		ret.setMaxDepth(getMaxDepth());
 		return ret;
 	}
 	/**

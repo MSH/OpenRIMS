@@ -15,6 +15,9 @@ package org.msh.pdex2.model.r2;
 
 import java.io.Serializable;
 import javax.persistence.*;
+/**
+ * Responsible to include follow-up information in the application and/or activity data
+ */
 @Entity
 @org.hibernate.annotations.Proxy(lazy=false)
 @Table(name="thingscheduler")
@@ -25,8 +28,8 @@ public class ThingScheduler implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22226E17C9085E9FB06ED9")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22226E17C9085E9FB06ED9", strategy="native")	
+	@GeneratedValue(generator="VAC22227217E2154D04103FD8")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227217E2154D04103FD8", strategy="native")	
 	private long ID;
 	
 	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	

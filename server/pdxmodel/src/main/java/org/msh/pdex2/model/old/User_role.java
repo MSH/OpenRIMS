@@ -15,6 +15,9 @@ package org.msh.pdex2.model.old;
 
 import java.io.Serializable;
 import javax.persistence.*;
+/**
+ * Old style M:M relation between users and roles
+ */
 @Entity
 @org.hibernate.annotations.Proxy(lazy=false)
 @Table(name="user_role")
@@ -25,8 +28,8 @@ public class User_role implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22226F179FFCD4B3103837")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22226F179FFCD4B3103837", strategy="identity")	
+	@GeneratedValue(generator="VAC22227217E2144F47109151")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227217E2144F47109151", strategy="identity")	
 	private int ID;
 	
 	@ManyToOne(targetEntity=org.msh.pdex2.model.old.Role.class)	

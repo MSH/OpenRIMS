@@ -9,7 +9,7 @@ class Spinner extends Component{
     constructor( props, context){
         super( props, context);
         this.state={
-            show:false
+            show:false,                     //show or hide the spinner
         }
         this.displayStyle = this.displayStyle.bind(this)
         this.controlSpinner = this.controlSpinner.bind(this)

@@ -25,9 +25,20 @@
  * 
  */
 class FieldsComparator{
-
-    constructor(component){
+    /**
+     * 
+     * @param {always "this"} component - mandatory
+     * @param {name of map (string)} map in component.state.data that contains pairs key,values. Example is "literals"
+     * @example
+     * new FieldComparator(this)
+     * @example
+     * new FieldComparator(this,"literals")
+     */
+    constructor(component,map){
         this.data = component.state.data
+        if(map != undefined){
+            this.data=component.state.data[map]
+        }
         if(this.data != undefined){
             this.copy = this.cloneIt(this.data)
         }else{

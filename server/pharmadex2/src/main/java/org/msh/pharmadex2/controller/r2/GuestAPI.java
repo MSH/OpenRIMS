@@ -1,6 +1,7 @@
 package org.msh.pharmadex2.controller.r2;
 
 import org.msh.pdex2.exception.ObjectNotFoundException;
+import org.msh.pharmadex2.dto.AmendmentNewDTO;
 import org.msh.pharmadex2.dto.ApplicationOrActivityDTO;
 import org.msh.pharmadex2.dto.ApplicationSelectDTO;
 import org.msh.pharmadex2.dto.ApplicationsDTO;
@@ -234,6 +235,24 @@ public class GuestAPI {
 			throw new DataNotFoundException(e);
 		}
 		return ret;
+	}
+	
+	/**
+	 * Load applications that are possible to amend
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/*/amendment/propose/add")
+	public AmendmentNewDTO amendmentProposeAdd(Authentication auth, @RequestBody AmendmentNewDTO data) throws DataNotFoundException {
+		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
+			try {
+				data=amendServ.proposeAdd(user, data);
+			} catch (ObjectNotFoundException e) {
+				throw new DataNotFoundException(e);
+			}
+		return data;
 	}
 	
 }

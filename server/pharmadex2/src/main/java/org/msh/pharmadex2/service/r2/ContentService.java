@@ -10,6 +10,7 @@ import java.util.Map;
 
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.model.r2.Concept;
+import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.ContentDTO;
 import org.msh.pharmadex2.dto.DictNodeDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;

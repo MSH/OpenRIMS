@@ -1,20 +1,13 @@
 package org.msh.pharmadex2.service.common;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.Map;
-
 import org.msh.pdex2.exception.ObjectNotFoundException;
-import org.msh.pdex2.model.enums.YesNoNA;
 import org.msh.pdex2.model.r2.Assembly;
 import org.msh.pdex2.model.r2.Checklistr2;
 import org.msh.pdex2.model.r2.Concept;
+import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.DataVariableDTO;
 import org.msh.pharmadex2.dto.DictNodeDTO;
 import org.msh.pharmadex2.dto.QuestionDTO;
-import org.msh.pharmadex2.dto.form.FormFieldDTO;
-import org.msh.pharmadex2.dto.form.OptionDTO;
-import org.msh.pharmadex2.service.r2.ClosureService;
 import org.msh.pharmadex2.service.r2.LiteralService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -99,6 +92,7 @@ public class EntityService {
 		assm.setMax(data.getMaxLen().getValue().intValue());
 		assm.setMin(data.getMinLen().getValue().intValue());
 		assm.setMult(data.getMult().getValue().getId()==1);
+		assm.setUnique(data.getUnique().getValue().getId()==1);
 		assm.setOrd(data.getOrd().getValue().intValue());
 		assm.setPropertyName(node);
 		assm.setReadOnly(data.getReadOnly().getValue().getId()==1);

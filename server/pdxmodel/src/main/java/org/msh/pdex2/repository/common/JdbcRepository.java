@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.msh.pdex2.dto.table.HasRow;
 import org.msh.pdex2.dto.table.Headers;
@@ -442,20 +443,7 @@ public class JdbcRepository {
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 	}
-	/**
-	 * Get registered objects
-	 * @param email - owner's email - null means all
-	 * @param rootUrl - root URL, i.e., ws.site - null means all
-	 */
-	public void registerdObjects(String email, String rootUrl) {
-		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
-		proc.withProcedureName("registered");
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue("email", email);
-		params.addValue("url", rootUrl);
-		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
-		proc.execute(params);
-	}
+
 	/**
 	 * Remove concept using stored proc
 	 * @param node
@@ -545,19 +533,202 @@ public class JdbcRepository {
 		params.addValue("applDataId", applDataId);
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
-		
 	}
 	/**
 	 * Simple product report
 	 * @param dataUrl
 	 * @param register_url
+	 * @param string2 
+	 * @param string 
 	 */
-	public void productReport(String dataUrl, String register_url) {
+	public void productReport(String data_url, String stage_url, String applicant_url, String register_url) {
 		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
 		proc.withProcedureName("report_products");
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue("data_url", dataUrl);
+		params.addValue("data_url", data_url);
+		params.addValue("state_url", stage_url);
+		params.addValue("applicant_url", applicant_url);
 		params.addValue("register_url", register_url);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+	}
+
+	/**
+	 * depth of the longest branch in the dictionary
+	 * Starts with 0
+	 * @param url
+	 * @return
+	 */
+	public Integer dict_depth(String url) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("dict_depth");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("url", url);
+		Map<String, Object> retMap = proc.execute(params);
+		return (Integer) retMap.get("dict_depth");
+	}
+	/**
+	 * Get next registration number for register's URL
+	 * @param url register's URL
+	 * @return
+	 */
+	@Transactional
+	public Long register_number(String url) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("register_number");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("url", url);
+		Map<String, Object> retMap = proc.execute(params);
+		return (Long) retMap.get("regno");
+	}
+	/**
+	 * Selected ATC codes
+	 * @param nodeId
+	 */
+	public void atc_selected(long nodeId) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("atc_selected");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("nodeid", nodeId);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+		
+	}
+	/**
+	 * All configurations for reports
+	 */
+	public void report_configurations() {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("report_configurations");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+	}
+	/**
+	 * Reports available for applicant (any user)
+	 */
+	public void report_applicant() {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("report_applicant");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+	}
+	/**
+	 * Reports available to NMRA user
+	 * @param email
+	 */
+	public void report_user(String email) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("report_user");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("email", email);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+	}
+	/**
+	 * Get all values of the literal given
+	 * @param rootId
+	 * @param varName
+	 */
+	public void literal_values(Long rootId, String varName) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("literal_values");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("rootid", rootId);
+		params.addValue("varname", varName);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+	}
+	
+	/**
+	 * List of all hosted applications
+	 * @param url
+	 * @param email
+	 */
+	public void applications_hosted(String url, String email) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("applications_hosted");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("dataurl", url);
+		params.addValue("email", email);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+		
+	}
+	/**
+	 * Select variables in modiUrl not covered by dataUrl 
+	 * @param modiUrl
+	 * @param dataUrl
+	 */
+	public void modification_check(String modiUrl, String dataUrl) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("modification_check");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("dataurl", dataUrl);
+		params.addValue("modiUrl", modiUrl);
+		proc.execute(params);
+	}
+	/**
+	 * Select registers by URL
+	 * @param regurl
+	 * if regurl is null - select all
+	 */
+	public void report_register(String regurl) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("report_register");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("regurl", regurl);
+		proc.execute(params);
+		
+	}
+	/**
+	 * List of schedulers to the temporary table
+	 * @param dataUrl
+	 * @param id
+	 */
+	public void scheduler_list(String url, long appldataid) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("scheduler_list");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("url", url);
+		params.addValue("appldataid", appldataid);
+		proc.execute(params);
+	}
+	/**
+	 * List of activities in application defined by URL and application data id
+	 * @param url
+	 * @param appldataid
+	 */
+	public void application_list(String url, long appldataid) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("application_list");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("url", url);
+		params.addValue("appldataid", appldataid);
+		proc.execute(params);
+		
+	}
+	/**
+	 * Get all data units in the application data given 
+	 * @param id
+	 */
+	public void data_units(long appldataid) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("data_units");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("appldataid", appldataid);
+		proc.execute(params);
+	}
+	/**
+	 * Application events for an application report
+	 * @param appldataid
+	 */
+	public void application_events(long appldataid) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("application_events");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("appldataid", appldataid);
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 	}

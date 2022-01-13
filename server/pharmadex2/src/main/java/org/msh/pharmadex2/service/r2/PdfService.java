@@ -8,6 +8,7 @@ import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.model.r2.Thing;
 import org.msh.pdex2.model.r2.ThingPerson;
+import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
@@ -67,7 +68,7 @@ public class PdfService {
 				if(persons != null && persons.size() > 0) {
 					for(AssemblyDTO assembly:persons) {
 						Concept pconcept = closureServ.loadConceptById(thing.getNodeId());
-						Thing th = boilerServ.loadThingByNode(pconcept);
+						Thing th = boilerServ.thingByNode(pconcept);
 						for(ThingPerson tp:th.getPersons()) {
 							if(tp.getVarName().equalsIgnoreCase(assembly.getPropertyName())) {
 								ThingDTO thingPerson = new ThingDTO();

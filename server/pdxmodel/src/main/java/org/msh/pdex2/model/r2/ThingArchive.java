@@ -25,8 +25,8 @@ public class ThingArchive implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22226E17C9085EA0306EDE")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22226E17C9085EA0306EDE", strategy="native")	
+	@GeneratedValue(generator="VAC22227017DA0F550DF00768")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227017DA0F550DF00768", strategy="native")	
 	private long ID;
 	
 	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Thing.class)	

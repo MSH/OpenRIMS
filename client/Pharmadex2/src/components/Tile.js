@@ -41,7 +41,7 @@ class Tile extends Component{
             hasMore = true
         }
         return(
-        <Container fluid
+        <Container fluid className="tile w-100 h-100 p-0 m-0"
             onMouseEnter={()=>{
                 this.state.picture=false
                 this.setState(this.state)
@@ -53,28 +53,28 @@ class Tile extends Component{
                 }
             }
         >
-        <Row hidden={!this.state.picture}>
+            <Row hidden={!this.state.picture}>
+                    <Col className='pr-5 pl-5 pt-1 pb-1'>
+                    <a href="#" key="1">
+                    <figure>
+                        <img src={this.props.content.image}/>
+                        <figcaption className={"bg-dark"}>
+                            <Row>
+                                <Col xs='1' sm='1' lg='1' xl='1'>
+                                    {FeatureState.markColor(this.props.content.color)}
+                                </Col>
+                                <Col xs='11' sm='11' lg='11' xl='11'>
+                                    {this.props.content.title}
+                                </Col>
+                            </Row>
+                        </figcaption>
+                    </figure>
+                    </a>
+                    </Col>
+            </Row>
+            <Row hidden={this.state.picture} className="h-100 w-100">
                 <Col className='pr-5 pl-5 pt-1 pb-1'>
-                <a href="#" key="1">
-                <figure>
-                    <img src={this.props.content.image}/>
-                    <figcaption className={"bg-dark"}>
-                        <Row>
-                            <Col xs='1' sm='1' lg='1' xl='1'>
-                                {FeatureState.markColor(this.props.content.color)}
-                            </Col>
-                            <Col xs='11' sm='11' lg='11' xl='11'>
-                                {this.props.content.title}
-                            </Col>
-                        </Row>
-                    </figcaption>
-                </figure>
-                </a>
-                </Col>
-        </Row>
-            <Row hidden={this.state.picture}>
-                <Col className='pr-5 pl-5 pt-1 pb-1'>
-                <Card className={"tile"} >
+                <Card  className="h-100 w-100">
                     <CardBody >
                         <CardTitle tag="h5">{this.props.content.title}</CardTitle>
                         <Row className="pl-2 ml-1">

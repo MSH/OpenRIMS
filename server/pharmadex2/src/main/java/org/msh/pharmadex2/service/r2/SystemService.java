@@ -10,6 +10,7 @@ import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
+import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.Dict2DTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
@@ -29,6 +30,14 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class SystemService {
+	//Finalization activity related
+	public static final String FINAL_AMEND = "AMEND";
+	public static final String FINAL_DECLINE = "DECLINE";
+	public static final String FINAL_ACCEPT = "ACCEPT";
+	public static final String FINAL_NO = "NO";
+	public static final String DICTIONARY_SYSTEM_FINALIZATION = "dictionary.system.finalization";
+	
+	
 	private static final Logger logger = LoggerFactory.getLogger(SystemService.class);
 	public static final String DICTIONARY_GUEST_DEREGISTRATION = "dictionary.guest.deregistration";
 	public static final String DICTIONARY_GUEST_AMENDMENTS = "dictionary.guest.amendments";
@@ -115,7 +124,29 @@ public class SystemService {
 		dict.setSystem(true);
 		return dict;
 	}
-
+	/**
+	 * Possible finalization scenarious
+	 * @param dictionaryDTO
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private void finalizeDict() throws ObjectNotFoundException {
+		// create or update the dictionary
+		Concept root = closureServ.loadRoot(DICTIONARY_SYSTEM_FINALIZATION);
+		String rootPref=literalServ.readPrefLabel(root);
+		String rootDescr = literalServ.readDescription(root);
+		if(rootPref.length()==0) {
+			literalServ.createUpdatePrefLabel(messages.get("finalize"), root);
+		}
+		if(rootDescr.length()==0) {
+			literalServ.createUpdateDescription(messages.get("finalize"), root);
+		}
+		literalServ.createUpdateLiteral("type", "system", root);
+		addRoleToDictionary(root, FINAL_NO);
+		addRoleToDictionary(root, FINAL_ACCEPT);
+		addRoleToDictionary(root, FINAL_DECLINE);
+		addRoleToDictionary(root, FINAL_AMEND);
+	}
 
 
 	/**
@@ -254,7 +285,7 @@ public class SystemService {
 			literalServ.createUpdateLiteral("type", "system", root);
 		}
 		List<Concept> level = literalServ.loadOnlyChilds(root);
-		if(level.size()==0) {
+		if(level.size()!=8) {
 			//create level
 			systemDictNode(root, "0", messages.get("continue"));
 			systemDictNode(root, "1", messages.get("route_action"));
@@ -263,6 +294,7 @@ public class SystemService {
 			systemDictNode(root, "4", messages.get("approve"));
 			systemDictNode(root, "5", messages.get("reject"));
 			systemDictNode(root, "6", messages.get("reassign"));
+			systemDictNode(root, "7", messages.get("amendment"));
 		}
 		ret=dictServ.createDictionary(ret);
 		ret.setMult(false);
@@ -399,6 +431,15 @@ public class SystemService {
 		return thisDictRoot.getIdentifier().equalsIgnoreCase(DICTIONARY_HOST_APPLICATIONS);
 	}
 	/**
+	 * Is it amendment application?
+	 * @param curHis
+	 * @return
+	 */
+	public boolean isAmend(History curHis) {
+		Concept thisDictRoot = closureServ.getParent(curHis.getApplDict());
+		return thisDictRoot.getIdentifier().equalsIgnoreCase(DICTIONARY_GUEST_AMENDMENTS);
+	}
+	/**
 	 * Recognize host dictionary node by host process URL
 	 * @param processUrl
 	 * @return
@@ -481,5 +522,37 @@ public class SystemService {
 		}
 		return ret;
 	}
+	/**
+	 * Ensure, that all system dictionaries are existing and have been initialized properly
+	 * @throws ObjectNotFoundException 
+	 */
+	public void checkDictionaries() throws ObjectNotFoundException {
+		checkAddressDict();
+		userRolesDict(new DictionaryDTO());
+		checkLifeCycleDicts();
+		submitActionDictionary();
+		finalizeDict();
+	}
+
+
+	/**
+	 * Guest, Host and Shutdown
+	 * @throws ObjectNotFoundException 
+	 */
+	private void checkLifeCycleDicts() throws ObjectNotFoundException {
+		dictServ.checkDictionary(DICTIONARY_GUEST_APPLICATIONS);
+		dictServ.checkDictionary(DICTIONARY_HOST_APPLICATIONS);
+		dictServ.checkDictionary(DICTIONARY_SHUTDOWN_APPLICATIONS);
+	}
+
+	/**
+	 * If address dictionary does not exist, create new one
+	 * @throws ObjectNotFoundException 
+	 */
+	private void checkAddressDict() throws ObjectNotFoundException {
+		dictServ.checkDictionary(DICTIONARY_ADMIN_UNITS);
+	}
+
+
 
 }

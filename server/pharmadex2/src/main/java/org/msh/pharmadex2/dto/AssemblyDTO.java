@@ -22,6 +22,7 @@ public class AssemblyDTO extends AllowValidation {
 	private boolean readOnly=false;
 	private boolean textArea=false;
 	private boolean mult=false;
+	private boolean unique=false;
 	private LocalDate minDate=LocalDate.now().minusYears(3);	//default
 	private LocalDate maxDate=LocalDate.now().plusYears(3);
 	//quantities for documents, dictionary selections, persons 
@@ -32,6 +33,9 @@ public class AssemblyDTO extends AllowValidation {
 	private BigDecimal max = BigDecimal.valueOf(100000000L);
 	//file types allowed to upload
 	private String fileTypes="*"; //see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/accept
+	//description for help
+	private String description="";
+	
 	public String getUrl() {
 		return url;
 	}
@@ -82,7 +86,12 @@ public class AssemblyDTO extends AllowValidation {
 	public void setMult(boolean mult) {
 		this.mult = mult;
 	}
-	
+	public boolean isUnique() {
+		return unique;
+	}
+	public void setUnique(boolean unique) {
+		this.unique = unique;
+	}
 	public LocalDate getMinDate() {
 		return minDate;
 	}
@@ -126,6 +135,13 @@ public class AssemblyDTO extends AllowValidation {
 	}
 	public void setFileTypes(String fileTypes) {
 		this.fileTypes = fileTypes;
+	}
+	
+	public String getDescription() {
+		return description;
+	}
+	public void setDescription(String description) {
+		this.description = description;
 	}
 	@Override
 	public String toString() {

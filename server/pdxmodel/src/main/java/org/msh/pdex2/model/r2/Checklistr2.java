@@ -15,6 +15,9 @@ package org.msh.pdex2.model.r2;
 
 import java.io.Serializable;
 import javax.persistence.*;
+/**
+ * New implementation of checklists
+ */
 @Entity
 @org.hibernate.annotations.Proxy(lazy=false)
 @Table(name="checklistr2")
@@ -25,8 +28,8 @@ public class Checklistr2 implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22226E17C9085E9F806ED7")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22226E17C9085E9F806ED7", strategy="native")	
+	@GeneratedValue(generator="VAC22227217E2154D03F03FD6")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227217E2154D03F03FD6", strategy="native")	
 	private long ID;
 	
 	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	

@@ -15,6 +15,9 @@ package org.msh.pdex2.model.r2;
 
 import java.io.Serializable;
 import javax.persistence.*;
+/**
+ * Responsible for follow-up tasks
+ */
 @Entity
 @org.hibernate.annotations.Proxy(lazy=false)
 @Table(name="scheduler")
@@ -25,21 +28,9 @@ public class Scheduler implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22226E17C9085E9FE06EDB")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22226E17C9085E9FE06EDB", strategy="native")	
+	@GeneratedValue(generator="VAC22227217E2154D04403FDA")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227217E2154D04403FDA", strategy="native")	
 	private long ID;
-	
-	@OneToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
-	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.SAVE_UPDATE, org.hibernate.annotations.CascadeType.LOCK})	
-	@JoinColumns({ @JoinColumn(name="activityDataID") })	
-	@Basic(fetch=FetchType.LAZY)	
-	private org.msh.pdex2.model.r2.Concept activityData;
-	
-	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
-	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.LOCK})	
-	@JoinColumns({ @JoinColumn(name="appdataID", referencedColumnName="ID") })	
-	@Basic(fetch=FetchType.LAZY)	
-	private org.msh.pdex2.model.r2.Concept appData;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
 	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.ALL, org.hibernate.annotations.CascadeType.DELETE_ORPHAN})	
@@ -121,22 +112,6 @@ public class Scheduler implements Serializable {
 	
 	public org.msh.pdex2.model.r2.Concept getConcept() {
 		return concept;
-	}
-	
-	public void setAppData(org.msh.pdex2.model.r2.Concept value) {
-		this.appData = value;
-	}
-	
-	public org.msh.pdex2.model.r2.Concept getAppData() {
-		return appData;
-	}
-	
-	public void setActivityData(org.msh.pdex2.model.r2.Concept value) {
-		this.activityData = value;
-	}
-	
-	public org.msh.pdex2.model.r2.Concept getActivityData() {
-		return activityData;
 	}
 	
 	public String toString() {

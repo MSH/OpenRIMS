@@ -4,12 +4,9 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.msh.pdex2.dto.table.Headers;
-import org.msh.pdex2.dto.table.TableHeader;
 import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
@@ -20,6 +17,7 @@ import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.model.r2.Thing;
 import org.msh.pdex2.model.r2.ThingDoc;
 import org.msh.pdex2.repository.common.JdbcRepository;
+import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.controller.common.DocxView;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.PersonSelectorDTO;
@@ -70,6 +68,24 @@ public class ResourceService {
 			return new ByteArrayResource(messages.loadNmraLogo().getBytes());
 		}
 	}
+	
+	/**
+	 * Load NMRA footer
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public Resource footer() throws ObjectNotFoundException {
+		Concept node=fileNode("images.design", "resources.system.logo.footer");
+		if(node != null) {
+			FileResource fres=boilerServ.fileResourceByNode(node);
+			return new ByteArrayResource(fres.getFile());
+		}else {
+			return new ByteArrayResource(messages.loadNmraLogo().getBytes());
+		}
+	}
+	
+	
 	/**
 	 * Read a file resource as ByteArrayResource
 	 * @param url
@@ -79,7 +95,7 @@ public class ResourceService {
 	 */
 	private Concept fileNode(String url, String varName) throws ObjectNotFoundException {
 		Concept node = resourceNode(url);
-		Thing thing = boilerServ.loadThingByNode(node);
+		Thing thing = boilerServ.thingByNode(node);
 		for(ThingDoc td :thing.getDocuments()) {
 			String dictNodeUrl = literalServ.readValue("url", td.getDictNode());
 			if(dictNodeUrl.equalsIgnoreCase(varName)) {
@@ -99,7 +115,7 @@ public class ResourceService {
 	@Transactional
 	public ResourceDTO table(AssemblyDTO res, ResourceDTO resDto) throws ObjectNotFoundException {
 		Concept node = resourceNode(res.getUrl());
-		Thing thing=boilerServ.loadThingByNode(node, new Thing());
+		Thing thing=boilerServ.thingByNode(node, new Thing());
 		if(thing.getDocuments().size()>0) {
 			ThingDoc td = thing.getDocuments().iterator().next();
 			TableQtb table = resDto.getTable();
@@ -218,7 +234,5 @@ public class ResourceService {
 		}
 		return dto;
 	}
-
-
 
 }

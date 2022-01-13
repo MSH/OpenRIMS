@@ -12,6 +12,7 @@ import Monitoring from './Monitoring'
 import Reports from './Reports'
 import PrintPreview from './PrintPreview'
 import Spinner from './utils/Spinner'
+import SpinnerMain from './utils/SpinnerMain'
 
 /**
  * Uniform content component
@@ -280,6 +281,7 @@ class Content extends Component{
         return(
             <Container fluid className={"shadow mb-2 mt-1 bg-white"} style={{ minHeight:'80vh'}}>
                 <Spinner />
+                <SpinnerMain />
               {this.placeContent()}
             </Container>
         )

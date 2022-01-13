@@ -122,6 +122,13 @@ public class TableQtb {
 		int ret = (int)Math.ceil((float)totalSize/pageSize);
 		return ret;
 	}
+	/**
+	 * Has this table headers
+	 * @return
+	 */
+	public boolean hasHeaders() {
+		return getHeaders().getHeaders().size()>0;
+	}
 
 	
 }

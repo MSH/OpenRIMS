@@ -57,6 +57,64 @@ class Dictionary extends Component{
         this.selectRow=this.selectRow.bind(this)
         this.loadForward=this.loadForward.bind(this)
     }
+       /**
+     * Return changed style
+     * @param {DictionaryDTO} dict 
+     */
+        static changed(dict){
+            if(dict.changed){
+                return "markedbycolor"
+            }else{
+                return ""
+            }
+        }
+    /**
+     * Place a dictionary to a thing
+     * name - variable name
+     * dict - ready to use dictionary
+     * index - index for key property
+     * ro - this.props.readOnly from the thing
+     * recipient - this.state.identifier from the thing
+     * label - is resolved label for the variable
+     */
+    static placeDictionary(name,dict, index, ro, recipient, label){
+        if(dict == undefined){
+            return []
+        }
+        ro=ro || dict.readOnly
+        if(ro){
+            dict.readOnly=true
+        }
+        let color="info"
+        if(dict.strict){
+            color="danger"
+        }
+        dict.varName=name
+        return(
+            <Row key={index} className={Dictionary.changed(dict)}>
+                <Col>
+                    <Row>
+                        <Col>
+                            <h6>{label}</h6>
+                        </Col>
+                    </Row>
+                    <Row hidden={dict.valid}>
+                        <Col>
+                            <Alert color={color} className="p-0 m-0">
+                                <small>{dict.identifier}</small>
+                            </Alert>
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col>
+                            <Dictionary key={name+index} identifier={name} recipient={recipient} data={dict} display/>
+                        </Col>
+                    </Row>
+                    
+                </Col>
+            </Row>
+        )
+    }
     /**
      * listen for askData broadcast and getData only to own address
      */
@@ -265,7 +323,7 @@ class Dictionary extends Component{
          if(index==-1){
              this.state.data.prevSelected.push(row.dbID)
          } 
-         if(!this.state.data.mult){
+         if((!this.state.data.mult) || (this.state.data.path.length!=this.state.data.maxDepth)){
              //rest of selected should be de-selected if one
              this.state.data.table.rows.forEach((r)=>{
                  if(r.selected && r.dbID != row.dbID){
@@ -284,7 +342,7 @@ class Dictionary extends Component{
     }
 
     loadForward(){
-        if(!this.state.data.mult){
+        //if(!this.state.data.mult){
             let varName=this.state.data.varName//
             Fetchers.postJSON('/api/common/dictionary/load/next', this.state.data, (query,result)=>{
                 if(result.table.rows.length > 0 || !this.props.display){
@@ -298,7 +356,7 @@ class Dictionary extends Component{
                 this.state.sendMess=true
                 this.setState(this.state)
             })
-        }
+        //}
     }
 
     render(){
