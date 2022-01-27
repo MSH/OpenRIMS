@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 import org.msh.pdex2.exception.ObjectNotFoundException;
-import org.msh.pdex2.model.r2.PublicOrgSubject;
 import org.msh.pdex2.model.r2.PublicOrganization;
 import org.msh.pharmadex2.Pharmadex2Application;
 import org.msh.pharmadex2.dto.DictNodeDTO;

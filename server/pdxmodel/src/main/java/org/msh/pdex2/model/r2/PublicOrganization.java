@@ -29,8 +29,8 @@ public class PublicOrganization implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22227217E2154D02D03FC8")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22227217E2154D02D03FC8", strategy="native")	
+	@GeneratedValue(generator="VAC22227217E7CAF26DF0A157")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227217E7CAF26DF0A157", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
@@ -39,23 +39,11 @@ public class PublicOrganization implements Serializable {
 	@Basic(fetch=FetchType.LAZY)	
 	private org.msh.pdex2.model.r2.Concept concept;
 	
-	@OneToOne(targetEntity=org.msh.pdex2.model.r2.WebResource.class)	
-	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.ALL, org.hibernate.annotations.CascadeType.DELETE_ORPHAN})	
-	@JoinColumns({ @JoinColumn(name="webresourceID") })	
-	@Basic(fetch=FetchType.LAZY)	
-	private org.msh.pdex2.model.r2.WebResource logo;
-	
-	@OneToOne(targetEntity=org.msh.pdex2.model.r2.OrgRole.class)	
-	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.SAVE_UPDATE, org.hibernate.annotations.CascadeType.LOCK})	
-	@JoinColumns({ @JoinColumn(name="orgroleID") })	
-	@Basic(fetch=FetchType.LAZY)	
-	private org.msh.pdex2.model.r2.OrgRole orgRole;
-	
-	@OneToMany(targetEntity=org.msh.pdex2.model.r2.PublicOrgSubject.class)	
+	@OneToMany(targetEntity=org.msh.pdex2.model.r2.OrgAdmin.class)	
 	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.ALL, org.hibernate.annotations.CascadeType.DELETE_ORPHAN})	
 	@JoinColumn(name="publicorganizationID", nullable=true)	
 	@org.hibernate.annotations.LazyCollection(org.hibernate.annotations.LazyCollectionOption.TRUE)	
-	private java.util.Set<org.msh.pdex2.model.r2.PublicOrgSubject> subjects = new java.util.HashSet<org.msh.pdex2.model.r2.PublicOrgSubject>();
+	private java.util.Set<org.msh.pdex2.model.r2.OrgAdmin> adminUnits = new java.util.HashSet<org.msh.pdex2.model.r2.OrgAdmin>();
 	
 	private void setID(long value) {
 		this.ID = value;
@@ -69,20 +57,6 @@ public class PublicOrganization implements Serializable {
 		return getID();
 	}
 	
-	/**
-	 * A property to link an organization to its logo. The value of this property can simply be the URL of the logo but it is better for developers if it links to an object that provides the URL of the image and essential metadata about it, notably its dimensions
-	 */
-	public void setLogo(org.msh.pdex2.model.r2.WebResource value) {
-		this.logo = value;
-	}
-	
-	/**
-	 * A property to link an organization to its logo. The value of this property can simply be the URL of the logo but it is better for developers if it links to an object that provides the URL of the image and essential metadata about it, notably its dimensions
-	 */
-	public org.msh.pdex2.model.r2.WebResource getLogo() {
-		return logo;
-	}
-	
 	public void setConcept(org.msh.pdex2.model.r2.Concept value) {
 		this.concept = value;
 	}
@@ -91,26 +65,12 @@ public class PublicOrganization implements Serializable {
 		return concept;
 	}
 	
-	public void setOrgRole(org.msh.pdex2.model.r2.OrgRole value) {
-		this.orgRole = value;
+	public void setAdminUnits(java.util.Set<org.msh.pdex2.model.r2.OrgAdmin> value) {
+		this.adminUnits = value;
 	}
 	
-	public org.msh.pdex2.model.r2.OrgRole getOrgRole() {
-		return orgRole;
-	}
-	
-	/**
-	 * Relation to subjects.
-	 */
-	public void setSubjects(java.util.Set<org.msh.pdex2.model.r2.PublicOrgSubject> value) {
-		this.subjects = value;
-	}
-	
-	/**
-	 * Relation to subjects.
-	 */
-	public java.util.Set<org.msh.pdex2.model.r2.PublicOrgSubject> getSubjects() {
-		return subjects;
+	public java.util.Set<org.msh.pdex2.model.r2.OrgAdmin> getAdminUnits() {
+		return adminUnits;
 	}
 	
 	

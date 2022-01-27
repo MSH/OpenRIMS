@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pharmadex2.dto.form.AllowValidation;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -22,9 +23,11 @@ public class PublicOrgDTO extends AllowValidation {
 	//ID of tthe organization
 	private long id =0;
 	//node in the tree for this organization
-	DictNodeDTO node = new DictNodeDTO();
-	//dictionaries have been configured for this organization
-	Map<String,DictionaryDTO> dictionaries = new HashMap<String, DictionaryDTO>();
+	private DictNodeDTO node = new DictNodeDTO();
+	private TableQtb table=new TableQtb();
+	private List<Long> selected = new ArrayList<Long>();
+	private Long rowId=0l;
+	private boolean all=true;
 	
 	public long getId() {
 		return id;
@@ -33,17 +36,39 @@ public class PublicOrgDTO extends AllowValidation {
 		this.id = id;
 	}
 	
-	public Map<String, DictionaryDTO> getDictionaries() {
-		return dictionaries;
-	}
-	public void setDictionaries(Map<String, DictionaryDTO> dictionaries) {
-		this.dictionaries = dictionaries;
-	}
 	public DictNodeDTO getNode() {
 		return node;
 	}
 	public void setNode(DictNodeDTO node) {
 		this.node = node;
+	}
+	
+	public TableQtb getTable() {
+		return table;
+	}
+	public void setTable(TableQtb table) {
+		this.table = table;
+	}
+	
+	public List<Long> getSelected() {
+		return selected;
+	}
+	public void setSelected(List<Long> selected) {
+		this.selected = selected;
+	}
+	
+	public Long getRowId() {
+		return rowId;
+	}
+	public void setRowId(Long rowId) {
+		this.rowId = rowId;
+	}
+	
+	public boolean isAll() {
+		return all;
+	}
+	public void setAll(boolean all) {
+		this.all = all;
 	}
 	/**
 	 * Create DTO from concept node

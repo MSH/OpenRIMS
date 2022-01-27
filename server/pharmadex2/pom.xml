@@ -15,6 +15,8 @@
 	<description>Pharmadex software intends assist National Medicine Regulatory in main regulatory functions</description>
 	<properties>
 		<java.version>1.8</java.version>
+		<buildTime>${maven.build.timestamp}</buildTime>
+		<release>1.0.0</release>
 	</properties>
 	<dependencies>
 		<dependency>

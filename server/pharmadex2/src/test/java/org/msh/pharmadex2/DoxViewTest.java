@@ -2,8 +2,11 @@ package org.msh.pharmadex2;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,9 +14,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 
+import javax.imageio.ImageIO;
+
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.util.IOUtils;
+import org.apache.poi.util.Units;
 import org.apache.poi.xwpf.usermodel.Document;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.junit.jupiter.api.Test;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.services.r2.ClosureService;
@@ -23,6 +32,11 @@ import org.msh.pharmadex2.dto.ResourceDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.r2.ResolverService;
 import org.msh.pharmadex2.service.r2.ResourceService;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTFldChar;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTR;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTSimpleField;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTText;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.STFldCharType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -42,8 +56,8 @@ public class DoxViewTest {
 	ResourceService resServ;
 	@Autowired
 	ClosureService closureServ;
-	
-	
+
+
 	/**
 	 * Prepare a model from MS word file
 	 * @throws ObjectNotFoundException 
@@ -54,7 +68,7 @@ public class DoxViewTest {
 	public void prepareModel() throws ObjectNotFoundException, IOException, InvalidFormatException {
 		InputStream stream = getClass().getClassLoader().getResourceAsStream("Invoice2000-1.docx");
 		assertTrue(stream.available()>0);
-		DocxView dx = new DocxView(stream);
+		DocxView dx = new DocxView(stream,boilerServ);
 		Map<String,Object> model = dx.initModel();
 		ResourceDTO td = new ResourceDTO();
 		td.setHistoryId(318);
@@ -63,26 +77,26 @@ public class DoxViewTest {
 			System.out.println(key+"=>"+model.get(key));
 		}
 	}
-	
+
 	@Test
 	public void insertImageOther() throws ObjectNotFoundException, IOException, InvalidFormatException {
 		Path pathFile = Paths.get("src","test","resources", "Invoice2000-1.docx");
 		File file = pathFile.toFile();
 		CustomXWPFDocument document = new CustomXWPFDocument(new FileInputStream(file));
-		
+
 		Path pathFileout = Paths.get("src","test","resources", "myFile.docx");
 		File fileout = pathFileout.toFile();
-        FileOutputStream fos = new FileOutputStream(fileout);
-        
-        Path pathFilejpg = Paths.get("src","test","resources", "Gov-logo.jpg");
+		FileOutputStream fos = new FileOutputStream(fileout);
+
+		Path pathFilejpg = Paths.get("src","test","resources", "Gov-logo.jpg");
 		File filejpg = pathFilejpg.toFile();
-        String id = document.addPictureData(new FileInputStream(filejpg), Document.PICTURE_TYPE_JPEG);
-        document.createPicture(id,document.getNextPicNameNumber(Document.PICTURE_TYPE_JPEG), 64, 64);
-        document.write(fos);
-        fos.flush();
-        fos.close();	
+		String id = document.addPictureData(new FileInputStream(filejpg), Document.PICTURE_TYPE_JPEG);
+		document.createPicture(id,document.getNextPicNameNumber(Document.PICTURE_TYPE_JPEG), 64, 64);
+		document.write(fos);
+		fos.flush();
+		fos.close();	
 	}
-	
+
 	@Test
 	public void insertImage() throws ObjectNotFoundException, IOException, InvalidFormatException {
 		Path pathFile = Paths.get("src","test","resources", "Invoice2000-1.docx");
@@ -90,18 +104,114 @@ public class DoxViewTest {
 		//DocxView dx = new DocxView(new FileInputStream(file));
 		//dx.resolveDocumentTset();
 		CustomXWPFDocument document = new CustomXWPFDocument(new FileInputStream(file));
-		
+
 		Path pathFileout = Paths.get("src","test","resources", "myFile.docx");
 		File fileout = pathFileout.toFile();
-        FileOutputStream fos = new FileOutputStream(fileout);
-        
-        Path pathFilejpg = Paths.get("src","test","resources", "Gov-logo.jpg");
+		FileOutputStream fos = new FileOutputStream(fileout);
+
+		Path pathFilejpg = Paths.get("src","test","resources", "Gov-logo.jpg");
 		File filejpg = pathFilejpg.toFile();
-		
+
 		String id = document.addPictureData(IOUtils.toByteArray(new FileInputStream(filejpg)), Document.PICTURE_TYPE_JPEG);
 		document.createPicture(id, document.getNextPicNameNumber(Document.PICTURE_TYPE_JPEG), 200, 200);
 		document.write(fos);
-        fos.flush();
-        fos.close();	
+		fos.flush();
+		fos.close();	
+	}
+
+	/**
+	 * Insert the INCLUDEPICTURE field to the document
+	 * Doesn't work
+	 * @throws IOException 
+	 */
+	@Test
+	public void insertField() throws IOException {
+		Path pathFile = Paths.get("src","test","resources", "InsertField.docx");
+		File file = pathFile.toFile();
+		FileInputStream stream = new FileInputStream(file);
+		XWPFDocument doc = new XWPFDocument(stream);
+		XWPFParagraph paragraph = doc.createParagraph();
+		XWPFRun r1=paragraph.createRun();
+		r1.getCTR().addNewFldChar().setFldCharType(STFldCharType.BEGIN);
+		XWPFRun r2=paragraph.createRun();
+		CTText ctText = r2.getCTR().addNewInstrText();
+		ctText.setStringValue("preserve");
+		XWPFRun r3=paragraph.createRun();
+		ctText = r3.getCTR().addNewInstrText();
+		ctText.setStringValue("INCLUDEPICTURE \"http://storage.pigua.info/uploads/Anastasia/2019/August/28_Saw.jpg\" \\* MERGEFORMATINET");
+		XWPFRun r4=paragraph.createRun();
+		ctText = r4.getCTR().addNewInstrText();
+		ctText.setStringValue("preserve");
+		XWPFRun r5=paragraph.createRun();
+		r5.getCTR().addNewFldChar().setFldCharType(STFldCharType.SEPARATE);
+		XWPFRun r6=paragraph.createRun();
+		r6.getCTR().addNewFldChar().setFldCharType(STFldCharType.END);
+		Path pathFileout = Paths.get("src","test","resources", "myFile.docx");
+		File fileout = pathFileout.toFile();
+		FileOutputStream fos = new FileOutputStream(fileout);
+		doc.write(fos);
+		fos.flush();
+		fos.close();
+		doc.close();
+	}
+	
+	/**
+	 * Insert a plain image 
+	 * @throws IOException
+	 * @throws InvalidFormatException 
+	 * @throws ObjectNotFoundException 
+	 */
+	@Test
+	public void insertPlainImage() throws IOException, InvalidFormatException, ObjectNotFoundException {
+		//doc
+		Path pathFile = Paths.get("src","test","resources", "InsertField.docx");
+		File file = pathFile.toFile();
+		FileInputStream stream = new FileInputStream(file);
+		DocxView dx = new DocxView(stream,null);
+		dx.initModel();
+		//pic
+		Path pathPic = Paths.get("src","test","resources", "swin.png");
+		File pic = pathPic.toFile();
+		FileInputStream picStream = new FileInputStream(pic);
+		
+		XWPFDocument doc = dx.getDoc();
+		XWPFParagraph paragraph = doc.createParagraph();
+		XWPFRun run =paragraph.createRun();
+		run=dx.insertPicture(IOUtils.toByteArray(picStream), "image/png", run);
+		Path pathFileout = Paths.get("src","test","resources", "myFile.docx");
+		File fileout = pathFileout.toFile();
+		FileOutputStream fos = new FileOutputStream(fileout);
+		doc.write(fos);
+		fos.flush();
+		fos.close();
+		doc.close();
+	}
+	
+	@Test
+	public void insertSimpleImage() throws ObjectNotFoundException, IOException, InvalidFormatException {
+		Path pathFile = Paths.get("src","test","resources", "InsertField.docx");
+		File file = pathFile.toFile();
+		//DocxView dx = new DocxView(new FileInputStream(file));
+		//dx.resolveDocumentTset();
+		CustomXWPFDocument document = new CustomXWPFDocument(new FileInputStream(file));
+
+		Path pathFileout = Paths.get("src","test","resources", "myFile.docx");
+		File fileout = pathFileout.toFile();
+		FileOutputStream fos = new FileOutputStream(fileout);
+
+		Path pathPic = Paths.get("src","test","resources", "swin.jpg");
+		File pic = pathPic.toFile();
+		FileInputStream picStream = new FileInputStream(pic);
+		byte[] picPig = IOUtils.toByteArray(picStream);
+		ByteArrayInputStream istream =new ByteArrayInputStream(picPig);
+		BufferedImage img = ImageIO.read(istream);
+		int height= img.getHeight();
+		int width = img.getWidth();
+		String id = document.addPictureData(picPig, Document.PICTURE_TYPE_PNG);
+		int bId=document.getNextPicNameNumber(Document.PICTURE_TYPE_PNG);
+		document.createPicture(id, bId, width, height);
+		document.write(fos);
+		fos.flush();
+		fos.close();	
 	}
 }

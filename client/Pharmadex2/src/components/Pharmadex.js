@@ -44,6 +44,7 @@ class Pharmadex extends Component{
                             <Content menu={Navigator.tabSetName()} navigator={this.nav}/>
                         </Col>
                     </Row>
+                    <AlertFloat />
                     <Row>
                         <Col xs='12' sm='12' lg='12' xl='12'>
                             <About menu={Navigator.tabSetName()} navigator={this.nav}/>

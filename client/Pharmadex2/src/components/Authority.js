@@ -1,12 +1,14 @@
 import React , {Component} from 'react'
-import {Container,Row, Col,Alert, Breadcrumb, BreadcrumbItem} from 'reactstrap'
+import {Container,Row, Col, Breadcrumb, BreadcrumbItem, ButtonGroup, Button} from 'reactstrap'
 import PropTypes from 'prop-types'
 import Literals from './Literals'
 import Navigator from './utils/Navigator'
 import ButtonUni from './form/ButtonUni'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
-import Dictionary from './Dictionary'
+import CollectorTable from './utils/CollectorTable'
+import SearchControl from './utils/SearchControl'
+import Pharmadex from './Pharmadex'
 
 /**
  * Container to Edit/add an authority
@@ -23,6 +25,11 @@ class Authority extends Component{
             ready:false,
             data:{},
             labels:{
+                prefLabel:'',
+                label_list:'',
+                selectedonly:'',
+                responsibilityarea:'',
+                search:'',
                 add:'',
                 save:'',
                 cancel:'',
@@ -34,6 +41,8 @@ class Authority extends Component{
         this.createBreadCrumb=this.createBreadCrumb.bind(this)
         this.eventProcessor=this.eventProcessor.bind(this)
         this.cancel=this.cancel.bind(this)
+        this.buttons=this.buttons.bind(this)
+        this.loadTable=this.loadTable.bind(this)
     }
 
     createBreadCrumb(){
@@ -84,45 +93,77 @@ class Authority extends Component{
     componentWillUnmount(){
         window.removeEventListener("message",this.eventProcessor)
     }
-    /**
-     * Place dictionaries
-     */
-    dictionaries(){
-        let ret=[]
-        let dictionaries= this.state.data.dictionaries
-        let keys = Object.keys(dictionaries)
-        if(Fetchers.isGoodArray(keys)){
-            keys.forEach((key)=>{
-                if(Fetchers.isTrueObject(dictionaries[key])){
-                    ret.push(
-                        <Row  key={key}>
-                            <Col>                   
-                                <Row>
-                                    <Col>
-                                        <Dictionary identifier= {key}
-                                                    data={dictionaries[key]} 
-                                                    recipient={this.identifier}/>
-                                    </Col>
-                                </Row>
-                                <Row hidden={dictionaries[key].valid}>
-                                    <Col>
-                                        <Alert color="danger" className="p-0 m-0">
-                                            <small>{dictionaries[key].identifier}</small>
-                                        </Alert>
-                                    </Col>
-                                </Row>
-                            </Col>
-                        </Row>
-                    )
-                }
-            })
-        }
-        return ret
-    }
+ 
 
     cancel(){
         let caller=this.props.caller
         Navigator.navigate(caller.tab,caller.component,caller.parameter)
+    }
+    /**
+     * Buttons toolbar
+     */
+    buttons(){
+        return(
+            <Row>
+                <Col xs='12' sm='12' lg='6' xl='6'>
+                </Col>
+                <Col xs='12' sm='12' lg='2' xl='2'>
+                    <ButtonUni
+                            label={this.state.labels.save}
+                            onClick={()=>{
+                                Fetchers.postJSONNoSpinner("/api/admin/organization/save", this.state.data,(query,result)=>{
+                                    if(result.valid){
+                                        //return to the caller
+                                        let caller=this.props.caller
+                                        this.state.data=result
+                                        this.cancel()
+                                    }else{
+                                        this.state.data=result
+                                        let mess = this.state.labels.prefLabel +"! " +this.state.data.node.literals.prefLabel.suggest
+                                        Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:mess, color:'danger'})
+                                        this.setState(this.state)
+                                    }
+                                })
+                            }}
+                            color="primary"
+                        />
+                </Col>
+                <Col  xs='12' sm='12' lg='2' xl='2'>
+                    <ButtonUni
+                            label={this.state.labels.global_suspend}
+                            onClick={()=>{
+                            Fetchers.postJSONNoSpinner("/api/admin/organization/suspend", this.state.data,(query,result)=>{
+                                if(this.state.data.valid){
+                                    this.cancel()
+                                }else{
+                                    this.state.data=result
+                                    this.setState(this.state)
+                                }
+                            })
+                            }}
+                            color="warning"
+                            disabled={!this.state.data.node.leaf}
+                        />
+                </Col>
+                <Col  xs='12' sm='12' lg='2' xl='2'>
+                    <ButtonUni
+                        label={this.state.labels.cancel}
+                        onClick={this.cancel}
+                        color="secondary"
+                    />
+                </Col>
+            </Row>
+        )
+    }
+    /**
+     * Load only territory responsible table
+     */
+    loadTable(){
+        Fetchers.postJSONNoSpinner("/api/admin/organization/load/responsibility", this.state.data,(query,result)=>{
+            Fetchers.setJustLoaded(result,false)
+            this.state.data=result;
+            this.setState(this.state)
+        })
     }
 
     render(){
@@ -138,63 +179,71 @@ class Authority extends Component{
                     </Breadcrumb>
                 </Col>
             </Row>
-              <Row>
-                  <Col xs='12' sm='12' lg='6' xl='6'>
-                    <Literals identifier="node" url={this.props.url} parentId={this.props.parentId} nodeId={this.props.nodeId}
-                        recipient={this.identifier} />
-                  </Col>
-                  <Col  xs='12' sm='12' lg='6' xl='6'>
-                   {this.dictionaries()}
-                  </Col>
-              </Row>
-              <Row>
-              <Col xs='6' sm='6' lg='3' xl='3'>
-                    <ButtonUni
-                            label={this.state.labels.save}
-                            onClick={()=>{
-                                Fetchers.postJSONNoSpinner("/api/admin/organization/save", this.state.data,(query,result)=>{
-                                    if(result.valid){
-                                        //return to the caller
-                                        let caller=this.props.caller
-                                        this.state.data=result
-                                        this.cancel()
-                                    }else{
+            {this.buttons()}
+            <Row>
+                <Col xs='12' sm='12' lg='6' xl='6'>
+                <Literals identifier="node" url={this.props.url} parentId={this.props.parentId} nodeId={this.props.nodeId}
+                    recipient={this.identifier} />
+                </Col>
+                <Col  xs='12' sm='12' lg='6' xl='6'>
+                    <Row>
+                        <Col>
+                            <h5>{this.state.labels.responsibilityarea}</h5>
+                        </Col>
+                    </Row>
+                    <Row className='mt-1 mb-1'>
+                        <Col xs='12' sm='12' lg='8' xl='8'>
+                            <SearchControl label={this.state.labels.search} table={this.state.data.table} loader={this.loadTable} />
+                        </Col>
+                        <Col xs='12' sm='12' lg='4' xl='4'>
+                            <ButtonGroup size="sm">
+                                <Button
+                                    outline
+                                    color='success'
+                                    active={this.state.data.all}
+                                    onClick={()=>{
+                                       this.state.data.all=true
+                                       this.loadTable()
+                                    }}
+                                >
+                                    {this.state.labels.label_list}
+                                </Button>
+                                <Button
+                                    outline
+                                    color='info'
+                                    active={!this.state.data.all}
+                                    onClick={()=>{
+                                        this.state.data.all=false
+                                        this.loadTable()
+                                    }}
+                                >
+                                    {this.state.labels.selectedonly}
+                                </Button>
+                            </ButtonGroup>
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col>
+                        <CollectorTable
+                            tableData={this.state.data.table}
+                            loader={this.loadTable}
+                            headBackground={Pharmadex.settings.tableHeaderBackground}
+                            selectRow={ (rowNo)=>{
+                                    let row=this.state.data.table.rows[rowNo]
+                                    row.selected=!row.selected;
+                                    this.state.data.rowId=row.dbID;
+                                    Fetchers.postJSON("/api/admin/organization/load/responsibility/select", this.state.data, (query,result)=>{
                                         this.state.data=result
                                         this.setState(this.state)
-                                    }
-                                })
-                            }}
-                            outline
-                            color="primary"
+                                    })
+                                }
+                            }
                         />
-                  </Col>
-                  <Col  xs='6' sm='6' lg='3' xl='3'>
-                    <ButtonUni
-                            label={this.state.labels.global_suspend}
-                            onClick={()=>{
-                              Fetchers.postJSONNoSpinner("/api/admin/organization/suspend", this.state.data,(query,result)=>{
-                                  if(this.state.data.valid){
-                                    this.cancel()
-                                  }else{
-                                      this.state.data=result
-                                      this.setState(this.state)
-                                  }
-                              })
-                            }}
-                            outline
-                            color="warning"
-                            disabled={!this.state.data.node.leaf}
-                        />
-                  </Col>
-                  <Col  xs='6' sm='6' lg='3' xl='3'>
-                      <ButtonUni
-                         label={this.state.labels.cancel}
-                         onClick={this.cancel}
-                         outline
-                         color="secondary"
-                      />
-                  </Col>
-              </Row>
+                        </Col>
+                    </Row>
+                </Col>
+            </Row>
+            {this.buttons()} 
           </Container>
         )
     }

@@ -63,9 +63,11 @@ public class SystemService {
 	public static final String FILE_STORAGE_BUSINESS = "file.storage.business";
 	public static final String DATA_COLLECTIONS_ROOT = "configuration.data";
 
-
-	public static String[] ROLES = {"ROLE_ADMIN", "ROLE_MODERATOR", "ROLE_REVIEWER", "ROLE_INSPECTOR", 
-			"ROLE_ACCOUNTANT", "ROLE_SCREENER", "ROLE_SECRETARY","APPLICANT"};
+	//*************************** ROLES ******************************************************************
+	public static String ROLE_ADMIN="ROLE_ADMIN";
+	public static String ROLE_SECRETARY="ROLE_SECRETARY";		
+	public static String[] ROLES = {ROLE_ADMIN, "ROLE_MODERATOR", "ROLE_REVIEWER", "ROLE_INSPECTOR", 
+			"ROLE_ACCOUNTANT", "ROLE_SCREENER", ROLE_SECRETARY,"APPLICANT"};
 
 	@Autowired
 	private DictService dictServ;
@@ -379,7 +381,6 @@ public class SystemService {
 			root=literalServ.prefAndDescription(messages.get("processes"), "", root);
 			literalServ.createUpdateLiteral("type", "system", root);
 		}
-		List<Concept> level = literalServ.loadOnlyChilds(root);
 		//create level
 		systemDictNode(root, DICTIONARY_GUEST_APPLICATIONS, messages.get("guest"));
 		systemDictNode(root, DICTIONARY_GUEST_AMENDMENTS, messages.get("amdmt_type"));
@@ -540,9 +541,23 @@ public class SystemService {
 	 * @throws ObjectNotFoundException 
 	 */
 	private void checkLifeCycleDicts() throws ObjectNotFoundException {
-		dictServ.checkDictionary(DICTIONARY_GUEST_APPLICATIONS);
-		dictServ.checkDictionary(DICTIONARY_HOST_APPLICATIONS);
-		dictServ.checkDictionary(DICTIONARY_SHUTDOWN_APPLICATIONS);
+		List<String> appl = applicationLifeCycleUrls();
+		for(String url : appl) {
+			dictServ.checkDictionary(url);
+		}
+	}
+	/**
+	 * List URLs of all lifecycle applications
+	 * @return
+	 */
+	public List<String> applicationLifeCycleUrls() {
+		List<String> ret = new ArrayList<String>();
+		ret.add(DICTIONARY_GUEST_APPLICATIONS);
+		ret.add(DICTIONARY_HOST_APPLICATIONS);
+		ret.add(DICTIONARY_GUEST_AMENDMENTS);
+		ret.add(DICTIONARY_GUEST_DEREGISTRATION);
+		ret.add(DICTIONARY_SHUTDOWN_APPLICATIONS);
+		return ret;
 	}
 
 	/**
@@ -553,6 +568,27 @@ public class SystemService {
 		dictServ.checkDictionary(DICTIONARY_ADMIN_UNITS);
 	}
 
+	/**
+	 * Load a role concept from roles dictionary by role name
+	 * @param roleName
+	 * @return null, if not found
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public Concept loadRole(String roleName) throws ObjectNotFoundException {
+		Concept ret=null;
+		Concept dict = closureServ.loadRoot(DICTIONARY_SYSTEM_ROLES);
+		List<Concept> nodes = literalServ.loadOnlyChilds(dict);
+		for(Concept node : nodes) {
+			if(node.getActive()) {
+				if(node.getIdentifier().equalsIgnoreCase(roleName)) {
+					ret=node;
+					break;
+				}
+			}
+		}
+		return ret;
+	}
 
 
 }

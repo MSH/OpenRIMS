@@ -65,8 +65,6 @@ public class ApplicationService {
 	@Autowired
 	private LiteralService literalServ;
 	@Autowired
-	private AssemblyService assemblyServ;
-	@Autowired
 	private DictService dictServ;
 	@Autowired
 	private BoilerService boilerServ;
@@ -94,6 +92,10 @@ public class ApplicationService {
 	private ObjectMapper objectMapper;
 	@Autowired
 	private AmendmentService amendmentServ;
+	@Autowired
+	private PubOrgService pubOrgServ;
+	@Autowired
+	private AssemblyService assmServ;
 
 	/**
 	 * recreate only a table for selected applications
@@ -578,10 +580,125 @@ public class ApplicationService {
 	@Transactional
 	private void activityForExecutors(Date scheduled, Concept actConf, History curHis) throws ObjectNotFoundException {
 		//determine the executive(s)
-		List<String> executors = findExecutors(actConf, curHis);
+		//List<String> executors = findExecutors(actConf, curHis);
+		List<String> executors = executors_select(actConf, curHis);
 		for(String email :executors) {
 			activityCreate(scheduled,actConf, curHis, email,"");		//no notes, because it is the first activity
 		}
+	}
+	/**
+	 * Select emails on all possible executors
+	 * @param actConf 
+	 * @param actConf
+	 * @param curHis
+	 * @return the empty array if not resolved
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public List<String> executors_select(Concept actConf, History curHis) throws ObjectNotFoundException {
+		List<String> ret = new ArrayList<String>();
+		Concept role=assmServ.activityExecutorRole(actConf);
+		Concept applDict=curHis.getApplDict();
+		String where="";
+		Concept admUnit=adminUnit(actConf, curHis);
+		if(role!=null && applDict!=null){
+			if(admUnit!=null) {
+				where="auid=+'"+admUnit.getID()+"'"+" or auid is null";
+			}else {
+				where="auid is null";
+			}
+			jdbcRepo.executors_select(role.getID(), applDict.getID());
+			ret = executorsEmails(ret, where);
+			if(ret.size()==0) {
+				logger.warn("An executor not found - search for office secretaries. Activity config ID is "+
+						actConf.getID());
+				role = systemServ.loadRole(SystemService.ROLE_SECRETARY);
+				jdbcRepo.executors_select(role.getID(), applDict.getID());
+				ret = executorsEmails(ret,where);
+			}
+			if(ret.size()==0) {
+				logger.warn("an executor not found - send to all supervisors. Activity config ID is "+
+						actConf.getID());
+				List<User> supervisors = userServ.loadUsersByRole(SystemService.ROLE_ADMIN);
+				for(User sup : supervisors) {
+					if(sup.getEnabled()) {
+						ret.add(sup.getEmail());
+					}
+				}
+			}
+			if(ret.size()==0) {
+				throw new ObjectNotFoundException("executors_select. Executor not found for config "
+						+ curHis.getApplConfig().getID(),logger);
+			}
+		}	
+		return ret;
+	}
+	/**
+	 * Get a list of executors eMails, using executors selected by the stored procedure
+	 * @param ret - t
+	 * @param where 
+	 */
+	public List<String> executorsEmails(List<String> ret, String where) {
+		Headers headers = new Headers();
+		headers.getHeaders().add(TableHeader.instanceOf("email", TableHeader.COLUMN_STRING));
+		headers.getHeaders().add(TableHeader.instanceOf("local", TableHeader.COLUMN_BOOLEAN_RADIO));
+		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from executors_select", "", where, headers);
+		if(rows.size()>0) {
+			for(TableRow row : rows) {
+				TableCell email = row.getRow().get(0);
+				TableCell local = row.getRow().get(1);
+				if(local.getIntValue()>0) {
+					//executor for the administrative unit
+					ret.add(email.getValue());
+				}
+			}
+			if(ret.size()==0) {
+				logger.warn("executors for administrative unit not found, search in the country wide executors");
+				for(TableRow row : rows) {
+					TableCell email = row.getRow().get(0);
+					TableCell local = row.getRow().get(1);
+					if(local.getIntValue()==0) {
+						//executor for the country
+						ret.add(email.getValue());
+					}
+				}
+			}
+		}
+		return ret;
+	}
+
+	/**
+	 * Determine admin unit ID
+	 * @param actConf 
+	 * @param curHis
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private Concept adminUnit(Concept actConf, History curHis) throws ObjectNotFoundException {
+		Concept ret=null;
+		if(actConf!=null) {
+			String addrUrl =literalServ.readValue("addressurl", actConf);
+			if(addrUrl.length()>0) {
+				Thing rootThing = boilerServ.thingByNode(curHis.getApplicationData());
+				for(ThingThing tt : rootThing.getThings()) {
+					if(tt.getUrl().equalsIgnoreCase(addrUrl)) {
+						ret=boilerServ.adminUnitLevel(pubOrgServ.territoryLevel(), tt.getConcept());
+					}else {
+						Thing addThing =boilerServ.thingByNode(tt.getConcept());
+						for(ThingThing tt1 : addThing.getThings()) {
+							if(tt1.getUrl().equalsIgnoreCase(addrUrl)) {
+								ret=boilerServ.adminUnitLevel(pubOrgServ.territoryLevel(), tt1.getConcept());
+							}
+						}
+					}
+					if(ret!=null) {
+						break;
+					}
+				}
+			}
+		}
+		return ret;
 	}
 	/**
 	 * Create an activity for a user
@@ -668,6 +785,7 @@ public class ApplicationService {
 	/**
 	 * Find executors. Apply application type and territory restrictions
 	 * Allows to assign an applicant
+	 * @deprecated replaced by "executors_select"
 	 * @param actConf
 	 * @param curHis 
 	 * @return list of executor's emails
@@ -692,7 +810,7 @@ public class ApplicationService {
 		List<Concept> parents = closureServ.loadParents(curHis.getApplication());
 		List<Concept> respNodes = systemServ.guestWorkflows(parents.get(0).getIdentifier());
 		//Territory
-		String addrUrl = literalServ.readValue("addressurl", actConf);
+		String addrUrl =""; literalServ.readValue("addressurl", actConf);
 		Concept addr = new Concept();
 		Thing appThing = boilerServ.thingByNode(curHis.getApplicationData());
 		List<Thing> things = new ArrayList<Thing>();
@@ -1205,7 +1323,7 @@ public class ApplicationService {
 		table.getRows().clear();
 		//String nextStage = systemServ.nextStageByApplDict(his,true);
 		List<History> allHis = boilerServ.historyAllByApplication(his.getApplication());
-		
+
 		for(History h : allHis) {
 			if(!h.getCancelled()) {		//don't mind cancelled!
 				if(h.getActivityData()!=null) {
@@ -1266,9 +1384,10 @@ public class ApplicationService {
 	 * @param user
 	 * @param data
 	 * @return
+	 * @throws ObjectNotFoundException 
 	 */
-	private ActivitySubmitDTO executorsThisChoice(History his, UserDetailsDTO user, ActivitySubmitDTO data) {
-		data.setExecs(executorsTable(his.getActConfig().getID(), data.getExecs()));
+	private ActivitySubmitDTO executorsThisChoice(History his, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
+		data.setExecs(executorsTable(his, his.getActConfig(), data.getExecs()));
 		return data;
 	}
 	/**
@@ -1277,11 +1396,14 @@ public class ApplicationService {
 	 * @param user
 	 * @param data
 	 * @return
+	 * @throws ObjectNotFoundException 
 	 */
-	private ActivitySubmitDTO executorsNextChoice(History his, UserDetailsDTO user, ActivitySubmitDTO data) {
+	@Transactional
+	private ActivitySubmitDTO executorsNextChoice(History his, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		Long nextActConfId = data.nextActivity(); 
 		if(nextActConfId>0) {
-			data.setExecs(executorsTable(nextActConfId, data.getExecs()));
+			Concept actConf=closureServ.loadConceptById(nextActConfId);
+			data.setExecs(executorsTable(his, actConf, data.getExecs()));
 		}else {
 			data.getExecs().getRows().clear();
 		}
@@ -1359,11 +1481,10 @@ public class ApplicationService {
 				if(data.isValid()) {
 					allowed.add("7");	//implement an amendment
 				}
-				/*TODO Reject
-				 * 	data=validServ.submitReject(curHis,user,data);
-					if(data.isValid()) {
-						allowed.add("5");
-					}*/
+				data=validServ.submitReject(curHis,user,data);
+				if(data.isValid()) {
+					allowed.add("5");
+				}
 			}
 		}
 
@@ -1443,17 +1564,29 @@ public class ApplicationService {
 	}
 	/**
 	 * Table contains all possible executors of the next activity
-	 * @param nextActConfId
+	 * @param actConf 
+	 * @param his
 	 * @param execTable
 	 * @return
+	 * @throws ObjectNotFoundException 
 	 */
-	private TableQtb executorsTable(long nextActConfId, TableQtb execTable) {
+	private TableQtb executorsTable(History curHis, Concept actConf, TableQtb execTable) throws ObjectNotFoundException {
 		if(execTable.getRows().size()==0) {
-			execTable.setHeaders(headersExecutors(execTable.getHeaders()));
-			jdbcRepo.executorsActivity(nextActConfId);
-			List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from executors_activity", "", "", execTable.getHeaders());
-			execTable.setSelectable(true);
-			TableQtb.tablePage(rows, execTable);
+			Concept role=assmServ.activityExecutorRole(actConf);
+			Concept applDict=curHis.getApplDict();
+			Concept admUnit=adminUnit(curHis.getActConfig(), curHis);
+			if(role!=null && applDict!=null){
+				String where="";
+				if(admUnit!=null) {
+					where="auid='"+admUnit.getID()+"'";
+				}
+				String select = "select distinct ID, username, email, orgname, local from executors_select";
+				jdbcRepo.executors_select(role.getID(), applDict.getID());
+				execTable.setHeaders(headersExecutors(execTable.getHeaders()));
+				List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", where, execTable.getHeaders());
+				execTable.setSelectable(true);
+				TableQtb.tablePage(rows, execTable);
+			}
 		}
 		return execTable;
 	}
@@ -1465,7 +1598,7 @@ public class ApplicationService {
 	private Headers headersExecutors(Headers headers) {
 		headers.getHeaders().clear();
 		headers.getHeaders().add(TableHeader.instanceOf(
-				"uname",
+				"username",
 				"global_name",
 				true,
 				false,
@@ -1522,16 +1655,6 @@ public class ApplicationService {
 			}
 		}
 		return data;
-	}
-
-	/**
-	 * Is the current action "amend"
-	 * @param data
-	 * @return
-	 */
-	private boolean isActionAmend(ActivitySubmitDTO data) {
-		TableRow row = data.getActions().getSelectedRow();
-		return false;
 	}
 
 	/**
@@ -1639,12 +1762,11 @@ public class ApplicationService {
 				data=validServ.submitApproveData(curHis, user, data);
 				data=submitApprove(curHis, user, data);
 				return data;
-				/*TODO reject
-				 * case 5:
-				data=validServ.submitApproveReject(curHis, user, data);
+			case 5:
+				data=validServ.submitReject(curHis, user, data);
 				data=validServ.submitRejectData(curHis, user, data);
 				data=submitReject(curHis, user, data);
-				return data;*/
+				return data;
 			case 6:
 				data=validServ.actionReassign(curHis, data);
 				data=validServ.submitRouteData(curHis, user, data);
@@ -1666,7 +1788,7 @@ public class ApplicationService {
 			throw new ObjectNotFoundException("submitSend. Access denied",logger);
 		}
 	}
-	
+
 	/**
 	 * Is this amendment fully implemented?
 	 * @param curHis
@@ -1685,8 +1807,8 @@ public class ApplicationService {
 		}
 		return data;
 	}
-	
-	
+
+
 	/**
 	 * Special case when executor for this activity defined as an applicant
 	 * @param data
@@ -1802,7 +1924,7 @@ public class ApplicationService {
 		data.setValid(false);
 		return data;
 	}
-	
+
 	/**
 	 * Submit an amendment
 	 * @param curHis
@@ -1839,7 +1961,7 @@ public class ApplicationService {
 			data = runScheduledGuestHost(curHis, data);
 			cancellActivities(curHis);
 		}
-		
+
 		return data;
 	}
 

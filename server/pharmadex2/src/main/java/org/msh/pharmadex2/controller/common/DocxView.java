@@ -1,8 +1,14 @@
 package org.msh.pharmadex2.controller.common;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -10,11 +16,14 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.imageio.ImageIO;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.util.IOUtils;
+import org.apache.poi.xwpf.usermodel.Document;
 import org.apache.poi.xwpf.usermodel.ParagraphAlignment;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
@@ -22,15 +31,26 @@ import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.apache.poi.xwpf.usermodel.XWPFTableCell;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
+import org.apache.xmlbeans.XmlException;
+import org.apache.xmlbeans.XmlToken;
 import org.msh.pdex2.dto.table.TableCell;
 import org.msh.pdex2.dto.table.TableHeader;
 import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
+import org.msh.pharmadex2.dto.FileResourceDTO;
+import org.msh.pharmadex2.service.common.BoilerService;
+import org.msh.pharmadex2.service.r2.ResourceService;
+import org.openxmlformats.schemas.drawingml.x2006.main.CTNonVisualDrawingProps;
+import org.openxmlformats.schemas.drawingml.x2006.main.CTPositiveSize2D;
+import org.openxmlformats.schemas.drawingml.x2006.wordprocessingDrawing.CTInline;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTblWidth;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.STTblWidth;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.view.AbstractView;
 
 /**
@@ -39,6 +59,8 @@ import org.springframework.web.servlet.view.AbstractView;
  *
  */
 public class DocxView extends AbstractView{
+	
+	private BoilerService boilerServ;
 
 	private static final Logger logger = LoggerFactory.getLogger(DocxView.class);
 	/**
@@ -78,10 +100,19 @@ public class DocxView extends AbstractView{
 		}
 	}
 
-	public DocxView(InputStream _inputDocument) {
+	public DocxView(InputStream _inputDocument, BoilerService _boilerServ) {
 		super();
 		setContentType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
 		this.inputDocument=_inputDocument;
+		setBoilerServ(_boilerServ);
+	}
+
+	public BoilerService getBoilerServ() {
+		return boilerServ;
+	}
+
+	public void setBoilerServ(BoilerService boilerServ) {
+		this.boilerServ = boilerServ;
 	}
 
 	public InputStream getInputDocument() {
@@ -234,7 +265,10 @@ public class DocxView extends AbstractView{
 							String replStr = (String) repl;
 							match.appendReplacement(sb, replStr); //real evaluation
 						}
-
+						if(repl instanceof Long) {
+							match.appendReplacement(sb, "");
+							run=createImage((Long)repl, run);
+						}
 						if(repl instanceof TableQtb) { 
 							match.appendReplacement(sb, ""); 
 							TableQtb table = (TableQtb) repl; 
@@ -254,6 +288,19 @@ public class DocxView extends AbstractView{
 		}
 
 		incResolved(ret);
+	}
+	/**
+	 * Load an image from the database and insert it into the run
+	 * @param resConceptID
+	 * @param run
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private XWPFRun createImage(Long resConceptID, XWPFRun run) throws ObjectNotFoundException {
+		FileResourceDTO res = getBoilerServ().fileByConceptId(resConceptID);
+		run=insertPicture(res.getFile(), res.getMime(),run);
+		return run;
 	}
 
 	/**
@@ -437,7 +484,101 @@ public class DocxView extends AbstractView{
 				&& prev.isStrikeThrough() == actual.isStrikeThrough()
 				&& prev.getEmbeddedPictures().size()==0;
 	}
+	/**
+	 * Insert an inline picture to the run
+	 * @param picStream
+	 * @param mime
+	 * @param run 
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 * @throws IOException 
+	 */
+	public XWPFRun insertPicture(byte[] picture, String mime, XWPFRun run) throws ObjectNotFoundException {
+		ByteArrayInputStream istream =new ByteArrayInputStream(picture);
+		byte[] im;
+		try {
+			int pictureType=pictureType(mime);
+			BufferedImage img = null;
+			if(pictureType!=-1) {
+				img = ImageIO.read(istream);
+				im=picture;
+			}else {
+				pictureType=Document.PICTURE_TYPE_PNG;
+				Path emptyImagePath = Paths.get("src","main","resources", "static", "img", "notfound.png");
+				File emptyImage = emptyImagePath.toFile();
+				img=ImageIO.read(emptyImage);
+				im=IOUtils.toByteArray(new FileInputStream(emptyImage));
+			}
+			int height= img.getHeight()*9525;
+			int width = img.getWidth()*9525;
+			String blipId = run.getDocument().addPictureData(im, pictureType);
+			int id=run.getDocument().getNextPicNameNumber(pictureType);
+					CTInline inline = run.getCTR().addNewDrawing().addNewInline();
+			String picXml = "" +
+					"<a:graphic xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\">" +
+					"   <a:graphicData uri=\"http://schemas.openxmlformats.org/drawingml/2006/picture\">" +
+					"      <pic:pic xmlns:pic=\"http://schemas.openxmlformats.org/drawingml/2006/picture\">" +
+					"         <pic:nvPicPr>" +
+					"            <pic:cNvPr id=\"" + id + "\" name=\"Generated\"/>" +
+					"            <pic:cNvPicPr/>" +
+					"         </pic:nvPicPr>" +
+					"         <pic:blipFill>" +
+					"            <a:blip r:embed=\"" + blipId + "\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"/>" +
+					"            <a:stretch>" +
+					"               <a:fillRect/>" +
+					"            </a:stretch>" +
+					"         </pic:blipFill>" +
+					"         <pic:spPr>" +
+					"            <a:xfrm>" +
+					"               <a:off x=\"0\" y=\"0\"/>" +
+					"               <a:ext cx=\"" + width + "\" cy=\"" + height + "\"/>" +
+					"            </a:xfrm>" +
+					"            <a:prstGeom prst=\"rect\">" +
+					"               <a:avLst/>" +
+					"            </a:prstGeom>" +
+					"         </pic:spPr>" +
+					"      </pic:pic>" +
+					"   </a:graphicData>" +
+					"</a:graphic>";
 
-
+			XmlToken xmlToken =  XmlToken.Factory.parse(picXml);
+			inline.set(xmlToken);
+			inline.setDistT(0);
+			inline.setDistB(0);
+			inline.setDistL(0);
+			inline.setDistR(0);
+			CTPositiveSize2D extent = inline.addNewExtent();
+			extent.setCx(width);
+			extent.setCy(height);
+			CTNonVisualDrawingProps docPr = inline.addNewDocPr();
+			docPr.setId(id);
+			docPr.setName("Picture " + id);
+			docPr.setDescr("Generated");
+		} catch (IOException | InvalidFormatException | XmlException e) {
+			throw new ObjectNotFoundException(e, logger);
+		}
+		return run;
+	}
+	/**
+	 * Picture type by mime string
+	 * @param mime
+	 * @return -1 - wrong format
+	 * @throws ObjectNotFoundException 
+	 */
+	private int pictureType(String mime) throws ObjectNotFoundException {
+		String m = mime.toUpperCase();
+		if(m.contains("IMAGE")) {
+			if(m.contains("JPG")){
+				return Document.PICTURE_TYPE_JPEG;
+			}
+			if(m.contains("JPEG")){
+				return Document.PICTURE_TYPE_JPEG;
+			}
+			if(m.contains("PNG")){
+				return Document.PICTURE_TYPE_PNG;
+			}
+		}
+		return -1;
+	}
 
 }

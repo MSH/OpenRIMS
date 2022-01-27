@@ -11,6 +11,7 @@ import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.r2.Assembly;
 import org.msh.pdex2.model.r2.Concept;
+import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.model.r2.Thing;
 import org.msh.pdex2.model.r2.ThingDict;
 import org.msh.pdex2.services.r2.ClosureService;
@@ -36,6 +37,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AssemblyService {
 
 
+	private static final String ACTIVITY_EXECUTIVES = "executives";
 	public static final String ACTIVITY_CONFIG_FINALIZE = "finalize";
 	private static final String ACTIVITY_CONFIGURATION = "activity.configuration";
 	private static final String OBJECT_SITE_CLASSIFIERS = "object.site.classifiers";
@@ -51,21 +53,7 @@ public class AssemblyService {
 	private DtoService dtoServ;
 	@Autowired
 	private LiteralService literalServ;
-	/**
-	 * List of dictionaries for public organization
-	 * @TODO load this configuration from the database
-	 * @return
-	 */
-	public List<AssemblyDTO> pubOrgDict(){
-		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
-		AssemblyDTO dto= new AssemblyDTO();
-		dto.setUrl("dictionary.responsibilities.organizations.public");
-		dto.setPropertyName("responsibility");
-		dto.setMult(true);
-		dto.setRequired(true);
-		ret.add(dto);
-		return ret;
-	}
+
 	/**
 	 * Auxiliary literals for a user (MOCK!!!)
 	 * @return
@@ -196,7 +184,7 @@ public class AssemblyService {
 				fld.setPropertyName("description");
 				ret.add(fld);	
 			}
-	
+
 		}
 
 		if(url.equalsIgnoreCase(SystemService.DICTIONARY_HOST_APPLICATIONS)) {
@@ -505,7 +493,7 @@ public class AssemblyService {
 				row.getCells().add(cell1);
 
 				LayoutCellDTO cell2 = new LayoutCellDTO();
-				cell2.getVariables().add("executives");
+				cell2.getVariables().add(ACTIVITY_EXECUTIVES);
 				cell2.getVariables().add("background");
 				cell2.getVariables().add(ACTIVITY_CONFIG_FINALIZE);
 				row.getCells().add(cell2);
@@ -577,7 +565,7 @@ public class AssemblyService {
 			{
 				AssemblyDTO assm = new AssemblyDTO();
 				assm.setMult(false);
-				assm.setPropertyName("executives");
+				assm.setPropertyName(ACTIVITY_EXECUTIVES);
 				assm.setRequired(true);
 				assm.setUrl(SystemService.DICTIONARY_SYSTEM_ROLES);
 				ret.add(assm);
@@ -952,6 +940,26 @@ public class AssemblyService {
 			}
 			if(dictNode.getID()>0) {
 				ret=literalServ.readValue("url", dictNode);
+			}
+		}
+		return ret;
+	}
+	/**
+	 * Get an executor's role of the activity from the configuration
+	 * @param actConfig
+	 * @return executor's role concept or null
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public Concept activityExecutorRole(Concept actConfig) throws ObjectNotFoundException {
+		Concept ret = null;
+		if(actConfig !=null) {
+			Thing thing = boilerServ.thingByNode(actConfig);
+			for(ThingDict td : thing.getDictionaries()) {
+				if(td.getVarname().equalsIgnoreCase(ACTIVITY_EXECUTIVES)) {
+					ret=td.getConcept();
+					break;
+				}
 			}
 		}
 		return ret;

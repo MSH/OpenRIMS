@@ -30,6 +30,7 @@ import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.model.r2.Register;
 import org.msh.pdex2.model.r2.Scheduler;
 import org.msh.pdex2.model.r2.Thing;
+import org.msh.pdex2.model.r2.ThingDict;
 import org.msh.pdex2.model.r2.ThingDoc;
 import org.msh.pdex2.model.r2.ThingPerson;
 import org.msh.pdex2.model.r2.ThingRegister;
@@ -51,6 +52,7 @@ import org.msh.pdex2.repository.r2.ThingRepo;
 import org.msh.pdex2.repository.r2.ThingSchedulerRepo;
 import org.msh.pdex2.repository.r2.ThingThingRepo;
 import org.msh.pdex2.services.r2.ClosureService;
+import org.msh.pharmadex2.dto.FileResourceDTO;
 import org.msh.pharmadex2.service.r2.LiteralService;
 import org.msh.pharmadex2.service.r2.SystemService;
 import org.slf4j.Logger;
@@ -949,7 +951,7 @@ public class BoilerService {
 			}
 		}
 	}
-	
+
 	/**
 	 * Load thing by ThingPerson
 	 * @param tp
@@ -1011,6 +1013,52 @@ public class BoilerService {
 		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from application_list", "", "", headers);
 		for(TableRow row : rows) {
 			ret.add(historyById(row.getDbID()));
+		}
+		return ret;
+	}
+	/**
+	 * Get ID of administrative unit au with level level
+	 * @param level - the desired level, possible only 1 is province, 2 is district.
+	 * @param au - any level of administrative unit
+	 * @return desired level or null
+	 */
+	@Transactional
+	public Concept adminUnitLevel(int level, Concept au) {
+		Concept ret=null;
+		//path to the root of the administrative unit dictionary
+		Thing addrThing = new Thing();
+		addrThing = thingByNode(au, addrThing);
+		if(addrThing.getDictionaries().size()>0){
+			ThingDict td = addrThing.getDictionaries().iterator().next();
+			Concept addr = td.getConcept();
+			List<Concept> all = closureServ.loadParents(addr);
+			if(level>=1) {
+				if(all.size()>=level) {
+					return all.get(level);
+				}
+			}
+		}
+		return ret;
+	}
+	/**
+	 * Load file by concept ID
+	 * @param fileConceptID
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public FileResourceDTO fileByConceptId(Long fileConceptID) throws ObjectNotFoundException {
+		FileResourceDTO ret = new FileResourceDTO();
+		if(fileConceptID>0) {
+			Concept concept = closureServ.loadConceptById(fileConceptID);
+			Optional<FileResource> freso = fileResRepo.findByConcept(concept);
+			if(freso.isPresent()) {
+				ret.setMime(freso.get().getMediatype());
+				ret.setNodeId(fileConceptID);
+				ret.setFile(freso.get().getFile());
+			}else {
+				throw new ObjectNotFoundException("fileByConceptId File not found. Concept ID="+fileConceptID,logger);
+			}
 		}
 		return ret;
 	}

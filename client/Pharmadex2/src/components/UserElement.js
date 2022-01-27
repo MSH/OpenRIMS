@@ -10,6 +10,8 @@ import Navigator from './utils/Navigator'
 import ViewEdit from './form/ViewEdit'
 import ViewEditOption from './form/ViewEditOption'
 import Dictionary from './Dictionary'
+import FieldGuarded from './form/FieldGuarded'
+import AlertFloat from './utils/AlertFloat'
 
 /**
  * Edit/add user's data
@@ -32,7 +34,6 @@ class UserElement extends Component{
                 cancel:'',
                 executor_roles:'',
                 appl_responsibility:'',
-                area_responsibility:'',
                 save_error:''
             }
         }
@@ -41,9 +42,9 @@ class UserElement extends Component{
         this.processEvent=this.processEvent.bind(this)
         this.placeLiterals=this.placeLiterals.bind(this)
         this.literal=this.literal.bind(this)
+        this.applDicts=this.applDicts.bind(this)
     }
 
- 
         /**
          * Check component pooling completion
          * @returns true if all data has been collected from components
@@ -133,13 +134,89 @@ class UserElement extends Component{
         }
         return ret
     }
-
+    /**
+     * Applications dictionaries
+     */
+    applDicts(){
+        let ret = []
+        let dicts = this.state.data.applDicts
+        if(dicts != undefined){
+            let keys = Object.keys(dicts)
+            if(Fetchers.isGoodArray(keys)){
+                keys.forEach((key, index)=>{
+                    let dict=dicts[key]
+                    ret.push(
+                        Dictionary.placeDictionary(dict.varName, dict, index,false,this.identifier,"")
+                    )
+                })
+            }
+        }
+        return ret
+    }
+    /**
+     * Place buttons in the uniform way
+     */
+    buttons(){
+        return(
+            <Row className="mb-2">
+                  <Col xs='0' sm='0' lg='6' xl='6'/>
+                  <Col xs='12' sm='12' lg='2' xl='2'>
+                    <ButtonUni
+                         label={this.state.labels.save}
+                         onClick={()=>{
+                            Fetchers.postJSONNoSpinner("/api/admin/user/save", this.state.data,(query,result)=>{
+                                Fetchers.setJustLoaded(result,false)
+                                if(result.valid){
+                                    //return to the caller
+                                    let caller=this.props.caller
+                                    Navigator.navigate(caller.tab,caller.component,caller.parameter)
+                                }else{
+                                    //send to components validation results
+                                    this.state.data=result
+                                    this.setState(this.state)
+                                    Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.save_error, color:'danger'})
+                                }
+                            })
+                         }}
+                         color="primary"
+                    />
+                  </Col>
+                  <Col  xs='12' sm='12' lg='2' xl='2'>
+                    <ButtonUni
+                         label={this.state.labels.global_suspend}
+                         onClick={()=>{
+                            Fetchers.postJSONNoSpinner("/api/admin/user/suspend", this.state.data, (query, result)=>{
+                                Fetchers.setJustLoaded(result,false)
+                                this.state.data=result
+                                this.setState(this.state)
+                                let caller=this.props.caller
+                                Navigator.navigate(caller.tab,caller.component,caller.parameter)
+                            })
+                         }}
+                         color="warning"
+                    /> 
+                  </Col>
+                  <Col  xs='12' sm='12' lg='2' xl='2'>
+                      <ButtonUni
+                         label={this.state.labels.cancel}
+                         onClick={ ()=>{
+                            let caller=this.props.caller
+                            Navigator.navigate(caller.tab,caller.component,caller.parameter)
+                            }
+                        }
+                         color="secondary"
+                      />
+                  </Col>
+              </Row>
+        )
+    }
     render(){
         if(this.state.data.id == undefined || this.state.labels.locale == undefined){
             return []
         }
         return(
           <Container fluid>
+              {this.buttons()}
               <Row hidden={this.state.data.organization.length==0}>
                   <Col>
                     <h4>{this.state.data.organization}</h4>
@@ -157,34 +234,10 @@ class UserElement extends Component{
                 <Col xs='12' sm='12' lg='6' xl='6'>
                    {this. placeLiterals()}
                    <Row>
-                            <Col xs='12' sm='12' lg='10' xl='10'>
-                                <ViewEdit mode='text' attribute='user_email' component={this} edit={this.state.edit}/>
-                            </Col>
-                            <Col xs='12' sm='12' lg='2' xl='2' className="align-self-center">
-                            <Button
-                                style={{color:'green'}}
-                                hidden={this.state.edit}
-                                onClick={()=>{
-                                    this.state.edit=true
-                                    this.setState(this.state)
-                                }}
-                                outline
-                            >
-                                <i className="fas fa-lock"></i>
-                            </Button>
-                            <Button
-                                style={{color:'red'}}
-                                hidden={!this.state.edit}
-                                onClick={()=>{
-                                    this.state.edit=false
-                                    this.setState(this.state)
-                                }}
-                                outline
-                            >
-                                <i className="fas fa-lock-open"></i>
-                            </Button>
-                            </Col>
-                        </Row>
+                        <Col xs='12' sm='12' lg='10' xl='10'>
+                            <FieldGuarded mode='text' attribute='user_email' component={this} edit={this.state.edit}/>
+                        </Col>
+                    </Row>
                     <Row>
                         <Col>
                             <ViewEditOption edit={!this.state.data.readOnly} attribute='global_enable'
@@ -192,121 +245,22 @@ class UserElement extends Component{
                             />
                         </Col>
                     </Row>
+                    <Row>
+                        <Col>
+                            {Dictionary.placeDictionary('roles',this.state.data.roles, 0, false, this.identifier, this.state.labels.executor_roles)}
+                        </Col>
+                    </Row>
                 </Col>
                 <Col xs='12' sm='12' lg='6' xl='6'>
                     <Row>
                         <Col>
-                            <Label>{this.state.labels.executor_roles}</Label>
-                        </Col>
+                            <h6>{this.state.labels.appl_responsibility}</h6>
+                        </Col>    
                     </Row>
-                    <Row>
-                        <Col>
-                        <Dictionary identifier="roles" recipient={this.identifier} data={this.state.data.roles} recipient={this.identifier} display />
-                        </Col>
-                    </Row>
+                    {this.applDicts()}
                 </Col>
               </Row>
-             
-              <Row>
-              <Col xs='12' sm='12' lg='6' xl='6'>
-                <Row>
-                    <Col>
-                        <Label>{this.state.labels.area_responsibility}</Label>
-                    </Col>
-                    </Row>
-                    <Row>
-                        <Col>
-                            <Dictionary identifier="areas" recipient={this.identifier} data={this.state.data.areas} recipient={this.identifier} display />
-                        </Col>
-                    </Row>
-                    
-                </Col>
-                <Col xs='12' sm='12' lg='6' xl='6'>
-                    <Row>
-                        <Col>
-                            <Label>{this.state.labels.appl_responsibility}</Label>
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col>
-                            <Dictionary identifier="applications" recipient={this.identifier} data={this.state.data.applications} recipient={this.identifier} display />
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col>
-                            <Dictionary identifier="amendments" recipient={this.identifier} data={this.state.data.amendments} recipient={this.identifier} display />
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col>
-                            <Dictionary identifier="renewal" recipient={this.identifier} data={this.state.data.renewal} recipient={this.identifier} display />
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col>
-                            <Dictionary identifier="deregistration" recipient={this.identifier} data={this.state.data.deregistration} recipient={this.identifier} display />
-                        </Col>
-                    </Row>
-
-                </Col>
-               
-              </Row>
-
-              <Row className="mb-2">
-                  <Col xs='6' sm='6' lg='3' xl='3'>
-                    <ButtonUni
-                         label={this.state.labels.save}
-                         onClick={()=>{
-                            Fetchers.postJSONNoSpinner("/api/admin/user/save", this.state.data,(query,result)=>{
-                                Fetchers.setJustLoaded(result,false)
-                                if(result.valid){
-                                    //return to the caller
-                                    let caller=this.props.caller
-                                    Navigator.navigate(caller.tab,caller.component,caller.parameter)
-                                }else{
-                                    //send to components validation results
-                                    this.state.data=result
-                                    this.setState(this.state)
-                                }
-                            })
-                         }}
-                         color="primary"
-                    />
-                  </Col>
-                  <Col  xs='6' sm='6' lg='3' xl='3'>
-                    <ButtonUni
-                         label={this.state.labels.global_suspend}
-                         onClick={()=>{
-                            Fetchers.postJSONNoSpinner("/api/admin/user/suspend", this.state.data, (query, result)=>{
-                                Fetchers.setJustLoaded(result,false)
-                                this.state.data=result
-                                this.setState(this.state)
-                                let caller=this.props.caller
-                                Navigator.navigate(caller.tab,caller.component,caller.parameter)
-                            })
-                         }}
-                         color="warning"
-                    /> 
-                  </Col>
-                  <Col  xs='6' sm='6' lg='3' xl='3'>
-                      <ButtonUni
-                         label={this.state.labels.cancel}
-                         onClick={ ()=>{
-                            let caller=this.props.caller
-                            Navigator.navigate(caller.tab,caller.component,caller.parameter)
-                            }
-                        }
-                         color="secondary"
-                      />
-                  </Col>
-              </Row>
-              <Row>
-                  <Col>
-                        <Alert className="p-0 m-0" color='danger' hidden={this.state.data.valid}>
-                            <small>{this.state.labels.save_error}</small>
-                        </Alert>
-                  </Col>
-              </Row>
+              {this.buttons()}
           </Container>
         )
     }

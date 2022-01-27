@@ -3,8 +3,11 @@ package org.msh.pharmadex2.service.common;
 import java.time.LocalDate;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
@@ -103,7 +106,7 @@ public class ValidationService {
 		if(prefLabel != null) {
 			if(prefLabel.getValue().length()<2 || prefLabel.getValue().length()>100) {
 				suggest(prefLabel, 2,100,strict);
-				//data.setValid(false);
+				data.setValid(false);
 			}
 		}else {
 			error((AllowValidation)data, messages.get("error_preflabel"),strict);
@@ -177,6 +180,7 @@ public class ValidationService {
 		data.setNode(node(data.getNode(),"",strict));
 		String email = data.getUser_email().getValue();
 		data.getUser_email().clearValidation();
+		//check email
 		try {
 			InternetAddress ia = new InternetAddress(email,true);
 			Optional<User> usero = userRepo.findByEmail(ia.getAddress());
@@ -192,7 +196,11 @@ public class ValidationService {
 			data.getUser_email().setStrict(true);
 			data.getUser_email().setSuggest(messages.get("valid_email"));
 		}
-
+		//check roles, at least one
+		if(data.getRoles().getPrevSelected().size()==0) {
+			data.getRoles().setValid(false);
+			data.getRoles().setIdentifier(messages.get("error_rolemandatory"));
+		}
 		data.propagateValidation();
 		return data;
 	}
@@ -219,10 +227,6 @@ public class ValidationService {
 	 */
 	public PublicOrgDTO organization(PublicOrgDTO data, boolean strict) throws ObjectNotFoundException {
 		data.setNode(node(data.getNode(),"",strict));
-		for(String key : data.getDictionaries().keySet()) {
-			DictionaryDTO dict=data.getDictionaries().get(key);
-			dict=dictionary(dict,"",strict);
-		}
 		data.propagateValidation();
 		return data;
 	}
@@ -294,12 +298,18 @@ public class ValidationService {
 
 		List<AssemblyDTO> s = assemblyServ.auxStrings(data.getUrl());
 		for(AssemblyDTO str : s) {
+			if(str.getFileTypes().length()>0) {
+				data=checkPattern(data,str, data.getStrings(),  strict);
+			}
 			if(str.isRequired()) {
 				mandatoryString(data, str, strict);
 			}
 		}
 		List<AssemblyDTO> lits = assemblyServ.auxLiterals(data.getUrl());
 		for(AssemblyDTO lit : lits) {
+			if(lit.getFileTypes().length()>0) {
+				data=checkPattern(data,lit, data.getLiterals(),strict);
+			}
 			if(lit.isRequired()) {
 				mandatoryLiteral(data, lit,strict);
 			}
@@ -375,6 +385,46 @@ public class ValidationService {
 		data.propagateValidation();
 		return data;
 	}
+
+	/**
+	 * Check a sting or a literal against the pattern.
+	 * The Java regex will be used
+	 * @param data - DTO
+	 * @param aDTO - the configuration. The pattern is in fileTypes
+	 * @param fields - map of FommFields
+	 * @param strict red or grey
+	 * @return
+	 */
+	private ThingDTO checkPattern(ThingDTO data, AssemblyDTO aDTO, Map<String, FormFieldDTO<String>> fields,
+			boolean strict) {
+		if(aDTO.getFileTypes().length()>0) {
+			FormFieldDTO<String> fld=fields.get(aDTO.getPropertyName());
+			if(fld!=null) {
+				String value= fld.getValue();
+				if(value.length()>0) {
+					if(!patternMatch(value, aDTO.getFileTypes())) {
+						fld.setError(true);
+						fld.setSuggest(messages.get("invalidformat"));
+						fld.setStrict(strict);
+						help(fld, aDTO.getDescription());
+					}
+				}
+			}
+		}
+		return data;
+	}
+	/**
+	 * RegExp pattern match
+	 * @param value
+	 * @param regex
+	 * @return
+	 */
+	private boolean patternMatch(String value, String regex) {
+		Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+	    Matcher matcher = pattern.matcher(value);
+	    return matcher.find();
+	}
+
 	/**
 	 * This ATC component is mandatory
 	 * @param data
@@ -1192,6 +1242,22 @@ public class ValidationService {
 		return data;
 	}
 	/**
+	 * Is it reject action. Is reject action is allowed
+	 * @param curHis
+	 * @param user
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public ActivitySubmitDTO submitReject(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
+		data.clearErrors();
+		if(!data.isReject()) {
+			data.setValid(false);
+			data.setIdentifier(messages.get("error_reject"));
+		}
+		return data;
+	}
+	/**
 	 * is it Finalize.AMEND action in amendment workflow?
 	 * @param curHis
 	 * @param user 
@@ -1464,5 +1530,7 @@ public class ValidationService {
 		}
 		return false;
 	}
+
+
 
 }

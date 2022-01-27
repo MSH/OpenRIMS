@@ -5,7 +5,12 @@ import ViewEdit from './ViewEdit'
 
 /**
  * Field guarded from accidental changes
- */
+ *  mode: PropTypes.oneOf(['text','textarea','number']).isRequired, //type of data
+ *   attribute  :PropTypes.string.isRequired,                        //should be component.state.labels[attribute] and component.state.data[attribute]
+ *   component   :PropTypes.object.isRequired,                        //caller component
+ * @example
+ *  
+*/
 class FieldGuarded extends Component{
     constructor(props){
         super(props)

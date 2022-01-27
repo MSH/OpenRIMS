@@ -89,7 +89,7 @@ public class AdminAPI {
 	}
 
 	/**
-	 * Load the dictionary element
+	 * Load the organization
 	 * 
 	 * @param data
 	 * @return
@@ -103,6 +103,32 @@ public class AdminAPI {
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
+	}
+
+	/**
+	 * Load the administrative units responsibility of the organization 
+	 * 
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/organization/load/responsibility")
+	public PublicOrgDTO organizationLoadResponsibility(@RequestBody PublicOrgDTO data) throws DataNotFoundException {
+		data = orgServ.loadResponsibility(data);
+		return data;
+	}
+	
+	/**
+	 * Load the administrative units responsibility of the organization 
+	 * 
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/organization/load/responsibility/select")
+	public PublicOrgDTO organizationLoadResponsibilitySelect(@RequestBody PublicOrgDTO data) throws DataNotFoundException {
+		data = orgServ.loadResponsibilitySelect(data);
+		return data;
 	}
 
 	@PostMapping("/api/admin/organization/save")
@@ -333,12 +359,12 @@ public class AdminAPI {
 	}
 
 	/*	*//** 2011-11-11 DEPRECATED and useless!!!
-			 * Load activity or user data configuration
-			 * 
-			 * @param data
-			 * @return
-			 * @throws DataNotFoundException
-			 *//*
+	 * Load activity or user data configuration
+	 * 
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 *//*
 				@PostMapping("/api/admin/thing/load")
 				public ThingDTO thingLoad(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
 				if(data.getNodeId()>0) {

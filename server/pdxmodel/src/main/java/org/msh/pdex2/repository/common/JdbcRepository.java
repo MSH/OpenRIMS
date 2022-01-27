@@ -732,6 +732,33 @@ public class JdbcRepository {
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 	}
+	
+	/**
+	 * Plain list of admin units up to level 2 (usually districts)
+	 */
+	public void admin_units2() {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("admin_units2");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+		
+	}
+	/**
+	 * Select executors by the criteria given
+	 * @param id
+	 * @param id2
+	 * @param admUnitID
+	 */
+	public void executors_select(long roleID, long applDictID) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("executors_select");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("roleID", roleID);
+		params.addValue("applDictID", applDictID);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+	}
 
 
 }

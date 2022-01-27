@@ -41,5 +41,12 @@ public class ApplicationServiceTest {
 		System.out.println(objectMapper.writeValueAsString(wpdto));
 		
 	}
+	@Test
+	public void executors_select() throws ObjectNotFoundException {
+		Concept actConf = closureServ.loadConceptById(68306);
+		History curHis = boilerServ.historyById(2629);
+		List<String> executors = applServ.executors_select(actConf, curHis);
+		System.out.println(executors);
+	}
 	
 }

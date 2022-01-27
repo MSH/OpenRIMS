@@ -10,6 +10,7 @@ import org.msh.pdex2.dto.i18n.Language;
 import org.msh.pdex2.dto.i18n.Languages;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
+import org.msh.pharmadex2.dto.AboutDTO;
 import org.msh.pharmadex2.dto.ContentDTO;
 import org.msh.pharmadex2.dto.UserFormDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
@@ -21,6 +22,7 @@ import org.msh.pharmadex2.service.r2.ResourceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
@@ -55,6 +57,11 @@ public class PublicAPI{
 	private ContentService contentService;
 	@Autowired
 	private ResourceService resourceServ;
+	
+	@Value("${app.buildTime}")
+	private String buildTime;
+	@Value("${app.release}")
+	private String release;
 	
 	/**
 	 * Create a context cookie
@@ -142,6 +149,20 @@ public class PublicAPI{
 			throw new DataNotFoundException(e);
 		}
 	}
+	
+	/**
+	 * About data for the footer etc
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@RequestMapping(value="api/public/about", method = RequestMethod.POST)
+	public AboutDTO about(@RequestBody AboutDTO data) throws DataNotFoundException {
+		data.setBuildTime(buildTime);
+		data.setRelease(release);
+		return data;
+	}
+	
 	
 	
 	/**

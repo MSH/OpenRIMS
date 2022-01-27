@@ -1,28 +1,30 @@
 package org.msh.pharmadex2.service.r2;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
+import org.msh.pdex2.dto.table.Headers;
+import org.msh.pdex2.dto.table.TableHeader;
+import org.msh.pdex2.dto.table.TableQtb;
+import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.r2.Concept;
-import org.msh.pdex2.model.r2.PublicOrgSubject;
+import org.msh.pdex2.model.r2.OrgAdmin;
 import org.msh.pdex2.model.r2.PublicOrganization;
+import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.r2.PubOrgRepo;
-import org.msh.pdex2.repository.r2.PubOrgSubjRepo;
 import org.msh.pdex2.services.r2.ClosureService;
-import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.DictNodeDTO;
-import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.PublicOrgDTO;
+import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.common.EntityService;
 import org.msh.pharmadex2.service.common.ValidationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,11 +35,12 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class PubOrgService {
+	@Value( "${pharmadex.territory.responsible:1}" )
+	private int territoryLevel;
+
 	private static final Logger logger = LoggerFactory.getLogger(PubOrgService.class);
 	@Autowired
 	private Messages messages;
-	@Autowired
-	private AssemblyService assemblyServ;
 	@Autowired
 	private PubOrgRepo pubOrgRepo;
 	@Autowired
@@ -51,9 +54,9 @@ public class PubOrgService {
 	@Autowired
 	private ValidationService validationServ;
 	@Autowired
-	private PubOrgSubjRepo pubOrgSubjRepo;
-
-
+	private JdbcRepository jdbcRepo;
+	@Autowired
+	private BoilerService boilerServ;
 
 	/**
 	 * Load an organization by the concept or create a new. Assembly:
@@ -70,7 +73,6 @@ public class PubOrgService {
 	public PublicOrgDTO loadByConcept(DictNodeDTO data) throws ObjectNotFoundException {
 		PublicOrgDTO ret = new PublicOrgDTO();
 		PublicOrganization org = new PublicOrganization();
-		Concept root=dictServ.loadRoot(data);
 		// this organization
 		if(data.getNodeId()>0) {
 			Concept concept =dictServ.node(data);
@@ -80,95 +82,151 @@ public class PubOrgService {
 			//set path in organization chart
 			List<Concept> path = closureServ.loadParents(concept);
 			ret.getNode().getTitle().clear();
-			String rootStr = literalServ.readValue("prefLabel", root);		//forget-me-not
 			for(Concept conc :path) {
 				String code = literalServ.readValue("prefLabel", conc);
 				ret.getNode().getTitle().add(code);
 			}
+			ret.getSelected().clear();
+			for(OrgAdmin oa : org.getAdminUnits()) {
+				ret.getSelected().add(oa.getAdminUnit().getID());
+			}
 		}
-		//parent organization
-		Concept parentOrgConcept = dictServ.parentNode(data);
-		PublicOrganization parentOrg = new PublicOrganization();
-		if(parentOrgConcept.getID()!=root.getID()) {
-			parentOrg=fetchByConcept(parentOrgConcept);
-		}
-		//assembly organization DTO
-		List<AssemblyDTO> adicts = assemblyServ.pubOrgDict();
-		ret.setDictionaries(createDictionaries(parentOrg,org, adicts));
-		
+		//territory responsibility
+		ret=createLoadTerritories(ret, territoryLevel);
 		return ret;
 	}
 
-
 	/**
-	 * Create all dictionaries defined for this type of organization
-	 * @param parentOrg parent organization
-	 * @param org this organization
-	 * @param adicts list of dictionaries defined
+	 * Load links organization-territory
+	 * Create a table
+	 * @param ret
+	 * @param tLevel
 	 * @return
-	 * @throws ObjectNotFoundException
 	 */
-	@Transactional
-	private Map<String,DictionaryDTO> createDictionaries(PublicOrganization parentOrg, PublicOrganization org,
-			List<AssemblyDTO> adicts) throws ObjectNotFoundException {
-		Map<String,DictionaryDTO> ret = new HashMap<String, DictionaryDTO>();
-		for(AssemblyDTO adict : adicts) {
-			ret.put(adict.getPropertyName(),createDictionary(parentOrg, org, adict));
-		}
-		return ret;
-	}
-
-
-	/**
-	 * Create a dictionary use selections in this or parent organization or from the root
-	 * @param parent
-	 * @param org
-	 * @param adict
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	@Transactional
-	private DictionaryDTO createDictionary(PublicOrganization parent, PublicOrganization org, AssemblyDTO adict) throws ObjectNotFoundException {
-		DictionaryDTO ret = new DictionaryDTO();
-		//general
-		ret.setUrl(adict.getUrl());
-		ret.setMult(adict.isMult());
-		ret.setRequired(adict.isRequired());
-		Concept root=closureServ.loadRoot(adict.getUrl());
-		String home=literalServ.readValue("prefLabel", root);
-		ret.setHome(home);
-		//determine the algorithm - 
-		List<Long> selected = selectedInDictionary(org, adict.getUrl());
-		ret.getPrevSelected().clear();
-		ret.getPrevSelected().addAll(selected);
-		if(selected.size()>0) {
-			ret= dictServ.createDictionaryFromSelected(selected, ret);
+	private PublicOrgDTO createLoadTerritories(PublicOrgDTO data, int tLevel) {
+		jdbcRepo.admin_units2();
+		if(territoryLevel==1) {
+			data=provincesTable(data);
 		}else {
-			selected = selectedInDictionary(parent, adict.getUrl());
-			if(selected.size()>0) {
-				ret=dictServ.createDictionaryFromPrevSelected(selected,ret);
-			}else {
-				ret=dictServ.createDictionaryFromRoot(ret);
-			}
+			data=districtsTable(data);
 		}
-		return ret;
+		return data;
+	}
+	/**
+	 * Provinces + Districts selection to determine territory responsibility 
+	 * @param data
+	 * @return
+	 */
+	private PublicOrgDTO districtsTable(PublicOrgDTO data) {
+		TableQtb table = data.getTable();
+		if(table.getHeaders().getHeaders().size()==0) {
+			table.setHeaders(districtHeaders(table.getHeaders()));
+		}
+		String select= "select distinct ID2 as 'ID', level1, level2 from admin_units2";
+		List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", "", table.getHeaders());
+		rows=markSelected(data,rows);
+		TableQtb.tablePage(rows, table);		//TODO should be replaced
+		return data;
+	}
+	/**
+	 * Headers for provinces selection
+	 * @param headers
+	 * @return
+	 */
+	private Headers districtHeaders(Headers headers) {
+		headers.getHeaders().add(TableHeader.instanceOf(
+				"level1",
+				"adminunit1",
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_STRING,
+				0));
+		headers.getHeaders().add(TableHeader.instanceOf(
+				"level2",
+				"adminunit2",
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_STRING,
+				0));
+		headers=boilerServ.translateHeaders(headers);
+		headers.getHeaders().get(0).setSort(true);
+		headers.getHeaders().get(0).setSortValue(TableHeader.SORT_ASC);
+		headers.getHeaders().get(1).setSort(true);
+		headers.getHeaders().get(1).setSortValue(TableHeader.SORT_ASC);
+		return headers;
 	}
 
 	/**
-	 * Get IDs of dictionary nodes selected in organization org
-	 * @param org the organization
-	 * @param dictUrl url of dictionary to search
+	 * Provinces selection to determine territory responsibility
+	 * @param data
 	 * @return
 	 */
-	@Transactional
-	public List<Long> selectedInDictionary(PublicOrganization org, String dictUrl) {
-		List<Long> selected = new ArrayList<Long>();
-		for(PublicOrgSubject subj : org.getSubjects()) {
-			if(subj.getUrl().equalsIgnoreCase(dictUrl)) {
-				selected.add(subj.getNode().getID());
+	private PublicOrgDTO provincesTable(PublicOrgDTO data) {
+		TableQtb table = data.getTable();
+		if(table.getHeaders().getHeaders().size()==0) {
+			table.setHeaders(provinceHeaders(table.getHeaders()));
+		}
+		String select= "select distinct ID1 as 'ID', level1 from admin_units2";
+		List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", "", table.getHeaders());
+		rows=markSelected(data,rows);
+		TableQtb.tablePage(rows, table);		//TODO should be replaced
+		return data;
+	}
+
+	/**
+	 * Mark all selected rows
+	 * @param data.getSelected()
+	 * @param rows
+	 * @return
+	 */
+	private List<TableRow> markSelected(PublicOrgDTO data, List<TableRow> rows) {
+ 		for(TableRow row :rows) {
+			if(data.getSelected().contains(row.getDbID())) {
+				row.setSelected(true);
+			}else {
+				row.setSelected(false);
 			}
 		}
-		return selected;
+ 		//cleanup old selected - it is really need when territorylevel has been changed
+ 		data.getSelected().clear();
+ 		for(TableRow row : rows) {
+ 			if(row.getSelected()) {
+ 				data.getSelected().add(row.getDbID());
+ 			}
+ 		}
+		if(data.isAll()) {
+			return rows;
+		}else {
+			List<TableRow> selRows = new ArrayList<TableRow>();
+			for(TableRow row : rows) {
+				if(row.getSelected()) {
+					selRows.add(row);
+				}
+			}
+			return selRows;
+		}
+	}
+
+	/**
+	 * Headers for provinces selection
+	 * @param headers
+	 * @return
+	 */
+	private Headers provinceHeaders(Headers headers) {
+		headers.getHeaders().add(TableHeader.instanceOf(
+				"level1",
+				"adminunit1",
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_STRING,
+				0));
+		headers=boilerServ.translateHeaders(headers);
+		headers.getHeaders().get(0).setSort(true);
+		headers.getHeaders().get(0).setSortValue(TableHeader.SORT_ASC);
+		return headers;
 	}
 
 	/**
@@ -272,7 +330,6 @@ public class PubOrgService {
 	 */
 	public PublicOrgDTO save(PublicOrgDTO data) throws ObjectNotFoundException {
 		Concept orgNode = savePublOrg(data);
-		
 		if(orgNode != null) {
 			//and return
 			data.setNode(dictServ.createNode(orgNode));
@@ -298,34 +355,54 @@ public class PubOrgService {
 			}
 			orgNode=entityServ.node(data.getNode());
 			org.setConcept(orgNode);
-			//dictionaries
-			if(org.getSubjects().size()>0) {
-				pubOrgSubjRepo.deleteAll(org.getSubjects());
-				org.getSubjects().clear();
-			}
-			for(String key:data.getDictionaries().keySet()) {
-				Long mainId = data.getDictionaries().get(key).getSelection().getValue().getId();
-				List<Long> prevSelected = data.getDictionaries().get(key).getPrevSelected();
-				if(mainId>0 && prevSelected.size()==0) {
-					prevSelected.add(mainId);
-				}
-				for(Long id : prevSelected ) {
-					if(id>0) {
-						Concept node=closureServ.loadConceptById(id);
-						PublicOrgSubject subj = new PublicOrgSubject();
-						subj.setNode(node);
-						subj.setPredicate("");
-						subj.setUrl(data.getDictionaries().get(key).getUrl());
-						org.getSubjects().add(subj);
-					}
-				}
+
+			//territory responsibilities
+			org.getAdminUnits().clear();
+			for(Long id :data.getSelected()) {
+				Concept au = closureServ.loadConceptById(id);
+				OrgAdmin oa = new OrgAdmin();
+				oa.setAdminUnit(au);
+				org.getAdminUnits().add(oa);
 			}
 			//finally save
 			org=pubOrgRepo.save(org);
-			
+
 			return orgNode;
 		}
 		return null;
 	}
-	
+	/**
+	 * Load only responsibility table
+	 * @param node
+	 * @return
+	 */
+	public PublicOrgDTO loadResponsibility(PublicOrgDTO data) {
+		data=createLoadTerritories(data, territoryLevel);
+		return data;
+	}
+	/**
+	 * Select/deselect an administrative unit
+	 * @param data
+	 * @return
+	 */
+	public PublicOrgDTO loadResponsibilitySelect(PublicOrgDTO data) {
+		if(data.getRowId()!=0) {
+			if(data.getSelected().contains(data.getRowId())) {
+				data.getSelected().remove(data.getRowId());
+			}else {
+				data.getSelected().add(data.getRowId());
+			}
+			data=createLoadTerritories(data, territoryLevel());
+		}
+		data.setRowId(0l);
+		return data;
+	}
+	/**
+	 * Level in territory units
+	 * @return
+	 */
+	public int territoryLevel() {
+		return territoryLevel;
+	}
+
 }

@@ -66,22 +66,26 @@ public class PublicService {
 		if(root != null) {
 			List<Concept> pages = literalServ.loadOnlyChilds(root);
 			for(Concept p:pages) {
-				DictNodeDTO node = dictServ.createNode(p);
-				if(node.fetchPrefLabel().getValue().equalsIgnoreCase(pagename)) {
-					List<Concept> children = literalServ.loadOnlyChilds(p);
-					for(Concept c:children) {
-						node = dictServ.createNode(c);
-						TileDTO tile = publicServ.createTile(dictServ.literalsLoad(node));
-						tile.setIdentifier(node.getIdentifier());
-						tile.setNodeID(node.getNodeId());
+				if(p.getActive()) {
+					DictNodeDTO node = dictServ.createNode(p);
+					if(node.fetchPrefLabel().getValue().equalsIgnoreCase(pagename)) {
+						List<Concept> children = literalServ.loadOnlyChilds(p);
+						for(Concept c:children) {
+							if(c.getActive()) {
+								node = dictServ.createNode(c);
+								TileDTO tile = publicServ.createTile(dictServ.literalsLoad(node));
+								tile.setIdentifier(node.getIdentifier());
+								tile.setNodeID(node.getNodeId());
 
-						if(tile.getImage().length() > 0 &&
-								tile.getNumRow() != -1 && tile.getNumCol() != -1) {
-							data.getTiles().put(tile.getTitle(), tile);
+								if(tile.getImage().length() > 0 &&
+										tile.getNumRow() != -1 && tile.getNumCol() != -1) {
+									data.getTiles().put(tile.getTitle(), tile);
+								}
+							}
 						}
-					}
 
-					break;
+						break;
+					}
 				}
 			}
 

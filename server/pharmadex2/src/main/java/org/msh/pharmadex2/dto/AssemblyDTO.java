@@ -32,7 +32,7 @@ public class AssemblyDTO extends AllowValidation {
 	private BigDecimal min = BigDecimal.ZERO;
 	private BigDecimal max = BigDecimal.valueOf(100000000L);
 	//file types allowed to upload
-	private String fileTypes="*"; //see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/accept
+	private String fileTypes=""; //see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/accept
 	//description for help
 	private String description="";
 	

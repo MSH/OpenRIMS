@@ -5,7 +5,7 @@ import {Row, Col, Alert} from 'reactstrap'
  * Place an alert and show it 2 sec
  * Accepts message show.alert.pharmadex.2
  * @example
- * Navigator.message('*', '*', 'show.alert.pharmadex.2' {mess:'Saved', color:'success'})
+ * Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:'Saved', color:'success'})
  * @example
  * <AlertFloat />
  * @usage

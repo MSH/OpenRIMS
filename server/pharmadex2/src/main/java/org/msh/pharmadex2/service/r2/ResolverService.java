@@ -124,6 +124,11 @@ public class ResolverService {
 			data="";
 		}
 		if(data!=null) {
+			if(dataType.equalsIgnoreCase("image")){
+				if(data instanceof Long) {
+					return data;
+				}
+			}
 			if(dataType.equalsIgnoreCase("number")) {
 				if(data instanceof Long) {
 					Long retLong= (Long) data;
@@ -199,7 +204,7 @@ public class ResolverService {
 					return str;
 				}
 			}
-
+			
 			//the rest are always strings
 			if(data instanceof String) {
 				ret=(String) data;
@@ -757,6 +762,7 @@ public class ResolverService {
 		List<String> filenames = new ArrayList<String>();
 		List<String> preflabels = new ArrayList<String>();
 		List<String> descr = new ArrayList<String>();
+		List<Long> ids=new ArrayList<Long>();
 		for(ThingDoc td:thing.getDocuments()) {
 			if(td.getVarName().equalsIgnoreCase(varName)) {
 				Concept c = td.getConcept();
@@ -774,6 +780,7 @@ public class ResolverService {
 					desc = " ";
 				descr.add(desc);
 				//value.put("description", desc);
+				ids.add(c.getID());
 			}
 		}
 		if(filenames.size() > 0) {
@@ -786,6 +793,10 @@ public class ResolverService {
 			value.put("preflabel", preflabel);
 			value.put("description", desc);
 			value.put("choice", choice);
+		}
+		//the first file may be image
+		if(ids.size()>0) {
+			value.put("image", new Long(ids.get(0)));
 		}
 
 		return value;

@@ -1,5 +1,8 @@
 package org.msh.pharmadex2.dto;
 
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+
 import org.msh.pharmadex2.dto.form.AllowValidation;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.dto.form.OptionDTO;
@@ -23,11 +26,7 @@ public class UserElementDTO extends AllowValidation{
 	private FormFieldDTO<OptionDTO> addPerson=FormFieldDTO.of(new OptionDTO());
 	//dictionaries
 	private DictionaryDTO roles = new DictionaryDTO();
-	private DictionaryDTO applications = new DictionaryDTO();
-	private DictionaryDTO amendments = new DictionaryDTO();
-	private DictionaryDTO renewal = new DictionaryDTO();
-	private DictionaryDTO deregistration = new DictionaryDTO();
-	private DictionaryDTO areas = new DictionaryDTO();
+	private LinkedHashMap<String, DictionaryDTO> applDicts = new LinkedHashMap<String, DictionaryDTO>();
 
 	public String getOrganization() {
 		return organization;
@@ -80,35 +79,12 @@ public class UserElementDTO extends AllowValidation{
 	public void setRoles(DictionaryDTO roles) {
 		this.roles = roles;
 	}
-	public DictionaryDTO getApplications() {
-		return applications;
+	public LinkedHashMap<String, DictionaryDTO> getApplDicts() {
+		return applDicts;
 	}
-	public void setApplications(DictionaryDTO applications) {
-		this.applications = applications;
+	public void setApplDicts(LinkedHashMap<String, DictionaryDTO> applDicts) {
+		this.applDicts = applDicts;
 	}
-	public DictionaryDTO getAmendments() {
-		return amendments;
-	}
-	public void setAmendments(DictionaryDTO amendments) {
-		this.amendments = amendments;
-	}
-	public DictionaryDTO getRenewal() {
-		return renewal;
-	}
-	public void setRenewal(DictionaryDTO renewal) {
-		this.renewal = renewal;
-	}
-	public DictionaryDTO getDeregistration() {
-		return deregistration;
-	}
-	public void setDeregistration(DictionaryDTO deregistration) {
-		this.deregistration = deregistration;
-	}
-	public DictionaryDTO getAreas() {
-		return areas;
-	}
-	public void setAreas(DictionaryDTO areas) {
-		this.areas = areas;
-	}
+
 	
 }

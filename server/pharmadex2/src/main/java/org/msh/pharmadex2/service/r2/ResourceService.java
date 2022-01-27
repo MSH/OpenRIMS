@@ -20,6 +20,7 @@ import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.controller.common.DocxView;
 import org.msh.pharmadex2.dto.AssemblyDTO;
+import org.msh.pharmadex2.dto.FileResourceDTO;
 import org.msh.pharmadex2.dto.PersonSelectorDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
@@ -188,11 +189,11 @@ public class ResourceService {
 		FileResource file = boilerServ.fileResourceById(fres.getFileId());
 		if(fres.getFileName().toUpperCase().endsWith(".DOCX")) {
 			InputStream stream = new ByteArrayInputStream(file.getFile());
-			DocxView dx = new DocxView(stream);
+			DocxView dx = new DocxView(stream,boilerServ);
 			Map<String,Object> model = dx.initModel();
 			model = resolverServ.resolveModel(model,fres);
 			stream.reset();
-			DocxView px = new DocxView(stream);
+			DocxView px = new DocxView(stream,boilerServ);
 			px.resolveDocument(model, true);
 			ByteArrayOutputStream out = new ByteArrayOutputStream();
 			px.getDoc().write(out);

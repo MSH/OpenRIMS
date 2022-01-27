@@ -581,7 +581,19 @@ public class UserService implements UserDetailsService {
 		data.getNode().getLiterals().clear();
 		List<AssemblyDTO> auxLiterals = assemblyServ.auxUserLiterals();
 		data.setNode(dictServ.createLiterals(auxLiterals, data.getNode()));
-
+		//prepare dictionaries
+		data.getApplDicts().clear();
+		List<String> dictUrls = systemServ.applicationLifeCycleUrls();
+		for(String url : dictUrls) {
+			DictionaryDTO dict = new DictionaryDTO();
+			dict.setUrl(url);
+			dict.setVarName(url);
+			dict.setRequired(true);
+			dict.setMult(true);
+			dict.setReadOnly(false);
+			dict.setSelectedOnly(false);
+			data.getApplDicts().put(url, dict);
+		}
 		//read data if one
 		if(user != null) {
 			Concept orga = user.getOrganization();
@@ -595,44 +607,26 @@ public class UserService implements UserDetailsService {
 			}
 			data.getNode().setLiterals(dtoServ.readAllLiterals(data.getNode().getLiterals(), user.getConcept()));
 			data.getGlobal_enable().setValue(dtoServ.booleanToYesNo(user.getEnabled()));
-			//dictionaries
+			//read dictionaries
 			for(UserDict dictVal : user.getDictionaries()) {
 				if(dictVal.getUrl().equalsIgnoreCase(SystemService.DICTIONARY_SYSTEM_ROLES)) {
 					data.getRoles().getPrevSelected().add(dictVal.getConcept().getID());
 				}
-				if(dictVal.getUrl().equalsIgnoreCase(SystemService.DICTIONARY_ADMIN_UNITS)) {
-					data.getAreas().getPrevSelected().add(dictVal.getConcept().getID());
-				}
-				if(dictVal.getUrl().equalsIgnoreCase(SystemService.DICTIONARY_GUEST_APPLICATIONS)) {
-					data.getApplications().getPrevSelected().add(dictVal.getConcept().getID());
-				}
-				if(dictVal.getUrl().equalsIgnoreCase(SystemService.DICTIONARY_GUEST_AMENDMENTS)) {
-					data.getAmendments().getPrevSelected().add(dictVal.getConcept().getID());
-				}
-				if(dictVal.getUrl().equalsIgnoreCase(SystemService.DICTIONARY_GUEST_RENEWAL)) {
-					data.getRenewal().getPrevSelected().add(dictVal.getConcept().getID());
-				}
-				if(dictVal.getUrl().equalsIgnoreCase(SystemService.DICTIONARY_GUEST_DEREGISTRATION)) {
-					data.getDeregistration().getPrevSelected().add(dictVal.getConcept().getID());
+				DictionaryDTO applDict = data.getApplDicts().get(dictVal.getUrl());
+				if(applDict!=null) {
+					applDict.getPrevSelected().add(dictVal.getConcept().getID());
 				}
 			}
-
+			
 		}else {
 			data.getGlobal_enable().setValue(dtoServ.booleanToYesNo(false));
 		}
-		//prepare dictionaries
+		//load dictionaries
 		data.setRoles(systemServ.userRolesDict(data.getRoles()));
-		data.setAreas(systemServ.addressDictionary(data.getAreas()));
-
-		data.setApplications(systemServ.applicationsDictionary(data.getApplications()));
-		data.setRenewal(systemServ.renewalDict(data.getRenewal()));
-		data.setAmendments(systemServ.amendmentDictionary(data.getAmendments()));
-		data.setDeregistration(systemServ.deregistrationDict(data.getDeregistration()));
-
-		data.getApplications().setMult(true);
-		data.getAmendments().setMult(true);
-		data.getRenewal().setMult(true);
-		data.getDeregistration().setMult(true);
+		for(String key : data.getApplDicts().keySet()) {
+			DictionaryDTO dict = data.getApplDicts().get(key);
+			dict=dictServ.createDictionary(dict);
+		}
 		return data;
 	}
 
@@ -673,10 +667,10 @@ public class UserService implements UserDetailsService {
 			Concept root=closureServ.loadRoot(data.getNode().getUrl());
 			if(data.getNode().getNodeId()>0) {
 				node=closureServ.loadConceptById(data.getNode().getNodeId());
-
+				node.setIdentifier(data.getUser_email().getValue());
+				node=closureServ.save(node);
 			}else {
 				node=closureServ.saveToTree(root, node);
-				node.setIdentifier(user.getEmail());
 			}
 
 			literalServ.saveFields(data.getNode().getLiterals(), node);
@@ -687,13 +681,10 @@ public class UserService implements UserDetailsService {
 			//save dictionaries
 			user.getDictionaries().clear();
 			user.getDictionaries().addAll(createDictItems(data.getRoles()));
-			user.getDictionaries().addAll(createDictItems(data.getApplications()));
-			user.getDictionaries().addAll(createDictItems(data.getRenewal()));
-			user.getDictionaries().addAll(createDictItems(data.getAmendments()));
-			user.getDictionaries().addAll(createDictItems(data.getDeregistration()));
-			user.getDictionaries().addAll(createDictItems(data.getAreas()));
+			for(String key : data.getApplDicts().keySet()) {
+				user.getDictionaries().addAll(createDictItems(data.getApplDicts().get(key)));
+			}
 			//other fields
-
 			YesNoNA enable = dtoServ.optionToEnum(YesNoNA.values(), data.getGlobal_enable().getValue());
 			if(enable==YesNoNA.YES) {
 				user.setEnabled(true);
@@ -789,6 +780,7 @@ public class UserService implements UserDetailsService {
 	}
 	/**
 	 * Search for NMRA users that suit criteria - role+responsibility+territory
+	 * @deprecated
 	 * @param roleNodes
 	 * @param respNodes
 	 * @param addr

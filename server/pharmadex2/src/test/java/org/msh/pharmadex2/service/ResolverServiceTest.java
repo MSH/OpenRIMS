@@ -47,7 +47,7 @@ public class ResolverServiceTest {
 	public void prepareModel() throws ObjectNotFoundException, IOException {
 		InputStream stream = getClass().getClassLoader().getResourceAsStream("Invoice2000-1.docx");
 		assertTrue(stream.available()>0);
-		DocxView dx = new DocxView(stream);
+		DocxView dx = new DocxView(stream, boilerServ);
 		Map<String,Object> model = dx.initModel();
 		ResourceDTO td = new ResourceDTO();
 		td.setHistoryId(322);
