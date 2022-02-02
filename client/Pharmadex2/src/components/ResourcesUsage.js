@@ -24,6 +24,45 @@ class ResourcesUsage extends Component{
     }
 
     /**
+     * 
+     * @param {ResourceDTO} data 
+     * @param {number} index for keys 
+     * @param {boolean} readOnly 
+     * @param {string} recipient for messages 
+     * @param {string} label 
+     * @param {ThingDTO} thing parent thing
+     */
+     static place(data, index, readOnly, recipient, label, thing){
+        if(readOnly){
+            return []
+        }
+        let res=data
+        if(res!=undefined){
+            res.reload=true
+            return(
+            <Row key={index}>
+                <Col>
+                    <Row>
+                        <Col>
+                            <h6>{label}</h6>
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col>
+                            <ResourcesUsage data={res}
+                                            thing={thing}
+                                            recipient={recipient}
+                                            readOnly={readOnly}
+                                            key={"resource"+index}/>
+                        </Col>
+                    </Row>
+                </Col>
+            </Row>
+            )
+        }
+    }
+
+    /**
      * Listen messages from other components
      * @param {Window Event} event 
      */

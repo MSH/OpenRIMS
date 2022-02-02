@@ -657,4 +657,22 @@ public class ActivityAPI {
 		return data;
 	}
 	
+	/**
+	 * Save an application data under the user
+	 * 
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping({ "/api/*/thing/save/application" })
+	public ThingDTO thingSaveGuest(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		try {
+			data = thingServ.save(data, user);
+		} catch (ObjectNotFoundException | JsonProcessingException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
 }

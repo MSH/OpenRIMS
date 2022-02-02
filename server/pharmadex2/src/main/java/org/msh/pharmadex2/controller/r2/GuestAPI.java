@@ -9,6 +9,7 @@ import org.msh.pharmadex2.dto.CheckListDTO;
 import org.msh.pharmadex2.dto.ContentDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.GisLocationDTO;
+import org.msh.pharmadex2.dto.LegacyDataDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.mock.ChoiceDTO;
@@ -18,6 +19,7 @@ import org.msh.pharmadex2.service.r2.AmendmentService;
 import org.msh.pharmadex2.service.r2.ApplicationService;
 import org.msh.pharmadex2.service.r2.ContentService;
 import org.msh.pharmadex2.service.r2.DictService;
+import org.msh.pharmadex2.service.r2.LegacyDataService;
 import org.msh.pharmadex2.service.r2.SystemService;
 import org.msh.pharmadex2.service.r2.ThingService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +45,8 @@ public class GuestAPI {
 	private AmendmentService amendServ;
 	@Autowired
 	private SystemService systemServ;
+	@Autowired
+	private LegacyDataService legacyServ;
 
 
 	/**
@@ -149,25 +153,6 @@ public class GuestAPI {
 	}
 
 	/**
-	 * Save an application
-	 * 
-	 * @param auth
-	 * @param data
-	 * @return
-	 * @throws DataNotFoundException
-	 */
-	@PostMapping({ "/api/guest/thing/save/application" })
-	public ThingDTO thingSaveGuest(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
-		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
-		try {
-			data = thingServ.save(data, user);
-		} catch (ObjectNotFoundException | JsonProcessingException e) {
-			throw new DataNotFoundException(e);
-		}
-		return data;
-	}
-
-	/**
 	 * submit an application after checklist
 	 * @param auth
 	 * @param data
@@ -252,6 +237,18 @@ public class GuestAPI {
 			} catch (ObjectNotFoundException e) {
 				throw new DataNotFoundException(e);
 			}
+		return data;
+	}
+	
+	/**
+	 * Legacy data reload the table
+	 * @param auth
+	 * @param data
+	 * @return
+	 */
+	@PostMapping("/api/*/legacy/data")
+	public LegacyDataDTO legacyData(Authentication auth, @RequestBody LegacyDataDTO data) {
+		data=legacyServ.reloadTable(data);
 		return data;
 	}
 	

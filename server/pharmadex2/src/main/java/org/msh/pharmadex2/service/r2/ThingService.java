@@ -33,6 +33,7 @@ import org.msh.pdex2.model.r2.ThingAmendment;
 import org.msh.pdex2.model.r2.ThingAtc;
 import org.msh.pdex2.model.r2.ThingDict;
 import org.msh.pdex2.model.r2.ThingDoc;
+import org.msh.pdex2.model.r2.ThingLegacyData;
 import org.msh.pdex2.model.r2.ThingPerson;
 import org.msh.pdex2.model.r2.ThingRegister;
 import org.msh.pdex2.model.r2.ThingScheduler;
@@ -51,6 +52,7 @@ import org.msh.pharmadex2.dto.DictValuesDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.FileDTO;
 import org.msh.pharmadex2.dto.HeadingDTO;
+import org.msh.pharmadex2.dto.LegacyDataDTO;
 import org.msh.pharmadex2.dto.PersonDTO;
 import org.msh.pharmadex2.dto.PersonSelectorDTO;
 import org.msh.pharmadex2.dto.PersonSpecialDTO;
@@ -123,6 +125,8 @@ public class ThingService {
 	private ResourceService resourceServ;
 	@Autowired
 	private AmendmentService amendServ;
+	@Autowired
+	private LegacyDataService legacyServ;
 	@Autowired
 	private AtcInnExcService atcInnExcServ;
 	@PersistenceContext
@@ -225,11 +229,40 @@ public class ThingService {
 		//ATC codes
 		List<AssemblyDTO> atc = assemblyServ.auxAtc(data.getUrl());
 		data=createAtc(atc,data);
+		//Legacy data
+		List<AssemblyDTO> legacy = assemblyServ.auxLegacyData(data.getUrl());
+		data=createLegacy(legacy, data);
 		//layout
 		data=createLayout(data);
 		//main labels rewrite
 		data.getMainLabels().clear();
 		data.getMainLabels().putAll(assemblyServ.mainLabelsByUrl(data.getUrl()));
+		return data;
+	}
+
+	/**
+	 * Create the legacy data component
+	 * @param legacy
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private ThingDTO createLegacy(List<AssemblyDTO> legacy, ThingDTO data) throws ObjectNotFoundException {
+		data.getLegacy().clear();
+		for(AssemblyDTO assm : legacy) {
+			data.getLegacy().put(assm.getPropertyName(),legacyServ.create(assm));
+		}
+		if(data.getLegacy().size()>0) {
+			if(data.getNodeId()>0) {
+				Concept node = closureServ.loadConceptById(data.getNodeId());
+				Thing thing = boilerServ.thingByNode(node);
+				for(ThingLegacyData tdl : thing.getLegacyData()) {
+					LegacyDataDTO dto = data.getLegacy().get(tdl.getVarName());
+					dto=legacyServ.load(tdl.getConcept(), dto);
+				}
+			}
+		}
 		return data;
 	}
 	/**
@@ -241,14 +274,15 @@ public class ThingService {
 	 */
 	private ThingDTO createAtc(List<AssemblyDTO> atcs, ThingDTO data) throws ObjectNotFoundException {
 		data.getAtc().clear();
-		AtcDTO dto = new AtcDTO();				//only one is possible
 		for(AssemblyDTO atc : atcs) {
+			AtcDTO dto = new AtcDTO();				//only one is possibl
 			dto.setUrl(atc.getUrl());
 			dto.setVarName(atc.getPropertyName());
 			dto.setReadOnly(atc.isReadOnly());
+			dto=atcInnExcServ.createAtc(dto, data);
+			data.getAtc().put(dto.getVarName(),dto);
 		}
-		dto=atcInnExcServ.createAtc(dto, data);
-		data.getAtc().put(dto.getVarName(),dto);
+
 		return data;
 	}
 	/**
@@ -509,28 +543,30 @@ public class ThingService {
 			sc.getSchedule().setValue(LocalDate.now().plusMonths(ad.getMaxQuantity()));
 			data.getSchedulers().put(ad.getPropertyName(), sc);
 		}
-		//thing, history, node, application data
-		Thing thing=new Thing();
-		History his = new History();
-		Concept applData = new Concept();
-		if(data.getHistoryId()>0) {
-			his=boilerServ.historyById(data.getHistoryId());
-			applData = amendServ.initialApplicationData(his.getApplicationData());
-		}
-		if(data.getNodeId()>0) {
-			Concept node = closureServ.loadConceptById(data.getNodeId());
-			thing = boilerServ.thingByNode(node);
-		}
-
-		//resolve, if it is possible
-		for(String key : data.getSchedulers().keySet()) {
-			SchedulerDTO sdto = data.getSchedulers().get(key);
-			if(thing.getID()>0) {
-				sdto = followUpServ.schedulerFromThing(thing,sdto);
+		if(data.getSchedulers().size()>0) {
+			//thing, history, node, application data
+			Thing thing=new Thing();
+			History his = new History();
+			Concept applData = new Concept();
+			if(data.getHistoryId()>0) {
+				his=boilerServ.historyById(data.getHistoryId());
+				applData = amendServ.initialApplicationData(his.getApplicationData());
 			}
-			if(followUpServ.isEmpty(sdto)) {
-				if(applData.getID()>0) {
-					sdto=followUpServ.schedulerFromSchedulers(applData, sdto.getDataUrl(),sdto);
+			if(data.getNodeId()>0) {
+				Concept node = closureServ.loadConceptById(data.getNodeId());
+				thing = boilerServ.thingByNode(node);
+			}
+
+			//resolve, if it is possible
+			for(String key : data.getSchedulers().keySet()) {
+				SchedulerDTO sdto = data.getSchedulers().get(key);
+				if(thing.getID()>0) {
+					sdto = followUpServ.schedulerFromThing(thing,sdto);
+				}
+				if(followUpServ.isEmpty(sdto)) {
+					if(applData.getID()>0) {
+						sdto=followUpServ.schedulerFromSchedulers(applData, sdto.getDataUrl(),sdto);
+					}
 				}
 			}
 		}
@@ -840,14 +876,6 @@ public class ThingService {
 		}
 		Thing thing = new Thing();
 		thing = boilerServ.thingByNode(node, thing);
-		/*String email=user.getEmail();
-		if(thing.getID()>0) {
-			Concept uco=closureServ.getParent(thing.getConcept());
-			email=uco.getIdentifier();
-		}
-		if(!validServ.eMail(email)) {
-			email="";
-		}*/
 		String email="";
 		jdbcRepo.prepareFileList(dict.getID(),thing.getID(),data.getUrl(), data.getVarName(), email);
 		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from _filelist", "","", data.getTable().getHeaders());
@@ -1044,6 +1072,13 @@ public class ThingService {
 						dto.setHistoryId(data.getHistoryId());
 						dto.setActivityId(data.getActivityId());
 					}
+					History his = boilerServ.historyById(data.getHistoryId());
+					if(his.getDataUrl()!=null) {
+						if(data.getUrl().equalsIgnoreCase(his.getDataUrl())) {
+							his.setActivityData(node);
+							boilerServ.saveHistory(his);
+						}
+					}
 				}
 			}else {
 				throw new ObjectNotFoundException("Write access denied. URL "+data.getApplicationUrl() +" user "+user.getEmail());
@@ -1069,6 +1104,7 @@ public class ThingService {
 	@Transactional
 	public ThingDTO storeDataUnderThing(ThingDTO data, UserDetailsDTO user, Concept node, Thing thing)
 			throws ObjectNotFoundException {
+		data = storeLegacy(thing, data);				//should be first, because may change literals
 		data = storeStrings(node,data);
 		data = storeLiterals(node, data);
 		data = storeDates(node,data);
@@ -1081,9 +1117,48 @@ public class ThingService {
 		data = storeSchedule(user, thing, data);
 		data = storeRegister(user, thing, data);
 		data = storeAtc(thing, data);
+
 		return data;
 	}
-
+	/**
+	 * Store legacy data selected
+	 * @param thing
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	private ThingDTO storeLegacy(Thing thing, ThingDTO data) throws ObjectNotFoundException {
+		thing.getLegacyData().clear();
+		for(String key :data.getLegacy().keySet()) {
+			ThingLegacyData tld = new ThingLegacyData();
+			LegacyDataDTO dto = data.getLegacy().get(key);
+			if(dto.getSelectedNode()>0) {
+				Concept node=closureServ.loadConceptById(dto.getSelectedNode());
+				tld.setConcept(node);
+				tld.setUrl(dto.getUrl());
+				tld.setVarName(dto.getVarName());
+				thing.getLegacyData().add(tld);
+				//tune variables, we understand that legacy data component is only one :)
+				FormFieldDTO<String> prefLabelDTO = data.getLiterals().get("prefLabel");
+				if(prefLabelDTO==null) {
+					prefLabelDTO = data.getStrings().get("prefLabel");
+				}
+				if(prefLabelDTO != null) {
+					String prefLabel=literalServ.readPrefLabel(node);
+					prefLabelDTO.setValue(prefLabel);
+				}
+				FormFieldDTO<String> altLabelDTO = data.getLiterals().get("altLabel");
+				if(altLabelDTO==null) {
+					altLabelDTO=data.getStrings().get("altLabel");
+				}
+				if(altLabelDTO != null) {
+					String altLabel=literalServ.readValue("altLabel", node);
+					altLabelDTO.setValue(altLabel);
+				}
+			}
+		}
+		return data;
+	}
 	/**
 	 * Store ATC codes
 	 * @param thing

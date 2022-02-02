@@ -40,6 +40,7 @@ import org.msh.pharmadex2.dto.DataVariableDTO;
 import org.msh.pharmadex2.dto.DictNodeDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.FileDTO;
+import org.msh.pharmadex2.dto.LegacyDataDTO;
 import org.msh.pharmadex2.dto.MessageDTO;
 import org.msh.pharmadex2.dto.PersonSpecialDTO;
 import org.msh.pharmadex2.dto.PublicOrgDTO;
@@ -241,6 +242,7 @@ public class ValidationService {
 	private DictionaryDTO dictionary(DictionaryDTO dict, String description, boolean strict) throws ObjectNotFoundException {
 		if(dict!= null) {
 			dict.clearErrors();
+			dict.setStrict(strict);
 			if(dict.isRequired()) {
 				long sumIds=dict.getSelection().getValue().getId() * dict.getSelection().getValue().getOptions().size();		//value exists, list is empty
 				for(Long id : dict.getPrevSelected()) {
@@ -295,7 +297,13 @@ public class ValidationService {
 	@Transactional
 	public ThingDTO thing(ThingDTO data, boolean strict) throws ObjectNotFoundException {
 		data.clearErrors();
-
+		List<AssemblyDTO> legs = assemblyServ.auxLegacyData(data.getUrl());
+		for(AssemblyDTO l : legs) {
+			if(l.isRequired()) {
+				mandatoryLegacy(data, l,strict);
+			}
+		}
+		
 		List<AssemblyDTO> s = assemblyServ.auxStrings(data.getUrl());
 		for(AssemblyDTO str : s) {
 			if(str.getFileTypes().length()>0) {
@@ -385,6 +393,22 @@ public class ValidationService {
 		data.propagateValidation();
 		return data;
 	}
+	/**
+	 * Legacy data should be selected
+	 * @param data
+	 * @param l
+	 * @param strict
+	 */
+	private void mandatoryLegacy(ThingDTO data, AssemblyDTO l, boolean strict) {
+		LegacyDataDTO dto = data.getLegacy().get(l.getPropertyName());
+		if(dto!=null) {
+			if(dto.getSelectedNode()==0) {
+				dto.setValid(false);
+				dto.setStrict(strict);
+				dto.setIdentifier(messages.get("error_dictionaryempty")+". "+l.getDescription());
+			}
+		}
+	}
 
 	/**
 	 * Check a sting or a literal against the pattern.
@@ -421,8 +445,8 @@ public class ValidationService {
 	 */
 	private boolean patternMatch(String value, String regex) {
 		Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
-	    Matcher matcher = pattern.matcher(value);
-	    return matcher.find();
+		Matcher matcher = pattern.matcher(value);
+		return matcher.find();
 	}
 
 	/**
@@ -611,6 +635,7 @@ public class ValidationService {
 			return;
 		}
 		filesDTO.clearErrors();
+		filesDTO.setStrict(strict);
 		if (filesDTO.getLinked()==null || filesDTO.getLinked().size()==0) {
 			filesDTO.setValid(false);
 			filesDTO.setIdentifier(messages.get("upload_file") +" " +doc.getDescription());
@@ -639,6 +664,7 @@ public class ValidationService {
 	private void mandatoryAddress(AddressDTO data, boolean strict) throws ObjectNotFoundException {
 		if(data!=null) {
 			data.clearErrors();
+			data.setStrict(strict);
 			data.getDictionary().clearErrors();
 			dictionary(data.getDictionary(),"",strict);
 			if(!data.getDictionary().isValid()) {
@@ -1286,6 +1312,9 @@ public class ValidationService {
 					data.setValid(false);
 				}
 			}
+		}else {
+			data.setIdentifier(messages.get("error_workflowinappropriate"));
+			data.setValid(false);
 		}
 		return data;
 	}
@@ -1530,7 +1559,5 @@ public class ValidationService {
 		}
 		return false;
 	}
-
-
 
 }

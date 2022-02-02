@@ -58,7 +58,7 @@ class ToDoList extends Component{
     }
 
     loadData(){
-        Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName()+"/my/activities", this.state.data, (query,result)=>{
+        Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/my/activities", this.state.data, (query,result)=>{
             this.state.data=result
             this.setState(this.state)
         })

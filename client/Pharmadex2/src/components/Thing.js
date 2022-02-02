@@ -19,6 +19,7 @@ import Register from './Register'
 import PersonSpecial from './PersonSpecial'
 import Amended from './Amended'
 import ATCCodes from './ATCCodes'
+import LegacyData from './LegacyData'
 import Pharmadex from './Pharmadex'
 
 
@@ -52,7 +53,6 @@ class Thing extends Component{
         this.heading=this.heading.bind(this)
         this.strings=this.strings.bind(this)
         this.literal=this.literal.bind(this)
-        this.resourcesControl=this.resourcesControl.bind(this)
         this.dateFiled=this.dateFiled.bind(this)
         this.load=this.load.bind(this)
         this.save=this.save.bind(this)
@@ -102,7 +102,7 @@ class Thing extends Component{
      * savedByAction means saved by Save button
      */
          saveGuest(savedByAction){
-            Fetchers.postJSONNoSpinner("/api/guest/thing/save/application",this.state.data,(query,result)=>{
+            Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName()+"/thing/save/application",this.state.data,(query,result)=>{
                 this.state.data=result
                 if(this.state.data.valid){
                     this.storeLocal()
@@ -171,8 +171,9 @@ class Thing extends Component{
                 this.save(true);
             }
         }
+
         if(data.from==this.props.recipient && !this.state.data.readOnly && !this.props.readOnly){
-            if(data.subject=="saveAllGuest"){
+            if(data.subject=="saveAllGuest" || data.subject=="saveAllUsersData"){                       //file new data under the user
                 this.saveGuest(true);
             }
         }
@@ -196,7 +197,7 @@ class Thing extends Component{
            if(data.subject=='save'){
                this.save()
            }
-           if(data.subject=='saveGuest'){
+           if(data.subject=='saveGuest' || data.subject=="saveUsersData"){
             this.saveGuest()
             }
            //ask to apply auxiliary path. Only for guest applications
@@ -353,6 +354,7 @@ class Thing extends Component{
         Locales.createLabels(this,'personspec')
         Locales.createLabels(this,'amendments')
         Locales.createLabels(this,'atc')
+        Locales.createLabels(this, 'legacy');
         if(this.state.data.activityName != undefined){
             this.state.labels[this.state.data.activityName]=''     //for activity names
         }
@@ -567,44 +569,6 @@ class Thing extends Component{
         }
     }
 
-    /**
-     * Responsible for resources 
-     * @param {string} name 
-     * @param {number} index 
-     * @returns 
-     */
-        resourcesControl(name, index){
-        if(this.state.data.readOnly || this.props.readOnly){
-            return []
-        }
-        let res=this.state.data.resources[name] 
-        if(res!=undefined){
-            if(this.props.readOnly){
-                res.readOnly=true
-            }
-            res.reload=true
-            return(
-            <Row key={index}>
-                <Col>
-                    <Row>
-                        <Col>
-                            <h6>{this.state.labels[name]}</h6>
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col>
-                            <ResourcesUsage data={res}
-                                            thing={this.state.data}
-                                            recipient={this.state.identifier}
-                                            readOnly={this.props.readOnly}
-                                            key={this.state.identifier+index}/>
-                        </Col>
-                    </Row>
-                </Col>
-            </Row>
-            )
-        }
-    }
 
     /**
      * Responsible for person selection
@@ -815,8 +779,9 @@ class Thing extends Component{
             }
         }
         if(this.state.data.resources.hasOwnProperty(name)){
+            let data=this.state.data.resources[name]
             return(
-                this.resourcesControl(name,index)
+                ResourcesUsage.place(data, index, this.props.readOnly, this.state.identifier, this.state.labels[name], this.state.data)
             )
         }
         if(this.state.data.personselector.hasOwnProperty(name)){
@@ -876,6 +841,22 @@ class Thing extends Component{
                             this.state.identifier,
                             this.props.readOnly,
                             index
+                    )
+                )
+            }
+        }
+        if(this.state.data.legacy.hasOwnProperty(name)){
+            if(data != undefined){
+                this.state.data.legacy[name]=data
+            }else{
+                return(
+                    LegacyData.place(
+                            this.state.data.legacy[name],
+                            index,
+                            this.props.readOnly,
+                            this.state.identifier,
+                            this.state.labels[name],
+                            this.props.readOnly || this.state.data.readOnly
                     )
                 )
             }

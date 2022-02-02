@@ -69,6 +69,10 @@ class ApplicationFiles extends Component{
                 files.readOnly=true
             }
             files.reload=true
+            let color="info"
+            if(files.strict){
+                color="danger"
+            }
             return(
             <Row key={index} className={ApplicationFiles.changed(files)}>
                 <Col>
@@ -79,7 +83,7 @@ class ApplicationFiles extends Component{
                     </Row>
                     <Row hidden={files.valid}>
                         <Col>
-                            <Alert color="danger" className="p-0 m-0">
+                            <Alert color={color} className="p-0 m-0">
                                 <small>{files.identifier}</small>
                             </Alert>
                         </Col>

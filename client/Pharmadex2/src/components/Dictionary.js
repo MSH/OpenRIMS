@@ -156,7 +156,7 @@ class Dictionary extends Component{
     }
 
     reloadData(){
-        Fetchers.postJSONNoSpinner("/api/common/dictionary/load",this.state.data,(query,result)=>{
+        Fetchers.postJSONNoSpinner("/api/common/dictionary/load/next",this.state.data,(query,result)=>{
             this.state.data=result
             this.comparator = new FieldsComparator(this)
             this.setState(this.state)
@@ -164,6 +164,11 @@ class Dictionary extends Component{
     }
 
     componentDidUpdate(){
+        if(this.props.data.reload){
+            this.state.data=this.props.data
+            this.state.data.reload=false
+            this.reloadData()
+        }
         if(this.state.sendMess){
             let to="*"
             if(this.props.recipient != undefined){

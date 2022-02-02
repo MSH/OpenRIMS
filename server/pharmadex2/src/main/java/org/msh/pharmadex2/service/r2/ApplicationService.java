@@ -361,9 +361,9 @@ public class ApplicationService {
 				table.setHeaders(historyHeaders(table.getHeaders(),user));
 			}
 			jdbcRepo.application_history(his.getApplicationData().getID());
-			String where = "days>=0";
+			String where = "";
 			if(accServ.isApplicant(user)) {
-				where = where + " and go is not null";
+				where = where + "go is not null";
 			}
 			List<TableRow> rows=jdbcRepo.qtbGroupReport("select * from application_history", "", where, table.getHeaders());
 			TableQtb.tablePage(rows, table);
@@ -598,39 +598,45 @@ public class ApplicationService {
 	public List<String> executors_select(Concept actConf, History curHis) throws ObjectNotFoundException {
 		List<String> ret = new ArrayList<String>();
 		Concept role=assmServ.activityExecutorRole(actConf);
-		Concept applDict=curHis.getApplDict();
-		String where="";
-		Concept admUnit=adminUnit(actConf, curHis);
-		if(role!=null && applDict!=null){
-			if(admUnit!=null) {
-				where="auid=+'"+admUnit.getID()+"'"+" or auid is null";
-			}else {
-				where="auid is null";
-			}
-			jdbcRepo.executors_select(role.getID(), applDict.getID());
-			ret = executorsEmails(ret, where);
-			if(ret.size()==0) {
-				logger.warn("An executor not found - search for office secretaries. Activity config ID is "+
-						actConf.getID());
-				role = systemServ.loadRole(SystemService.ROLE_SECRETARY);
+		if(role.getIdentifier().toUpperCase().contains("APPLICANT")) {
+			//applicant is a special case
+			ret.add(accServ.applicantEmailByApplication(curHis.getApplication()));
+		}else {
+			//NMRA staff
+			Concept applDict=curHis.getApplDict();
+			String where="";
+			Concept admUnit=adminUnit(actConf, curHis);
+			if(role!=null && applDict!=null){
+				if(admUnit!=null) {
+					where="auid='"+admUnit.getID()+"'";
+				}else {
+					where="auid is null";
+				}
 				jdbcRepo.executors_select(role.getID(), applDict.getID());
-				ret = executorsEmails(ret,where);
-			}
-			if(ret.size()==0) {
-				logger.warn("an executor not found - send to all supervisors. Activity config ID is "+
-						actConf.getID());
-				List<User> supervisors = userServ.loadUsersByRole(SystemService.ROLE_ADMIN);
-				for(User sup : supervisors) {
-					if(sup.getEnabled()) {
-						ret.add(sup.getEmail());
+				ret = executorsEmails(ret, where);
+				if(ret.size()==0) {
+					logger.warn("An executor not found - search for office secretaries. Activity config ID is "+
+							actConf.getID());
+					role = systemServ.loadRole(SystemService.ROLE_SECRETARY);
+					jdbcRepo.executors_select(role.getID(), applDict.getID());
+					ret = executorsEmails(ret,where);
+				}
+				if(ret.size()==0) {
+					logger.warn("an executor not found - send to all supervisors. Activity config ID is "+
+							actConf.getID());
+					List<User> supervisors = userServ.loadUsersByRole(SystemService.ROLE_ADMIN);
+					for(User sup : supervisors) {
+						if(sup.getEnabled()) {
+							ret.add(sup.getEmail());
+						}
 					}
 				}
-			}
-			if(ret.size()==0) {
-				throw new ObjectNotFoundException("executors_select. Executor not found for config "
-						+ curHis.getApplConfig().getID(),logger);
-			}
-		}	
+				if(ret.size()==0) {
+					throw new ObjectNotFoundException("executors_select. Executor not found for config "
+							+ curHis.getApplConfig().getID(),logger);
+				}
+			}	
+		}
 		return ret;
 	}
 	/**
@@ -641,7 +647,7 @@ public class ApplicationService {
 	public List<String> executorsEmails(List<String> ret, String where) {
 		Headers headers = new Headers();
 		headers.getHeaders().add(TableHeader.instanceOf("email", TableHeader.COLUMN_STRING));
-		headers.getHeaders().add(TableHeader.instanceOf("local", TableHeader.COLUMN_BOOLEAN_RADIO));
+		headers.getHeaders().add(TableHeader.instanceOf("local", TableHeader.COLUMN_LONG));
 		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from executors_select", "", where, headers);
 		if(rows.size()>0) {
 			for(TableRow row : rows) {
@@ -846,10 +852,10 @@ public class ApplicationService {
 			curHis.setCome(go);
 		}
 		curHis.setGo(new Date());
-		if(cancelled) {
+		/*if(cancelled) {
 			closureServ.removeNode(curHis.getActivityData());
 			curHis.setActivityData(null);
-		}
+		}*/
 		curHis.setCancelled(cancelled);
 		curHis = boilerServ.saveHistory(curHis);
 		return curHis;
@@ -974,8 +980,8 @@ public class ApplicationService {
 			dto.setUrl(history.getDataUrl());
 			dto.setActivityId(history.getActivity().getID());
 			dto.setHistoryId(history.getID());
-			Concept root = closureServ.loadRoot(dto.getUrl());
-			dto.setParentId(root.getID());
+			/*Concept root = closureServ.loadRoot(dto.getUrl());
+			dto.setParentId(root.getID());*/
 			if(history.getActivityData()!=null) {
 				dto.setNodeId(history.getActivityData().getID());
 			}
@@ -1171,7 +1177,7 @@ public class ApplicationService {
 		String email=user.getEmail();
 		if(accServ.isSupervisor(user)) {
 			select ="select *  from _monitoring";
-			email=null;
+			//email=null;
 		}
 		jdbcRepo.myMonitoring(email);
 		List<TableRow> rows =jdbcRepo.qtbGroupReport(select, "", where, table.getHeaders());
@@ -1198,7 +1204,7 @@ public class ApplicationService {
 		String email=user.getEmail();
 		if(accServ.isSupervisor(user)) {
 			select ="select *  from _monitoring";
-			email=null;
+			//email=null;
 		}
 		jdbcRepo.myMonitoring(email);
 		List<TableRow> rows =jdbcRepo.qtbGroupReport(select, "", where, table.getHeaders());
@@ -1261,7 +1267,7 @@ public class ApplicationService {
 				switch(selected) {
 				case 0:
 					data=nextJobChoice(his,user,data);
-					data=executorsNextChoice(his,user,data);
+					data=executorsNextChoice(his,user,data,false);
 					break;
 				case 1:
 					data.getNextJob().getRows().clear();
@@ -1269,7 +1275,7 @@ public class ApplicationService {
 					break;
 				case 2:
 					data=nextJobChoice(his,user,data);
-					data=executorsNextChoice(his,user,data);
+					data=executorsNextChoice(his,user,data,false);
 					break;
 				case 3:
 					data.getNextJob().getRows().clear();
@@ -1387,7 +1393,7 @@ public class ApplicationService {
 	 * @throws ObjectNotFoundException 
 	 */
 	private ActivitySubmitDTO executorsThisChoice(History his, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
-		data.setExecs(executorsTable(his, his.getActConfig(), data.getExecs()));
+		data.setExecs(executorsTable(his, his.getActConfig(), data.getExecs(),false));
 		return data;
 	}
 	/**
@@ -1395,15 +1401,17 @@ public class ApplicationService {
 	 * @param his
 	 * @param user
 	 * @param data
+	 * @param limitToAU limit to the administrative unit
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	private ActivitySubmitDTO executorsNextChoice(History his, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
+	private ActivitySubmitDTO executorsNextChoice(History his, UserDetailsDTO user, ActivitySubmitDTO data,
+			boolean limitToAU) throws ObjectNotFoundException {
 		Long nextActConfId = data.nextActivity(); 
 		if(nextActConfId>0) {
 			Concept actConf=closureServ.loadConceptById(nextActConfId);
-			data.setExecs(executorsTable(his, actConf, data.getExecs()));
+			data.setExecs(executorsTable(his, actConf, data.getExecs(),limitToAU));
 		}else {
 			data.getExecs().getRows().clear();
 		}
@@ -1567,17 +1575,18 @@ public class ApplicationService {
 	 * @param actConf 
 	 * @param his
 	 * @param execTable
+	 * @param limitToAU limit to admin unit
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	private TableQtb executorsTable(History curHis, Concept actConf, TableQtb execTable) throws ObjectNotFoundException {
+	private TableQtb executorsTable(History curHis, Concept actConf, TableQtb execTable, boolean limitToAU) throws ObjectNotFoundException {
 		if(execTable.getRows().size()==0) {
 			Concept role=assmServ.activityExecutorRole(actConf);
 			Concept applDict=curHis.getApplDict();
-			Concept admUnit=adminUnit(curHis.getActConfig(), curHis);
+			Concept admUnit=adminUnit(actConf, curHis);
 			if(role!=null && applDict!=null){
 				String where="";
-				if(admUnit!=null) {
+				if(admUnit!=null && limitToAU) {
 					where="auid='"+admUnit.getID()+"'";
 				}
 				String select = "select distinct ID, username, email, orgname, local from executors_select";
@@ -2125,7 +2134,7 @@ public class ApplicationService {
 				data.getNextJob().getRows().clear();
 				data.getExecs().getRows().clear();
 				data=nextJobChoice(curHis,user,data);
-				data=executorsNextChoice(curHis,user,data);
+				data=executorsNextChoice(curHis,user,data,true);
 				for(TableRow row : data.getExecs().getRows()) {
 					row.setSelected(true);		//TODO more smart may be needed, because an applicant has no choice
 				}

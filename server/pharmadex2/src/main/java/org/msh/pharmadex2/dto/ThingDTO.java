@@ -69,6 +69,7 @@ public class ThingDTO extends AllowValidation {
 	private Map<String,RegisterDTO> registers = new LinkedHashMap<String, RegisterDTO>();												//filing system registers
 	private Map<String,AmendmentDTO> amendments = new LinkedHashMap<String, AmendmentDTO>();								//ameded data
 	private Map<String,AtcDTO> atc = new LinkedHashMap<String, AtcDTO>();																		//atc codes
+	private Map<String, LegacyDataDTO> legacy = new LinkedHashMap<String, LegacyDataDTO>();
 	private ActionBarDTO actionBar= new ActionBarDTO();																										//action bar for it
 	
 	//The main static path - things that should be filled
@@ -334,6 +335,13 @@ public class ThingDTO extends AllowValidation {
 	}
 	public void setAtc(Map<String, AtcDTO> atc) {
 		this.atc = atc;
+	}
+	
+	public Map<String, LegacyDataDTO> getLegacy() {
+		return legacy;
+	}
+	public void setLegacy(Map<String, LegacyDataDTO> legacy) {
+		this.legacy = legacy;
 	}
 	public List<ThingDTO> getPath() {
 		return path;

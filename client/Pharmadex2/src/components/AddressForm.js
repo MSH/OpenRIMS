@@ -54,6 +54,10 @@ class AddressForm extends Component{
      * @returns This component Writable or read only
      */
     static place(addr, index, readOnly,identifier, label){
+        let color="info"
+                if(addr.strict){
+                    color="danger"
+                }
         return(
             <Row key={index} className={AddressForm.changed(addr)}>
             <Col>
@@ -64,7 +68,7 @@ class AddressForm extends Component{
                 </Row>
                 <Row hidden={addr.valid}>
                         <Col>
-                            <Alert color="danger" className="p-0 m-0">
+                            <Alert color={color} className="p-0 m-0">
                                 <small>{addr.identifier}</small>
                             </Alert>
                         </Col>

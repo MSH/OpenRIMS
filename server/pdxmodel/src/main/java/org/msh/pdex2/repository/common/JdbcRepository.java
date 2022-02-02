@@ -759,6 +759,19 @@ public class JdbcRepository {
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 	}
+	/**
+	 * Get legacy data by url
+	 * @param url
+	 */
+	public void legacy_data(String url) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("legacy_data");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("url", url);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+		
+	}
 
 
 }

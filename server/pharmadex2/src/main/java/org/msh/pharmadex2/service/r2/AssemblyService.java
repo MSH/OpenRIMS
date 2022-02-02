@@ -737,6 +737,20 @@ public class AssemblyService {
 		}
 		return ret;
 	}
+	
+	public List<AssemblyDTO> auxLegacyData(String url) throws ObjectNotFoundException {
+		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
+		// TODO hardcoded definitions...
+		if(ret.size()==0) {
+			List<Assembly> assms = boilerServ.loadDataConfiguration(url);
+			for(Assembly assm : assms) {
+				if(assm.getClazz().equalsIgnoreCase("legacy")) {
+					ret.add(dtoServ.assemblyDto(assm));
+				}
+			}
+		}
+		return ret;
+	}
 
 	/**
 	 * URL of business types dictionary
@@ -964,5 +978,6 @@ public class AssemblyService {
 		}
 		return ret;
 	}
+
 
 }

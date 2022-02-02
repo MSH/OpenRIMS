@@ -287,6 +287,9 @@ public class AccessControlService {
 			}else {
 				String email=parents.get(1).getIdentifier();
 				if(email!=null) {
+					if(!email.contains("@")) {
+						return true;
+					}
 					if(sameEmail(email, user.getEmail())) {
 						return true;
 					}else {
