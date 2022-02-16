@@ -513,7 +513,7 @@ public class SupervisorService {
 				data.getCol().setValue(100l);
 			}
 			data = validServ.variable(data);
-			if (data.isValid()) {
+			if (data.isValid() || (!data.isValid() && !data.isStrict())) {
 				// save a node
 				Concept node = new Concept();
 				if (data.getVarNodeId() > 0) {

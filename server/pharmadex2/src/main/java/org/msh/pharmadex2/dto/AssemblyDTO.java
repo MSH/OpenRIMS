@@ -25,9 +25,6 @@ public class AssemblyDTO extends AllowValidation {
 	private boolean unique=false;
 	private LocalDate minDate=LocalDate.now().minusYears(3);	//default
 	private LocalDate maxDate=LocalDate.now().plusYears(3);
-	//quantities for documents, dictionary selections, persons 
-	private int minQauntity=0;
-	private int maxQuantity=100;
 	//borders for numbers
 	private BigDecimal min = BigDecimal.ZERO;
 	private BigDecimal max = BigDecimal.valueOf(100000000L);
@@ -92,31 +89,8 @@ public class AssemblyDTO extends AllowValidation {
 	public void setUnique(boolean unique) {
 		this.unique = unique;
 	}
-	public LocalDate getMinDate() {
-		return minDate;
-	}
-	public void setMinDate(LocalDate minDate) {
-		this.minDate = minDate;
-	}
-	public LocalDate getMaxDate() {
-		return maxDate;
-	}
-	public void setMaxDate(LocalDate maxDate) {
-		this.maxDate = maxDate;
-	}
 	
-	public int getMinQauntity() {
-		return minQauntity;
-	}
-	public void setMinQauntity(int minQauntity) {
-		this.minQauntity = minQauntity;
-	}
-	public int getMaxQuantity() {
-		return maxQuantity;
-	}
-	public void setMaxQuantity(int maxQuantity) {
-		this.maxQuantity = maxQuantity;
-	}
+
 	public BigDecimal getMin() {
 		return min;
 	}
@@ -148,17 +122,6 @@ public class AssemblyDTO extends AllowValidation {
 		return "AssemblyDTO [url=" + url + ", propertyName=" + propertyName + ", required=" + required + ", readOnly="
 				+ readOnly + ", textArea=" + textArea + ", mult=" + mult + "]";
 	}
-	public void setMaxQuantity(long max) {
-		Long l = new Long(max);
-		setMaxQuantity(l.intValue());
-	}
-	public void setMinQauntity(long min) {
-		Long l = new Long(min);
-		setMinQauntity(l.intValue());
-		
-	}
-	
-	
 	
 	
 }

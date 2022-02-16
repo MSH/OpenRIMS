@@ -760,4 +760,21 @@ public class AdminAPI {
 		}
 		return data;
 	}
+	
+	/**
+	 * Keep actual addresses cache etc
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/report/parameters/renew")
+	public ReportConfigDTO reportParametersRenew(@RequestBody ReportConfigDTO data) throws DataNotFoundException {
+		try {
+			data = reportServ.reportParametersRenew(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
 }

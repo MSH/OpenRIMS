@@ -48,6 +48,8 @@ public class ReportService {
 	private AmendmentService amendServ;
 	@Autowired
 	private Messages mess;
+	@Autowired
+	private SystemService systemServ;
 
 	/**
 	 * Load a report
@@ -217,13 +219,9 @@ public class ReportService {
 	 */
 	private ReportDTO registeredFacilityTable(ReportDTO data, ReportConfigDTO repConf) {
 		TableQtb table = data.getTable();
-		Headers headers= headersRegisteredFacility(table.getHeaders());
-		if(table.getHeaders().getHeaders().size()!=headers.getHeaders().size()) {
+		if(table.getHeaders().getHeaders().size()==0) {
+			Headers headers= headersRegisteredFacility(table.getHeaders());
 			table.setHeaders(headers);
-		}else {
-			if(table.getHeaders().getHeaders().get(0).getKey().equals(headers.getHeaders().get(0).getKey())) {
-				table.setHeaders(headers);
-			}
 		}
 		jdbcRepo.report_sites(repConf.getDataUrl(), repConf.getDictStageUrl(), repConf.getAddressUrl(), repConf.getOwnerUrl(),
 				repConf.getInspectAppUrl(), repConf.getRenewAppUrl(), repConf.getRegisterAppUrl());
@@ -680,6 +678,21 @@ public class ReportService {
 			}
 		}
 		return result;
+	}
+	/**
+	 * Renew report parameters cache - addresses, etc.
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public ReportConfigDTO reportParametersRenew(ReportConfigDTO data) throws ObjectNotFoundException {
+		data.setNodeId(data.getReport().getNodeId());
+		ReportConfigDTO repConf = assmServ.reportConfig(data);
+		if(repConf.getAddressUrl().length()>0) {
+			systemServ.storeFullAddress(data.getAddressUrl());
+		}
+		//to be continue..
+		return data;
 	}
 
 }

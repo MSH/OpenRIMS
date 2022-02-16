@@ -1,12 +1,14 @@
 package org.msh.pharmadex2.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import org.junit.jupiter.api.Test;
 import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
@@ -24,6 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.test.annotation.Rollback;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -271,5 +274,22 @@ public class DictionariesTest {
 		map.put("Gandaki Province", "10");
 		map.put("Karnali Province", "10");
 		return map;
+	}
+	
+	@Test
+	public void dictPath() throws ObjectNotFoundException {
+		Concept node = closureServ.loadConceptById(21091);
+		String ret = dictServ.dictPath("en_us", node);
+		System.out.println(ret);
+		assertTrue(ret.length()>0);
+	}
+	
+	@Test
+	@Rollback(false)
+	public void storePath() throws ObjectNotFoundException {
+		Concept node = closureServ.loadConceptById(68121);
+		Concept dictNode=closureServ.loadConceptById(27097);
+		node=dictServ.storePath(dictNode, node);
+		
 	}
 }

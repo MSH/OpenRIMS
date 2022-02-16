@@ -8,13 +8,16 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.model.r2.Concept;
+import org.msh.pdex2.model.r2.ThingPerson;
 import org.msh.pharmadex2.Pharmadex2Application;
 import org.msh.pharmadex2.dto.DataUnitDTO;
+import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.r2.AmendmentService;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.service.r2.LiteralService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.Rollback;
 
 @SpringBootTest(classes=Pharmadex2Application.class)
 public class AmendmentServiceTest {
@@ -24,6 +27,8 @@ public class AmendmentServiceTest {
 	AmendmentService amendServ;
 	@Autowired
 	LiteralService literalServ;
+	@Autowired
+	BoilerService boilerServ;
 	
 	//@Test
 	public void dataUnits() throws ObjectNotFoundException {
@@ -58,5 +63,13 @@ public class AmendmentServiceTest {
 		node = closureServ.loadConceptById(68264);
 		path = amendServ.reversePath(node);
 		assertTrue(path.size()==4);
+	}
+	
+	//@Test
+	//@Rollback(false)
+	public void personClone() throws ObjectNotFoundException {
+		Concept pers = closureServ.loadConceptById(80611);
+		ThingPerson tp = boilerServ.thingPerson(pers, true);
+		amendServ.personClone(tp);
 	}
 }

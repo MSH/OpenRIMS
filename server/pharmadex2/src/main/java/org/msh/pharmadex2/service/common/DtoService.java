@@ -552,11 +552,7 @@ public class DtoService {
 		ret.setDictUrl(stringVal(assm.getDictUrl()));
 		ret.setFileTypes(stringVal(assm.getFileTypes()));
 		ret.setMax(new BigDecimal(assm.getMax()));
-		ret.setMaxDate(LocalDate.now().plusMonths(assm.getMax()));	//open interval!
-		ret.setMaxQuantity(assm.getMax());
 		ret.setMin(new BigDecimal(assm.getMin()));
-		ret.setMinDate(LocalDate.now().plusMonths(assm.getMin()));
-		ret.setMinQauntity(assm.getMin());
 		ret.setMult(assm.getMult());
 		ret.setUnique(assm.getUnique());
 		ret.setPropertyName(assm.getPropertyName().getIdentifier());

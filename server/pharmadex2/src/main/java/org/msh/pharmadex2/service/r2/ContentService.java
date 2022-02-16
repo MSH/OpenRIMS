@@ -176,13 +176,11 @@ public class ContentService {
 	@Transactional
 	private void updateLayout(TilesDTO data) throws ObjectNotFoundException {
 		data.getLayout().clear();
-
 		Map<String, TileDTO> emptyTiles = new HashMap<String, TileDTO>();
 		/**
 		 * построим сетку 3х3 из пустых ячеек
 		 * потом заполним размеченными тайлами
 		 */
-
 		for(int r = 0; r < 3; r++) {
 			LayoutRowDTO row = new LayoutRowDTO();
 			for(int c = 0; c < 3; c++) {
@@ -190,36 +188,32 @@ public class ContentService {
 				TileDTO empty = publicServ.createEmptyTile("empty" + r + c, r, c);
 				cell.getVariables().add(empty.getTitle());
 				row.getCells().add(cell);
-
 				emptyTiles.put(empty.getTitle(), empty);
 			}
 			data.getLayout().add(row);
 		}
-
 		// удалим старіе пустышки
 		List<String> removeEmpty = new ArrayList<String>();
-
 		for(TileDTO tile:data.getTiles().values()) {
 			if(tile.isEmpty())
 				removeEmpty.add(tile.getTitle());
 			else if(!tile.isFree()) {
 				int r = tile.getNumRow();
 				int c = tile.getNumCol();
-
-				data.getLayout().get(r).getCells().get(c).getVariables().set(0, tile.getTitle());
-
-				emptyTiles.remove("empty" + r + c);
+				if(r<3 && c<3) {
+					data.getLayout().get(r).getCells().get(c).getVariables().set(0, tile.getTitle());
+					emptyTiles.remove("empty" + r + c);
+				}
 			}
 		}
-
 		for(String k:removeEmpty) {
 			data.getTiles().remove(k);
 		}
-
 		if(emptyTiles.keySet().size() > 0) {
 			data.getTiles().putAll(emptyTiles);
 		}
 	}
+
 	/**
 	 * Create a tile "Administrate" for the first time to allow configure tiles, dictionaries etc
 	 * @param data

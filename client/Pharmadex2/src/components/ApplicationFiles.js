@@ -9,6 +9,7 @@ import Pharmadex from './Pharmadex'
 import ButtonUni from './form/ButtonUni'
 import Downloader from './utils/Downloader'
 import Navigator from './utils/Navigator'
+import AlertFloat from './utils/AlertFloat'
 
 /**
  * A set of files for an application
@@ -28,7 +29,8 @@ class ApplicationFiles extends Component{
                 newfile:"",
                 global_download:"",
                 global_save:"",
-                global_cancel:""
+                global_cancel:"",
+                saved:"",
             },           
             file:{}
         }
@@ -156,12 +158,17 @@ class ApplicationFiles extends Component{
         formData.append('dto', JSON.stringify(this.state.data))
         formData.append('file', this.state.file);
         Fetchers.postFormJson('/api/'+Navigator.tabSetName() +'/thing/file/save', formData, (formData,result)=>{
-            this.state.data = result;
-            this.state.data.fileName=''
-            Navigator.message(this.state.identifier,this.props.recipient, "onSelectionChange", this.state.data)
-            this.state.data.editor = false
-            this.state.file = {}
-            this.tableLoader()
+            if(result.valid){
+                this.state.data = result;
+                this.state.data.fileName=''
+                Navigator.message(this.state.identifier,this.props.recipient, "onSelectionChange", this.state.data)
+                this.state.data.editor = false
+                this.state.file = {}
+                this.tableLoader()
+                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.saved, color:'success'})
+            }else{
+                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:result.identifier, color:'danger'})
+            }
         })
     }
 

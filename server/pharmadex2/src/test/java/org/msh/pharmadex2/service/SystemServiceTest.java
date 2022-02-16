@@ -20,5 +20,11 @@ public class SystemServiceTest {
 		List<Concept> ret  = systemServ.guestWorkflows("application.amend.inn.manuf");
 		System.out.println(ret);
 	}
+	
+	@Test
+	public void storeFullAddress() throws ObjectNotFoundException {
+		String ret = systemServ.storeFullAddress("pharamcy.site.address");
+		System.out.println(ret);
+	}
 
 }

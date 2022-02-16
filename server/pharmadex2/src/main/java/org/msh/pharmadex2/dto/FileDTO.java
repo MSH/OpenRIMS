@@ -27,6 +27,8 @@ public class FileDTO extends AllowValidation{
 	private long dictNodeId=0;
 	//thing to get all linked files
 	private long thingNodeId=0;
+	//thing url to get configuration 
+	private String thingUrl="";
 	//variable name in the thing
 	private String varName="";
 	//only for download?
@@ -76,6 +78,12 @@ public class FileDTO extends AllowValidation{
 		this.thingNodeId = thingNodeId;
 	}
 	
+	public String getThingUrl() {
+		return thingUrl;
+	}
+	public void setThingUrl(String thingUrl) {
+		this.thingUrl = thingUrl;
+	}
 	public String getVarName() {
 		return varName;
 	}

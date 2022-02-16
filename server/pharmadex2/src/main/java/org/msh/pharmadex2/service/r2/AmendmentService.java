@@ -3,9 +3,12 @@ package org.msh.pharmadex2.service.r2;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.msh.pdex2.dto.table.Headers;
 import org.msh.pdex2.dto.table.TableCell;
@@ -32,6 +35,7 @@ import org.msh.pharmadex2.dto.AmendmentNewDTO;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.DataUnitDTO;
 import org.msh.pharmadex2.dto.FileDTO;
+import org.msh.pharmadex2.dto.PersonDTO;
 import org.msh.pharmadex2.dto.PersonSelectorDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
@@ -51,6 +55,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class AmendmentService {
+	private static final String REMOVE_PERSON = "_REMOVE_PERSON_";
 	private static final Logger logger = LoggerFactory.getLogger(AmendmentService.class);
 	@Autowired
 	private AssemblyService assemblyServ;
@@ -180,7 +185,7 @@ public class AmendmentService {
 				oldStored = implementAddress(configUrl, amendment, amended, oldStored);
 				oldStored = implementFiles(configUrl, amendment, amended, oldStored);
 				oldStored = implementDictionaries(configUrl, amendment, amended, oldStored);
-				// TODO Dictionaries
+				oldStored = implementPersons(configUrl, amendment, amended, oldStored);
 			} else {
 				data.setValid(false);
 				data.setIdentifier(mess.get("invalidmodification"));
@@ -188,6 +193,123 @@ public class AmendmentService {
 		}
 		return data;
 	}
+	
+	/**
+	 * Implement persons modifications
+	 * @param configUrl 
+	 * @param amendment amendment data
+	 * @param amended amended data
+	 * @param storedValues to store old persons
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private Concept implementPersons(String configUrl, Concept amendment, Concept amended, Concept storedValues) throws ObjectNotFoundException {
+		List<AssemblyDTO> ads = assemblyServ.auxPersons(configUrl);
+		//prepare
+		List<String> keys = new ArrayList<String>();
+		for(AssemblyDTO ad : ads) {
+			keys.add(ad.getPropertyName());
+		}
+		Thing amendmentThing = boilerServ.thingByNode(amendment);
+		Thing amendedThing=boilerServ.thingByNode(amended);
+		//store previous
+		Thing storedThing = storedThing(storedValues);
+		storedThing.getPersons().clear();
+		for(ThingPerson tp :amendedThing.getPersons()) {
+			storedThing.getPersons().add(personClone(tp));
+		}
+		storedThing = boilerServ.saveThing(storedThing);
+		//implement the amendment
+		List<ThingPerson> toDel = linkedPersons(amendmentThing, false);
+		List<Long> toDelIds = new ArrayList<Long>();
+		for(ThingPerson tp : toDel) {
+			toDelIds.add(tp.getConcept().getID());
+		}
+		List<ThingPerson> toAdd= linkedPersons(amendmentThing, true);
+		//remove
+		for(ThingPerson tp : amendedThing.getPersons()) {
+			if(toDelIds.contains(tp.getConcept().getID())) {
+				tp.getConcept().setActive(false);
+			}
+		}
+		//add new
+		for(ThingPerson tp :toAdd) {
+			ThingPerson tp1 = new ThingPerson();
+			tp1.setPersonUrl(tp.getPersonUrl());
+			tp1.setVarName(tp.getVarName());
+			tp1.setConcept(tp.getConcept());
+			amendedThing.getPersons().add(tp1);
+		}
+		amendedThing = boilerServ.saveThing(amendedThing);
+		return storedValues;
+	}
+	/**
+	 * Create a clone of ThingPerson and person itself
+	 * not a deep clone, it will be excess...
+	 * @param tp
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public ThingPerson personClone(ThingPerson tpOld) throws ObjectNotFoundException {
+		ThingPerson tp = new ThingPerson();
+		//clone the concept
+		Concept owner = closureServ.getParent(tpOld.getConcept());
+		Concept clone = closureServ.cloneTree(owner,tpOld.getConcept());
+		//clone thing
+		Thing oldThing = boilerServ.thingByNode(tpOld.getConcept());
+		Thing persThing =cloneThing(clone, oldThing);
+		boilerServ.saveThing(persThing);
+		tp.setPersonUrl(tpOld.getPersonUrl());
+		tp.setVarName(tpOld.getVarName());
+		tp.setConcept(clone);
+		return tp;
+	}
+
+	/**
+	 * Clone a thing, assign concept to the clone 
+	 * @param clone
+	 * @param oldThing
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private Thing cloneThing(Concept concept, Thing oldThing) throws ObjectNotFoundException {
+		Thing ret = new Thing();
+		for(ThingDict tdi: oldThing.getDictionaries()) {
+			ret.getDictionaries().add(cloneThingDict(tdi));
+		}
+		for(ThingDoc tdo: oldThing.getDocuments()) {
+			ret.getDocuments().add(cloneThingDoc(tdo));
+		}
+		for(ThingThing tt : oldThing.getThings()) {
+			ret.getThings().add(cloneThingThing(tt));
+		}
+		ret.setConcept(concept);
+		ret.setUrl(oldThing.getUrl());
+		return ret;
+	}
+	/**
+	 * Clone ThingThing, using the clone of the concept and clone related to the concept thing
+	 * @param tt
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private ThingThing cloneThingThing(ThingThing ttOld) throws ObjectNotFoundException {
+		ThingThing ret = new ThingThing();
+		Concept root = closureServ.getParent(ttOld.getConcept());
+		Concept node = closureServ.cloneTree(root, ttOld.getConcept());
+		Thing oldThing = boilerServ.thingByNode(ttOld.getConcept());
+		Thing thing = cloneThing(node, oldThing);
+		boilerServ.saveThing(thing);
+		ret.setConcept(node);
+		ret.setUrl(ttOld.getUrl());
+		ret.setVarname(ttOld.getVarname());
+		return ret;
+	}
+
 	/**
 	 * Implement dictionaries modification
 	 * @param configUrl
@@ -197,6 +319,7 @@ public class AmendmentService {
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
+	@Transactional
 	private Concept implementDictionaries(String configUrl, Concept amendment, Concept amended, Concept storedValues) throws ObjectNotFoundException {
 		List<AssemblyDTO> ads = assemblyServ.auxDictionaries(configUrl);
 		if(ads.size()>0) {
@@ -783,6 +906,7 @@ public class AmendmentService {
 	 * @param data
 	 * @return
 	 */
+	@Transactional
 	private AmendmentNewDTO proposeApplications(UserDetailsDTO user, AmendmentNewDTO data) {
 		TableQtb table = data.getApplications();
 		if (table.getHeaders().getHeaders().size() == 0) {
@@ -935,9 +1059,84 @@ public class AmendmentService {
 				data = addressesDiffMark(data, node, modiUnit);
 				data = dictionariesDiffMark(data, node, modiUnit);
 				data = documentDiffMark(data, node, modiUnit);
+				data = personsDiffMark(data, node, modiUnit);
 			}
 		}
 		return data;
+	}
+	/**
+	 * Compare persons in node and modiUnit
+	 * All persons from node will be in modiUnit, however not all persons from modiUnit will be in the node 
+	 * @param data - amendment application data
+	 * @param node - node of amendment data contains persons
+	 * @param modiUnit - node of amended data contains persons
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private ThingDTO personsDiffMark(ThingDTO data, Concept node, Concept modiUnit) throws ObjectNotFoundException {
+		for(String key : data.getPersons().keySet()) {
+			data.getPersons().get(key).setChanged(false);
+		}
+		Set<String> keys = personsCompare(node, modiUnit);
+		for(String key : keys) {
+			if(!key.equalsIgnoreCase(REMOVE_PERSON)) {
+				PersonDTO dto = data.getPersons().get(key);
+				dto.setChanged(true);
+			}
+		}
+		return data;
+	}
+	/**
+	 * Compare persons
+	 * Yes, we are know the person control maybe only one...
+	 * @param amendment
+	 * @param amended
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private Set<String> personsCompare(Concept amendment, Concept amended) throws ObjectNotFoundException {
+		Set<String> ret = new LinkedHashSet<String>();
+		Map<String, List<Long>> pers1 = personsByVariable(amendment);
+		Map<String, List<Long>> pers2 = personsByVariable(amended);
+		if(pers1.size()>0) {
+			for(String key : pers1.keySet()) {
+				List<Long> pl1 = pers1.get(key);
+				List<Long> pl2 = pers2.get(key);
+				if(pl2!=null) {
+					//all pl1 should be in pl2, but not vice versa
+					for(Long l : pl1) {
+						if(!pl2.contains(l)) {
+							ret.add(key);
+							break;
+						}
+					}
+				}else {
+					ret.add(key);
+				}
+			}
+		}
+		return ret;
+	}
+	/**
+	 * Persons by a variable in the thing
+	 * @param amendment
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	public Map<String, List<Long>> personsByVariable(Concept amendment) throws ObjectNotFoundException {
+		Map<String, List<Long>> vars = new LinkedHashMap<String, List<Long>>();
+		Thing t =boilerServ.thingByNode(amendment);
+		for(ThingPerson tp : t.getPersons()) {
+			if(!vars.containsKey(tp.getVarName())) {
+				vars.put(tp.getVarName(), new ArrayList<Long>());
+			}
+			if(tp.getConcept().getActive()) {
+				vars.get(tp.getVarName()).add(tp.getConcept().getID());
+			}
+		}
+		return vars;
 	}
 
 	/**
@@ -966,6 +1165,7 @@ public class AmendmentService {
 	 * @param amended
 	 * @throws ObjectNotFoundException
 	 */
+	@Transactional
 	private List<String> documentsCompare(Concept amendment, Concept amended) throws ObjectNotFoundException {
 		List<String> ret = new ArrayList<String>();
 		Thing oldThing = boilerServ.thingByNode(amended);
@@ -1277,6 +1477,86 @@ public class AmendmentService {
 			return false;
 		}
 		return true;
+	}
+	/**
+	 * Store a person to remove by amendment, if one
+	 * Store means link to thing with the special variable name _REMOVE_
+	 * @param data
+	 * @param thing
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public ThingDTO storePersonToRemove(ThingDTO data, Thing thing) throws ObjectNotFoundException {
+		Map<Long, String> toRemove = new HashMap<Long, String>();
+		for(String key : data.getPersons().keySet()) {
+			PersonDTO dto = data.getPersons().get(key);
+			for(TableRow row :dto.getRtable().getRows()) {
+				if(row.getSelected()) {
+					toRemove.put(row.getDbID(),dto.getUrl());
+				}
+			}
+		}
+		List<ThingPerson> linkedPersons = linkedPersons(thing,true);
+		thing.getPersons().clear();
+		thing.getPersons().addAll(linkedPersons);
+		for(Long nodeId : toRemove.keySet()) {
+			Concept persNode = closureServ.loadConceptById(nodeId);
+			ThingPerson tp = new ThingPerson();
+			tp.setVarName(REMOVE_PERSON);
+			tp.setPersonUrl(toRemove.get(nodeId));
+			tp.setConcept(persNode);
+			thing.getPersons().add(tp);
+		}
+		return data;
+	}
+	/**
+	 * Persons linked to the thing or only removed
+	 * @param thing
+	 * @param linkedOnly - only really linked, not removed
+	 * @return
+	 */
+	@Transactional
+	public List<ThingPerson> linkedPersons(Thing thing, boolean linkedOnly) {
+		List<ThingPerson> linkedPersons = new ArrayList<ThingPerson>();
+		for(ThingPerson tp : thing.getPersons()) {
+			boolean condition = tp.getVarName().equalsIgnoreCase(REMOVE_PERSON);
+			if(linkedOnly) {
+				condition=!condition;
+			}
+			if(condition){
+				linkedPersons.add(tp);
+			}
+		}
+		return linkedPersons;
+	}
+	
+	/**
+	 * Load person to remove if one
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public ThingDTO personToRemove(ThingDTO data) throws ObjectNotFoundException {
+		if(data.getNodeId()>0) {
+			Concept node = closureServ.loadConceptById(data.getNodeId());
+			Thing thing = boilerServ.thingByNode(node);
+			List<ThingPerson> removedPersons = linkedPersons(thing,false);
+			List<Long> ids = new ArrayList<Long>();
+			for(ThingPerson tp : removedPersons) {
+				ids.add(tp.getConcept().getID());
+			}
+			for(String key :data.getPersons().keySet()) {
+				PersonDTO dto = data.getPersons().get(key);
+				for(TableRow row: dto.getRtable().getRows()) {
+					if(ids.contains(row.getDbID())) {
+						row.setSelected(true);
+					}
+				}
+			}
+		}
+		return data;
 	}
 
 }

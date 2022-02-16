@@ -411,12 +411,33 @@ public class ActivityAPI {
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping({ "/api/*/person/table/load"})
-	public PersonDTO personTableLoad(Authentication auth, @RequestBody PersonDTO data) {
+	public PersonDTO personTableLoad(Authentication auth, @RequestBody PersonDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
-		data = thingServ.personTableLoad(data, user);
+		try {
+			data = thingServ.personTableLoad(data, user);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
 		return data;
 	}
-
+	/**
+	 * Suspend a person
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping({ "/api/*/person/suspend"})
+	public PersonDTO personSuspend(Authentication auth, @RequestBody PersonDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		try {
+			data = thingServ.personSuspend(data, user);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
 	/**
 	 * Download a resource Apply variables to a template, if applicable
 	 * 

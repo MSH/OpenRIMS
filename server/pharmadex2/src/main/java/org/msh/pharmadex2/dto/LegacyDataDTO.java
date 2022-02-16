@@ -19,7 +19,8 @@ public class LegacyDataDTO extends AllowValidation {
 	private LocalDate expired;			//when the selected will be expired
 	private TableQtb table = new TableQtb();
 	private String varName="";
-	private String storageUrl="";
+	private String storageUrl="";	//where to store
+	private String altLabel = "altLabel";	//name for alternative lablel, default, altLabel
 	public long getSelectedNode() {
 		return selectedNode;
 	}
@@ -61,6 +62,12 @@ public class LegacyDataDTO extends AllowValidation {
 	}
 	public void setStorageUrl(String storageUrl) {
 		this.storageUrl = storageUrl;
+	}
+	public String getAltLabel() {
+		return altLabel;
+	}
+	public void setAltLabel(String altLabel) {
+		this.altLabel = altLabel;
 	}
 	
 }

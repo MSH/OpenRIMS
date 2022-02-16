@@ -10,12 +10,15 @@ import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
+import org.msh.pdex2.model.r2.Thing;
+import org.msh.pdex2.model.r2.ThingDict;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.Dict2DTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.auth.UserRoleDto;
 import org.msh.pharmadex2.dto.form.OptionDTO;
+import org.msh.pharmadex2.service.common.BoilerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -77,6 +80,8 @@ public class SystemService {
 	private LiteralService literalServ;
 	@Autowired
 	private Messages messages;
+	@Autowired
+	private BoilerService boilerServ;
 
 
 	/**
@@ -589,6 +594,32 @@ public class SystemService {
 		}
 		return ret;
 	}
-
+	/**
+	 * Check and store full address under a selected
+	 * @param addrUrl - url under which addresses are stored
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public String storeFullAddress(String addressUrl) throws ObjectNotFoundException {
+		String message=messages.get("global.success");
+		Concept root = closureServ.loadRoot(addressUrl);
+		List<Concept> owners = closureServ.loadLevel(root);
+		for(Concept owner : owners) {
+			List<Concept> addresses = closureServ.loadLevel(owner);
+			for(Concept addr : addresses) {
+				Thing thing = boilerServ.thingByNode(addr);
+				Set<ThingDict> tdset=thing.getDictionaries();
+				if(tdset.size()==1) {
+					ThingDict td =tdset.iterator().next();
+					//System.out.println(addr.getLabel()+ " " + dictServ.dictPath("en_us", td.getConcept()));
+					dictServ.storePath(td.getConcept(), addr);
+				}else {
+					message=messages.get("global_fail");
+				}
+			}
+		}
+		return message;
+	}
 
 }

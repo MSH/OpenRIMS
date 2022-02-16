@@ -60,7 +60,6 @@ class Thing extends Component{
         this.storeLocal=this.storeLocal.bind(this)
         this.autoFillAll=this.autoFillAll.bind(this)
         this.autoFillFormField=this.autoFillFormField.bind(this)
-        this.personsControl=this.personsControl.bind(this)
         this.numberFiled=this.numberFiled.bind(this)
         this.logicalFiled=this.logicalFiled.bind(this)
         this.personSelectorControl=this.personSelectorControl.bind(this)
@@ -668,45 +667,7 @@ class Thing extends Component{
         }
     }
 
-    /**
-     * Responsible for persons
-     * @param {string} name 
-     * @param {number} index 
-     * @returns 
-     */
-     personsControl(name, index){
-        let persons=this.state.data.persons[name] 
-        if(persons!=undefined){
-            return(
-            <Row key={index}>
-                <Col>
-                    <Row>
-                        <Col>
-                            <h6>{this.state.labels[name]}</h6>
-                        </Col>
-                    </Row>
-                    <Row hidden={persons.valid}>
-                        <Col>
-                            <Alert color="danger" className="p-0 m-0">
-                                <small>{persons.identifier}</small>
-                            </Alert>
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col>
-                            <Persons data={persons}
-                                applicationUrl={this.state.data.applicationUrl}
-                                applDictNodeId={this.state.data.applDictNodeId}
-                                activityId={this.state.data.activityId} 
-                                recipient={this.state.identifier}
-                                readOnly={this.state.data.readOnly || this.props.readOnly}/>
-                        </Col>
-                    </Row>
-                </Col>
-            </Row>
-            )
-        }
-    }
+ 
 
     /**
      * Take component by variable name and then create it or replace data
@@ -807,8 +768,13 @@ class Thing extends Component{
             if(data != undefined){
                 this.persons[name]=data
             }else{
+                let data=this.state.data.persons[name]
+                let readOnly=this.props.readOnly || data.readOnly
                 return(
-                    this.personsControl(name, index)
+                    //this.personsControl(name, index)
+                    Persons.place(data, this.state.data.applicationUrl,
+                        this.state.data.applDictNodeId, this.state.data.activityId, 
+                                    this.state.identifier, readOnly,this.state.labels[name],index)
                 )
             }
         }

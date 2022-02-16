@@ -93,11 +93,11 @@ class Applications extends Component{
                                                 <NavLink href={"/guest"+"#"+Navigator.tabName()+"/applicationselect"}>{this.state.labels.newapplications}</NavLink>
                                             </NavItem>
                                         </Nav>
-                                        <Nav>     
+                                        {/* <Nav>     
                                             <NavItem active={this.state.menu=='renew'}>
                                                 <NavLink href={"/guest"+"#"+Navigator.tabName()+"/renew"}>{this.state.labels.renew}</NavLink>
                                             </NavItem>
-                                        </Nav>
+                                        </Nav> */}
                                         <Nav>     
                                             <NavItem active={this.state.menu=='amendments'
                                                             || this.state.menu=='amendmentstart'}>

@@ -265,7 +265,6 @@ class ApplicationStart extends Component{
                 {this.headerFooter()}
                 {this.content()}
                 {this.headerFooter()}
-                <AlertFloat />
             </Container>   
         )
     }

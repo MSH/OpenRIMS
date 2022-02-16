@@ -1,5 +1,8 @@
 package org.msh.pharmadex2.service.common;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.Iterator;
 import java.util.List;
@@ -9,6 +12,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.imageio.ImageIO;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 
@@ -42,6 +46,7 @@ import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.FileDTO;
 import org.msh.pharmadex2.dto.LegacyDataDTO;
 import org.msh.pharmadex2.dto.MessageDTO;
+import org.msh.pharmadex2.dto.PersonDTO;
 import org.msh.pharmadex2.dto.PersonSpecialDTO;
 import org.msh.pharmadex2.dto.PublicOrgDTO;
 import org.msh.pharmadex2.dto.QuestionDTO;
@@ -303,7 +308,7 @@ public class ValidationService {
 				mandatoryLegacy(data, l,strict);
 			}
 		}
-		
+
 		List<AssemblyDTO> s = assemblyServ.auxStrings(data.getUrl());
 		for(AssemblyDTO str : s) {
 			if(str.getFileTypes().length()>0) {
@@ -542,7 +547,7 @@ public class ValidationService {
 		}
 		//expiration date should fit an interval if defined
 		if(ar.isMult()) {
-			maxDate = createdAt.plusMonths(ar.getMaxQuantity());
+			maxDate = createdAt.plusMonths(ar.getMax().intValue());
 			minDate = createdAt.plusMonths(1);
 			errorMess = messages.get("valuerangeerror")+" " + regDate.plusMonths(2) +", " + maxDate;
 			if(expDate.isBefore(minDate) || expDate.isAfter(maxDate)) {
@@ -565,8 +570,8 @@ public class ValidationService {
 		schDTO.clearErrors();
 		LocalDate createdAt = schDTO.getCreatedAt();
 		if(createdAt != null) {
-			LocalDate minDate=createdAt.plusMonths(ad.getMinQauntity());
-			LocalDate maxDate=createdAt.plusMonths(ad.getMaxQuantity()+1);
+			LocalDate minDate=createdAt.plusMonths(ad.getMin().intValue());
+			LocalDate maxDate=createdAt.plusMonths(ad.getMax().intValue()+1);
 			String errorMess = messages.get("valuerangeerror")+" " + minDate +", " + maxDate;
 			LocalDate sched = schDTO.getSchedule().getValue();
 			if(sched.isBefore(minDate) || sched.isAfter(maxDate)) {
@@ -588,31 +593,35 @@ public class ValidationService {
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	private void mandatoryPersons(ThingDTO data, String propertyName, AssemblyDTO apers, boolean strict) throws ObjectNotFoundException {
+	private ThingDTO mandatoryPersons(ThingDTO data, String propertyName, AssemblyDTO apers, boolean strict) throws ObjectNotFoundException {
 		if(data.isStrict()) {
-			if(data.getNodeId()>0) {
-				for(String key : data.getPersons().keySet()) {
-					data.getPersons().get(key).clearErrors();
-				}
-				Concept node = closureServ.loadConceptById(data.getNodeId());
-				Thing thing = boilerServ.thingByNode(node);
-				int counter=0;
-				for(ThingPerson tp : thing.getPersons()) {
-					if(tp.getVarName().equalsIgnoreCase(propertyName)) {
-						counter++;
+			PersonDTO dto = data.getPersons().get(propertyName);
+			if(dto != null) {
+				dto.clearErrors();
+				if(dto.getAmendedNodeId()==0) {
+					//regular person
+					if(dto.getTable().getRows().size()==0) {
+						;
+					}
+				}else {
+					//amendment
+					int existing = dto.getRtable().getRows().size();
+					int added=dto.getTable().getRows().size();
+					int removed=0;
+					for(TableRow row : dto.getRtable().getRows()) {
+						if(row.getSelected()) {
+							removed++;
+						}
+					}
+					if(existing-removed+added<=0) {
+						dto.setValid(false);
+						dto.setStrict(strict);
+						dto.setIdentifier(messages.get("mandatorypersons")+" "+apers.getDescription());
 					}
 				}
-				if(counter==0) {
-					data.getPersons().get(propertyName).setValid(false);
-					data.getPersons().get(propertyName).setStrict(strict);
-					data.getPersons().get(propertyName).setIdentifier(messages.get("mandatorypersons")+" "+apers.getDescription());
-				}
-			}else {
-				data.getPersons().get(propertyName).setValid(false);
-				data.getPersons().get(propertyName).setStrict(strict);
-				data.getPersons().get(propertyName).setIdentifier(messages.get("mandatorypersons")+" "+apers.getDescription());
 			}
 		}
+		return data;
 	}
 
 	/**
@@ -690,13 +699,15 @@ public class ValidationService {
 	 */
 	private void mandatoryDate(FormFieldDTO<LocalDate> dateFld, AssemblyDTO dat, boolean strict) {
 		if(dateFld != null) {
-			String errorMess = messages.get("valuerangeerror")+" " + dat.getMinDate()+", " + dat.getMaxDate();
+			LocalDate minDate = LocalDate.now().plusMonths(dat.getMin().intValue());
+			LocalDate maxDate = LocalDate.now().plusMonths(dat.getMax().intValue());
+			String errorMess = messages.get("valuerangeerror")+" " + minDate+", " + maxDate;
 			if(dat.getDescription().length()>0){
 				errorMess=errorMess +" "+dat.getDescription();
 			}
 			if(dateFld.getValue() != null) {
 				LocalDate val = dateFld.getValue();
-				if(val.isBefore(dat.getMinDate()) || val.isAfter(dat.getMaxDate())) {
+				if(val.isBefore(minDate) || val.isAfter(maxDate)) {
 					dateFld.invalidate(errorMess);
 					dateFld.setStrict(strict);
 				}
@@ -915,6 +926,23 @@ public class ValidationService {
 		data=variableClazzAndParams(data);
 		data=variableScreen(data);
 		data=variableDictionary(data);
+		data=variableDocuments(data);
+		return data;
+	}
+	/**
+	 * Warning message should be if size or width/hegth are zero
+	 * @param data
+	 * @return
+	 */
+	private DataVariableDTO variableDocuments(DataVariableDTO data) {
+		if(data.getClazz().getValue().getCode().equalsIgnoreCase("documents")) {
+			if(data.getMinLen().getValue()==0 & data.getMaxLen().getValue()==0) {
+				data.setValid(false);
+				data.setStrict(false);
+				String mess = messages.get("sizeisnotdefined");
+				data.setIdentifier(mess);
+			}
+		}
 		return data;
 	}
 
@@ -1558,6 +1586,70 @@ public class ValidationService {
 			}
 		}
 		return false;
+	}
+	/**
+	 * Validate file uploaded
+	 * Read the configuration and check min/max size for non-images or width/height for images 
+	 * zero/zero for non images means any acceptable size
+	 * @param data
+	 * @param fileBytes
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public FileDTO file(FileDTO data, byte[] fileBytes) throws ObjectNotFoundException {
+		data.clearErrors();
+		List<AssemblyDTO> assms = assemblyServ.auxDocuments(data.getThingUrl());
+		String media = data.getMediaType().toUpperCase();
+		String description="";
+		String dimen="";
+		for(AssemblyDTO asm : assms) {
+			if(asm.getPropertyName().equalsIgnoreCase(data.getVarName())) {
+				if(asm.getMax().intValue()>0) {
+					if(media.contains("IMAGE") && (media.contains("JPEG") || media.contains("PNG"))) {
+						dimen=asm.getMin().intValue()+"X"+asm.getMax().intValue();
+						data=image(asm, data,fileBytes);
+					}else {
+						dimen=asm.getMin().intValue()+"-"+asm.getMax().intValue();
+						long fileSizeK = data.getFileSize()/1024;
+						if(fileSizeK==0) {
+							fileSizeK=1;
+						}
+						if(fileSizeK<asm.getMin().longValue() || fileSizeK>asm.getMax().longValue()) {
+							data.setValid(false);
+						}
+					}
+					description=asm.getDescription();
+					break;
+				}
+			}
+		}
+		if(!data.isValid()) {
+			data.setStrict(true);
+			String message = messages.get("Error.uploadFile")+ " " + description;
+			data.setIdentifier(message.trim()+" ("+dimen+")");
+		}
+		return data;
+	}
+	/**
+	 * Validate an image file - real format, width, height
+	 * @param asm 
+	 * @param data
+	 * @param picture
+	 * @return
+	 */
+	private FileDTO image(AssemblyDTO asm, FileDTO data, byte[] picture) {
+		ByteArrayInputStream istream =new ByteArrayInputStream(picture);
+		try {
+			BufferedImage img = ImageIO.read(istream);
+			int height= img.getHeight();
+			int width = img.getWidth();
+			if(width != asm.getMin().intValue() || height != asm.getMax().intValue()) {
+				data.setValid(false);
+			}
+		} catch (IOException e) {
+			data.setValid(false);
+		}
+		return data;
 	}
 
 }

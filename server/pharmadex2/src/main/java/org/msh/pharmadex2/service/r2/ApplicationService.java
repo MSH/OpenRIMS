@@ -109,7 +109,8 @@ public class ApplicationService {
 		if(data.getDictItemId()>0) {
 			Concept dictItem= closureServ.loadConceptById(data.getDictItemId());
 			String appUrl = literalServ.readValue("applicationurl", dictItem);
-			data.setTable(createApplicationsTable(appUrl, user.getEmail(), data.getTable()));
+			String dataUrl = literalServ.readValue("dataurl", dictItem);
+			data.setTable(createApplicationsTable(appUrl, dataUrl, user.getEmail(), data.getTable()));
 		}
 		return data;
 	}
@@ -117,16 +118,18 @@ public class ApplicationService {
 	 * Create a table with list of applications
 	 * @param appUrl
 	 * @param email
+	 * @param string 
 	 * @param table
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	private TableQtb createApplicationsTable(String appUrl, String email, TableQtb table) throws ObjectNotFoundException {
+	private TableQtb createApplicationsTable(String appUrl, String dataUrl, String email, TableQtb table) throws ObjectNotFoundException {
 		if(table.getHeaders().getHeaders().size()==0) {
 			table.setHeaders(createHeaders(table.getHeaders(),true));
 		}
 		String select="select * from activity_data";
-		String where="go is null and applurl='" + appUrl + "' and executive='"+email +"' and lang='"+LocaleContextHolder.getLocale().toString().toUpperCase()+"'";
+		String where="go is null and applurl='" + appUrl + "' and dataurl='"+dataUrl+"'"
+				+ "  and executive='"+email +"' and lang='"+LocaleContextHolder.getLocale().toString().toUpperCase()+"'";
 		List<TableRow> rows =jdbcRepo.qtbGroupReport(select, "", where, table.getHeaders());
 		TableQtb.tablePage(rows, table);
 		table=boilerServ.translateRows(table);

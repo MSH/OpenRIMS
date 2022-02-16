@@ -106,4 +106,15 @@ public class ClosureTreeTests {
 		System.out.println(parents.size());
 	}
 
+	//@Test
+	/**
+	 * Clone person concept
+	 * @throws ObjectNotFoundException
+	 */
+	public void cloneTree() throws ObjectNotFoundException {
+		Concept root = closureServ.loadRoot("test.clone");
+		Concept pers = closureServ.loadConceptById(78218);
+		Concept clone = closureServ.cloneTree(root,pers);
+	}
+	
 }

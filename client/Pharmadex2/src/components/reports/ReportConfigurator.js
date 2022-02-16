@@ -46,9 +46,12 @@ class ReportConfigurator extends Component{
                 this.state.thingid=data.from
             }
             if(data.subject=="saved" || data.subject=="savedByAction"){
-                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.success, color:'success'})
-                this.state.data.form=false
-                this.load()
+                this.state.data.report=data.data
+                Fetchers.postJSON("/api/admin/report/parameters/renew", this.state.data, (query,result)=>{
+                    Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.success, color:'success'})
+                    this.state.data.form=false
+                    this.load()
+                })
             }
         }
         

@@ -653,8 +653,7 @@ public class JdbcRepository {
 		params.addValue("dataurl", url);
 		params.addValue("email", email);
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
-		proc.execute(params);
-		
+		proc.execute(params);	
 	}
 	/**
 	 * Select variables in modiUrl not covered by dataUrl 

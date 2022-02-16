@@ -84,8 +84,13 @@ class DataVarForm extends Component{
                                         if(result.valid){
                                             Navigator.message(this.state.identifier, this.props.recipient,"formCancel",{})
                                         }else{
-                                            this.state.data=result
-                                            this.setState(this.state)
+                                            if(result.strict){
+                                                this.state.data=result
+                                                this.setState(this.state)
+                                            }else{
+                                                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:result.identifier, color:'warning'})
+                                                Navigator.message(this.state.identifier, this.props.recipient,"formCancel",{})
+                                            }
                                         }
                                     })
                                 }}

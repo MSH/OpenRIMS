@@ -14,6 +14,7 @@ import java.util.Map;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
+import org.msh.pdex2.dto.i18n.Language;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.enums.YesNoNA;
@@ -257,36 +258,7 @@ public class LiteralService {
 		literals = closureServ.saveToTree(parent, literals);
 		return literals;
 	}
-	/**
-	 * Read a value of variable in the current language
-	 * @param variableName - name of variable
-	 * @param parent related concept
-	 * @return value of variable or empty string if variable is not defined
-	 * @throws ObjectNotFoundException 
-	 */
-	@Transactional
-	public String readValue(String variableName, Concept parent) throws ObjectNotFoundException {
-		String ret="";
-		if(parent!=null) {
-			//literal
-			Concept literals = loadLiterals(parent);
-			List<Concept> variables = closureServ.loadLevel(literals);
-			for(Concept variable : variables) {
-				if(variable.getIdentifier().equalsIgnoreCase(variableName)) {
-					//value
-					List<Concept> values = closureServ.loadLevel(variable);
-					String locale = LocaleContextHolder.getLocale().toString();
-					for(Concept value :values) {
-						if(value.getIdentifier().equalsIgnoreCase(locale)) {
-							ret = value.getLabel();
-							break;
-						}
-					}
-				}
-			}
-		}
-		return ret;
-	}
+
 	/**
 	 * add or update the most using "prefLabel" and "description" variables
 	 * for convenience only
@@ -372,23 +344,7 @@ public class LiteralService {
 		}
 		return ret;
 	}
-	/**
-	 * load all parent's pref labels
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	@Transactional
-	public List<String> loadAllParentPrefLabels(Concept node) throws ObjectNotFoundException {
-		List<String> ret = new ArrayList<String>();
-		if(node != null) {
-			List<Closure> clos = closureServ.untilRoot(node);
-			for(Closure clo :clos) {
-				String literal = readValue("prefLabel", clo.getParent());
-				ret.add(literal);
-			}
-		}
-		return ret;
-	}
+
 
 	/**
 	 * Create mandatory literals - "prefLabel" and "description"
@@ -477,6 +433,83 @@ public class LiteralService {
 		}
 		return new Concept();
 	}
+	
+	/**
+	 * load all parent's pref labels
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public List<String> loadAllParentPrefLabels(Concept node) throws ObjectNotFoundException {
+		String locale = LocaleContextHolder.getLocale().toString();
+		return loadAllParentPrefLabels(node,locale);
+	}
+	
+	
+	/**
+	 * Load list of parent prefLabel
+	 * @param node
+	 * @param lang
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public List<String> loadAllParentPrefLabels(Concept node, String locale) throws ObjectNotFoundException {
+		List<String> ret = new ArrayList<String>();
+		if(node != null) {
+			List<Closure> clos = closureServ.untilRoot(node);
+			for(Closure clo :clos) {
+				String literal = readValue("prefLabel", clo.getParent(),locale);
+				ret.add(literal);
+			}
+		}
+		return ret;
+	}
+	
+	
+	/**
+	 * Read a value of variable in the current language
+	 * @param variableName - name of variable
+	 * @param parent related concept
+	 * @return value of variable or empty string if variable is not defined
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public String readValue(String variableName, Concept parent) throws ObjectNotFoundException {
+		String locale = LocaleContextHolder.getLocale().toString();
+		return readValue(variableName,parent,locale);
+	}
+	
+	/**
+	 * Read a value on the language given
+	 * @param string
+	 * @param parent
+	 * @param locale
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public String readValue(String variableName, Concept parent, String locale) throws ObjectNotFoundException {
+		String ret="";
+		if(parent!=null) {
+			//literal
+			Concept literals = loadLiterals(parent);
+			List<Concept> variables = closureServ.loadLevel(literals);
+			for(Concept variable : variables) {
+				if(variable.getIdentifier().equalsIgnoreCase(variableName)) {
+					//value
+					List<Concept> values = closureServ.loadLevel(variable);
+					for(Concept value :values) {
+						if(value.getIdentifier().equalsIgnoreCase(locale)) {
+							ret = value.getLabel();
+							break;
+						}
+					}
+				}
+			}
+		}
+		return ret;
+	}
+	
 
 
 }

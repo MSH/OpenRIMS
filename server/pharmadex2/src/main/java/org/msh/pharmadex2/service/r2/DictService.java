@@ -1,11 +1,14 @@
 package org.msh.pharmadex2.service.r2;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import org.msh.pdex2.dto.i18n.Language;
+import org.msh.pdex2.dto.i18n.Languages;
 import org.msh.pdex2.dto.table.Headers;
 import org.msh.pdex2.dto.table.TableHeader;
 import org.msh.pdex2.dto.table.TableQtb;
@@ -1091,6 +1094,39 @@ public class DictService {
 			literalServ.createUpdateDescription("", root);
 		}
 
+	}
+	/**
+	 * Store path from the dictnode under node. All languages
+	 * @param dictNode
+	 * @param node
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public Concept storePath(Concept dictNode, Concept node) throws ObjectNotFoundException {
+		Languages langs = messages.getLanguages();
+		for(Language lang : langs.getLangs()) {
+			String path = dictPath(lang.getLocaleAsString(),dictNode);
+			Concept pNode = new Concept();
+			pNode.setIdentifier(lang.getLocaleAsString().toUpperCase());
+			pNode.setLabel(path);
+			closureServ.saveToTree(node, pNode);
+		}
+		return node;
+	}
+	/**
+	 * Path to the dictnode on the language
+	 * @param lang
+	 * @param dictNode
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public String dictPath(String locale, Concept dictNode) throws ObjectNotFoundException {
+		String ret="";
+		 List<String> retList = literalServ.loadAllParentPrefLabels(dictNode, locale);
+		 ret=String.join(",", retList);
+		return ret;
 	}
 
 

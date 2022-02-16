@@ -152,9 +152,12 @@ public class ThingService {
 			data = createContent(data,user);
 			if(data.getModiUnitId()>0) {
 				//amendment
-				FormFieldDTO<String> pref= FormFieldDTO.of(data.getPrefLabel());
-				pref.setReadOnly(true);
-				data.getLiterals().put("prefLabel",pref);
+				FormFieldDTO<String> pref = data.getLiterals().get("prefLabel");
+				if(pref != null && pref.isReadOnly()) {
+					FormFieldDTO<String> pref1= FormFieldDTO.of(data.getPrefLabel());
+					pref1.setReadOnly(true);
+					data.getLiterals().put("prefLabel",pref1);
+				}
 			}
 		}else {
 			throw new ObjectNotFoundException("User is not allowed to initiate application. User is "+user.getEmail(),logger);
@@ -447,7 +450,8 @@ public class ThingService {
 			dto.setReadOnly(ad.isReadOnly());
 			dto.setUrl(ad.getUrl());
 			dto.setVarName(ad.getPropertyName());
-			FormFieldDTO<LocalDate> expiry = FormFieldDTO.of(ad.getMaxDate());
+			LocalDate expLd = LocalDate.now().plusMonths(ad.getMax().intValue());
+			FormFieldDTO<LocalDate> expiry = FormFieldDTO.of(expLd);
 			dto.setExpiry_date(expiry);
 			dto.setExpirable(ad.isMult());
 			dto.setNumberPrefix(ad.getFileTypes());
@@ -540,7 +544,7 @@ public class ThingService {
 			sc.setDataUrl(ad.getUrl());
 			sc.setProcessUrl(ad.getAuxDataUrl());
 			sc.setCreatedAt(LocalDate.now());
-			sc.getSchedule().setValue(LocalDate.now().plusMonths(ad.getMaxQuantity()));
+			sc.getSchedule().setValue(LocalDate.now().plusMonths(ad.getMax().intValue()));
 			data.getSchedulers().put(ad.getPropertyName(), sc);
 		}
 		if(data.getSchedulers().size()>0) {
@@ -625,20 +629,24 @@ public class ThingService {
 	 * @param persons
 	 * @param data
 	 * @return
+	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	private ThingDTO createPersons(List<AssemblyDTO> persons, ThingDTO data) {
+	private ThingDTO createPersons(List<AssemblyDTO> persons, ThingDTO data) throws ObjectNotFoundException {
 		data.getPersons().clear();
 		for(AssemblyDTO pers : persons) {
 			PersonDTO dto = new PersonDTO();
 			dto.setDictUrl(pers.getDictUrl());
+			dto.setUrl(pers.getAuxDataUrl());
 			dto.setReadOnly(pers.isReadOnly());
 			dto.setRequired(pers.isRequired());
 			dto.setVarName(pers.getPropertyName());
 			dto.setThingNodeId(data.getNodeId());
+			dto.setAmendedNodeId(data.getModiUnitId());
 			dto =createPersTable(dto);
 			data.getPersons().put(pers.getPropertyName(),dto);
 		}
+		data=amendServ.personToRemove(data);
 		return data;
 	}
 	/**
@@ -646,9 +654,11 @@ public class ThingService {
 	 * @param data
 	 * @param dto 
 	 * @return
+	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	private PersonDTO createPersTable(PersonDTO dto) {
+	private PersonDTO createPersTable(PersonDTO dto) throws ObjectNotFoundException {
+		//list of persons to add
 		if(dto.getTable().getHeaders().getHeaders().size()==0) {
 			dto.getTable().setHeaders(personHeaders(dto.getTable().getHeaders()));
 		}
@@ -656,7 +666,11 @@ public class ThingService {
 			jdbcRepo.persons(dto.getThingNodeId());
 			List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from _persons", "","", dto.getTable().getHeaders());
 			TableQtb.tablePage(rows, dto.getTable());
-			dto.getTable().setSelectable(false);
+			dto.getTable().setSelectable(true);
+		}
+		//List of persons to remove
+		if(dto.getAmendedNodeId()>0) {
+			dto=createToRemoveTable(dto);
 		}
 		return dto;
 	}
@@ -793,6 +807,7 @@ public class ThingService {
 			fdto.setUrl(asm.getUrl());
 			fdto.setDictUrl(asm.getDictUrl());
 			fdto.setVarName(asm.getPropertyName());
+			fdto.setThingUrl(data.getUrl());
 			fdto.setThingNodeId(data.getNodeId());
 			fdto = removeOrphans(fdto);
 			fdto = createDocTable(fdto,user);
@@ -1117,6 +1132,7 @@ public class ThingService {
 		data = storeSchedule(user, thing, data);
 		data = storeRegister(user, thing, data);
 		data = storeAtc(thing, data);
+		data=amendServ.storePersonToRemove(data, thing);
 
 		return data;
 	}
@@ -1147,12 +1163,13 @@ public class ThingService {
 					String prefLabel=literalServ.readPrefLabel(node);
 					prefLabelDTO.setValue(prefLabel);
 				}
-				FormFieldDTO<String> altLabelDTO = data.getLiterals().get("altLabel");
+				//alt label may be configured as altLabel or another name
+				FormFieldDTO<String> altLabelDTO = data.getLiterals().get(dto.getAltLabel());
 				if(altLabelDTO==null) {
-					altLabelDTO=data.getStrings().get("altLabel");
+					altLabelDTO=data.getStrings().get(dto.getAltLabel());
 				}
 				if(altLabelDTO != null) {
-					String altLabel=literalServ.readValue("altLabel", node);
+					String altLabel=literalServ.readValue("altLabel", node);		//here altLabel is right
 					altLabelDTO.setValue(altLabel);
 				}
 			}
@@ -1278,6 +1295,7 @@ public class ThingService {
 	 */
 	@Transactional
 	private void saveToPersons(ThingDTO data, Concept node, Thing attachTo) {
+		//save 
 		boolean found = false;
 		for(ThingPerson tp : attachTo.getPersons()) {
 			if(tp.getConcept().getID()==data.getNodeId()) {
@@ -1293,6 +1311,7 @@ public class ThingService {
 			attachTo.getPersons().add(link);
 		}
 		attachTo=thingRepo.save(attachTo);
+		//
 	}
 	/**
 	 * Attach this data as a thing to ThingThing
@@ -1678,6 +1697,7 @@ public class ThingService {
 			dict.setConcept(dictNode);
 			dict.setVarname(data.getVarName());
 			thing.getDictionaries().add(dict);
+			dictServ.storePath(dictNode,node);
 		}
 		boolean found=false;
 		for(ThingThing th : parentThing.getThings()) {
@@ -1819,6 +1839,9 @@ public class ThingService {
 			thing = boilerServ.thingByNode(node,thing);
 			data.setUrl(thing.getUrl());
 			data.setTitle(literalServ.readPrefLabel(node));
+			if(thing.getAmendments().size()==1) {
+				data.setModiUnitId(thing.getAmendments().iterator().next().getConcept().getID());
+			}
 		}
 		data.getPath().clear();
 		List<ThingDTO> path = createPath(data, new ArrayList<ThingDTO>(),-1);
@@ -1912,65 +1935,75 @@ public class ThingService {
 	 */
 	@Transactional
 	public FileDTO fileSave(FileDTO data, UserDetailsDTO user, byte[] fileBytes) throws ObjectNotFoundException {
-		String email = user.getEmail();
-		if((data.getFileName().length()==0 || fileBytes.length>1) 
-				&& validServ.eMail(email) 
-				&& data.getDictNodeId()>0) {
-			//determine node ID
-			long fileNodeId = data.getNodeId();
-			Concept node = new Concept();
-			if(fileNodeId==0 ) {
-				//create a new file node and store it to data
-				Concept root = closureServ.loadRoot(data.getUrl());
-				Concept owner=closureServ.saveToTree(root, user.getEmail());
-				node = closureServ.save(node);
-				node.setIdentifier(node.getID()+"");
-				node=closureServ.saveToTree(owner, node);
-				data.getLinked().put(data.getDictNodeId(),node.getID());
-			}else {
-				node = closureServ.loadConceptById(data.getNodeId());
-			}
-			Concept parent = closureServ.getParent(node);
-			if(accessControlServ.sameEmail(parent.getIdentifier(), user.getEmail())) {
-				//dictionary item
-				Concept dictItem = closureServ.loadConceptById(data.getDictNodeId());
-				//file name
-				node.setLabel(data.getFileName());
-				//file data
-				FileResource fres = new FileResource();
-				Optional<FileResource> freso = fileRepo.findByConcept(node);
-				if(freso.isPresent()) {
-					fres=freso.get();
+		data=validServ.file(data, fileBytes);
+		if(data.isValid()) {
+			String email = user.getEmail();
+			if((data.getFileName().length()==0 || fileBytes.length>1) 
+					&& validServ.eMail(email) 
+					&& data.getDictNodeId()>0) {
+				//determine node ID
+				long fileNodeId = data.getNodeId();
+				Concept node = new Concept();
+				if(fileNodeId==0 ) {
+					//create a new file node and store it to data
+					Concept root = closureServ.loadRoot(data.getUrl());
+					Concept owner=closureServ.saveToTree(root, user.getEmail());
+					node = closureServ.save(node);
+					node.setIdentifier(node.getID()+"");
+					node=closureServ.saveToTree(owner, node);
+					data.getLinked().put(data.getDictNodeId(),node.getID());
+				}else {
+					node = closureServ.loadConceptById(data.getNodeId());
 				}
-				fres.setClassifier(dictItem);
-				fres.setConcept(node);
-				fres.setFile(fileBytes);
-				fres.setFileSize(data.getFileSize());
-				fres.setMediatype(data.getMediaType());
-				fres=fileRepo.save(fres);
-				ThingDoc tdoc = boilerServ.loadThingDocByFileNode(node);
-				if(data.getThingNodeId()>0) {
-					Concept thingConc = closureServ.loadConceptById(data.getThingNodeId());
-					Thing thing = new Thing();
-					thing = boilerServ.thingByNode(thingConc, thing);
-					if(thing.getID()>0) {
-						for(ThingDoc td : thing.getDocuments()) {
-							if(td.getDictNode().getID()==data.getDictNodeId() 
-									&& td.getVarName().toUpperCase().equalsIgnoreCase(data.getVarName())) {
-								tdoc=td;
-								break;
+				Concept parent = closureServ.getParent(node);
+				if(accessControlServ.sameEmail(parent.getIdentifier(), user.getEmail())) {
+					//dictionary item
+					Concept dictItem = closureServ.loadConceptById(data.getDictNodeId());
+					//file name
+					node.setLabel(data.getFileName());
+					//file data
+					FileResource fres = new FileResource();
+					Optional<FileResource> freso = fileRepo.findByConcept(node);
+					if(freso.isPresent()) {
+						fres=freso.get();
+					}
+					fres.setClassifier(dictItem);
+					fres.setConcept(node);
+					fres.setFile(fileBytes);
+					fres.setFileSize(data.getFileSize());
+					fres.setMediatype(data.getMediaType());
+					fres=fileRepo.save(fres);
+					ThingDoc tdoc = boilerServ.loadThingDocByFileNode(node);
+					if(data.getThingNodeId()>0) {
+						Concept thingConc = closureServ.loadConceptById(data.getThingNodeId());
+						Thing thing = new Thing();
+						thing = boilerServ.thingByNode(thingConc, thing);
+						if(thing.getID()>0) {
+							for(ThingDoc td : thing.getDocuments()) {
+								if(td.getDictNode().getID()==data.getDictNodeId() 
+										&& td.getVarName().toUpperCase().equalsIgnoreCase(data.getVarName())) {
+									tdoc=td;
+									break;
+								}
 							}
+							tdoc.setConcept(node);
+							tdoc.setDictNode(dictItem);
+							tdoc.setDictUrl(data.getDictUrl());
+							tdoc.setDocUrl(data.getUrl());
+							tdoc.setVarName(data.getVarName());
+							if(tdoc.getID()==0) {
+								thing.getDocuments().add(tdoc);
+							}
+							thing=thingRepo.save(thing);
+						}else { //thing is not saved yet
+							tdoc.setConcept(node);
+							tdoc.setDictNode(dictItem);
+							tdoc.setDictUrl(data.getDictUrl());
+							tdoc.setDocUrl(data.getUrl());
+							tdoc.setVarName(data.getVarName());
+							tdoc=boilerServ.saveThingDoc(tdoc);
 						}
-						tdoc.setConcept(node);
-						tdoc.setDictNode(dictItem);
-						tdoc.setDictUrl(data.getDictUrl());
-						tdoc.setDocUrl(data.getUrl());
-						tdoc.setVarName(data.getVarName());
-						if(tdoc.getID()==0) {
-							thing.getDocuments().add(tdoc);
-						}
-						thing=thingRepo.save(thing);
-					}else { //thing is not saved yet
+					}else {		//node is not defined yet		
 						tdoc.setConcept(node);
 						tdoc.setDictNode(dictItem);
 						tdoc.setDictUrl(data.getDictUrl());
@@ -1978,20 +2011,13 @@ public class ThingService {
 						tdoc.setVarName(data.getVarName());
 						tdoc=boilerServ.saveThingDoc(tdoc);
 					}
-				}else {		//node is not defined yet		
-					tdoc.setConcept(node);
-					tdoc.setDictNode(dictItem);
-					tdoc.setDictUrl(data.getDictUrl());
-					tdoc.setDocUrl(data.getUrl());
-					tdoc.setVarName(data.getVarName());
-					tdoc=boilerServ.saveThingDoc(tdoc);
+				}else {
+					throw new ObjectNotFoundException("fileSave Access denied "+ user.getEmail()+"/"+data.getUrl(), logger);
 				}
 			}else {
-				throw new ObjectNotFoundException("fileSave Access denied "+ user.getEmail()+"/"+data.getUrl(), logger);
+				throw new ObjectNotFoundException("fileSave File is empty or eMAil/url/classifier is bad "
+						+ user.getEmail()+"/"+data.getUrl()+"/"+data.getDictNodeId(), logger);
 			}
-		}else {
-			throw new ObjectNotFoundException("fileSave File is empty or eMAil/url/classifier is bad "
-					+ user.getEmail()+"/"+data.getUrl()+"/"+data.getDictNodeId(), logger);
 		}
 		return data;
 	}
@@ -2138,9 +2164,33 @@ public class ThingService {
 	 * @param data
 	 * @param user
 	 * @return
+	 * @throws ObjectNotFoundException 
 	 */
-	public PersonDTO personTableLoad(PersonDTO data, UserDetailsDTO user) {
+	@Transactional
+	public PersonDTO personTableLoad(PersonDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		data=createPersTable(data);
+		return data;
+	}
+	/**
+	 * Create table to remove
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	private PersonDTO createToRemoveTable(PersonDTO data) throws ObjectNotFoundException {
+		if(data.getRtable().getHeaders().getHeaders().size()==0) {
+			data.getRtable().setHeaders(personHeaders(data.getRtable().getHeaders()));
+		}
+		if(data.getRtable().getRows().size()==0) {
+			Concept amended = closureServ.loadConceptById(data.getAmendedNodeId());
+			Thing thinga = boilerServ.thingByNode(amended);
+			for(ThingPerson tp : thinga.getPersons()) {
+				String pref = literalServ.readPrefLabel(tp.getConcept());
+				TableRow row = TableRow.instanceOf(tp.getConcept().getID());
+				row.getRow().add(TableCell.instanceOf("prefLabel", pref));
+				data.getRtable().getRows().add(row);
+			}
+		}
 		return data;
 	}
 	/**
@@ -2279,6 +2329,28 @@ public class ThingService {
 	 */
 	public ThingDTO help(ThingDTO data) throws ObjectNotFoundException {
 		data=validServ.thing(data,false);
+		return data;
+	}
+	/**
+	 * Suspend a person (owner, pharmacist, etc.)
+	 * @param data
+	 * @param user
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public PersonDTO personSuspend(PersonDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		long personId=0;
+		for(TableRow row :data.getTable().getRows()) {
+			if(row.getSelected()) {
+				personId=row.getDbID();
+			}
+		}
+		if(personId>0) {
+			Concept person=closureServ.loadConceptById(personId);
+			person.setActive(false);
+			closureServ.save(person);
+		}
 		return data;
 	}
 }

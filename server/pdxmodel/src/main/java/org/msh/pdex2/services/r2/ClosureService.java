@@ -10,6 +10,7 @@ import javax.persistence.PersistenceContext;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.model.r2.Closure;
 import org.msh.pdex2.model.r2.Concept;
+import org.msh.pdex2.model.r2.ThingPerson;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.r2.ClosureRepo;
 import org.msh.pdex2.repository.r2.ConceptRepo;
@@ -365,6 +366,42 @@ public class ClosureService {
 		}
 		concept=saveToTree(user, concept);
 		return concept;
+	}
+	/**
+	 * Clone all tree from the node under the root
+	 * Root should be stored
+	 * @param root - store under this root
+	 * @param node - clone this node
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public Concept cloneTree(Concept root, Concept node) throws ObjectNotFoundException {
+		Concept ret= cloneConcept(node);
+		ret=saveToTree(root,ret);
+		List<Concept> childs = loadLevel(node);
+		for(Concept child : childs) {
+			cloneTree(ret,child);
+		}
+		return ret;
+	}
+	/**
+	 * Clone a concept
+	 * @param root
+	 * @return
+	 */
+	@Transactional
+	private Concept cloneConcept(Concept root) {
+		Concept ret = new Concept();
+		ret.setActive(true);
+		if(!root.getIdentifier().equalsIgnoreCase(root.getID()+"")) {
+			ret.setIdentifier(root.getIdentifier());
+		}else {
+			ret=save(ret);
+			ret.setIdentifier(ret.getID()+"");
+		}
+		ret.setLabel(root.getLabel());
+		return ret;
 	}
 
 

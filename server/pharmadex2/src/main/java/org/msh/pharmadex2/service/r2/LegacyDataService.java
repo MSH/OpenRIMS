@@ -72,6 +72,7 @@ public class LegacyDataService {
 		ret.setStorageUrl(assm.getUrl());
 		ret.setTable(createTable(ret));
 		ret.setVarName(assm.getPropertyName());
+		ret.setAltLabel(assm.getFileTypes());
 		return ret;
 	}
 	/**
