@@ -72,4 +72,9 @@ public class AmendmentServiceTest {
 		ThingPerson tp = boilerServ.thingPerson(pers, true);
 		amendServ.personClone(tp);
 	}
+	@Test
+	@Rollback(false)
+	public void rewriteAmendedData() throws ObjectNotFoundException {
+		amendServ.rewriteAmendedData();
+	}
 }

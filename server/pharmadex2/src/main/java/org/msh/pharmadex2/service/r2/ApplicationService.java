@@ -18,6 +18,7 @@ import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.model.r2.Scheduler;
 import org.msh.pdex2.model.r2.Thing;
+import org.msh.pdex2.model.r2.ThingAmendment;
 import org.msh.pdex2.model.r2.ThingDict;
 import org.msh.pdex2.model.r2.ThingScheduler;
 import org.msh.pdex2.model.r2.ThingThing;
@@ -194,86 +195,65 @@ public class ApplicationService {
 		return headers;
 	}
 
-	/**
-	 * Create headers for application list
-	 * @param user 
-	 * @param headers
-	 * @param present present or scheduled
-	 * @return
-	 */
-	private Headers monitoringHeaders(UserDetailsDTO user, Headers headers, boolean present) {
-		headers.getHeaders().add(TableHeader.instanceOf(
-				"Come", 
-				"scheduled",
-				true,
-				true,
-				true,
-				TableHeader.COLUMN_LOCALDATE,
-				15));
-		headers.getHeaders().add(TableHeader.instanceOf(
-				"pref",
-				"prefLabel",
-				true,
-				true,
-				true,
-				TableHeader.COLUMN_STRING,
-				30));
 
-		if(accServ.isSupervisor(user)) {
-			headers.getHeaders().add(TableHeader.instanceOf(
-					"applicant",
-					"applicant",
-					true,
-					true,
-					true,
-					TableHeader.COLUMN_STRING,
-					20));
-			headers.getHeaders().add(TableHeader.instanceOf(
-					"email",
-					"executor_email",
-					true,
-					true,
-					true,
-					TableHeader.COLUMN_STRING,
-					20));
-			headers.getHeaders().add(TableHeader.instanceOf(
-					"execname",
-					"global_name",
-					false,
-					true,
-					true,
-					TableHeader.COLUMN_STRING,
-					20));
-			headers.getHeaders().add(TableHeader.instanceOf(
-					"execorg",
-					"departmentbranch",
-					false,
-					true,
-					true,
-					TableHeader.COLUMN_STRING,
-					30));
+
+
+
+	/**
+	 * Create histroy table
+	 * @param user 
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public ApplicationHistoryDTO historyTable(UserDetailsDTO user, ApplicationHistoryDTO data) throws ObjectNotFoundException {
+		if(data.getApplDictNodeId()>0) {
+			Concept dictNode = closureServ.loadConceptById(data.getApplDictNodeId());
+			data.setApplName(literalServ.readPrefLabel(dictNode));
 		}
-
-		headers.getHeaders().add(TableHeader.instanceOf(
-				"workflow",
-				"prod_app_type",
-				true,
-				true,
-				true,
-				TableHeader.COLUMN_LINK,
-				30));
-		headers=boilerServ.translateHeaders(headers);
-		headers.getHeaders().get(0).setSortValue(TableHeader.SORT_ASC);
-		return headers;
+		if(data.getHistoryId()>0) {
+			History his = boilerServ.historyById(data.getHistoryId());
+			Concept dictNode = his.getApplDict();
+			data.setApplName(literalServ.readPrefLabel(dictNode));
+			data.setApplDictNodeId(dictNode.getID());
+			TableQtb table = data.getTable();
+			if(table.getHeaders().getHeaders().size()==0) {
+				table.setHeaders(historyHeaders(table.getHeaders(),user));
+			}
+			Concept objectData = boilerServ.objectData(his.getApplicationData());
+			jdbcRepo.application_history(objectData.getID());
+			table =historyTableRows(user, table);
+			table.setSelectable(accServ.isSupervisor(user));
+			data.setTable(table);
+			return data;
+		}
+		return data;
 	}
-
 	/**
-	 * Headers for history table
+	 * Rows for history table
+	 * @param user
+	 * @param table
+	 */
+	@Transactional
+	public TableQtb historyTableRows(UserDetailsDTO user, TableQtb table) {
+		String where = "come<(curdate() + Interval 1 day)";
+		if(accServ.isApplicant(user)) {
+			where = where + " and go is not null";
+		}
+		List<TableRow> rows=jdbcRepo.qtbGroupReport("select * from application_history", "", where, table.getHeaders());
+		TableQtb.tablePage(rows, table);
+		boilerServ.translateRows(table);
+		return table;
+	}
+	/**
+	 * Headers for application data history table
+	 * usage in ApplicationService and ReportService
 	 * @param headers
 	 * @param user 
 	 * @return
 	 */
-	private Headers historyHeaders(Headers headers, UserDetailsDTO user) {
+	public Headers historyHeaders(Headers headers, UserDetailsDTO user) {
 		headers.getHeaders().add(TableHeader.instanceOf(
 				"come",
 				"global_date",
@@ -312,7 +292,7 @@ public class ApplicationService {
 				true,
 				true,
 				true,
-				TableHeader.COLUMN_I18LINK,
+				TableHeader.COLUMN_STRING,
 				0));
 		if(!accServ.isApplicant(user)) {
 			headers.getHeaders().add(TableHeader.instanceOf(
@@ -337,45 +317,6 @@ public class ApplicationService {
 		headers.getHeaders().get(0).setSortValue(TableHeader.SORT_ASC);
 		headers.setPageSize(Integer.MAX_VALUE);
 		return headers;
-	}
-
-
-
-	/**
-	 * Create histroy table
-	 * @param user 
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	@Transactional
-	public ApplicationHistoryDTO historyTable(UserDetailsDTO user, ApplicationHistoryDTO data) throws ObjectNotFoundException {
-		if(data.getApplDictNodeId()>0) {
-			Concept dictNode = closureServ.loadConceptById(data.getApplDictNodeId());
-			data.setApplName(literalServ.readPrefLabel(dictNode));
-		}
-		if(data.getHistoryId()>0) {
-			History his = boilerServ.historyById(data.getHistoryId());
-			Concept dictNode = his.getApplDict();
-			data.setApplName(literalServ.readPrefLabel(dictNode));
-			data.setApplDictNodeId(dictNode.getID());
-			TableQtb table = data.getTable();
-			if(table.getHeaders().getHeaders().size()==0) {
-				table.setHeaders(historyHeaders(table.getHeaders(),user));
-			}
-			jdbcRepo.application_history(his.getApplicationData().getID());
-			String where = "";
-			if(accServ.isApplicant(user)) {
-				where = where + "go is not null";
-			}
-			List<TableRow> rows=jdbcRepo.qtbGroupReport("select * from application_history", "", where, table.getHeaders());
-			TableQtb.tablePage(rows, table);
-			boilerServ.translateRows(table);
-			table.setSelectable(accServ.isSupervisor(user));
-			data.setTable(table);
-			return data;
-		}
-		return data;
 	}
 
 	/**
@@ -627,12 +568,10 @@ public class ApplicationService {
 				if(ret.size()==0) {
 					logger.warn("an executor not found - send to all supervisors. Activity config ID is "+
 							actConf.getID());
-					List<User> supervisors = userServ.loadUsersByRole(SystemService.ROLE_ADMIN);
-					for(User sup : supervisors) {
-						if(sup.getEnabled()) {
-							ret.add(sup.getEmail());
-						}
-					}
+					role = systemServ.loadRole(SystemService.ROLE_ADMIN);
+					jdbcRepo.executors_select(role.getID(), applDict.getID());
+					where="auid is null";
+					ret = executorsEmails(ret,where);
 				}
 				if(ret.size()==0) {
 					throw new ObjectNotFoundException("executors_select. Executor not found for config "
@@ -690,6 +629,10 @@ public class ApplicationService {
 			String addrUrl =literalServ.readValue("addressurl", actConf);
 			if(addrUrl.length()>0) {
 				Thing rootThing = boilerServ.thingByNode(curHis.getApplicationData());
+				if(rootThing.getAmendments().iterator().hasNext()) {
+					ThingAmendment ta=rootThing.getAmendments().iterator().next();
+					rootThing = boilerServ.thingByNode(ta.getConcept());
+				}
 				for(ThingThing tt : rootThing.getThings()) {
 					if(tt.getUrl().equalsIgnoreCase(addrUrl)) {
 						ret=boilerServ.adminUnitLevel(pubOrgServ.territoryLevel(), tt.getConcept());
@@ -1152,72 +1095,6 @@ public class ApplicationService {
 		return data;
 	}
 
-
-	/**
-	 * The same as my activities, however only monitoring activities
-	 * @param data
-	 * @param user
-	 * @return
-	 */
-	public ApplicationsDTO myMonitoring(ApplicationsDTO data, UserDetailsDTO user) {
-		data=presentMonitoring(data, user);
-		data=sheduledMonitoring(data,user);
-		return data;
-	}
-	/**
-	 * Get scheduled, future monitoring data
-	 * @param data
-	 * @param user
-	 * @return
-	 */
-	public ApplicationsDTO sheduledMonitoring(ApplicationsDTO data, UserDetailsDTO user) {
-		TableQtb table = data.getScheduled();
-		if(table.getHeaders().getHeaders().size()==0) {
-			table.setHeaders(monitoringHeaders(user, table.getHeaders(),false));
-		}
-		String where="Come>curdate()";
-		String select ="select distinct ID, Come,pref,execorg,workflow from _monitoring";
-		String email=user.getEmail();
-		if(accServ.isSupervisor(user)) {
-			select ="select *  from _monitoring";
-			//email=null;
-		}
-		jdbcRepo.myMonitoring(email);
-		List<TableRow> rows =jdbcRepo.qtbGroupReport(select, "", where, table.getHeaders());
-		TableQtb.tablePage(rows, table);
-		table.setSelectable(false);
-		data.setScheduled(table);
-		return data;
-	}
-
-
-	/**
-	 * Get actual monitoring data
-	 * @param data
-	 * @param user
-	 * @return
-	 */
-	public ApplicationsDTO presentMonitoring(ApplicationsDTO data, UserDetailsDTO user) {
-		TableQtb table = data.getTable();
-		if(table.getHeaders().getHeaders().size()==0) {
-			table.setHeaders(monitoringHeaders(user,table.getHeaders(),true));
-		}
-		String where="Come<=curdate() + Interval 1 day";
-		String select ="select distinct ID, Come,pref,execorg,workflow from _monitoring";
-		String email=user.getEmail();
-		if(accServ.isSupervisor(user)) {
-			select ="select *  from _monitoring";
-			//email=null;
-		}
-		jdbcRepo.myMonitoring(email);
-		List<TableRow> rows =jdbcRepo.qtbGroupReport(select, "", where, table.getHeaders());
-		TableQtb.tablePage(rows, table);
-		table=boilerServ.translateRows(table);
-		table.setSelectable(false);
-		data.setTable(table);
-		return data;
-	}
-
 	/**
 	 * Create data for activity submit form
 	 * Send-submit is not here
@@ -1244,6 +1121,10 @@ public class ApplicationService {
 			//create lists for choices
 			//who am I?
 			History his = boilerServ.historyById(data.getHistoryId());
+			//for trace and monitoring only re-assign is allowed
+			if(!data.isReassign() && his.getActConfig()==null) {
+				data.setReassign(true);
+			}
 			Concept userConc = closureServ.getParent(his.getActivity());
 			//
 			if(accServ.isMyActivity(his.getActivity(), user) || accServ.isSupervisor(user)) {
@@ -1301,6 +1182,10 @@ public class ApplicationService {
 					data.getNextJob().getRows().clear();
 					data.getExecs().getRows().clear();
 					data=scheduled(his,data);
+					break;
+				case 8:
+					data=nextJobChoice(his,user,data);
+					data=executorsNextChoice(his,user,data,false);
 					break;
 				default:
 					data.getExecs().getRows().clear();
@@ -1396,7 +1281,12 @@ public class ApplicationService {
 	 * @throws ObjectNotFoundException 
 	 */
 	private ActivitySubmitDTO executorsThisChoice(History his, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
-		data.setExecs(executorsTable(his, his.getActConfig(), data.getExecs(),false));
+		Concept actConfig = his.getActConfig();
+		if(actConfig==null) {
+			//the activity is first
+			actConfig=his.getApplConfig();
+		}
+		data.setExecs(executorsTable(his, actConfig, data.getExecs(),false));
 		return data;
 	}
 	/**
@@ -1496,6 +1386,10 @@ public class ApplicationService {
 				if(data.isValid()) {
 					allowed.add("5");
 				}
+				data=validServ.submitDeregistration(curHis,user, data);
+				if(data.isValid()) {
+					allowed.add("8");	//implement an amendment
+				}
 			}
 		}
 
@@ -1582,23 +1476,43 @@ public class ApplicationService {
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	private TableQtb executorsTable(History curHis, Concept actConf, TableQtb execTable, boolean limitToAU) throws ObjectNotFoundException {
+	public TableQtb executorsTable(History curHis, Concept actConf, TableQtb execTable, boolean limitToAU) throws ObjectNotFoundException {
 		if(execTable.getRows().size()==0) {
 			Concept role=assmServ.activityExecutorRole(actConf);
-			Concept applDict=curHis.getApplDict();
-			Concept admUnit=adminUnit(actConf, curHis);
-			if(role!=null && applDict!=null){
-				String where="";
-				if(admUnit!=null && limitToAU) {
-					where="auid='"+admUnit.getID()+"'";
+			if(!accServ.isApplicantRole(role)){
+				Concept applDict=curHis.getApplDict();
+				Concept admUnit=adminUnit(actConf, curHis);
+				if(role!=null && applDict!=null){
+					String where="";
+					if(admUnit!=null && limitToAU) {
+						where="auid='"+admUnit.getID()+"'";
+					}else {
+						where= "";
+					}
+					String select = "select distinct ID, username, email, orgname, local from executors_select";
+					jdbcRepo.executors_select(role.getID(), applDict.getID());
+					//real executors
+					execTable.setHeaders(headersExecutors(execTable.getHeaders()));
+					List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", where, execTable.getHeaders());
+					if(rows.size()==0) {
+						logger.warn("An executor not found - search for office secretaries. Activity config ID is "+actConf.getID());
+						role = systemServ.loadRole(SystemService.ROLE_SECRETARY);
+						jdbcRepo.executors_select(role.getID(), applDict.getID());
+						rows = jdbcRepo.qtbGroupReport(select, "", where, execTable.getHeaders());
+					}
+					if(rows.size()==0) {
+						logger.warn("an executor not found - send to supervisors in the central office. Activity config ID is "+actConf.getID());
+						role = systemServ.loadRole(SystemService.ROLE_ADMIN);
+						jdbcRepo.executors_select(role.getID(), applDict.getID());
+						where="auid is null";
+						rows = jdbcRepo.qtbGroupReport(select, "", where, execTable.getHeaders());
+					}
+					execTable.setSelectable(true);
+					TableQtb.tablePage(rows, execTable);
 				}
-				String select = "select distinct ID, username, email, orgname, local from executors_select";
-				jdbcRepo.executors_select(role.getID(), applDict.getID());
-				execTable.setHeaders(headersExecutors(execTable.getHeaders()));
-				List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", where, execTable.getHeaders());
-				execTable.setSelectable(true);
-				TableQtb.tablePage(rows, execTable);
 			}
+		}else {
+			execTable.getRows().clear();
 		}
 		return execTable;
 	}
@@ -1607,7 +1521,7 @@ public class ApplicationService {
 	 * @param headers
 	 * @return
 	 */
-	private Headers headersExecutors(Headers headers) {
+	public Headers headersExecutors(Headers headers) {
 		headers.getHeaders().clear();
 		headers.getHeaders().add(TableHeader.instanceOf(
 				"username",
@@ -1708,11 +1622,6 @@ public class ApplicationService {
 		if(data.getHistoryId()>0) {
 			data.clearErrors();
 			data.setGuest(accServ.isApplicant(user));
-			History his = boilerServ.historyById(data.getHistoryId());
-			if(his.getActConfig()==null) {
-				data.setIdentifier(messages.get("error_finishmonia"));
-				data.setValid(false);
-			}
 			return data;
 		}else {
 			throw new ObjectNotFoundException("activityHistoryIsMonitoring. History ID is ZERO",logger);
@@ -1736,13 +1645,14 @@ public class ApplicationService {
 				actCode=0;
 			}
 			/*systemDictNode(root, "0", messages.get("continue"));
-				systemDictNode(root, "1", messages.get("route_action"));
-				systemDictNode(root, "2", messages.get("newactivity"));
-				systemDictNode(root, "3", messages.get("cancel"));
-				systemDictNode(root, "4", messages.get("approve"));
-				systemDictNode(root, "5", messages.get("reject"));
-				systemDictNode(root, "6", messages.get("reassign"));
-				systemDictNode(root, "7", messages.get("amendment"))*/
+			systemDictNode(root, "1", messages.get("route_action"));
+			systemDictNode(root, "2", messages.get("newactivity"));
+			systemDictNode(root, "3", messages.get("cancel"));
+			systemDictNode(root, "4", messages.get("approve"));
+			systemDictNode(root, "5", messages.get("reject"));
+			systemDictNode(root, "6", messages.get("reassign"));
+			systemDictNode(root, "7", messages.get("amendment"));
+			systemDictNode(root, "8", messages.get("deregistration"));*/
 			switch(actCode){
 			case 0:			//NMRA executor continue workflow from the activity selected
 				data=validServ.submitNext(curHis, user, data);
@@ -1755,8 +1665,8 @@ public class ApplicationService {
 				return data;
 			case 1:		//NMRA executor route the activity to other executor
 				data=validServ.submitRoute(curHis, user, data);
-				data=validServ.submitRouteData(curHis, user, data);
-				data=submitRoute(curHis, user, data);
+				data=validServ.submitReAssign(curHis, user, data);
+				data=submitReAssign(curHis, user, data);
 				return data;
 			case 2:		//NMRA executor initiate an additional activity for others NMRA executors or for the applicant
 				data=checkApplicantExecutor(data,curHis);
@@ -1771,7 +1681,7 @@ public class ApplicationService {
 				return data;
 			case 4:
 				data=validServ.submitApprove(curHis, user, data);
-				data=validServ.submitApproveData(curHis, user, data);
+				//data=validServ.submitApproveData(curHis, user, data);
 				data=submitApprove(curHis, user, data);
 				return data;
 			case 5:
@@ -1781,14 +1691,21 @@ public class ApplicationService {
 				return data;
 			case 6:
 				data=validServ.actionReassign(curHis, data);
-				data=validServ.submitRouteData(curHis, user, data);
-				data=submitRoute(curHis, user, data);
+				data=validServ.submitReAssign(curHis, user, data);
+				data=submitReAssign(curHis, user, data);
 				return data;
 			case 7:
 				data=validServ.submitAmendment(curHis, user, data);
 				if(data.isValid()) {
 					data=isAmended(curHis,user,data);
 					data=submitApprove(curHis, user, data);
+				}
+				return data;
+			case 8:
+				data=validServ.submitDeregistration(curHis, user, data);
+				data=validServ.submitDeregistrationData(curHis,data);
+				if(data.isValid()) {
+					data=submitDeregistration(curHis, user, data);
 				}
 				return data;
 			default:
@@ -1800,7 +1717,53 @@ public class ApplicationService {
 			throw new ObjectNotFoundException("submitSend. Access denied",logger);
 		}
 	}
-
+	/**
+	 * Make de-registration things
+	 * @param curHis
+	 * @param user
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	@Transactional
+	private ActivitySubmitDTO submitDeregistration(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
+		if(data.isValid()) {
+			closeActivity(curHis,false);
+			cancelUsersActivities(user, curHis);
+			Concept deregData = amendmentServ.amendedConcept(curHis.getApplicationData());
+			cancelDataActivities(deregData,true);								//cancel all activities, include monitoring
+			List<Long> executors = data.executors();
+			long actConfId = data.nextActivity();
+			if(actConfId>0) {
+				Concept actConf = closureServ.loadConceptById(actConfId);
+				if(executors.size()>0) {
+					for(Long execId : executors) {
+						Concept userConc = closureServ.loadConceptById(execId);
+						activityCreate(null,actConf, curHis, userConc.getIdentifier(), data.getNotes().getValue());
+					}
+				}
+			}
+		}
+		return data;
+	}
+	/**
+	 * Cancel all activities related to application data
+	 * @param applicationData - application data
+	 * @param all - remove all activities
+	 * @throws ObjectNotFoundException 
+	 */
+	private void cancelDataActivities(Concept applicationData, boolean all) throws ObjectNotFoundException {
+		List<History> hisList = boilerServ.historyAll(applicationData);
+		for(History his :hisList) {
+			if(all) {
+				closeActivity(his, true);
+			}else {
+				if(his.getActConfig()!=null) {
+					closeActivity(his, true);
+				}
+			}
+		}
+	}
 	/**
 	 * Is this amendment fully implemented?
 	 * @param curHis
@@ -1932,6 +1895,11 @@ public class ApplicationService {
 			data=submitAmend(curHis,data);
 			return data;
 		}
+		if(systemServ.isDeregistration(curHis)) {
+			data.clearErrors();
+			cancellActivities(curHis);
+			return data;
+		}
 		data.setIdentifier(messages.get("invalidstage"));
 		data.setValid(false);
 		return data;
@@ -1970,8 +1938,8 @@ public class ApplicationService {
 	@Transactional
 	public ActivitySubmitDTO submitGuest(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {										
 		if(data.isValid()) {
-			data = runScheduledGuestHost(curHis, data);
 			cancellActivities(curHis);
+			data = runScheduledGuestHost(curHis, data);
 		}
 
 		return data;
@@ -2065,7 +2033,7 @@ public class ApplicationService {
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	private History createHostHistorySample(History prevHis, Concept applConc, Concept applDict, Concept applConfig) throws ObjectNotFoundException {
+	public History createHostHistorySample(History prevHis, Concept applConc, Concept applDict, Concept applConfig) throws ObjectNotFoundException {
 		History his = new History();
 		his.setApplConfig(applConfig);
 		his.setApplDict(applDict);
@@ -2109,15 +2077,22 @@ public class ApplicationService {
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public ActivitySubmitDTO submitRoute(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
+	public ActivitySubmitDTO submitReAssign(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		if(data.isValid()) {
+			//determine activity configuration
+			Concept actConfig = curHis.getActConfig();
+			if(actConfig == null) {
+				actConfig=curHis.getApplConfig();
+			}
 			List<Long> executors = data.executors();
 			//create activities
 			for(Long execId : executors) {
 				Concept userConc = closureServ.loadConceptById(execId);
-				activityCreate(null,curHis.getActConfig(), curHis, userConc.getIdentifier(), data.getNotes().getValue());
+				activityCreate(null,actConfig, curHis, userConc.getIdentifier(), data.getNotes().getValue());
 			}
-			closeActivity(curHis, true);
+			if(curHis.getActConfig() != null) {		//monitoring should be left intact!
+				closeActivity(curHis, true);
+			}
 		}
 		return data;
 	}
@@ -2295,6 +2270,7 @@ public class ApplicationService {
 			data.setStrict(true);									//to ensure the next
 			Concept node = new Concept();
 			if(data.getNodeId()==0) {
+				//save as a branch under the declared parent node
 				if(data.getParentId()>0) {
 					Concept parent = closureServ.loadConceptById(data.getParentId());
 					node = closureServ.save(node);
@@ -2304,11 +2280,11 @@ public class ApplicationService {
 					throw new ObjectNotFoundException("thingSaveUnderParent. Parent node is ZERO",logger);
 				}
 			}else {
+				//the same as a plain save
 				node=closureServ.loadConceptById(data.getNodeId());
 			}
 			data.setNodeId(node.getID());
-
-			//thing
+			//get or create a thing
 			Thing thing = new Thing();
 			thing = boilerServ.thingByNode(node, thing);
 			thing.setConcept(node);
@@ -2333,7 +2309,7 @@ public class ApplicationService {
 		return data;
 	}
 	/**
-	 * load data related to the activity in the past
+	 * load application data related to the activity
 	 * @param data
 	 * @param userDto 
 	 * @return
@@ -2347,9 +2323,14 @@ public class ApplicationService {
 			Concept wConc = his.getApplDict();
 			data.setWorkflow(literalServ.readPrefLabel(wConc));
 			Concept actConc = his.getActConfig();
-			data.setActivity(literalServ.readPrefLabel(actConc));
-			Concept dataConc = his.getApplicationData();
-			data.setPrefLabel(literalServ.readPrefLabel(dataConc));
+			if(actConc != null) {
+				data.setActivity(literalServ.readPrefLabel(actConc));
+				Concept dataConc = his.getApplicationData();
+				data.setPrefLabel(literalServ.readPrefLabel(dataConc));
+			}else {
+				data.setActivity("");
+				data.setPrefLabel("");
+			}
 			//dates
 			LocalDate come = boilerServ.convertToLocalDateViaMilisecond(his.getCome());
 			data.getGlobal_startdate().setValue(come);

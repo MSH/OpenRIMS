@@ -391,16 +391,27 @@ public class DtoService {
 	public Map<String, FormFieldDTO<LocalDate>> readAllDates(Map<String, FormFieldDTO<LocalDate>> dateFlds,
 			Concept node) throws ObjectNotFoundException {
 		for(String key :dateFlds.keySet()) {
-			String val = literalServ.readValue(key,node);
-			LocalDate ld = LocalDate.now();
-			try {
-				ld = LocalDate.parse(val);
-			} catch (Exception e) {
-				ld = LocalDate.now();
-			}
+			LocalDate ld = readDate(node, key);
 			dateFlds.get(key).setValue(ld);
 		}
 		return dateFlds;
+	}
+	/**
+	 * Read a date from the node
+	 * @param node
+	 * @param key
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	public LocalDate readDate(Concept node, String key) throws ObjectNotFoundException {
+		String val = literalServ.readValue(key,node);
+		LocalDate ld = LocalDate.now();
+		try {
+			ld = LocalDate.parse(val);
+		} catch (Exception e) {
+			ld = LocalDate.now();
+		}
+		return ld;
 	}
 	/**
 	 * Read all numbers from literals
@@ -494,6 +505,7 @@ public class DtoService {
 		data.getRow().setValue(new Long(assm.getRow()));
 		data.getUrl().setValue(stringVal(assm.getUrl()));
 		data.getVarName().setValue(stringVal(varNode.getIdentifier()));
+		data.getVarNameExt().setValue(stringVal(varNode.getLabel()));
 		data.setVarNodeId(varNode.getID());
 		data.getAuxUrl().setValue(assm.getAuxDataUrl());
 		return data;

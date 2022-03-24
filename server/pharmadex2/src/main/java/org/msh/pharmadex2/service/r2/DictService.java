@@ -701,9 +701,10 @@ public class DictService {
 		data=validServ.node(data,"", true);
 		if(data.isValid() && data.getNodeId()>0) {
 			Concept conc=closureServ.loadConceptById(data.getNodeId());
-			conc.setActive(false);
-			conc = closureServ.save(conc);
-			data=createNode(conc);
+			/*	conc.setActive(false);
+				conc = closureServ.save(conc);*/
+			Concept recycle= closureServ.loadRoot(SystemService.RECYCLE);
+			jdbcRepo.moveSubTree(conc, recycle);
 		}
 		if(data.getNodeId()==0 && data.isValid()) {
 			data.setValid(false);

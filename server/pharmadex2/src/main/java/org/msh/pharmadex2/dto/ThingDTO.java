@@ -20,8 +20,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  */
 @JsonIgnoreProperties(ignoreUnknown=true)
 public class ThingDTO extends AllowValidation {
-	//Registration journal
-	private TableQtb regTable = new TableQtb();
 	//Application's data
 	private String applicationUrl="";		//URL of the application, required
 	private long applDictNodeId=0;			//Id of an application's dictionary node
@@ -69,8 +67,9 @@ public class ThingDTO extends AllowValidation {
 	private Map<String,RegisterDTO> registers = new LinkedHashMap<String, RegisterDTO>();												//filing system registers
 	private Map<String,AmendmentDTO> amendments = new LinkedHashMap<String, AmendmentDTO>();								//ameded data
 	private Map<String,AtcDTO> atc = new LinkedHashMap<String, AtcDTO>();																		//atc codes
-	private Map<String, LegacyDataDTO> legacy = new LinkedHashMap<String, LegacyDataDTO>();
-	private ActionBarDTO actionBar= new ActionBarDTO();																										//action bar for it
+	private Map<String, LegacyDataDTO> legacy = new LinkedHashMap<String, LegacyDataDTO>();										//list of legacy applications to import
+	private Map<String, IntervalDTO> intervals = new LinkedHashMap<String, IntervalDTO>();
+	private ActionBarDTO actionBar= new ActionBarDTO();																										//action bar for it @depricated
 	
 	//The main static path - things that should be filled
 	private List<ThingDTO> path = new ArrayList<ThingDTO>();								//all things path
@@ -81,12 +80,6 @@ public class ThingDTO extends AllowValidation {
 	private List<ThingDTO> auxPath = new ArrayList<ThingDTO>();						//auxiliary path
 	private int auxPathIndex=0;																			//the current index in it
 	
-	public TableQtb getRegTable() {
-		return regTable;
-	}
-	public void setRegTable(TableQtb regTable) {
-		this.regTable = regTable;
-	}
 	public String getApplicationUrl() {
 		return applicationUrl;
 	}
@@ -342,6 +335,12 @@ public class ThingDTO extends AllowValidation {
 	}
 	public void setLegacy(Map<String, LegacyDataDTO> legacy) {
 		this.legacy = legacy;
+	}
+	public Map<String, IntervalDTO> getIntervals() {
+		return intervals;
+	}
+	public void setIntervals(Map<String, IntervalDTO> intervals) {
+		this.intervals = intervals;
 	}
 	public List<ThingDTO> getPath() {
 		return path;

@@ -22,7 +22,7 @@ class ActivityHistoryData extends Component{
         super(props)
         this.state={
             data:{
-                historyId:this.props.historyId
+                historyId:this.props.historyId,
             },                                    //ActivityHistoryDTO
             identifier:Date.now().toString(),
             labels:{
@@ -33,6 +33,7 @@ class ActivityHistoryData extends Component{
         this.load=this.load.bind(this)
         this.breadCrumb=this.breadCrumb.bind(this)
         this.activityData=this.activityData.bind(this)
+        this.checklist=this.checklist.bind(this)
     }
 
     /**
@@ -75,34 +76,52 @@ class ActivityHistoryData extends Component{
      */
     breadCrumb(){
         let data=this.state.data
-        return(
-            <Breadcrumb className='m-4'>
-                <BreadcrumbItem className="d-inline"  key={1}>
-                        <h6 className="d-inline">{data.workflow}</h6>
-                </BreadcrumbItem>
-                <BreadcrumbItem className="d-inline"  key={2}>
-                        <h6 className="d-inline">{data.activity}</h6>
-                </BreadcrumbItem>
-                <BreadcrumbItem className="d-inline"  key={3}>
-                        <h6 className="d-inline">{data.prefLabel}</h6>
-                </BreadcrumbItem>
-                <BreadcrumbItem className="d-inline"  key={4}>
-                    <div className="btn btn-link p-0 border-0"
-                        onClick={()=>{
-                            Navigator.message(this.state.identifier, this.props.recipient, "activityHistoryClose", {})
-                        }}
-                        >
-                        <h6 className="d-inline">{this.state.labels.next}</h6>
-                    </div>
-                </BreadcrumbItem>
-            </Breadcrumb>
-        )
+        if(this.state.data.activity.length>0){
+            //it is nor trace, neither monitoring
+            return(
+                <Breadcrumb className='m-4'>
+                    <BreadcrumbItem className="d-inline"  key={1}>
+                            <h6 className="d-inline">{data.workflow}</h6>
+                    </BreadcrumbItem>
+                    <BreadcrumbItem className="d-inline"  key={2}>
+                            <h6 className="d-inline">{data.activity}</h6>
+                    </BreadcrumbItem>
+                    <BreadcrumbItem className="d-inline"  key={3}>
+                            <h6 className="d-inline">{data.prefLabel}</h6>
+                    </BreadcrumbItem>
+                    <BreadcrumbItem className="d-inline"  key={4}>
+                        <div className="btn btn-link p-0 border-0"
+                            onClick={()=>{
+                                Navigator.message(this.state.identifier, this.props.recipient, "activityHistoryClose", {})
+                            }}
+                            >
+                            <h6 className="d-inline">{this.state.labels.next}</h6>
+                        </div>
+                    </BreadcrumbItem>
+                </Breadcrumb>
+            )
+        }else{
+            //this is trace or monitoring
+            return(
+                <Breadcrumb className='m-4'>
+                    <BreadcrumbItem className="d-inline"  key={4}>
+                        <div className="btn btn-link p-0 border-0"
+                            onClick={()=>{
+                                Navigator.message(this.state.identifier, this.props.recipient, "activityHistoryClose", {})
+                            }}
+                            >
+                            <h6 className="d-inline">{this.state.labels.next}</h6>
+                        </div>
+                    </BreadcrumbItem>
+                </Breadcrumb>
+                )
+        }
     }
     /**
      * Activity data if one
      */
     activityData(){
-        if(this.state.data.activityDataId>0){
+        if(this.state.data.activityDataId>0 && this.state.data.activity.length>0){
             let data={
                 nodeId:this.state.data.activityDataId,
                 repaint:true
@@ -114,6 +133,19 @@ class ActivityHistoryData extends Component{
                     readOnly
                     narrow
                 />
+            )
+        }else{
+            return []
+        }
+    }
+    /**
+     * 
+     * @returns Checklist if one
+     */
+    checklist(){
+        if(this.state.data.activity.length>0){
+            return(
+                <CheckList historyId={this.props.historyId} recipient={this.state.identifier} readOnly/>
             )
         }else{
             return []
@@ -150,7 +182,7 @@ class ActivityHistoryData extends Component{
                 </Row>
                 <Row>
                     <Col xs='12' sm='12' lg='6' xl='6'>
-                        <CheckList historyId={this.props.historyId} recipient={this.state.identifier} readOnly/>
+                       {this.checklist()}
                     </Col>
                     <Col xs='12' sm='12' lg='6' xl='6'>
                         {this.activityData()}

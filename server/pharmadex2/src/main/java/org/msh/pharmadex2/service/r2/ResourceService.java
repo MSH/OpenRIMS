@@ -190,10 +190,13 @@ public class ResourceService {
 		if(fres.getFileName().toUpperCase().endsWith(".DOCX")) {
 			InputStream stream = new ByteArrayInputStream(file.getFile());
 			DocxView dx = new DocxView(stream,boilerServ);
+			logger.trace("init model");
 			Map<String,Object> model = dx.initModel();
+			logger.trace("resolve model");
 			model = resolverServ.resolveModel(model,fres);
 			stream.reset();
 			DocxView px = new DocxView(stream,boilerServ);
+			logger.trace("resolve document");
 			px.resolveDocument(model, true);
 			ByteArrayOutputStream out = new ByteArrayOutputStream();
 			px.getDoc().write(out);

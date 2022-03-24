@@ -54,7 +54,9 @@ class ApplicationEventData extends Component{
         this.state.ready=false
         this.setState(this.state)
         Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/report/application/events/data", this.state.data, (query,result)=>{
+            let selected = this.state.data.selected
             this.state.data=result
+            this.state.data.selected=selected
             this.state.data.leftThing.repaint=true
             this.state.data.rightThing.repaint=true
             this.setState(this.state)
@@ -66,6 +68,7 @@ class ApplicationEventData extends Component{
             this.state.data=this.props.data
             this.state.data.leftThing.repaint=true
             this.state.data.rightThing.repaint=true
+            this.setState(this.state)
            this.load()
         }
     }
@@ -121,13 +124,13 @@ class ApplicationEventData extends Component{
                 <Card>
                     <CardHeader>
                         <Row>
-                            <Col xs='11' sm='11' lg='2' lg='2'>
+                            <Col xs='11' sm='11' lg='2' xl='2'>
                                 <h5>{this.state.data.eventDate}</h5>
                             </Col>
-                            <Col xs='11' sm='11' lg='9' lg='9'>
+                            <Col xs='11' sm='11' lg='9' xl='9'>
                                 <h5>{this.state.data.title}</h5>
                             </Col>
-                            <Col xs='1' sm='1' lg='1' lg='1'>
+                            <Col xs='1' sm='1' lg='1' xl='1'>
                                 <Button close
                                     onClick={()=>{
                                         Navigator.message(this.state.identifier, this.props.recipient, "closeEventData", {})

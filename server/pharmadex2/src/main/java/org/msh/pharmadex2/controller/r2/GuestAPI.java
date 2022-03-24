@@ -18,6 +18,7 @@ import org.msh.pharmadex2.service.common.UserService;
 import org.msh.pharmadex2.service.r2.AmendmentService;
 import org.msh.pharmadex2.service.r2.ApplicationService;
 import org.msh.pharmadex2.service.r2.ContentService;
+import org.msh.pharmadex2.service.r2.DeregistrationService;
 import org.msh.pharmadex2.service.r2.DictService;
 import org.msh.pharmadex2.service.r2.LegacyDataService;
 import org.msh.pharmadex2.service.r2.SystemService;
@@ -47,6 +48,8 @@ public class GuestAPI {
 	private SystemService systemServ;
 	@Autowired
 	private LegacyDataService legacyServ;
+	@Autowired
+	private DeregistrationService deregServ;
 
 
 	/**
@@ -234,6 +237,17 @@ public class GuestAPI {
 		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
 			try {
 				data=amendServ.proposeAdd(user, data);
+			} catch (ObjectNotFoundException e) {
+				throw new DataNotFoundException(e);
+			}
+		return data;
+	}
+	
+	@PostMapping("/api/*/deregistration/propose/add")
+	public AmendmentNewDTO deregistrationProposeAdd(Authentication auth, @RequestBody AmendmentNewDTO data) throws DataNotFoundException {
+		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
+			try {
+				data=deregServ.proposeAdd(user, data);
 			} catch (ObjectNotFoundException e) {
 				throw new DataNotFoundException(e);
 			}

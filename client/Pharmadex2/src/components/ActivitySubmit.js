@@ -85,10 +85,14 @@ class ActivitySubmit extends Component{
     loader(){
         Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName()+"/activity/submit/create/data", this.state.data, (query, result)=>{
             this.state.data=result
-            this.state.data.reloadExecs=false
-            Locales.createLabels(this)
-            Locales.resolveLabels(this)
-            this.setState(this.state)
+            if(this.state.data.actions.rows.length>0){
+                this.state.data.reloadExecs=false
+                Locales.createLabels(this)
+                Locales.resolveLabels(this)
+                this.setState(this.state)
+            }else{
+                Navigator.message(this.state.identifier, this.props.recipient, "submitClose", {})
+            }
         })
     }
 

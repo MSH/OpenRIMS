@@ -6,6 +6,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Type;
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -84,6 +86,15 @@ public class ElStupido {
 		Date date = new Date();                             //default java Date object
 		DateBS dateBS = DateConverter.convertADToBS(date);  //returns corresponding DateBS
 		System.out.println(dateBS.toString());
+	}
+	
+	@Test
+	public void monthBetween() {
+		long monthsBetween = ChronoUnit.MONTHS.between(
+			     YearMonth.from(LocalDate.parse("2016-12-01")), 
+			     YearMonth.from(LocalDate.parse("2016-11-03"))
+			);
+		System.out.println(monthsBetween);
 	}
 	
 }

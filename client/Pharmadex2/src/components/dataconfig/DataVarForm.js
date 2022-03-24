@@ -21,7 +21,7 @@ class DataVarForm extends Component{
         super(props)
         this.state={
             identifier:Date.now().toString(),
-            data:{
+            data:{                              //DataVariableDTO
                 nodeId:this.props.nodeId,
                 varNodeId:this.props.varNodeId,
             },
@@ -144,6 +144,11 @@ class DataVarForm extends Component{
                 <Row>
                     <Col>
                         <FieldGuarded mode="text" attribute="varName" component={this} />
+                    </Col>
+                </Row>
+                <Row>
+                    <Col>
+                        <FieldGuarded mode="text" attribute="varNameExt" component={this} />
                     </Col>
                 </Row>
                 <Row>

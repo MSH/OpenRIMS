@@ -5,6 +5,8 @@ import Locales from './utils/Locales'
 import ViewEditDate from './form/ViewEditDate'
 import ViewEdit from './form/ViewEdit'
 import Navigator from './utils/Navigator'
+import ButtonUni from './form/ButtonUni'
+import Fetchers from './utils/Fetchers'
 /**
  * Responsible for the REgister component 
  * 
@@ -13,12 +15,14 @@ class Register extends Component{
     constructor(props){
         super(props)
         this.state={
+            readOnly:this.props.readOnly,
             data:{},            //RegisterDTO
             identifier:Date.now().toString(),
             labels:{
                 registration_date:'',
                 reg_number:'',
                 expiry_date:'',
+                get_number:''
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -70,9 +74,10 @@ class Register extends Component{
     }
 
     componentDidUpdate(){
-        if(this.props.data.registration_date.justloaded){
+        if(this.props.data.registration_date.justloaded || this.props.readOnly!=this.state.readOnly){
             this.state.data=this.props.data
             delete this.props.data.registration_date.justloaded
+            this.state.readOnly=this.props.readOnly
             this.setState(this.state)
         }else{
             this.props.data.registration_date=this.state.data.registration_date
@@ -102,6 +107,20 @@ class Register extends Component{
                         <Col xs='12' sm='12' lg='6'xl='6'>
                             <ViewEdit mode='text' attribute='reg_number' component={this} edit={edit}/>
                         </Col>
+                        {/* ik proba button*/}
+                        <Col xs='12' sm='12' lg='3' xl='3'> 
+                        <ButtonUni
+                                label={this.state.labels.get_number}
+                                color='success'
+                                onClick={()=>{
+                                        Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName() +"/register/number/new", this.state.data, (query,result)=>{
+                                            this.state.data=result
+                                            this.setState(this.state)
+                                            Navigator.message(this.state.identifier, this.props.recipient,"onSelectionChange", this.state.data)
+                                        })
+                                }}
+                            />
+                    </Col> 
                     </Row>
                     <Row hidden={!this.state.data.expirable}>
                         <Col>

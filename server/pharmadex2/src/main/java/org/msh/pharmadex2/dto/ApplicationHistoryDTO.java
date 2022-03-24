@@ -14,12 +14,15 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class ApplicationHistoryDTO extends AllowValidation {
 	//current history ID, mandatory
 	private long historyId=0;
+	//application data node ID
+	private long nodeId=0l;
 	//application dictionary node id, mandatory
 	private long applDictNodeId=0;
 	//application name from the dictionary
 	private String applName="";
 	//table for a history
 	private TableQtb table = new TableQtb();
+	private TableQtb table1 = new TableQtb();
 	//current activity ID
 	private String url="";
 	//application title
@@ -32,6 +35,13 @@ public class ApplicationHistoryDTO extends AllowValidation {
 	}
 	public void setApplDictNodeId(long applDictNodeId) {
 		this.applDictNodeId = applDictNodeId;
+	}
+	
+	public long getNodeId() {
+		return nodeId;
+	}
+	public void setNodeId(long nodeId) {
+		this.nodeId = nodeId;
 	}
 	public String getApplName() {
 		return applName;
@@ -46,6 +56,12 @@ public class ApplicationHistoryDTO extends AllowValidation {
 		this.table = table;
 	}
 
+	public TableQtb getTable1() {
+		return table1;
+	}
+	public void setTable1(TableQtb table1) {
+		this.table1 = table1;
+	}
 	public long getHistoryId() {
 		return historyId;
 	}

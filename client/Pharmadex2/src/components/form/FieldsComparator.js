@@ -18,7 +18,7 @@
  * ...
  * componentDidUpdate(){
  *  const fld = this.comparator.checkChanges()
- *  if(fld.lenght>0 && fld == "nameOfTextField"){
+ *  if(fld.lenght>0 && fld.includes("nameOfTextField")){
  *      this.save(); 
  *  }
  * }

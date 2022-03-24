@@ -139,7 +139,7 @@ class DataConfigurator extends Component{
                                 loader={this.loaderVar}
                                 headBackground={Pharmadex.settings.tableHeaderBackground}
                                 styleCorrector={(header)=>{
-                                    if(["col","row", "ord"].includes(header)){
+                                    if(["col","row", "ord", "ext"].includes(header)){
                                         return {width:'8%'}
                                     }
                                     if(header=="clazz"){

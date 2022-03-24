@@ -20,6 +20,7 @@ import org.msh.pharmadex2.dto.DataUnitDTO;
 import org.msh.pharmadex2.dto.FileDTO;
 import org.msh.pharmadex2.dto.PersonDTO;
 import org.msh.pharmadex2.dto.PersonSpecialDTO;
+import org.msh.pharmadex2.dto.RegisterDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.ThingValuesDTO;
@@ -27,12 +28,15 @@ import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.exception.DataNotFoundException;
 import org.msh.pharmadex2.service.common.UserService;
 import org.msh.pharmadex2.service.common.ValidationService;
-import org.msh.pharmadex2.service.r2.AmendmentService;
 import org.msh.pharmadex2.service.r2.ApplicationService;
+import org.msh.pharmadex2.service.r2.IrkaServices;
+import org.msh.pharmadex2.service.r2.MonitoringService;
 import org.msh.pharmadex2.service.r2.PdfService;
 import org.msh.pharmadex2.service.r2.ResourceService;
 import org.msh.pharmadex2.service.r2.SupervisorService;
 import org.msh.pharmadex2.service.r2.ThingService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -60,12 +64,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 @RestController
 public class ActivityAPI {
+	private static final Logger logger = LoggerFactory.getLogger(ActivityAPI.class);
 	@Autowired
 	private UserService userServ;
 	@Autowired
 	private ApplicationService applServ;
 	@Autowired
-	private AmendmentService amendServ;
+	private MonitoringService monitoringServ;
 	@Autowired
 	private ThingService thingServ;
 	@Autowired
@@ -80,7 +85,8 @@ public class ActivityAPI {
 	PdfService pdfServ;
 	@Autowired
 	Messages messages;
-
+	@Autowired
+	private IrkaServices irkaServ;
 
 	@PostMapping({ "/api/*/my/activities"})
 	public ApplicationsDTO myActivities(Authentication auth, @RequestBody ApplicationsDTO data)
@@ -94,17 +100,25 @@ public class ActivityAPI {
 	public ApplicationsDTO myMonitoring(Authentication auth, @RequestBody ApplicationsDTO data)
 			throws DataNotFoundException {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
-		data = applServ.myMonitoring(data, user);
+		try {
+			data = monitoringServ.myMonitoring(data, user);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
 		return data;
 	}
 	
 	@PostMapping("/api/*/my/monitoring/actual/excel")
 	public ModelAndView myMonitoringActualExcel(Authentication auth, 
 			@RequestBody ApplicationsDTO data,
-			HttpServletResponse response) {
+			HttpServletResponse response) throws DataNotFoundException {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		data.getTable().getHeaders().setPageSize(Integer.MAX_VALUE);
-		data = applServ.myMonitoring(data, user);
+		try {
+			data = monitoringServ.myMonitoring(data, user);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
 		Map<String, Object> model = new HashMap<String, Object>();
 		//Sheet Name
 		model.put(ExcelView.SHEETNAME, messages.get("actual"));
@@ -122,10 +136,14 @@ public class ActivityAPI {
 	@PostMapping("/api/*/my/monitoring/scheduled/excel")
 	public ModelAndView myMonitoringScheduledExcel(Authentication auth, 
 			@RequestBody ApplicationsDTO data,
-			HttpServletResponse response) {
+			HttpServletResponse response) throws DataNotFoundException {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		data.getScheduled().getHeaders().setPageSize(Integer.MAX_VALUE);
-		data = applServ.myMonitoring(data, user);
+		try {
+			data = monitoringServ.myMonitoring(data, user);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
 		Map<String, Object> model = new HashMap<String, Object>();
 		//Sheet Name
 		model.put(ExcelView.SHEETNAME, messages.get("scheduled"));
@@ -474,7 +492,9 @@ public class ActivityAPI {
 			throws DataNotFoundException {
 		try {
 			ResourceDTO fres = resourceServ.prepareResourceDownload(data);
+			logger.trace("start "+fres.getFileName());
 			Resource res = resourceServ.fileResolve(fres);
+			logger.trace("finish "+fres.getFileName());
 			return ResponseEntity.ok().contentType(MediaType.parseMediaType(fres.getMediaType()))
 					.header(HttpHeaders.CONTENT_DISPOSITION, fres.getContentDisp() + "; filename=\"" + fres.getFileName() + "\"")
 					.header("filename", fres.getFileName()).body(res);
@@ -587,7 +607,7 @@ public class ActivityAPI {
 	}
 
 	/**
-	 * Is this activity monitoring, therefore can't be changed of reassigned
+	 * The monitoring
 	 * 
 	 * @param auth
 	 * @param data
@@ -694,6 +714,28 @@ public class ActivityAPI {
 		} catch (ObjectNotFoundException | JsonProcessingException e) {
 			throw new DataNotFoundException(e);
 		}
+		return data;
+	}
+	/**
+	 * Refresh a thing, e.g. after onSelectionChange
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping({ "/api/*/thing/refresh" })
+	public ThingDTO thingRefresh(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
+		//TODO code
+		return data;
+	}
+	/**
+	 * 
+	 */
+	@PostMapping({ "/api/*/register/number/new" })
+	public RegisterDTO registerNumberNew(Authentication auth, @RequestBody RegisterDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		//data.getReg_number().setValue("1234");
+		data=irkaServ.registerNumberNew(user,data);
 		return data;
 	}
 }

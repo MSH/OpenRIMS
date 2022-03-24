@@ -11,6 +11,8 @@ import CollectorTable from '../utils/CollectorTable'
 import Thing from '../Thing'
 import Downloader from '../utils/Downloader'
 import ApplicationEvents from '../applevents/ApplicationEvents'
+import ApplicationHistory from './ApplicationHistory'
+import ApplicationRegisters from './ApplicationRegisters'
 
 /**
  * Responsible for a table for report
@@ -60,6 +62,7 @@ class TableReport extends Component{
         window.removeEventListener("message",this.eventProcessor)
     }
 
+
     /**
      * Paint full thing
      */
@@ -68,33 +71,13 @@ class TableReport extends Component{
         let path=this.state.data.thing.path
         if(Fetchers.isGoodArray(path)){
             ret.push(
+                <ApplicationHistory key='ah1' nodeid={this.state.data.thing.nodeId} recipient={this.state.identifier}/>
+            )
+            ret.push(
                 <ApplicationEvents key='ae1' appldataid={this.state.data.thing.nodeId} recipient={this.state.identifier} />
             )
             ret.push(
-                <Row key="showprintform" className='mb-1'>
-                    <Col xs='12' sm='12' lg='10' xl='10'>
-                    </Col>
-                    <Col xs='12' sm='12' lg='2' xl='2'>
-                        <ButtonUni
-                            label= {this.state.labels.global_showPrint}
-                            color='info'
-                            onClick={()=>{
-                                let data={
-                                    nodeId:this.state.data.thing.nodeId
-                                }
-                                let param = JSON.stringify(data)
-                                var url = "/" + Navigator.tabSetName() + "#reports/printpreview/" + encodeURI(param)
-                                let w = window.open(url, "_blank")
-                            }}/>
-                        </Col>
-                </Row>
-            )
-            ret.push(
-                <CollectorTable key="tableReg"
-                tableData={this.state.data.thing.regTable}
-                loader={()=>{}}
-                headBackground={Pharmadex.settings.tableHeaderBackground}
-                />
+                <ApplicationRegisters key='ar1' nodeid={this.state.data.thing.nodeId} recipient={this.state.identifier}/>
             )
             path.forEach((element, index)=>{
                 ret.push(

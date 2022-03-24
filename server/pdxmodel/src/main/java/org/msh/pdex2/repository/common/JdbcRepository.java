@@ -345,7 +345,6 @@ public class JdbcRepository {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
-		
 	}
 
 	/**
@@ -642,13 +641,14 @@ public class JdbcRepository {
 	}
 	
 	/**
-	 * List of all hosted applications
-	 * @param url
-	 * @param email
+	 * List of all inactive hosted applications
+	 * @param url application data url
+	 * @param email applicant's email
+	 * @param stable it means that no applications is running
 	 */
-	public void applications_hosted(String url, String email) {
+	public void applications_hosted_inactive(String url, String email, boolean stable) {
 		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
-		proc.withProcedureName("applications_hosted");
+		proc.withProcedureName("applications_hosted_inactive");
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("dataurl", url);
 		params.addValue("email", email);
@@ -770,6 +770,42 @@ public class JdbcRepository {
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 		
+	}
+	/**
+	 * Load all known open activities to the temporary table in_activities for the future querying 
+	 */
+	public void in_activities() {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("in_activities");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+	}
+	/**
+	 * Get assembly variables be configuration URL
+	 * @param url
+	 */
+	public void assembly_variables(String url) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("assembly_variables");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("url", url);
+		proc.execute(params);
+	}
+
+	/**
+	 * Get de-registered sites
+	 * @param addressUrl
+	 * @param registerAppUrl
+	 */
+	public void report_deregister(String addressUrl, String registerUrl) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("report_deregister");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("registerurl", registerUrl);
+		params.addValue("addrurl", addressUrl);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
 	}
 
 

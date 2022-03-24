@@ -14,6 +14,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties(ignoreUnknown=true)
 public class ActivityHistoryDataDTO {
 	private long historyId=0l;
+	private long nodeId=0l;
 	private String workflow="";
 	private String activity="";
 	private String prefLabel="";
@@ -29,6 +30,13 @@ public class ActivityHistoryDataDTO {
 	}
 	public void setHistoryId(long historyId) {
 		this.historyId = historyId;
+	}
+	
+	public long getNodeId() {
+		return nodeId;
+	}
+	public void setNodeId(long nodeId) {
+		this.nodeId = nodeId;
 	}
 	public String getWorkflow() {
 		return workflow;

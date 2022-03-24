@@ -96,11 +96,11 @@ class ToDoList extends Component{
                             loader={this.loadData}
                             headBackground={Pharmadex.settings.tableHeaderBackground}
                             styleCorrector={(header)=>{
-                                if(header=='days'){
+                                if(header=='scheduled'){
                                     return {width:'10%'}
                                 }
                             }}
-                            linkProcessor={(row,col)=>{
+                            selectRow={(row)=>{
                                 let data={
                                     url:this.state.data.url,
                                     applDictNodeId:this.state.data.dictItemId,
@@ -146,11 +146,11 @@ class ToDoList extends Component{
                             loader={this.loadData}
                             headBackground={Pharmadex.settings.tableHeaderBackground}
                             styleCorrector={(header)=>{
-                                if(header=='days'){
+                                if(header=='scheduled'){
                                     return {width:'10%'}
                                 }
                             }}
-                            linkProcessor={(row,col)=>{
+                            selectRow={(row)=>{
                                 let data={
                                     url:this.state.data.url,
                                     applDictNodeId:this.state.data.dictItemId,

@@ -379,9 +379,11 @@ public class SupervisorService {
 			if (table.getHeaders().getHeaders().size() == 0) {
 				table.setHeaders(headersVariables(table.getHeaders()));
 			}
-			String where = "Active=true and nodeID='" + data.getNodeId() + "' and lang='"
+			String where = "av.Active=true and av.nodeID='" + data.getNodeId() + "' and av.lang='"
 					+ LocaleContextHolder.getLocale().toString().toUpperCase() + "'";
-			List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from assm_var", "", where, table.getHeaders());
+			String select="select distinct av.*, c.Label as 'ext' from assm_var av "
+					+ "join assembly a on a.ID=av.assemblyID join concept c on c.ID=a.conceptID";
+			List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", where, table.getHeaders());
 			TableQtb.tablePage(rows, table);
 			table.setSelectable(false);
 		}
@@ -395,6 +397,8 @@ public class SupervisorService {
 		headers.getHeaders().add(TableHeader.instanceOf("ord", "order", true, true, true, TableHeader.COLUMN_LONG, 0));
 		headers.getHeaders()
 				.add(TableHeader.instanceOf("propertyName", "variables", true, true, true, TableHeader.COLUMN_LINK, 0));
+		headers.getHeaders()
+		.add(TableHeader.instanceOf("ext", "ext", true, true, true, TableHeader.COLUMN_STRING, 0));
 		headers.getHeaders()
 				.add(TableHeader.instanceOf("clazz", "clazz", true, true, true, TableHeader.COLUMN_STRING, 0));
 
@@ -519,7 +523,10 @@ public class SupervisorService {
 				if (data.getVarNodeId() > 0) {
 					node = closureServ.loadConceptById(data.getVarNodeId());
 				}
-				node.setIdentifier(data.getVarName().getValue());
+				
+				node.setIdentifier(data.getVarName().getValue()+data.getVarNameExt().getValue());
+				node.setLabel(data.getVarNameExt().getValue());
+				
 				Concept root = closureServ.loadConceptById(data.getNodeId());
 				node = closureServ.saveToTree(root, node);
 				node = literalServ.prefAndDescription(data.getDescription().getValue(),

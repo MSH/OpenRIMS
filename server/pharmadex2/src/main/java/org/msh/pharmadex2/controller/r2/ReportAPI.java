@@ -11,6 +11,7 @@ import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pharmadex2.controller.common.ExcelView;
 import org.msh.pharmadex2.dto.ApplicationEventsDTO;
+import org.msh.pharmadex2.dto.ApplicationHistoryDTO;
 import org.msh.pharmadex2.dto.ReportDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
@@ -72,7 +73,6 @@ public class ReportAPI {
 		userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data.setThing(thingServ.path(data.getThing()));
-			data.setThing(reportServ.regTable(data.getThing()));
 			return data;
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
@@ -90,7 +90,6 @@ public class ReportAPI {
 	public ThingDTO printPreview(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
-			data = reportServ.regTable(data);
 			data = pdfServ.printprev(user, data);
 			return data;
 		} catch (ObjectNotFoundException e) {
@@ -192,4 +191,31 @@ public class ReportAPI {
 		return data;
 	}
 	
+	/**
+	 * Load the history and the list of modification for an application defined by nodeId
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/*/report/application/history")
+	public ApplicationHistoryDTO applicationHistory(Authentication auth, @RequestBody ApplicationHistoryDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		data=reportServ.applicationHistory(data,user);
+		return data;
+	}
+	
+	/**
+	 * Load all registers related to the application
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/*/report/application/registers")
+	public ApplicationHistoryDTO applicationRegisters(Authentication auth, @RequestBody ApplicationHistoryDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		data=reportServ.applicationRegisters(data,user);
+		return data;
+	}
 }

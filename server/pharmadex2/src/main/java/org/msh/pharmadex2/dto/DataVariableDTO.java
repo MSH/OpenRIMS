@@ -16,8 +16,11 @@ public class DataVariableDTO extends AllowValidation {
 	private long nodeId=0;
 	//the key
 	private long varNodeId=0;
-	//general data
+	//variable name
 	private FormFieldDTO<String> varName = FormFieldDTO.of("");
+	//variable name extension
+	private FormFieldDTO<String> varNameExt = FormFieldDTO.of("");
+	//Help text
 	private FormFieldDTO<String> description=FormFieldDTO.of("");
 	//Auxiliary data
 	private FormFieldDTO<String> url = FormFieldDTO.of("");
@@ -55,6 +58,12 @@ public class DataVariableDTO extends AllowValidation {
 	}
 	public void setVarName(FormFieldDTO<String> varName) {
 		this.varName = varName;
+	}
+	public FormFieldDTO<String> getVarNameExt() {
+		return varNameExt;
+	}
+	public void setVarNameExt(FormFieldDTO<String> varNameExt) {
+		this.varNameExt = varNameExt;
 	}
 	public FormFieldDTO<String> getDescription() {
 		return description;

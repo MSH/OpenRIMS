@@ -27,6 +27,7 @@ import org.msh.pdex2.model.r2.ThingOld;
 import org.msh.pdex2.model.r2.ThingPerson;
 import org.msh.pdex2.model.r2.ThingThing;
 import org.msh.pdex2.repository.common.JdbcRepository;
+import org.msh.pdex2.repository.r2.ThingAmendmentRepo;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.ActivityDTO;
 import org.msh.pharmadex2.dto.ActivitySubmitDTO;
@@ -69,6 +70,8 @@ public class AmendmentService {
 	private LiteralService literalServ;
 	@Autowired
 	private Messages mess;
+	@Autowired
+	private ThingAmendmentRepo thingAmendmentRepo;
 
 	/**
 	 * Save an amendment data
@@ -912,8 +915,8 @@ public class AmendmentService {
 		if (table.getHeaders().getHeaders().size() == 0) {
 			table.setHeaders(headersApplications(table.getHeaders()));
 		}
-		jdbcRepo.applications_hosted(null, user.getEmail());
-		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from applications_hosted", "", "", table.getHeaders());
+		jdbcRepo.applications_hosted_inactive(null, user.getEmail(), true);
+		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from applications_hosted_inactive", "", "", table.getHeaders());
 		TableQtb.tablePage(rows, table);
 		table.setSelectable(true);
 		for (TableRow row : table.getRows()) {
@@ -1539,7 +1542,7 @@ public class AmendmentService {
 	 */
 	@Transactional
 	public ThingDTO personToRemove(ThingDTO data) throws ObjectNotFoundException {
-		if(data.getNodeId()>0) {
+		if(data.getNodeId()>0 && data.getModiUnitId()>0) {
 			Concept node = closureServ.loadConceptById(data.getNodeId());
 			Thing thing = boilerServ.thingByNode(node);
 			List<ThingPerson> removedPersons = linkedPersons(thing,false);
@@ -1559,4 +1562,19 @@ public class AmendmentService {
 		return data;
 	}
 
+	/**
+	 * Rewrite ameded data if empty
+	 * Should be called at once
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public void rewriteAmendedData() throws ObjectNotFoundException {
+		Iterable<ThingAmendment> taList = thingAmendmentRepo.findAll();
+		for(ThingAmendment ta : taList) {
+			if(ta.getApplicationData()==null) {
+				ta.setApplicationData(amendedApplication(ta.getConcept()));
+				thingAmendmentRepo.save(ta);
+			}
+		}
+	}	
 }

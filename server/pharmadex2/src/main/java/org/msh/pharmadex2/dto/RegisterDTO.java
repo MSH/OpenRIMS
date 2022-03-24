@@ -10,6 +10,7 @@ import org.msh.pharmadex2.dto.form.AllowValidation;
  */
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
 public class RegisterDTO extends AllowValidation {
+	public static final String EMPTY = "00000000";
 	private String numberPrefix="";
 	private FormFieldDTO<LocalDate> registration_date = FormFieldDTO.of(LocalDate.now());
 	private FormFieldDTO<LocalDate> expiry_date = FormFieldDTO.of(LocalDate.now());
@@ -90,7 +91,25 @@ public class RegisterDTO extends AllowValidation {
 	 * @return
 	 */
 	public boolean empty() {
-		return getReg_number().getValue().length()==0;
+		String reg = getReg_number().getValue();
+		if(this.getNumberPrefix().length()>0) {
+			reg = reg.replace(this.getNumberPrefix(), "");
+		}
+		return reg.length()==0;
+	}
+	/**
+	 * Ensure not null values in datas
+	 * @param dto 
+	 * @return
+	 */
+	public RegisterDTO ensureDates(RegisterDTO dto) {
+		if(dto.getRegistration_date()==null) {
+			dto.setRegistration_date(FormFieldDTO.of(LocalDate.now()));
+		}
+		if(dto.getExpiry_date()==null) {
+			dto.setExpiry_date(FormFieldDTO.of(LocalDate.now()));
+		}
+		return dto;
 	}
 	
 }

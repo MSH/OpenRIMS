@@ -321,6 +321,21 @@ public class PubOrgService {
 			throw new ObjectNotFoundException("LoadByID. Public organization not found. Id is "+id,logger);
 		}
 	}
+	/**
+	 * Find an organization by the concept
+	 * @param concept
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public PublicOrganization findByConcept(Concept concept) throws ObjectNotFoundException {
+		Optional<PublicOrganization> porgo = pubOrgRepo.findByConcept(concept);
+		if(porgo.isPresent()) {
+			return porgo.get();
+		}else {
+			throw new ObjectNotFoundException("findByConcept. Public organization by concept  not found. The Concept Id is "+concept.getID(),logger);
+		}
+	}
 
 	/**
 	 * Save an organization
@@ -404,5 +419,7 @@ public class PubOrgService {
 	public int territoryLevel() {
 		return territoryLevel;
 	}
+
+
 
 }

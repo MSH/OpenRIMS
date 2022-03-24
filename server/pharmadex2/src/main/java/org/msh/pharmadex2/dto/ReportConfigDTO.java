@@ -25,6 +25,7 @@ public class ReportConfigDTO extends AllowValidation{
 	private String registerAppUrl="";
 	private boolean applicantRestriction=false;		//applicant should see only own
 	private boolean registered=true;
+	private boolean deregistered=false;				//this application is de-registered
 	//configurations related
 	private TableQtb table=new TableQtb();
 	private ThingDTO report=new ThingDTO();
@@ -80,6 +81,13 @@ public class ReportConfigDTO extends AllowValidation{
 	}
 	public void setRegistered(boolean registered) {
 		this.registered = registered;
+	}
+	
+	public boolean isDeregistered() {
+		return deregistered;
+	}
+	public void setDeregistered(boolean deregistered) {
+		this.deregistered = deregistered;
 	}
 	public String getDictStageUrl() {
 		return dictStageUrl;

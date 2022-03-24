@@ -59,7 +59,7 @@ class UserElement extends Component{
         let data=event.data
         if(data.to==this.identifier){
             if(data.subject="onSelectionChange"){
-                this.state.data[data.from]=data.data
+                this.state.data[data.data.varName]=data.data
             }
         }
     }

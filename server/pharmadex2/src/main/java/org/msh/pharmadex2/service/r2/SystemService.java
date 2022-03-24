@@ -34,6 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class SystemService {
 	//Finalization activity related
+	private static final String FINAL_DEREGISTRATION = "deregistration";
 	public static final String FINAL_AMEND = "AMEND";
 	public static final String FINAL_DECLINE = "DECLINE";
 	public static final String FINAL_ACCEPT = "ACCEPT";
@@ -65,12 +66,14 @@ public class SystemService {
 
 	public static final String FILE_STORAGE_BUSINESS = "file.storage.business";
 	public static final String DATA_COLLECTIONS_ROOT = "configuration.data";
+	public static final String RECYCLE = "system.recycle.bin";
 
 	//*************************** ROLES ******************************************************************
 	public static String ROLE_ADMIN="ROLE_ADMIN";
 	public static String ROLE_SECRETARY="ROLE_SECRETARY";		
+	public static String ROLE_APPLICANT="APPLICANT";
 	public static String[] ROLES = {ROLE_ADMIN, "ROLE_MODERATOR", "ROLE_REVIEWER", "ROLE_INSPECTOR", 
-			"ROLE_ACCOUNTANT", "ROLE_SCREENER", ROLE_SECRETARY,"APPLICANT"};
+			"ROLE_ACCOUNTANT", "ROLE_SCREENER", ROLE_SECRETARY,ROLE_APPLICANT};
 
 	@Autowired
 	private DictService dictServ;
@@ -153,6 +156,7 @@ public class SystemService {
 		addRoleToDictionary(root, FINAL_ACCEPT);
 		addRoleToDictionary(root, FINAL_DECLINE);
 		addRoleToDictionary(root, FINAL_AMEND);
+		addRoleToDictionary(root, FINAL_DEREGISTRATION);
 	}
 
 
@@ -292,7 +296,7 @@ public class SystemService {
 			literalServ.createUpdateLiteral("type", "system", root);
 		}
 		List<Concept> level = literalServ.loadOnlyChilds(root);
-		if(level.size()!=8) {
+		if(level.size()!=9) {
 			//create level
 			systemDictNode(root, "0", messages.get("continue"));
 			systemDictNode(root, "1", messages.get("route_action"));
@@ -302,6 +306,7 @@ public class SystemService {
 			systemDictNode(root, "5", messages.get("reject"));
 			systemDictNode(root, "6", messages.get("reassign"));
 			systemDictNode(root, "7", messages.get("amendment"));
+			systemDictNode(root, "8", messages.get("deregistration"));
 		}
 		ret=dictServ.createDictionary(ret);
 		ret.setMult(false);
@@ -389,6 +394,7 @@ public class SystemService {
 		//create level
 		systemDictNode(root, DICTIONARY_GUEST_APPLICATIONS, messages.get("guest"));
 		systemDictNode(root, DICTIONARY_GUEST_AMENDMENTS, messages.get("amdmt_type"));
+		systemDictNode(root, DICTIONARY_GUEST_DEREGISTRATION, messages.get(FINAL_DEREGISTRATION));
 		systemDictNode(root, DICTIONARY_HOST_APPLICATIONS, messages.get("host"));
 		systemDictNode(root, DICTIONARY_SHUTDOWN_APPLICATIONS, messages.get("shutdown"));
 		ret=dictServ.createDictionary(ret);
@@ -444,6 +450,15 @@ public class SystemService {
 	public boolean isAmend(History curHis) {
 		Concept thisDictRoot = closureServ.getParent(curHis.getApplDict());
 		return thisDictRoot.getIdentifier().equalsIgnoreCase(DICTIONARY_GUEST_AMENDMENTS);
+	}
+	/**
+	 * Is it de-registration application?
+	 * @param curHis
+	 * @return
+	 */
+	public boolean isDeregistration(History curHis) {
+		Concept thisDictRoot = closureServ.getParent(curHis.getApplDict());
+		return thisDictRoot.getIdentifier().equalsIgnoreCase(DICTIONARY_GUEST_DEREGISTRATION);
 	}
 	/**
 	 * Recognize host dictionary node by host process URL

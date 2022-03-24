@@ -9,6 +9,7 @@ import CollectorTable from './utils/CollectorTable'
 import ButtonUni from './form/ButtonUni'
 import SearchControl from './utils/SearchControl'
 import Thing from './Thing'
+import Spinner from './utils/Spinner'
 
 /**
  * List of persons that should be included to an application. Necessary for pharamcy site, etc
@@ -112,9 +113,10 @@ class Persons extends Component{
      * load/reload the table
      */
     loader(){
-        Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName()+"/person/table/load",this.state.data,(query,result)=>{
+        Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/person/table/load",this.state.data,(query,result)=>{
             this.state.data.table=result.table
             this.setState(this.state)
+            Navigator.message(this.state.identifier, this.props.recipient, "onSelectionChange", this.state.data)
         })
     }
     /**
@@ -179,12 +181,12 @@ class Persons extends Component{
                 <Container fluid>
                     <Row hidden={this.state.data.rtable.rows.length==0}>
                         <Col>
-                            <Row>
+                            <Row hidden={readOnly}>
                                 <Col className='d-flex justify-content-end'>
                                     <h6>{this.state.labels.marktoremove}</h6>
                                 </Col>
                             </Row>
-                            <Row>
+                            <Row hidden={readOnly}>
                                 <Col>
                                     <CollectorTable
                                         tableData={this.state.data.rtable}
@@ -232,6 +234,7 @@ class Persons extends Component{
                             <ButtonUni
                                 onClick={()=>{
                                     this.state.data.nodeId=0
+                                    Spinner.show()
                                     Navigator.message(this.state.identifier, this.props.recipient, "auxPath", this.state.data)
                                 }}
                                 label={this.state.labels.global_add}
@@ -259,7 +262,6 @@ class Persons extends Component{
                                         row.selected=false
                                     }
                                 })
-                                Navigator.message(this.state.identifier,this.props.recipient,"onSelectionChange",this.state.data)
                                 this.setState(this.state)
                             }}
                             linkProcessor={(rowNo, cell)=>{
@@ -273,12 +275,13 @@ class Persons extends Component{
                                         applicationUrl:this.props.applicationUrl,
 
                                     }
-                                    Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName()+"/activity/path", data, (query,result)=>{
+                                    Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/activity/path", data, (query,result)=>{
                                         this.state.thing=result
                                         this.state.showLink=true
                                         this.setState(this.state)
                                     })
                                 }else{
+                                    Spinner.show()
                                     Navigator.message(this.state.identifier, this.props.recipient, "auxPath", this.state.data)
                                 }
                             }}

@@ -13,7 +13,9 @@ import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.model.old.User;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
+import org.msh.pdex2.model.r2.PublicOrganization;
 import org.msh.pdex2.model.r2.Thing;
+import org.msh.pdex2.model.r2.ThingDict;
 import org.msh.pdex2.model.r2.ThingThing;
 import org.msh.pdex2.model.r2.UserDict;
 import org.msh.pdex2.services.r2.ClosureService;
@@ -44,6 +46,8 @@ public class AccessControlService {
 	private UserService userServ;
 	@Autowired
 	private BoilerService boilerServ;
+	@Autowired
+	private PubOrgService publicOrgServ;
 
 
 	/**
@@ -90,6 +94,22 @@ public class AccessControlService {
 			return false;
 		}
 		if(user.getGranted().get(0).getAuthority().toUpperCase().contains("ADMIN")) {
+			return true;
+		}else {
+			return false;
+		}
+	}
+
+	/**
+	 * Is this user currently acted as a moderator
+	 * @param user
+	 * @return
+	 */
+	public boolean isModerator(UserDetailsDTO user) {
+		if(user.getGranted().size()==0) {
+			return false;
+		}
+		if(user.getGranted().get(0).getAuthority().toUpperCase().contains("MODERATOR")) {
 			return true;
 		}else {
 			return false;
@@ -400,7 +420,39 @@ public class AccessControlService {
 			return false;
 		}
 	}
-
-
+	/**
+	 * Is office of this user restricted by territory?
+	 * @param user
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public boolean isTerritoryUser(UserDetailsDTO user) throws ObjectNotFoundException {
+		User u = userServ.findByEmail(user.getEmail());
+		if(u!= null) {
+			if(u.getConcept() != null) {
+				if(u.getConcept().getActive()) {
+					if(u.getOrganization() != null) {
+						PublicOrganization porg=publicOrgServ.findByConcept(u.getOrganization());
+						if(porg.getAdminUnits().size()>0) {
+							return true;
+						}else {
+							return false;
+						}
+					}
+				}
+			}
+		}
+		return false;
+	}
+	/**
+	 * Is the role is an applicant?
+	 * @param role
+	 * @return
+	 */
+	@Transactional
+	public boolean isApplicantRole(Concept role) {
+		return role.getIdentifier().equalsIgnoreCase(SystemService.ROLE_APPLICANT);
+	}
 
 }

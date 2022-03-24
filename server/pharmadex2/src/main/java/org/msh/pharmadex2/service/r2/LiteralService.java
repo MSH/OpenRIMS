@@ -82,7 +82,7 @@ public class LiteralService {
 		//variable
 		Concept variable = loadVariable(literals, variableName);
 		//value
-		loadValue(variable, value);
+		loadValue(variable, value.trim());
 		//refresh
 		entityManager.refresh(parent);
 		return parent;
@@ -103,7 +103,7 @@ public class LiteralService {
 		//variable
 		Concept variable = loadVariable(literals, variableName);
 		//value
-		loadStringValue(variable, value);
+		loadStringValue(variable, value.trim());
 		//refresh
 		entityManager.refresh(parent);
 		return parent;

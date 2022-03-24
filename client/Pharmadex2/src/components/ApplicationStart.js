@@ -139,6 +139,8 @@ class ApplicationStart extends Component{
             return(
                 <Row className={Pharmadex.settings.activeBorder}>
                     <Col xs='12' sm='12' lg='12' xl='12'>
+                    <Row><Col><AlertFloat /></Col></Row>
+                    <Row><Col>
                     <ThingsManager  applicationUrl={this.props.data.url} 
                                     applDictNodeId={this.props.data.applDictNodeId}
                                     historyId={this.props.data.historyId}
@@ -146,6 +148,8 @@ class ApplicationStart extends Component{
                                     modiUnitId={this.props.data.modiUnitId}                      // id of data unit selected to modify
                                     prefLabel={this.props.data.prefLabel}                        // preflabel by default
                                            />
+                    <Row><Col><AlertFloat /></Col></Row>
+                    </Col></Row>
                     </Col>
                 </Row>
             )

@@ -1,5 +1,5 @@
 import React , {Component} from 'react'
-import {Container, Row, Col} from 'reactstrap'
+import {Container, Row, Col, Collapse} from 'reactstrap'
 import PropTypes from 'prop-types'
 import Locales from '../utils/Locales'
 import Fetchers from '../utils/Fetchers'
@@ -16,6 +16,7 @@ class ApplicationEvents extends Component{
     constructor(props){
         super(props)
         this.state={
+            hist:false,
             identifier:Date.now().toString(),
             labels:{
                 applicationevents:'',
@@ -69,37 +70,48 @@ class ApplicationEvents extends Component{
             return Pharmadex.wait()
         }
         return(
-            <Container fluid className={Pharmadex.settings.activeBorder}>
+            <Container fluid >
                 <Row>
-                    <Col>
-                        <h5>{this.state.labels.applicationevents}</h5>
+                    <Col className="btn btn-link p-0 border-0 d-flex justify-content-start"
+                        onClick={()=>{
+                            this.state.hist=!this.state.hist
+                            this.setState(this.state)
+                        }}>
+                        <h4 className="ml-3">{this.state.labels.applicationevents}</h4>
                     </Col>
                 </Row>
-                <Row>
+                <Row className={Pharmadex.settings.activeBorder}>
                     <Col>
-                        <CollectorTable
-                            tableData={this.state.data.table}
-                            loader={this.loadTable}
-                            headBackground={Pharmadex.settings.tableHeaderBackground}
-                            styleCorrector={(header)=>{
-                                if(header=='pref'){
-                                    return {width:'70%'}
-                                }
-                            }}
-                            linkProcessor={(row,col)=>{
-                                this.state.data.selected=this.state.data.table.rows[row].dbID
-                                this.state.data.title=col.value
-                                this.state.data.eventDate=this.state.data.table.rows[row].row[0].value
-                                this.setState(this.state)
-                            }}
-                        />
+                        <Collapse isOpen={this.state.hist}>
+                            <Row>
+                                <Col>
+                                    <CollectorTable
+                                        tableData={this.state.data.table}
+                                        loader={this.loadTable}
+                                        headBackground={Pharmadex.settings.tableHeaderBackground}
+                                        styleCorrector={(header)=>{
+                                            if(header=='pref'){
+                                                return {width:'70%'}
+                                            }
+                                        }}
+                                        linkProcessor={(row,col)=>{
+                                            this.state.data.selected=this.state.data.table.rows[row].dbID
+                                            this.state.data.title=col.value
+                                            this.state.data.eventDate=this.state.data.table.rows[row].row[0].value
+                                            this.setState(this.state)
+                                        }}
+                                    />
+                                </Col>
+                            </Row>
+                            <Row>
+                                <Col>
+                                    <ApplicationEventData data={this.state.data} recipient={this.state.identifier} />
+                                </Col>
+                            </Row>
+                        </Collapse>
                     </Col>
                 </Row>
-                <Row>
-                    <Col>
-                        <ApplicationEventData data={this.state.data} recipient={this.state.identifier} />
-                    </Col>
-                </Row>
+                
             </Container>
         )
     }

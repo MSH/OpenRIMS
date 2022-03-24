@@ -52,7 +52,10 @@ import org.msh.pdex2.repository.r2.ThingRepo;
 import org.msh.pdex2.repository.r2.ThingSchedulerRepo;
 import org.msh.pdex2.repository.r2.ThingThingRepo;
 import org.msh.pdex2.services.r2.ClosureService;
+import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.FileResourceDTO;
+import org.msh.pharmadex2.dto.ThingDTO;
+import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.service.r2.LiteralService;
 import org.msh.pharmadex2.service.r2.SystemService;
 import org.slf4j.Logger;
@@ -243,6 +246,7 @@ public class BoilerService {
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
+	@Transactional
 	public Thing thingByNode(Concept node) throws ObjectNotFoundException {
 		List<Thing> retl= thingRepo.findByConcept(node);
 		if(retl.size()>0) {
@@ -392,43 +396,7 @@ public class BoilerService {
 	public Assembly assemblySave(Assembly assm) {
 		return assmRepo.save(assm);
 	}
-	/**
-	 * Load data configuration from assembly table
-	 * Sorted by row, col, ord
-	 * @param url
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	public List<Assembly> loadDataConfiguration(String url) throws ObjectNotFoundException {
-		List<Assembly> ret = new ArrayList<Assembly>();
-		List<Concept> datas = loadAllDataConfigurations();
-		List<Concept> vars = new ArrayList<Concept>();
-		for(Concept dat : datas) {
-			if(dat.getIdentifier().equalsIgnoreCase(url) && dat.getActive()) {
-				List<Concept> varsAll = literalServ.loadOnlyChilds(dat);
-				for(Concept var : varsAll) {
-					if(var.getActive()) {
-						vars.add(var);
-					}
-				}
-			}
-		}
-		if(vars.size()>0) {
-			ret=assmRepo.findAllByPropertyNameIn(vars, Sort.by(Sort.Direction.ASC,"row", "col", "ord"));
-		}
-		return ret;
-	}
-	/**
-	 * Load a list of variables that configured under the URL
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	@Transactional
-	public List<Concept> loadAllDataConfigurations() throws ObjectNotFoundException {
-		Concept root = closureServ.loadRoot(SystemService.DATA_COLLECTIONS_ROOT);
-		List<Concept> datas = literalServ.loadOnlyChilds(root);
-		return datas;
-	}
+
 	/**
 	 * Load file resource by node ID
 	 * @param concept
@@ -531,7 +499,7 @@ public class BoilerService {
 		if(schedo.isPresent()) {
 			return schedo.get();
 		}else {
-			throw new ObjectNotFoundException("loadSchedulerByNode. Can`t load Scheduler by ID is "+id,logger);
+			throw new ObjectNotFoundException("loadSchedulerById. Can`t load Scheduler by ID is "+id,logger);
 		}
 	}
 	/**
@@ -1062,4 +1030,81 @@ public class BoilerService {
 		}
 		return ret;
 	}
+
+	/**
+	 * Get URLs for all selected dictionary items
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public List<String> variablesExtensions(ThingDTO data) throws ObjectNotFoundException {
+		List<String> ret= new ArrayList<String>();
+		for(String key : data.getDictionaries().keySet()) {
+			DictionaryDTO dict=data.getDictionaries().get(key);
+			List<Long> selected = new ArrayList<Long>();
+			selected.addAll(dict.getPrevSelected());
+			if(selected.size()==0 && dict.getSelection().getValue().getId()>0) {
+				selected.add(dict.getSelection().getValue().getId());
+			}
+			for(Long id : selected) {
+				Concept node = closureServ.loadConceptById(id);
+				String url=literalServ.readValue("URL", node);
+				if(url.length()>0) {
+					ret.add(url);
+				}
+			}
+		}
+		return ret;
+	}
+	/**
+	 * The object data is a data that describe an object - a site or a medicinal product, i.e. data of the initial application,
+	 * possible amended 
+	 * @param applicationData
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public Concept objectData(Concept node) throws ObjectNotFoundException {
+		Thing t = thingByNode(node);
+		if(t.getAmendments().size()==0) {
+			//it may be application data or activity data
+			List<History> his = historyByActivitydata(node);
+			if(his.size() ==0) {
+				//things or persons?
+				ThingThing tt=thingThing(node, false);
+				if(tt==null) {
+					//the root of a person
+					ThingPerson tp = thingPerson(node, true);	//ThingPerson points to the root of a person
+					Thing t2=thingByThingPerson(tp, true);		//in own turn ThingPerson refers a some Thing inside the main object
+					return objectData(t2.getConcept());
+				}else {
+					//the thing under persons or application data
+					Thing t1 = thingByThingThing(tt, true);
+					return objectData(t1.getConcept());
+				}
+			}else {
+				Concept applData=his.get(0).getApplicationData();
+				if(applData.getID()==node.getID()) {
+					return node;
+				}else {
+					return objectData(his.get(0).getApplicationData());
+				}
+			}
+		}else {
+			//it is the amendment
+			return t.getAmendments().iterator().next().getApplicationData();
+		}
+	}
+
+	/**
+	 * Application data for host or guest application
+	 * @param node
+	 * @return
+	 */
+	private Concept applicationData(Concept node) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }

@@ -28,8 +28,8 @@ public class ThingDoc implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22227017EAF7D3E660C66A")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22227017EAF7D3E660C66A", strategy="native")	
+	@GeneratedValue(generator="VAC22227017F12828E150B586")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227017F12828E150B586", strategy="native")	
 	private long ID;
 	
 	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	

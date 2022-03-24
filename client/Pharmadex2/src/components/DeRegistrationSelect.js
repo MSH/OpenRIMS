@@ -5,6 +5,7 @@ import Fetchers from './utils/Fetchers'
 import Navigator from './utils/Navigator'
 import Dictionary from './Dictionary'
 import ApplicationList from './ApplicationList'
+import DeregistrationAdd from './DeregistrationAdd'
 
 /**
  * Responsible for de-registration applications
@@ -14,13 +15,14 @@ class DeRegistrationSelect extends Component{
         super(props)
         this.state={
             identifier:Date.now().toString(),
-            data:{},                            //DictionaryDTO
+            data:{},
             labels:{
-                amdmt_type:''
+                deregistration:''
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
-        this.applications=this.applications.bind(this)
+        this.derRegistrationAdd=this.derRegistrationAdd.bind(this)
+
     }
 
     /**
@@ -60,7 +62,26 @@ class DeRegistrationSelect extends Component{
             });
         }
         if(amdTypeId>0){
-            return <ApplicationList dictItemId={amdTypeId} recipient={this.state.identifier} /> 
+            return <ApplicationList dictItemId={amdTypeId} recipient={this.state.identifier} noadd/> 
+        }else{
+            return []
+        }
+    }
+    /**
+     * Get objects to de-registration
+     * @returns table with the list of appropriative object data
+     */
+    derRegistrationAdd(){
+        let applTypeId=0
+        if(this.state.data.table != undefined && Fetchers.isGoodArray(this.state.data.table.rows)){
+            this.state.data.table.rows.forEach(row => {
+                if(row.selected){
+                    applTypeId=row.dbID
+                }
+            });
+        }
+        if(applTypeId>0){
+            return <DeregistrationAdd dictItemId={applTypeId} recipient={this.state.identifier} />
         }else{
             return []
         }
@@ -76,7 +97,7 @@ class DeRegistrationSelect extends Component{
                     <Col xs='12' sm='12' lg='6' xl='6'>
                         <Row>
                             <Col>
-                                <h5>{this.state.labels.amdmt_type}</h5>
+                                <h5>{this.state.labels.deregistration}</h5>
                             </Col>
                         </Row>
                         <Row>
@@ -89,8 +110,17 @@ class DeRegistrationSelect extends Component{
                             </Col>
                         </Row>
                     </Col>
-                    <Col xs='12' sm='12' lg='6' xl='6'>
-                        {this.applications()}
+                    <Col>
+                        <Row>
+                            <Col xs='12' sm='12' lg='12' xl='12'>
+                                {this.applications()}
+                            </Col>
+                        </Row>
+                        <Row>
+                            <Col xs='12' sm='12' lg='12' xl='12'>
+                                {this.derRegistrationAdd()}
+                            </Col>
+                        </Row>
                     </Col>
                 </Row>
             </Container>

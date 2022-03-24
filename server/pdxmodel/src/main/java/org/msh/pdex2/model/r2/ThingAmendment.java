@@ -28,15 +28,21 @@ public class ThingAmendment implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22227017EAF7D3E710C672")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22227017EAF7D3E710C672", strategy="native")	
+	@GeneratedValue(generator="VAC22227017F12828E1D0B58E")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227017F12828E1D0B58E", strategy="native")	
 	private long ID;
 	
 	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
-	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.ALL, org.hibernate.annotations.CascadeType.DELETE_ORPHAN})	
+	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.LOCK})	
 	@JoinColumns({ @JoinColumn(name="conceptID", referencedColumnName="ID") })	
 	@Basic(fetch=FetchType.LAZY)	
 	private org.msh.pdex2.model.r2.Concept concept;
+	
+	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
+	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.ALL, org.hibernate.annotations.CascadeType.DELETE_ORPHAN})	
+	@JoinColumns({ @JoinColumn(name="applicationDataID", referencedColumnName="ID") })	
+	@Basic(fetch=FetchType.LAZY)	
+	private org.msh.pdex2.model.r2.Concept applicationData;
 	
 	@Column(name="Url", nullable=true, length=255)	
 	private String url;
@@ -70,6 +76,14 @@ public class ThingAmendment implements Serializable {
 	
 	public String getVarName() {
 		return varName;
+	}
+	
+	public void setApplicationData(org.msh.pdex2.model.r2.Concept value) {
+		this.applicationData = value;
+	}
+	
+	public org.msh.pdex2.model.r2.Concept getApplicationData() {
+		return applicationData;
 	}
 	
 	public void setConcept(org.msh.pdex2.model.r2.Concept value) {

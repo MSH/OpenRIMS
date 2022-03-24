@@ -10,7 +10,6 @@ import Thing from './Thing'
 import CheckList from './CheckList'
 import ActivitySubmit from './ActivitySubmit'
 import ActivityHistoryData from './ActivityHistoryData'
-import AlertFloat from './utils/AlertFloat'
 import Alerts from './utils/Alerts'
 import AmendmentActivity from './AmendmentActivity'
 
@@ -28,6 +27,7 @@ class ActivityManager extends Component{
             conclude:false,                    //only for alive checklist!
             send:false,                        //display breadcrumb "send"
             hist:false,                        //initially closed
+            reloadData:true,                     //initialy reload data
             supervisor:false,                   //action has been initiated by the supervisor
             pathIndex:0,                        //activity index
             modiIndex:0,                        //right part selection in case of modification processing
@@ -89,6 +89,14 @@ class ActivityManager extends Component{
                 if(data.subject=='activityHistoryClose'){
                     this.state.historyId=0
                     this.state.hist=false
+                    this.setState(this.state)
+                }
+                if(data.subject=='submitClose'){
+                    this.state.pathIndex=0
+                    this.state.send=false
+                    this.state.return=false
+                    this.state.reassign=false
+                    this.state.reject=false
                     this.setState(this.state)
                 }
                 if(data.subject=="savedByAction" || data.subject=="cancelThing"){
@@ -217,7 +225,7 @@ class ActivityManager extends Component{
                    recipient={this.state.identifier}
                    readOnly={true}
                    narrow
-                   repaint
+                   reload
                 />
                 )
             })
@@ -242,12 +250,15 @@ class ActivityManager extends Component{
         if(this.state.data.data.length>0){
             if(this.state.data.data[this.state.pathIndex].url.length>0){
                 this.state.data.data[this.state.pathIndex].repaint=true
+                let noreload=!this.state.reloadData
+                this.state.reloadData=false
                 return(
                     <Thing
                         data={this.state.data.data[this.state.pathIndex]}
                         recipient={this.state.identifier}
                         readOnly={!this.state.conclude}
                         narrow
+                        noload={noreload}
                     />
                 )
             }else{
@@ -518,6 +529,7 @@ class ActivityManager extends Component{
                                                 this.state.supervisor=false
                                                 this.state.send=false
                                                 rows[rowNo].selected=false
+                                                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'warning'})
                                             }
                                             this.setState(this.state)
                                         })
@@ -541,27 +553,7 @@ class ActivityManager extends Component{
                     <Col>
                     <Collapse isOpen={!this.state.hist}>
                         {this.headerFooter()}
-                            <Row>
-                                <Col>
-                                    <Row hidden={this.state.data.identifier.length==0}>
-                                        <Col>
-                                            <Alert className="p-0 m-0" color={this.state.color}>
-                                                <small>{this.state.data.identifier}</small>
-                                            </Alert>
-                                        </Col>
-                                    </Row>
-                                
-                                
-                                    
-                                    <Row hidden={this.state.data.identifier.length==0}>
-                                        <Col>
-                                            <Alert className="p-0 m-0" color={this.state.color}>
-                                                <small>{this.state.data.identifier}</small>
-                                            </Alert>
-                                        </Col>
-                                    </Row>   
-                                </Col>
-                            </Row>
+
                             <Row className="mb-2">
                                 <Col>
                                 <Breadcrumb>
@@ -569,9 +561,7 @@ class ActivityManager extends Component{
                                     </Breadcrumb>
                                 </Col>
                             </Row>
-							 <AlertFloat />
                             {this.content()}
-							<AlertFloat />
                             <Row className="mt-2">
                                 <Col>
                                 <Breadcrumb>

@@ -13,4 +13,5 @@ public interface ConceptRepo extends CrudRepository<Concept, Long> {
 	List<Concept> findAllRoots();
 	 
 	 List<Concept> findByLabel(String label);
+	List<Concept> findAllByIdentifierAndLabel(String identifier, String label);
 }

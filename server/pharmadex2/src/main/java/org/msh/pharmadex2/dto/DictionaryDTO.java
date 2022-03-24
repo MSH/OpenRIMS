@@ -111,6 +111,7 @@ public class DictionaryDTO extends AllowValidation{
 	public void setMult(boolean mult) {
 		this.mult = mult;
 	}
+
 	public boolean isRequired() {
 		return required;
 	}

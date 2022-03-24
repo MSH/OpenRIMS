@@ -160,6 +160,8 @@ class Content extends Component{
         switch(Navigator.tabName().toLowerCase()){
             case "todolist":
                 return <ToDoList />
+            case "monitor":
+                return <Monitoring />
             case "reports":
                 return <Reports />
             default:
@@ -190,6 +192,8 @@ class Content extends Component{
         switch(Navigator.tabName().toLowerCase()){
             case "todolist":
                 return <ToDoList />
+            case "monitor":
+                return <Monitoring />
             case "reports":
                 return <Reports />
             default:
@@ -235,6 +239,8 @@ class Content extends Component{
             switch(Navigator.tabName().toLowerCase()){
                 case "todolist":
                     return <ToDoList />
+                case "monitor":
+                    return <Monitoring />
                 case "reports":
                     return <Reports />
                 default:

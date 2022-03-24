@@ -24,7 +24,7 @@ public class FollowUpServiceTest {
 	@Autowired
 	ClosureService closureServ;
 	
-	@Test
+	//@Test
 	@Transactional
 	public void schedulerFromThing() throws ObjectNotFoundException {
 		SchedulerDTO data = new SchedulerDTO();
@@ -35,7 +35,7 @@ public class FollowUpServiceTest {
 		assertTrue(!service.isEmpty(data));
 	}
 	
-	@Test
+	//@Test
 	public void schedulerFromSchedulers() throws ObjectNotFoundException {
 		SchedulerDTO data = new SchedulerDTO();
 		Concept applData= closureServ.loadConceptById(68936);

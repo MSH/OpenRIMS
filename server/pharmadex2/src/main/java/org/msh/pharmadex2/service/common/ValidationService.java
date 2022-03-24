@@ -4,6 +4,10 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.Period;
+import java.time.YearMonth;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +33,7 @@ import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.model.r2.Register;
 import org.msh.pdex2.model.r2.Thing;
 import org.msh.pdex2.model.r2.ThingDict;
-import org.msh.pdex2.model.r2.ThingPerson;
+import org.msh.pdex2.model.r2.ThingThing;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.common.UserRepo;
 import org.msh.pdex2.services.r2.ClosureService;
@@ -44,6 +48,7 @@ import org.msh.pharmadex2.dto.DataVariableDTO;
 import org.msh.pharmadex2.dto.DictNodeDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.FileDTO;
+import org.msh.pharmadex2.dto.IntervalDTO;
 import org.msh.pharmadex2.dto.LegacyDataDTO;
 import org.msh.pharmadex2.dto.MessageDTO;
 import org.msh.pharmadex2.dto.PersonDTO;
@@ -63,6 +68,7 @@ import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.service.r2.AccessControlService;
 import org.msh.pharmadex2.service.r2.AssemblyService;
+import org.msh.pharmadex2.service.r2.DeregistrationService;
 import org.msh.pharmadex2.service.r2.LiteralService;
 import org.msh.pharmadex2.service.r2.SystemService;
 import org.slf4j.Logger;
@@ -97,6 +103,8 @@ public class ValidationService {
 	private AccessControlService accServ;
 	@Autowired
 	private JdbcRepository jdbcRepo;
+	@Autowired
+	private DeregistrationService deregServ;
 
 	/**
 	 * Validate a node
@@ -301,8 +309,13 @@ public class ValidationService {
 	 */
 	@Transactional
 	public ThingDTO thing(ThingDTO data, boolean strict) throws ObjectNotFoundException {
+		//prepare data
 		data.clearErrors();
-		List<AssemblyDTO> legs = assemblyServ.auxLegacyData(data.getUrl());
+		List<Assembly> allAssms = assemblyServ.loadDataConfiguration(data.getUrl());
+		List<String> exts=boilerServ.variablesExtensions(data);
+		
+		//validate all components
+		List<AssemblyDTO> legs = assemblyServ.auxLiterals(data.getUrl(), allAssms);
 		for(AssemblyDTO l : legs) {
 			if(l.isRequired()) {
 				mandatoryLegacy(data, l,strict);
@@ -389,6 +402,11 @@ public class ValidationService {
 				mandatoryAtc(data,a.getPropertyName(),a,strict);
 			}
 		}
+		List<AssemblyDTO> intervals = assemblyServ.auxIntervals(data, "intervals");
+		for(AssemblyDTO interval : intervals) {
+			mandatoryInterval(data, interval,strict);
+		}
+
 		List<AssemblyDTO> things = assemblyServ.auxThings(data.getUrl());
 		for(AssemblyDTO thing :things) {
 			if(thing.isRequired()) {
@@ -398,6 +416,52 @@ public class ValidationService {
 		data.propagateValidation();
 		return data;
 	}
+
+
+	/**
+	 * Check an interval of dates
+	 * @param data
+	 * @param interval
+	 * @param strict
+	 */
+	private void mandatoryInterval(ThingDTO data, AssemblyDTO interval, boolean strict) {
+		//take the interval
+		IntervalDTO dto = data.getIntervals().get(interval.getPropertyName());
+		if(dto != null) {
+			LocalDate from=dto.getFrom().getValue();
+			LocalDate to = dto.getTo().getValue();
+			if(from==null) {
+				from=LocalDate.now();
+			}
+			if(to==null) {
+				to=LocalDate.now();
+			}
+			long monthsBetween = ChronoUnit.MONTHS.between(
+					YearMonth.from(from), 
+					YearMonth.from(to)
+					);
+			if(interval.isRequired()) {
+				if(monthsBetween != interval.getMin().longValue()) {
+					//the length of interval should be minOffset in months
+					dto.setValid(false);
+					dto.setStrict(strict);
+					String mess = messages.get("periodshouldbe");
+					dto.setIdentifier(mess +" "+ interval.getMin().longValue() +" "+messages.get("months") + ". "+interval.getDescription());
+				}
+				if(interval.getMax().longValue()>0 && dto.isValid()) {
+					LocalDate maxDt = LocalDate.now().plusMonths(interval.getMax().longValue());
+					if(to.isBefore(maxDt)) {
+						//the left border of the interval 
+						dto.setValid(false);
+						dto.setStrict(strict);
+						String mess = messages.get("thelastdateshoulbeafter");
+						dto.setIdentifier(mess +" "+ maxDt  + ". "+interval.getDescription());
+					}
+				}		
+			}
+		}
+	}
+
 	/**
 	 * Legacy data should be selected
 	 * @param data
@@ -509,6 +573,7 @@ public class ValidationService {
 	 */
 	private void mandatoryRegister(AssemblyDTO ar, RegisterDTO dto, boolean strict) throws ObjectNotFoundException {
 		dto.clearErrors();
+		dto=dto.ensureDates(dto);
 		LocalDate regDate = dto.getRegistration_date().getValue();
 		LocalDate expDate = dto.getExpiry_date().getValue();
 		LocalDate createdAt = LocalDate.now();
@@ -529,21 +594,23 @@ public class ValidationService {
 			dto.getRegistration_date().invalidate(errorMess);
 			dto.setStrict(strict);
 		}
-		//register number should be not empty, not duplicated for url given
-		if(regNum.length()>=1 && regNum.length()<=255) {
-			List<Register> rr = boilerServ.registerByUrlAndNumber(regNum, dto.getUrl());
-			if(rr.size()>1) {
-				dto.getReg_number().invalidate(messages.get("registrationexists") + " " + ar.getDescription());
-				dto.setStrict(strict);
-			}else {
-				if(rr.size()==1) {
-					if(rr.get(0).getConcept().getID()!=dto.getNodeID()) {
-						dto.getReg_number().invalidate(messages.get("registrationexists") + " "+ar.getDescription());
+			//register number should be not empty, not duplicated for url given
+		if(!dto.isReadOnly()){
+			if(regNum.length()>=1 && regNum.length()<=255) {
+				List<Register> rr = boilerServ.registerByUrlAndNumber(regNum, dto.getUrl());
+				if(rr.size()>1) {
+					dto.getReg_number().invalidate(messages.get("registrationexists") + " " + ar.getDescription());
+					dto.setStrict(strict);
+				}else {
+					if(rr.size()==1) {
+						if(rr.get(0).getConcept().getID()!=dto.getNodeID()) {
+							dto.getReg_number().invalidate(messages.get("registrationexists") + " "+ar.getDescription());
+						}
 					}
 				}
+			}else {
+				suggest(dto.getReg_number(), 3, 255, strict);
 			}
-		}else {
-			suggest(dto.getReg_number(), 3, 255, strict);
 		}
 		//expiration date should fit an interval if defined
 		if(ar.isMult()) {
@@ -601,7 +668,9 @@ public class ValidationService {
 				if(dto.getAmendedNodeId()==0) {
 					//regular person
 					if(dto.getTable().getRows().size()==0) {
-						;
+						dto.setValid(false);
+						dto.setStrict(strict);
+						dto.setIdentifier(messages.get("mandatorypersons")+" "+apers.getDescription());
 					}
 				}else {
 					//amendment
@@ -833,11 +902,49 @@ public class ValidationService {
 			List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from literal_values", "", "varvalue='"+value+"'", headers);
 			for(TableRow row : rows) {
 				if(row.getDbID()!=litId) {
-					return false;
+					if(isInActiveObject(root.getIdentifier(), row.getDbID())) {
+						return false;
+					}
 				}
 			}
 		}
 		return true;
+	}
+	/**
+	 * Is this literal in active object
+	 * @param url
+	 * @param literalId
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private boolean isInActiveObject(String url, long literalId) throws ObjectNotFoundException {
+		Concept literal = closureServ.loadConceptById(literalId);
+		List<Concept> parents = closureServ.loadParents(literal);
+		if(parents.size()==5) {	//url.owner.object._literals_.varname.varvalue
+			if(parents.get(0).getIdentifier().equalsIgnoreCase(url)) {
+				if(parents.get(2).getActive()) {
+					return isActiveParentObject(parents.get(2));
+				}
+			}
+		}
+		return false;
+	}
+	/**
+	 * Suppose the node is active, but it is a tyhing in another node. Let's check is teh another node active
+	 * @param node
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private boolean isActiveParentObject(Concept node) throws ObjectNotFoundException {
+		ThingThing tt = boilerServ.thingThing(node,false);
+		if(tt == null) {
+			return true; // I'am parent object
+		}else {
+			Thing thing = boilerServ.thingByThingThing(tt, true);
+			return thing.getConcept().getActive();
+		}
 	}
 
 	/**
@@ -968,29 +1075,35 @@ public class ValidationService {
 	 * @throws ObjectNotFoundException 
 	 */
 	private DataVariableDTO variableScreen(DataVariableDTO data) throws ObjectNotFoundException {
-		if(data.getNodeId()>0) {
-			long row=data.getRow().getValue();
-			long col=data.getCol().getValue();
-			long ord=data.getOrd().getValue();
-			Concept root = closureServ.loadConceptById(data.getNodeId());
-			List<Concept> variables = literalServ.loadOnlyChilds(root);
-			for(Concept var : variables) {
-				if(var.getID()!=data.getVarNodeId() && var.getActive()) {
-					Assembly assm = boilerServ.assemblyByVariable(var,true);
-					if(
-							assm.getRow()==row
-							&& assm.getCol()==col
-							&& assm.getOrd()==ord
-							) {
-						data.setIdentifier(messages.get("busyscreenposition"));
-						data.setValid(false);
-						return data;
+		if(data.getVarNameExt().getValue().length()==0) {	//it is not real variables
+			if(data.getNodeId()>0) {
+				long row=data.getRow().getValue();
+				long col=data.getCol().getValue();
+				long ord=data.getOrd().getValue();
+				Concept root = closureServ.loadConceptById(data.getNodeId());
+				List<Concept> variables = literalServ.loadOnlyChilds(root);
+				for(Concept var : variables) {
+					String ext=var.getLabel();
+					if(ext==null) {
+						ext="";
 					}
-				}
+					if(var.getID()!=data.getVarNodeId() && var.getActive() && ext.length() ==0) {
+						Assembly assm = boilerServ.assemblyByVariable(var,true);
+						if(
+								assm.getRow()==row
+								&& assm.getCol()==col
+								&& assm.getOrd()==ord
+								) {
+							data.setIdentifier(messages.get("busyscreenposition"));
+							data.setValid(false);
+							return data;
+						}
+					}
 
+				}
+			}else {
+				throw new ObjectNotFoundException("variableScreen. Data Collection node ID not found",logger);
 			}
-		}else {
-			throw new ObjectNotFoundException("variableScreen. Data Collection node ID not found",logger);
 		}
 		return data;
 	}
@@ -1161,7 +1274,7 @@ public class ValidationService {
 			YesNoNA result = dtoServ.readLogicalLiteral("background", actConf);
 			return !result.equals(YesNoNA.YES);
 		}else {
-			return false;
+			return true;		//it is monitoring
 		}
 	}
 	/**
@@ -1219,13 +1332,15 @@ public class ValidationService {
 	@Transactional
 	public ActivitySubmitDTO submitNext(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		data.clearErrors();
-		if(!data.isReject()) {
-			if(!data.isReassign()) {
-				Concept exec = closureServ.getParent(curHis.getActivity());
-				if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {
-					if(isActivityForeground(curHis.getActConfig())) {
-						if(curHis.getGo()==null) {
-							return data;
+		if(!deregServ.isDeregistrationActivity(curHis)) {
+			if(!data.isReject()) {
+				if(!data.isReassign()) {
+					Concept exec = closureServ.getParent(curHis.getActivity());
+					if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {
+						if(isActivityForeground(curHis.getActConfig())) {
+							if(curHis.getGo()==null) {
+								return data;
+							}
 						}
 					}
 				}
@@ -1336,12 +1451,71 @@ public class ValidationService {
 						}
 					}
 				}else {
-					data.setIdentifier(messages.get("error_workflowinappropriate"));
+					data.setIdentifier(messages.get("error_accessdenied"));
 					data.setValid(false);
 				}
+			}else {
+				data.setIdentifier(messages.get("error_workflowinappropriate"));
+				data.setValid(false);
 			}
 		}else {
 			data.setIdentifier(messages.get("error_workflowinappropriate"));
+			data.setValid(false);
+		}
+		return data;
+	}
+	/**
+	 * Deregistration is allowed if this application is de-registration and application data thing has valid link to 
+	 * @param curHis
+	 * @param user
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public ActivitySubmitDTO submitDeregistration(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
+		data.clearErrors();
+		if(!data.isReassign()) {
+			Concept exec = closureServ.getParent(curHis.getActivity());
+			if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {
+				if(deregServ.isDeregisterWorkflow(curHis)) {
+					if(deregServ.isDeregistrationActivity(curHis)) {
+						return data;
+					}else {
+						data.setIdentifier(messages.get("error_workflowinappropriate"));
+						data.setValid(false);
+					}
+				}else {
+					data.setIdentifier(messages.get("error_workflowinappropriate"));
+					data.setValid(false);
+				}
+			}else {
+				data.setIdentifier(messages.get("error_accessdenied"));
+				data.setValid(false);
+			}
+		}else {
+			data.setIdentifier(messages.get("error_workflowinappropriate"));
+			data.setValid(false);
+		}
+		return data;
+	}
+	/**
+	 * Current activity data should contain a register
+	 * This register should contain de-registration date and number and date to remove the object from the database (expiry)  
+	 * @param curHis
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public ActivitySubmitDTO submitDeregistrationData(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
+		if(curHis.getActivityData() != null) {
+			Thing thing = boilerServ.thingByNode(curHis.getActivityData());
+			if(thing.getRegisters().size()==0) {
+				data.setIdentifier(messages.get("error_registershouldbedefined"));
+				data.setValid(false);
+			}
+		}else {
+			data.setIdentifier(messages.get("error_registershouldbedefined"));
 			data.setValid(false);
 		}
 		return data;
@@ -1440,7 +1614,7 @@ public class ValidationService {
 		List<History> allHis = boilerServ.historyAllByApplication(curHis.getApplication());
 		for(History h : allHis) {
 			if(h.getGo()==null) {																			//opened
-				if(h.getActConfig()!= null && h.getActConfig().getID()==curHis.getActConfig().getID()) {			//same activity configuration
+				if(h.getActConfig()!= null && curHis.getActConfig()!=null && h.getActConfig().getID()==curHis.getActConfig().getID()) {			//same activity configuration
 					Concept userConc = closureServ.getParent(h.getActivity());		//take a user
 					if(executors.contains(userConc.getID())) {									//selected user's contains it
 						error(data, messages.get("error_nextactivitydata"), true);
@@ -1460,7 +1634,7 @@ public class ValidationService {
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	public ActivitySubmitDTO submitRouteData(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
+	public ActivitySubmitDTO submitReAssign(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		List<Long> executors = data.executors();
 		if(executors.size()>0) {
 			data = submitNextOrRouteData(curHis, data, executors);
@@ -1609,14 +1783,14 @@ public class ValidationService {
 						dimen=asm.getMin().intValue()+"X"+asm.getMax().intValue();
 						data=image(asm, data,fileBytes);
 					}else {
-						dimen=asm.getMin().intValue()+"-"+asm.getMax().intValue();
+						/*dimen=asm.getMin().intValue()+"-"+asm.getMax().intValue();
 						long fileSizeK = data.getFileSize()/1024;
 						if(fileSizeK==0) {
 							fileSizeK=1;
 						}
 						if(fileSizeK<asm.getMin().longValue() || fileSizeK>asm.getMax().longValue()) {
 							data.setValid(false);
-						}
+						}*/
 					}
 					description=asm.getDescription();
 					break;
@@ -1651,5 +1825,6 @@ public class ValidationService {
 		}
 		return data;
 	}
+
 
 }

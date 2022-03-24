@@ -942,5 +942,20 @@ public class UserService implements UserDetailsService {
 		}
 		return ret;
 	}
+	/**
+	 * User responsibilities.
+	 * @param u - user
+	 * @return list of IDs of nodes from application life cycle dictionaries, i.e. applications allowed to the user 
+	 */
+	public List<Long> responsibilities(User u) {
+		List<Long> ret = new ArrayList<Long>();
+		List<String> dictUrls = systemServ.applicationLifeCycleUrls();
+		for(UserDict ud :u.getDictionaries()) {
+			if(dictUrls.contains(ud.getUrl())) {
+				ret.add(ud.getConcept().getID());
+			}
+		}
+		return ret;
+	}
 
 }

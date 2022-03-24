@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -12,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pharmadex2.Pharmadex2Application;
 import org.msh.pharmadex2.controller.common.DocxView;
+import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pdex2.services.r2.ClosureService;
@@ -60,14 +63,16 @@ public class ResolverServiceTest {
 	public void character() throws ObjectNotFoundException {
 		ResourceDTO fres = new ResourceDTO();
 		fres.setHistoryId(1868);
-		Map<String, Object> ret = resolverServ.resolve("character/pharmacist/prefLabel", fres);
+		Map<String, List<AssemblyDTO>> assemblies = new HashMap<String, List<AssemblyDTO>>();
+		Map<String, Object> ret = resolverServ.resolve("character/pharmacist/prefLabel", fres,assemblies);
 		System.out.println(ret);
 	}
 	//@Test
 	public void persons() throws ObjectNotFoundException {
 		ResourceDTO fres = new ResourceDTO();
 		fres.setHistoryId(2058);
-		Map<String, Object> ret = resolverServ.resolve("/pharmacists/pharmacists/0/pharmacist_qualification/person_academic", fres);
+		Map<String, List<AssemblyDTO>> assemblies = new HashMap<String, List<AssemblyDTO>>();
+		Map<String, Object> ret = resolverServ.resolve("/pharmacists/pharmacists/0/pharmacist_qualification/person_academic", fres,assemblies);
 		System.out.println(ret);
 	}
 	

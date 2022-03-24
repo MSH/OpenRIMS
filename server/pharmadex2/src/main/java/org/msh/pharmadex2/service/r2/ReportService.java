@@ -14,6 +14,7 @@ import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.ApplicationEventsDTO;
+import org.msh.pharmadex2.dto.ApplicationHistoryDTO;
 import org.msh.pharmadex2.dto.CheckListDTO;
 import org.msh.pharmadex2.dto.ReportConfigDTO;
 import org.msh.pharmadex2.dto.ReportDTO;
@@ -50,6 +51,10 @@ public class ReportService {
 	private Messages mess;
 	@Autowired
 	private SystemService systemServ;
+	@Autowired
+	private ApplicationService applServ;
+	@Autowired
+	private RegisterService registerServ;
 
 	/**
 	 * Load a report
@@ -91,6 +96,7 @@ public class ReportService {
 	 * @param repConf
 	 * @return
 	 */
+	@Transactional
 	private ReportDTO productReport(UserDetailsDTO user, ReportDTO data, ReportConfigDTO repConf) {
 		//get headers
 		TableQtb table = data.getTable();
@@ -173,43 +179,77 @@ public class ReportService {
 	 * @return
 	 */
 	public ReportDTO siteReport(ReportDTO data, ReportConfigDTO repConf) {
-		long nodeId=0;	//Thing node ID
-		for(TableRow row : data.getTable().getRows()) {
-			if(row.getSelected()) {
-				nodeId=row.getDbID();
-				break;
-			}
-		}
-		if(nodeId==0) {
-			data=reportTable(data,repConf);
+		if(repConf.isDeregistered()) {
+			data=siteDeregisteredTable(data,repConf);
 		}else {
-			//TODO data=loadReportThing(data);
+			data=siteExistedTable(data, repConf);
 		}
 		return data;
 	}
 
 	/**
-	 * Data table for report may be build
+	 * Load report for de-registered 
 	 * @param data
 	 * @param repConf
 	 * @return
 	 */
-	private ReportDTO reportTable(ReportDTO data, ReportConfigDTO repConf) {
-		//there are two categories of workflow - products and facilities
-		if(repConf.getAddressUrl().length()>0) {
-			//address exists, so facility
-			if(repConf.isRegistered()) {
-				//registered and expired
-				data=registeredFacilityTable(data, repConf);
-			}else {
-				//in process of registration
-				//TODO data=inProcessFacilityTable(data, repConf);
-			}
-		}else {
-			//no address - product
-			//TODO products
+	private ReportDTO siteDeregisteredTable(ReportDTO data, ReportConfigDTO repConf) {
+		TableQtb table = data.getTable();
+		if(table.getHeaders().getHeaders().size()==0) {
+			Headers headers= headersDeRegisteredSite(table.getHeaders());
+			table.setHeaders(headers);
 		}
+		jdbcRepo.report_deregister(repConf.getAddressUrl(), repConf.getRegisterAppUrl());
+		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from report_deregister", "", "", table.getHeaders());
+		TableQtb.tablePage(rows, table);
+		table.setSelectable(false);
 		return data;
+	}
+	
+	/**
+	 * Headers for de-registered sites
+	 * @param headers
+	 * @return
+	 */
+	private Headers headersDeRegisteredSite(Headers headers) {
+		headers.getHeaders().clear();
+		headers.getHeaders().add(TableHeader.instanceOf(
+				"deregistered",
+				"deregistration",
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_LOCALDATE,
+				11));
+		headers.getHeaders().add(TableHeader.instanceOf(
+				"pref",
+				"prefLabel",
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_LINK,
+				40));
+		headers.getHeaders().add(TableHeader.instanceOf(
+				"address",
+				"address",
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_STRING,
+				60));
+		headers.getHeaders().add(TableHeader.instanceOf(
+				"appl",
+				"prod_app_type",
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_STRING,
+				20));
+		headers=boilerServ.translateHeaders(headers);
+		headers.getHeaders().get(0).setSort(true);
+		headers.getHeaders().get(0).setSortValue(TableHeader.SORT_ASC);
+		headers.setPageSize(20);
+		return headers;
 	}
 	/**
 	 * Registered facility
@@ -217,10 +257,11 @@ public class ReportService {
 	 * @param repConf
 	 * @return
 	 */
-	private ReportDTO registeredFacilityTable(ReportDTO data, ReportConfigDTO repConf) {
+	@Transactional
+	private ReportDTO siteExistedTable(ReportDTO data, ReportConfigDTO repConf) {
 		TableQtb table = data.getTable();
 		if(table.getHeaders().getHeaders().size()==0) {
-			Headers headers= headersRegisteredFacility(table.getHeaders());
+			Headers headers= headersRegisteredSite(table.getHeaders());
 			table.setHeaders(headers);
 		}
 		jdbcRepo.report_sites(repConf.getDataUrl(), repConf.getDictStageUrl(), repConf.getAddressUrl(), repConf.getOwnerUrl(),
@@ -236,7 +277,7 @@ public class ReportService {
 	 * @param headers
 	 * @return
 	 */
-	private Headers headersRegisteredFacility(Headers headers) {
+	private Headers headersRegisteredSite(Headers headers) {
 		headers.getHeaders().clear();
 		headers.getHeaders().add(TableHeader.instanceOf(
 				"pref",
@@ -333,66 +374,15 @@ public class ReportService {
 	/**
 	 * ASk for all records in all journals
 	 * @param data
+	 * @param user 
 	 * @return
 	 */
-	public ThingDTO regTable(ThingDTO data) {
-		TableQtb regTable = data.getRegTable();
-		if(regTable.getHeaders().getHeaders().size()==0) {
-			regTable.setHeaders(headersRegTable(regTable.getHeaders()));
-		}
-		jdbcRepo.report_register(null);
-		String select = "SELECT * from report_register";
-
-		List<TableRow> rows= jdbcRepo.qtbGroupReport(select, "order by registered", "ID='"+data.getNodeId()+"'", regTable.getHeaders());
-		TableQtb.tablePage(rows, regTable);
-		regTable.setSelectable(false);
-		boilerServ.translateRows(regTable);
+	public ApplicationHistoryDTO applicationRegisters(ApplicationHistoryDTO data, UserDetailsDTO user) {
+		TableQtb regTable = data.getTable();
+		regTable=registerServ.applicationRegistersTable(regTable, data.getNodeId(),false);
 		return data;
 	}
 
-	/**
-	 * Records from register
-	 * @param headers
-	 * @return
-	 */
-	private Headers headersRegTable(Headers headers) {
-		headers.getHeaders().clear();
-		headers.getHeaders().add(TableHeader.instanceOf(
-				"registered",
-				"registration_date",
-				true,
-				false,
-				false,
-				TableHeader.COLUMN_LOCALDATE,
-				0));
-		headers.getHeaders().add(TableHeader.instanceOf(
-				"validto",
-				"expiry_date",
-				true,
-				false,
-				false,
-				TableHeader.COLUMN_LOCALDATE,
-				0));
-		headers.getHeaders().add(TableHeader.instanceOf(
-				"register",
-				"reg_number",
-				true,
-				false,
-				false,
-				TableHeader.COLUMN_STRING,
-				0));
-		headers.getHeaders().add(TableHeader.instanceOf(
-				"varname",
-				"register_applicant",
-				true,
-				false,
-				false,
-				TableHeader.COLUMN_I18,
-				0));
-		headers.getHeaders().get(0).setSort(true);
-		boilerServ.translateHeaders(headers);
-		return headers;
-	}
 
 	/**
 	 * Load report configuration or table of reports or both (?)
@@ -692,6 +682,26 @@ public class ReportService {
 			systemServ.storeFullAddress(data.getAddressUrl());
 		}
 		//to be continue..
+		return data;
+	}
+	
+	/**
+	 * Load application history by node ID
+	 * @param data
+	 * @param user 
+	 * @return
+	 */
+	@Transactional
+	public ApplicationHistoryDTO applicationHistory(ApplicationHistoryDTO data, UserDetailsDTO user) {
+		if(data.getNodeId()>0) {
+			TableQtb table=data.getTable();
+			if(!table.hasHeaders()) {
+				table.setHeaders(applServ.historyHeaders(table.getHeaders(),user));
+			}
+			jdbcRepo.application_history(data.getNodeId());
+			table=applServ.historyTableRows(user, table);
+			table.setSelectable(false);
+		}
 		return data;
 	}
 

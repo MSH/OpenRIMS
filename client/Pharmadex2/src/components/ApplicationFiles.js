@@ -148,7 +148,7 @@ class ApplicationFiles extends Component{
         Fetchers.postJSONNoSpinner('/api/'+Navigator.tabSetName() +'/thing/file/load', this.state.data,(query,result)=>{
             Fetchers.setJustLoaded(result,false)
             this.state.data=result;
-            Navigator.message(this.state.identifier,this.props.recipient, "onSelectionChange", this.state.data)
+            //Navigator.message(this.state.identifier,this.props.recipient, "onSelectionChange", this.state.data)
             this.setState(this.state)
         })
     }
@@ -161,7 +161,7 @@ class ApplicationFiles extends Component{
             if(result.valid){
                 this.state.data = result;
                 this.state.data.fileName=''
-                Navigator.message(this.state.identifier,this.props.recipient, "onSelectionChange", this.state.data)
+                //Navigator.message(this.state.identifier,this.props.recipient, "onSelectionChange", this.state.data)
                 this.state.data.editor = false
                 this.state.file = {}
                 this.tableLoader()

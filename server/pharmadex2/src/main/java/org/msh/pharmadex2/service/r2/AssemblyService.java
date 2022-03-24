@@ -6,7 +6,11 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
+import org.msh.pdex2.dto.table.Headers;
+import org.msh.pdex2.dto.table.TableHeader;
+import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.r2.Assembly;
@@ -14,8 +18,11 @@ import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.model.r2.Thing;
 import org.msh.pdex2.model.r2.ThingDict;
+import org.msh.pdex2.repository.common.JdbcRepository;
+import org.msh.pdex2.repository.r2.AssemblyRepo;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AssemblyDTO;
+import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.LayoutCellDTO;
 import org.msh.pharmadex2.dto.LayoutRowDTO;
 import org.msh.pharmadex2.dto.ReportConfigDTO;
@@ -25,6 +32,7 @@ import org.msh.pharmadex2.service.common.DtoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,6 +61,10 @@ public class AssemblyService {
 	private DtoService dtoServ;
 	@Autowired
 	private LiteralService literalServ;
+	@Autowired
+	private AssemblyRepo assmRepo;
+	@Autowired
+	private JdbcRepository jdbcRepo;
 
 	/**
 	 * Auxiliary literals for a user (MOCK!!!)
@@ -77,7 +89,7 @@ public class AssemblyService {
 		//TODO defined for the system
 		//*********************************** read from configuration ***************************************************
 		if(ret.size()==0) {
-			List<Assembly> assms = boilerServ.loadDataConfiguration(url);
+			List<Assembly> assms =loadDataConfiguration(url);
 			for(Assembly assm : assms) {
 				if(assm.getClazz().equalsIgnoreCase("heading")) {
 					ret.add(dtoServ.assemblyDto(assm));
@@ -133,13 +145,27 @@ public class AssemblyService {
 			}
 		}
 		if(ret.size()==0) {
-			List<Assembly> assms = boilerServ.loadDataConfiguration(url);
+			List<Assembly> assms = loadDataConfiguration(url);
 			for(Assembly assm : assms) {
 				if(assm.getClazz().equalsIgnoreCase("strings")) {
 					ret.add(dtoServ.assemblyDto(assm));
 				}
 			}
 		}
+		return ret;
+	}
+
+	/**
+	 * Create empty auxiliary literals for the url given
+	 * @param url url given
+	 * @param activityName 
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public List<AssemblyDTO> auxLiterals(String url) throws ObjectNotFoundException {
+		List<Assembly> assms = loadDataConfiguration(url);
+		List<AssemblyDTO> ret = auxLiterals(url, assms);
 		return ret;
 	}
 	/**
@@ -150,7 +176,7 @@ public class AssemblyService {
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public List<AssemblyDTO> auxLiterals(String url) throws ObjectNotFoundException {
+	public List<AssemblyDTO> auxLiterals(String url, List<Assembly> assms) throws ObjectNotFoundException {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
 		if(url.toUpperCase().startsWith("DICTIONARY.")) {
 			{
@@ -274,7 +300,6 @@ public class AssemblyService {
 
 		//*********************************** read from configuration ***************************************************
 		if(ret.size()==0) {
-			List<Assembly> assms = boilerServ.loadDataConfiguration(url);
 			for(Assembly assm : assms) {
 				if(assm.getClazz().equalsIgnoreCase("literals")) {
 					ret.add(dtoServ.assemblyDto(assm));
@@ -285,6 +310,23 @@ public class AssemblyService {
 	}
 
 	/**
+	 * Load class configuration for the url given
+	 * @param url
+	 * @param clazz
+	 * @return only configured definitions, without defaults!!!!
+	 * @throws ObjectNotFoundException 
+	 */
+	public List<AssemblyDTO> aux(String url, String clazz) throws ObjectNotFoundException{
+		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
+		List<Assembly> assms = loadDataConfiguration(url);
+		for(Assembly assm : assms) {
+			if(assm.getClazz().equalsIgnoreCase(clazz)) {
+				ret.add(dtoServ.assemblyDto(assm));
+			}
+		}
+		return ret;
+	}
+	/**
 	 * Addresses to include
 	 * @param objectUrl
 	 * @return
@@ -294,7 +336,7 @@ public class AssemblyService {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
 
 		if(ret.size()==0) {
-			List<Assembly> assms = boilerServ.loadDataConfiguration(url);
+			List<Assembly> assms = loadDataConfiguration(url);
 			for(Assembly assm : assms) {
 				if(assm.getClazz().equalsIgnoreCase("addresses")) {
 					ret.add(dtoServ.assemblyDto(assm));
@@ -315,7 +357,7 @@ public class AssemblyService {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
 		//permanent system's settings
 		if(ret.size()==0) {
-			List<Assembly> assms = boilerServ.loadDataConfiguration(url);
+			List<Assembly> assms = loadDataConfiguration(url);
 			for(Assembly assm : assms) {
 				if(assm.getClazz().equalsIgnoreCase("dates")) {
 					ret.add(dtoServ.assemblyDto(assm));
@@ -343,7 +385,7 @@ public class AssemblyService {
 			}
 		}
 		if(ret.size()==0) {
-			List<Assembly> assms = boilerServ.loadDataConfiguration(url);
+			List<Assembly> assms = loadDataConfiguration(url);
 			for(Assembly assm : assms) {
 				if(assm.getClazz().equalsIgnoreCase("numbers")) {
 					ret.add(dtoServ.assemblyDto(assm));
@@ -365,7 +407,7 @@ public class AssemblyService {
 		}
 		//*********************************** read from configuration ***************************************************
 		if(ret.size()==0) {
-			List<Assembly> assms = boilerServ.loadDataConfiguration(url);
+			List<Assembly> assms = loadDataConfiguration(url);
 			for(Assembly assm : assms) {
 				if(assm.getClazz().equalsIgnoreCase("logical")) {
 					ret.add(dtoServ.assemblyDto(assm));
@@ -385,7 +427,7 @@ public class AssemblyService {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
 
 		if(ret.size()==0) {
-			List<Assembly> assms = boilerServ.loadDataConfiguration(url);
+			List<Assembly> assms = loadDataConfiguration(url);
 			for(Assembly assm : assms) {
 				if(assm.getClazz().equalsIgnoreCase("documents")) {
 					ret.add(dtoServ.assemblyDto(assm));
@@ -404,7 +446,7 @@ public class AssemblyService {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
 		//TODO system defined?
 		if(ret.size()==0) {
-			List<Assembly> assms = boilerServ.loadDataConfiguration(url);
+			List<Assembly> assms = loadDataConfiguration(url);
 			for(Assembly assm : assms) {
 				if(assm.getClazz().equalsIgnoreCase("resources")) {
 					ret.add(dtoServ.assemblyDto(assm));
@@ -424,7 +466,7 @@ public class AssemblyService {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
 
 		if(ret.size()==0) {
-			List<Assembly> assms = boilerServ.loadDataConfiguration(url);
+			List<Assembly> assms = loadDataConfiguration(url);
 			for(Assembly assm : assms) {
 				if(assm.getClazz().equalsIgnoreCase("things")) {
 					ret.add(dtoServ.assemblyDto(assm));
@@ -540,7 +582,7 @@ public class AssemblyService {
 
 		/*************************************** LOAD FROM CONFIGURATION ******************************************************************/
 		if(ret.size()==0) {
-			List<Assembly> as = boilerServ.loadDataConfiguration(url);	//right sort order is assumed!
+			List<Assembly> as = loadDataConfiguration(url);	//right sort order is assumed!
 			LayoutCalculator layout = new LayoutCalculator();
 			for(Assembly a : as) {
 				if(!a.getClazz().equalsIgnoreCase("things") && a.getPropertyName().getActive()) {
@@ -592,7 +634,7 @@ public class AssemblyService {
 			}
 		}
 		if(ret.size()==0) {
-			List<Assembly> assms = boilerServ.loadDataConfiguration(url);
+			List<Assembly> assms = loadDataConfiguration(url);
 			for(Assembly assm : assms) {
 				if(assm.getClazz().equalsIgnoreCase("dictionaries")) {
 					ret.add(dtoServ.assemblyDto(assm));
@@ -612,7 +654,7 @@ public class AssemblyService {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
 		//TODO system persons, maybe
 		if(ret.size()==0) {
-			List<Assembly> assms = boilerServ.loadDataConfiguration(url);
+			List<Assembly> assms = loadDataConfiguration(url);
 			for(Assembly assm : assms) {
 				if(assm.getClazz().equalsIgnoreCase("persons")) {
 					ret.add(dtoServ.assemblyDto(assm));
@@ -632,7 +674,7 @@ public class AssemblyService {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
 		//TODO hardcoded definitions
 		if(ret.size()==0) {
-			List<Assembly> assms = boilerServ.loadDataConfiguration(url);
+			List<Assembly> assms = loadDataConfiguration(url);
 			for(Assembly assm : assms) {
 				if(assm.getClazz().equalsIgnoreCase("personselector")) {
 					ret.add(dtoServ.assemblyDto(assm));
@@ -651,7 +693,7 @@ public class AssemblyService {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
 		//TODO hardcoded definitions
 		if(ret.size()==0) {
-			List<Assembly> assms = boilerServ.loadDataConfiguration(url);
+			List<Assembly> assms = loadDataConfiguration(url);
 			for(Assembly assm : assms) {
 				if(assm.getClazz().equalsIgnoreCase("personspec")) {
 					ret.add(dtoServ.assemblyDto(assm));
@@ -670,7 +712,7 @@ public class AssemblyService {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
 		//TODO hardcoded definitions
 		if(ret.size()==0) {
-			List<Assembly> assms = boilerServ.loadDataConfiguration(url);
+			List<Assembly> assms = loadDataConfiguration(url);
 			for(Assembly assm : assms) {
 				if(assm.getClazz().equalsIgnoreCase("schedulers")) {
 					ret.add(dtoServ.assemblyDto(assm));
@@ -689,7 +731,7 @@ public class AssemblyService {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
 		// TODO hardcoded definitions...
 		if(ret.size()==0) {
-			List<Assembly> assms = boilerServ.loadDataConfiguration(url);
+			List<Assembly> assms = loadDataConfiguration(url);
 			for(Assembly assm : assms) {
 				if(assm.getClazz().equalsIgnoreCase("registers")) {
 					ret.add(dtoServ.assemblyDto(assm));
@@ -709,7 +751,7 @@ public class AssemblyService {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
 		// TODO hardcoded definitions...
 		if(ret.size()==0) {
-			List<Assembly> assms = boilerServ.loadDataConfiguration(url);
+			List<Assembly> assms = loadDataConfiguration(url);
 			for(Assembly assm : assms) {
 				if(assm.getClazz().equalsIgnoreCase("amendments")) {
 					ret.add(dtoServ.assemblyDto(assm));
@@ -728,7 +770,7 @@ public class AssemblyService {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
 		// TODO hardcoded definitions...
 		if(ret.size()==0) {
-			List<Assembly> assms = boilerServ.loadDataConfiguration(url);
+			List<Assembly> assms = loadDataConfiguration(url);
 			for(Assembly assm : assms) {
 				if(assm.getClazz().equalsIgnoreCase("atc")) {
 					ret.add(dtoServ.assemblyDto(assm));
@@ -737,12 +779,19 @@ public class AssemblyService {
 		}
 		return ret;
 	}
-	
-	public List<AssemblyDTO> auxLegacyData(String url) throws ObjectNotFoundException {
+
+	/**
+	 * legacy data references
+	 * @param assms
+	 * @param exts 
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	@Transactional
+	public List<AssemblyDTO> auxLegacyData(String url, List<Assembly> assms) throws ObjectNotFoundException {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
 		// TODO hardcoded definitions...
 		if(ret.size()==0) {
-			List<Assembly> assms = boilerServ.loadDataConfiguration(url);
 			for(Assembly assm : assms) {
 				if(assm.getClazz().equalsIgnoreCase("legacy")) {
 					ret.add(dtoServ.assemblyDto(assm));
@@ -752,6 +801,78 @@ public class AssemblyService {
 		return ret;
 	}
 
+	/**
+	 * Dates intervals
+	 * !!!! attantion, temporary only for the first iteration!
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public List<AssemblyDTO> auxIntervals(ThingDTO data, String clazzName) throws ObjectNotFoundException {
+		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
+		List<String> exts = boilerServ.variablesExtensions(data);
+		jdbcRepo.assembly_variables(data.getUrl());
+		Headers heads= new Headers();
+		heads.getHeaders().add(TableHeader.instanceOf("ext", TableHeader.COLUMN_STRING));
+		heads.getHeaders().add(TableHeader.instanceOf("varname", TableHeader.COLUMN_STRING));
+		heads.getHeaders().add(TableHeader.instanceOf("Clazz", TableHeader.COLUMN_STRING));
+		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from assembly_variables", "", "", heads);
+		Map<String, Long> vars = new HashMap<String, Long>();	//varname, ID
+		Map<String,String> extended = new HashMap<String, String>();	//extension, varname
+		Map<String, Long> extVars = new HashMap<String, Long>();			//varname+extension, ID
+		//prepare maps
+		for(TableRow row : rows) {
+			String ext = row.getRow().get(0).getValue();
+			String varname = row.getRow().get(1).getValue();
+			String clazz = row.getRow().get(2).getValue();
+			if(clazz.equalsIgnoreCase(clazzName)) {
+				if(ext==null || ext.length()==0) {
+					vars.put(varname, row.getDbID());
+				}else {
+					varname=varname.replace(ext, "");
+					extended.put(ext, varname);
+					extVars.put(varname+ext, row.getDbID());
+				}
+			}
+		}
+		//prepare DTOs
+		for(String varname : vars.keySet()) {
+			Assembly assm = calcAssembly(vars.get(varname), varname, extended, exts, extVars);
+			ret.add(dtoServ.assemblyDto(assm));
+		}	
+		return ret;
+	}
+	/**
+	 * Get right assembly
+	 * @param assmId
+	 * @param varname
+	 * @param extended
+	 * @param exts
+	 * @param extVars 
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private Assembly calcAssembly(Long assmId, String varname, Map<String, String> extended, List<String> exts, Map<String, Long> extVars) throws ObjectNotFoundException {
+		//search for extension
+		Long id = assmId;
+		for(String ext : extended.keySet()) {
+			if(exts.contains(ext)) {
+				if(extended.get(ext).equalsIgnoreCase(varname)) {
+					id=extVars.get(varname+ext);
+					break;
+				}
+			}
+		}
+		Optional<Assembly> assmo = assmRepo.findById(id);
+		if(assmo.isPresent()) {
+			assmo.get().getPropertyName().setIdentifier(varname);
+		}else {
+			throw new ObjectNotFoundException("calcAssembly. Assembly not found. ID is "+assmId,logger);
+		}
+		return assmo.get();
+	}
 	/**
 	 * URL of business types dictionary
 	 * @return
@@ -791,7 +912,7 @@ public class AssemblyService {
 	 */
 	@Transactional
 	public String auxDataUrl(String url, String auxPathVar) throws ObjectNotFoundException {
-		List<Assembly> assms = boilerServ.loadDataConfiguration(url);
+		List<Assembly> assms = loadDataConfiguration(url);
 		for(Assembly assm : assms) {
 			if(assm.getPropertyName().getIdentifier().equalsIgnoreCase(auxPathVar)) {
 				return assm.getAuxDataUrl();
@@ -827,7 +948,7 @@ public class AssemblyService {
 			}
 			Concept parent = closureServ.loadConceptById(data.getParentId());
 			Thing parentThing = boilerServ.thingByNode(parent);
-			List<Assembly> assms = boilerServ.loadDataConfiguration(parentThing.getUrl());
+			List<Assembly> assms = loadDataConfiguration(parentThing.getUrl());
 			for(Assembly assm : assms) {
 				if(assm.getPropertyName().getIdentifier().equalsIgnoreCase(varName)){
 					String urlStr=assm.getAuxDataUrl();
@@ -923,6 +1044,7 @@ public class AssemblyService {
 			ret.setApplicantRestriction(false); //TODO
 			ret.setDataUrl(urlFromDictionary(node, "application"));
 			ret.setDictStageUrl(urlFromDictionary(node, "stage"));
+			ret.setDeregistered(ret.getDictStageUrl().equalsIgnoreCase(SystemService.DICTIONARY_GUEST_DEREGISTRATION));
 			ret.setApplicantUrl(literalServ.readValue("applicanturl", node));
 			ret.setInspectAppUrl(literalServ.readValue("inspection_url", node));
 			ret.setOwnerUrl(literalServ.readValue("owners_url", node));
@@ -978,6 +1100,49 @@ public class AssemblyService {
 		}
 		return ret;
 	}
+
+	/**
+	 * Load data configuration from assembly table
+	 * Sorted by row, col, ord
+	 * @param url
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public List<Assembly> loadDataConfiguration(String url) throws ObjectNotFoundException {
+		List<Assembly> ret = new ArrayList<Assembly>();
+		List<Concept> datas = loadAllDataConfigurations();
+		List<Concept> vars = new ArrayList<Concept>();
+		for(Concept dat : datas) {
+			if(dat.getIdentifier().equalsIgnoreCase(url) && dat.getActive()) {
+				List<Concept> varsAll = literalServ.loadOnlyChilds(dat);
+				for(Concept var : varsAll) {
+					if(var.getActive() && (var.getLabel()==null || var.getLabel().length()==0)) {
+						vars.add(var);
+					}
+				}
+			}
+		}
+		if(vars.size()>0) {
+			ret=assmRepo.findAllByPropertyNameIn(vars, Sort.by(Sort.Direction.ASC,"row", "col", "ord"));
+		}
+		return ret;
+	}
+
+	/**
+	 * Load a list of variables that configured under the URL
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	@Transactional
+	public List<Concept> loadAllDataConfigurations() throws ObjectNotFoundException {
+		Concept root = closureServ.loadRoot(SystemService.DATA_COLLECTIONS_ROOT);
+		List<Concept> datas = literalServ.loadOnlyChilds(root);
+		return datas;
+	}
+
+
+
 
 
 }

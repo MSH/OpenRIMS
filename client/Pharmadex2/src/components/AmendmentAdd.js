@@ -23,7 +23,7 @@ class AmendmentAdd extends Component{
                 selectdatatomodify:'',
                 addmodification:'',
             },
-            data:{
+            data:{                                  //AmendmentNewDTO.java
                 dictItemId:this.props.dictItemId
             }
         }

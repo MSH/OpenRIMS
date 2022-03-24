@@ -20,6 +20,7 @@ import PersonSpecial from './PersonSpecial'
 import Amended from './Amended'
 import ATCCodes from './ATCCodes'
 import LegacyData from './LegacyData'
+import Interval from './Interval'
 import Pharmadex from './Pharmadex'
 
 
@@ -66,8 +67,8 @@ class Thing extends Component{
         this.saveGuest=this.saveGuest.bind(this)
         this.postLoaded=this.postLoaded.bind(this)
         this.personSpecControl=this.personSpecControl.bind(this)
-        this.amendmentsControl=this.amendmentsControl.bind(this)
         this.helpButton=this.helpButton.bind(this)
+        this.reloadComponents=this.reloadComponents.bind(this)
     }
     /**
      * GEt prefLabel
@@ -185,6 +186,10 @@ class Thing extends Component{
             if(data.subject=='onSelectionChange'){
                 let name=data.data.varName
                 this.takeComponent(name,0,data.data)
+                if(this.state.data.dictionaries.hasOwnProperty(name)){
+                    this.reloadComponents();
+                }
+                this.setState(this.state)
                 Navigator.message(this.state.identifier, this.props.recipient, "thingUpdated", this.state.data)
             }
            if(data.subject=='runAction'){
@@ -227,6 +232,16 @@ class Thing extends Component{
         window.addEventListener("message",this.eventProcessor)
         this.load()
     }
+    /**
+     * Re-load components that should be reloaded after onSelectionChange
+     */
+    reloadComponents(){
+        Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/thing/refresh", this.state.data, (query,result)=>{
+            this.state.data=result
+            this.setState(this.state)
+        })
+    }
+
     /**
      * Fill out a filed in the form
      * @example
@@ -354,6 +369,7 @@ class Thing extends Component{
         Locales.createLabels(this,'amendments')
         Locales.createLabels(this,'atc')
         Locales.createLabels(this, 'legacy');
+        Locales.createLabels(this, 'intervals');
         if(this.state.data.activityName != undefined){
             this.state.labels[this.state.data.activityName]=''     //for activity names
         }
@@ -766,7 +782,7 @@ class Thing extends Component{
         }
         if(this.state.data.persons.hasOwnProperty(name)){
             if(data != undefined){
-                this.persons[name]=data
+                this.state.data.persons[name]=data
             }else{
                 let data=this.state.data.persons[name]
                 let readOnly=this.props.readOnly || data.readOnly
@@ -824,6 +840,17 @@ class Thing extends Component{
                             this.state.labels[name],
                             this.props.readOnly || this.state.data.readOnly
                     )
+                )
+            }
+        }
+        if(this.state.data.intervals.hasOwnProperty(name)){
+            if(data != undefined){
+                this.state.data.intervals[name]=data
+            }else{
+                let interval= this.state.data.intervals[name]
+                interval.reload=true
+                return(
+                    Interval.place(interval, this.state.identifier, this.props.readOnly, index, this.state.labels[name])
                 )
             }
         }

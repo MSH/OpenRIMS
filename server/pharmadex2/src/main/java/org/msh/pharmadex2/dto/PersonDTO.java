@@ -21,6 +21,7 @@ public class PersonDTO  extends AllowValidation{
 	//list of already defined persons
 	private TableQtb table = new TableQtb();
 	//list of persons to remove in amendment
+	@Deprecated
 	private TableQtb rtable = new TableQtb();
 	private boolean required=false;
 	private boolean readOnly=false;

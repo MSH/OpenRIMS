@@ -403,6 +403,17 @@ public class ClosureService {
 		ret.setLabel(root.getLabel());
 		return ret;
 	}
+	/**
+	 * Load concept by Identifier and label
+	 * @param identifier
+	 * @param label
+	 * @return
+	 */
+	public List<Concept> loadConceptByIdentifierAndLabel(String identifier, String label) {
+		List<Concept> ret= new ArrayList<Concept>();
+		ret=conceptRepo.findAllByIdentifierAndLabel(identifier, label);
+		return ret;
+	}
 
 
 }
