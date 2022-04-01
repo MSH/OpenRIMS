@@ -36,6 +36,7 @@ import org.msh.pharmadex2.dto.ResourceDTO;
 import org.msh.pharmadex2.dto.SchedulerDTO;
 import org.msh.pharmadex2.dto.ThingValuesDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
+import org.msh.pharmadex2.service.common.DtoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,6 +63,8 @@ public class ResolverService {
 	private AssemblyService assemblyServ;
 	@Autowired
 	private AmendmentService amendServ;
+	@Autowired
+	private DtoService dtoServ;
 
 
 	/**
@@ -155,7 +158,8 @@ public class ResolverService {
 			}
 			
 			
-			if(dataType.equalsIgnoreCase("date") || dataType.equalsIgnoreCase("registered") || dataType.equalsIgnoreCase("expired")) {
+			if(dataType.equalsIgnoreCase("date") || dataType.equalsIgnoreCase("registered") || dataType.equalsIgnoreCase("expired")
+					||  dataType.equalsIgnoreCase("from") ||  dataType.equalsIgnoreCase("to")) {
 				if(data instanceof LocalDate) {
 					LocalDate ld = (LocalDate) data;
 					String ldStr = ld.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM));
@@ -557,6 +561,7 @@ public class ResolverService {
 		List<AssemblyDTO> persons = assembly(varThing.getUrl(), "persons", assemblies);
 		//List<AssemblyDTO> registers = assemblyServ.auxRegisters(varThing.getUrl());
 		List<AssemblyDTO> registers = assembly(varThing.getUrl(), "registers", assemblies);
+		List<AssemblyDTO> intervals = assembly(varThing.getUrl(), "intervals", assemblies);
 		for(AssemblyDTO ad : strings) {											//strings are literals
 			if(ad.getPropertyName().equalsIgnoreCase(varName)) {
 				String valStr = literalServ.readValue(varName, var);
@@ -660,6 +665,10 @@ public class ResolverService {
 				value=register(ad,varName,var,value);
 			}
 		}
+		
+		for(AssemblyDTO ival : intervals) {
+			value=interval(ival, varName, var, value);
+		}
 
 		if(value == null) {
 			value=error(varName,"readVariable. Value not found",value);
@@ -669,6 +678,8 @@ public class ResolverService {
 		}
 		return value;
 	}
+	
+
 	/**
 	 * Get or load the assembly
 	 * Ensure that any assembly will be loaded once
@@ -731,6 +742,27 @@ public class ResolverService {
 			value.put("registeredBS1",boilerServ.localDateToNepali(valReg.getRegistration_date().getValue(),false));
 			value.put("expiredBS1",boilerServ.localDateToNepali(valReg.getExpiry_date().getValue(),false));*/
 		}
+		return value;
+	}
+	
+	/**
+	 * Resolve an interval
+	 * @param ival interval's assembly
+	 * @param varName
+	 * @param var the node
+	 * @param value the result
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	private Map<String, Object> interval(AssemblyDTO ival, String varName, Concept var, Map<String, Object> value) throws ObjectNotFoundException {
+		LocalDate from=dtoServ.readDate(var,varName+"_from");
+		LocalDate to=dtoServ.readDate(var, varName+"_to");
+		value.put("from",from);					//to locale string!!!!
+		value.put("fromBS", boilerServ.localDateToNepali(from, false));
+		value.put("fromBS1",boilerServ.localDateToNepali(from, true));
+		value.put("to", to);
+		value.put("toBS", boilerServ.localDateToNepali(to, false));
+		value.put("toBS1",boilerServ.localDateToNepali(to, true));
 		return value;
 	}
 	/**

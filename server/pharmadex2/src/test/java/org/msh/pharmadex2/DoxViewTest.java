@@ -12,6 +12,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.imageio.ImageIO;
@@ -24,6 +26,11 @@ import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.junit.jupiter.api.Test;
+import org.msh.pdex2.dto.table.Headers;
+import org.msh.pdex2.dto.table.TableCell;
+import org.msh.pdex2.dto.table.TableHeader;
+import org.msh.pdex2.dto.table.TableQtb;
+import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.controller.common.CustomXWPFDocument;
@@ -154,7 +161,7 @@ public class DoxViewTest {
 		fos.close();
 		doc.close();
 	}
-	
+
 	/**
 	 * Insert a plain image 
 	 * @throws IOException
@@ -173,7 +180,7 @@ public class DoxViewTest {
 		Path pathPic = Paths.get("src","test","resources", "swin.png");
 		File pic = pathPic.toFile();
 		FileInputStream picStream = new FileInputStream(pic);
-		
+
 		XWPFDocument doc = dx.getDoc();
 		XWPFParagraph paragraph = doc.createParagraph();
 		XWPFRun run =paragraph.createRun();
@@ -186,7 +193,7 @@ public class DoxViewTest {
 		fos.close();
 		doc.close();
 	}
-	
+
 	@Test
 	public void insertSimpleImage() throws ObjectNotFoundException, IOException, InvalidFormatException {
 		Path pathFile = Paths.get("src","test","resources", "InsertField.docx");
@@ -213,5 +220,41 @@ public class DoxViewTest {
 		document.write(fos);
 		fos.flush();
 		fos.close();	
+	}
+
+	/**
+	 * Test @form convertor
+	 * @throws IOException 
+	 * @throws ObjectNotFoundException 
+	 */
+	@Test
+	public void testTableEL() throws ObjectNotFoundException, IOException {
+		Map<String, Object> model = new HashMap<String, Object>();
+		model.put("/pharmacists/pharmacists/0/prefLabel@literal", "name of a Pharmacist");
+		TableQtb table = new TableQtb();
+		table.setPaintBorders(false);
+		Headers headers=table.getHeaders();
+		headers.getHeaders().add(TableHeader.instanceOf("varname", "varname", 20, TableHeader.COLUMN_STRING));
+		headers.getHeaders().add(TableHeader.instanceOf("description", "", 80, TableHeader.COLUMN_STRING));
+		TableRow row = TableRow.instanceOf(1l);
+		row.getRow().add(TableCell.instanceOf("first", "First Row, First Col"));
+		row.getRow().add(TableCell.instanceOf("second", "First Row, Second Col"));
+		table.getRows().add(row);
+		model.put("/pharmacists/pharmacists/0@form", table);
+		model.put("/pharmacists/pharmacists/0/qualification@form", table);
+		
+		Path pathFile = Paths.get("src","test","resources", "Components_EL.docx");
+		File file = pathFile.toFile();
+		DocxView dx = new DocxView(new FileInputStream(file),boilerServ);
+		
+		dx.resolveDocument(model, true);
+		
+		XWPFDocument document = dx.getDoc();
+		Path pathFileout = Paths.get("src","test","resources", "Components_EL_out.docx");
+		File fileout = pathFileout.toFile();
+		FileOutputStream fos = new FileOutputStream(fileout);
+		document.write(fos);
+		fos.flush();
+		fos.close();
 	}
 }

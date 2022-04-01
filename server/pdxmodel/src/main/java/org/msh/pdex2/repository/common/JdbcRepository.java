@@ -35,6 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
  *
  */
 @Repository
+@Transactional
 public class JdbcRepository {
 	private static final Logger logger = LoggerFactory.getLogger(JdbcRepository.class);
 	@Autowired

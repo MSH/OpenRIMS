@@ -56,7 +56,7 @@ import org.springframework.web.servlet.view.AbstractView;
  *
  */
 public class DocxView extends AbstractView{
-	
+
 	private BoilerService boilerServ;
 
 	private static final Logger logger = LoggerFactory.getLogger(DocxView.class);
@@ -322,7 +322,7 @@ public class DocxView extends AbstractView{
 			}
 		}
 
-		setTableBorders(tableDoc);
+		setTableBorders(tableDoc, table.isPaintBorders());
 
 		if(tableDoc != null) {
 			CTTblWidth tableWidth = tableDoc.getCTTbl().addNewTblPr().addNewTblW();
@@ -442,20 +442,23 @@ public class DocxView extends AbstractView{
 	/**
 	 * set all table borders by insert table
 	 * @param tableDoc
+	 * @param paintBorders 
 	 */
-	private void setTableBorders(XWPFTable tableDoc) {
-		tableDoc.getCTTbl().addNewTblPr().addNewTblBorders().addNewLeft().setVal(
-				org.openxmlformats.schemas.wordprocessingml.x2006.main.STBorder.SINGLE);
-		tableDoc.getCTTbl().getTblPr().getTblBorders().addNewRight().setVal(
-				org.openxmlformats.schemas.wordprocessingml.x2006.main.STBorder.SINGLE);
-		tableDoc.getCTTbl().getTblPr().getTblBorders().addNewTop().setVal(
-				org.openxmlformats.schemas.wordprocessingml.x2006.main.STBorder.SINGLE);
-		tableDoc.getCTTbl().getTblPr().getTblBorders().addNewBottom().setVal(
-				org.openxmlformats.schemas.wordprocessingml.x2006.main.STBorder.SINGLE);
-		tableDoc.getCTTbl().getTblPr().getTblBorders().addNewInsideH().setVal(
-				org.openxmlformats.schemas.wordprocessingml.x2006.main.STBorder.SINGLE);
-		tableDoc.getCTTbl().getTblPr().getTblBorders().addNewInsideV().setVal(
-				org.openxmlformats.schemas.wordprocessingml.x2006.main.STBorder.SINGLE);
+	private void setTableBorders(XWPFTable tableDoc, boolean paintBorders) {
+		if(paintBorders) {
+			tableDoc.getCTTbl().addNewTblPr().addNewTblBorders().addNewLeft().setVal(
+					org.openxmlformats.schemas.wordprocessingml.x2006.main.STBorder.SINGLE);
+			tableDoc.getCTTbl().getTblPr().getTblBorders().addNewRight().setVal(
+					org.openxmlformats.schemas.wordprocessingml.x2006.main.STBorder.SINGLE);
+			tableDoc.getCTTbl().getTblPr().getTblBorders().addNewTop().setVal(
+					org.openxmlformats.schemas.wordprocessingml.x2006.main.STBorder.SINGLE);
+			tableDoc.getCTTbl().getTblPr().getTblBorders().addNewBottom().setVal(
+					org.openxmlformats.schemas.wordprocessingml.x2006.main.STBorder.SINGLE);
+			tableDoc.getCTTbl().getTblPr().getTblBorders().addNewInsideH().setVal(
+					org.openxmlformats.schemas.wordprocessingml.x2006.main.STBorder.SINGLE);
+			tableDoc.getCTTbl().getTblPr().getTblBorders().addNewInsideV().setVal(
+					org.openxmlformats.schemas.wordprocessingml.x2006.main.STBorder.SINGLE);
+		}
 	}
 
 	/**
@@ -510,7 +513,7 @@ public class DocxView extends AbstractView{
 			int width = img.getWidth()*9525;
 			String blipId = run.getDocument().addPictureData(im, pictureType);
 			int id=run.getDocument().getNextPicNameNumber(pictureType);
-					CTInline inline = run.getCTR().addNewDrawing().addNewInline();
+			CTInline inline = run.getCTR().addNewDrawing().addNewInline();
 			String picXml = "" +
 					"<a:graphic xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\">" +
 					"   <a:graphicData uri=\"http://schemas.openxmlformats.org/drawingml/2006/picture\">" +

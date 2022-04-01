@@ -288,6 +288,24 @@ public class TableHeader {
 				0);
 	}
 	/**
+	 * Short form for non-database oerations - free hand created tables
+	 * @param key
+	 * @param header
+	 * @param width in chars
+	 * @param columnString
+	 * @return
+	 */
+	public static TableHeader instanceOf(String key, String header, int width,  int columnType) {
+		return TableHeader.instanceOf(
+				key,
+				header,
+				false,
+				false,
+				false,
+				columnType,
+				width);
+	}
+	/**
 	 * Create SQL where phrase's expression for this header
 	 * @return
 	 */
@@ -442,5 +460,6 @@ public class TableHeader {
 	public String toString() {
 		return(getKey() + "[type=" + getColumnType()+"]");
 	}
+
 	
 }

@@ -19,6 +19,8 @@ public class TableQtb {
 	//search part
 	private int searchTreshold=2; //start search after user will typed searchTreshold characters
 	private String generalSearch="";
+	private boolean paintBorders=true;		//should we paint borders (only for MS Word yet)
+	private boolean paintHeaders=true;	//should we paint headers (only for MS Word yet)
 	
 	public boolean isSelectable() {
 		return selectable;
@@ -49,6 +51,19 @@ public class TableQtb {
 	}
 	public void setGeneralSearch(String generalSearch) {
 		this.generalSearch = generalSearch;
+	}
+	
+	public boolean isPaintBorders() {
+		return paintBorders;
+	}
+	public void setPaintBorders(boolean paintBorders) {
+		this.paintBorders = paintBorders;
+	}
+	public boolean isPaintHeaders() {
+		return paintHeaders;
+	}
+	public void setPaintHeaders(boolean paintHeaders) {
+		this.paintHeaders = paintHeaders;
 	}
 	/**
 	 * Get selected row

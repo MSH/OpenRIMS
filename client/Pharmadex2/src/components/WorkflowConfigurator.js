@@ -28,7 +28,7 @@ class WorkflowConfigurator extends Component{
                 global_suspend:'',
                 workflows:'',
                 next:'',
-                insert:'',
+                insertbefore:'',
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -240,7 +240,7 @@ class WorkflowConfigurator extends Component{
                     </Col>
                     <Col xs='12' sm='12' lg='1' xl='1'>
                         <ButtonUni
-                            label={this.state.labels.insert}
+                            label={this.state.labels.insertbefore}
                             onClick={()=>{
                                 Fetchers.postJSON("/api/admin/workflow/activity/insert", this.state.data, (query,result)=>{
                                     this.state.data=result

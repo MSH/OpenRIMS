@@ -458,6 +458,7 @@ public class ReportService {
 	 * @param data
 	 * @return
 	 */
+	@Transactional
 	public TableQtb all(UserDetailsDTO user, TableQtb data) {
 		if(!data.hasHeaders()) {
 			data.setHeaders(headersUserReport(data.getHeaders()));

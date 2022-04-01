@@ -213,8 +213,9 @@ public class MonitoringService {
 	private ApplicationsDTO loadTablesApplicant(String where, ApplicationsDTO data) {
 		String currWhere = where +" and scheduled<=curdate() + Interval 1 day";
 		String schedWhere= where+ " and scheduled>curdate()";
-		String select = "select max(ID) as 'ID', scheduled, prefLabel, process, activity from in_activities";
-		String groupby = "group by scheduled,prefLabel, process, activity";
+		//String select = "select max(ID) as 'ID', scheduled, prefLabel, process, activity from in_activities";
+		String select = "select max(ID) as 'ID', max(scheduled) as 'scheduled', prefLabel, process, activity from in_activities";
+		String groupby = "group by prefLabel, process, activity";
 		List<TableRow> current = jdbcRepo.qtbGroupReport(select, groupby, currWhere, data.getTable().getHeaders());
 		List<TableRow> sched = jdbcRepo.qtbGroupReport(select, groupby, schedWhere, data.getScheduled().getHeaders());
 		TableQtb.tablePage(current, data.getTable());
