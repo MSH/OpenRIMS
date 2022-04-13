@@ -1,12 +1,20 @@
 package org.msh.pharmadex2.service.r2;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.msh.pdex2.dto.i18n.Language;
 import org.msh.pdex2.dto.i18n.Languages;
 import org.msh.pdex2.dto.table.Headers;
@@ -37,8 +45,12 @@ import org.msh.pharmadex2.service.common.ValidationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 /**
  * Responsible for dictionaries - DictNodeDTO and DictionaryDTO
  * DictNodeDTO represents a concept for any object
@@ -69,6 +81,8 @@ public class DictService {
 	AssemblyService assembServ;
 	@Autowired
 	QueryRepository queryRep;
+	@Autowired
+	ImportFromExcel importFromExcel;
 
 	/**
 	 * Save the node.
@@ -837,6 +851,18 @@ public class DictService {
 			String description=literalServ.readValue("description", root);
 			data.getPrefLabel().setValue(prefLabel);
 			data.getDescription().setValue(description);
+			
+			if(root.getIdentifier().equals(SystemService.DICTIONARY_ADMIN_UNITS)) {
+				data.setGisvisible(true);
+				String gisloc = literalServ.readValue(LiteralService.GIS_LOCATION, root);
+				String z = literalServ.readValue(LiteralService.ZOMM, root);
+				data.getGisLocation().setValue(gisloc);
+				data.getZoom().setValue(z);
+			}else {
+				data.setGisvisible(false);
+				data.getGisLocation().setValue("");
+				data.getZoom().setValue("");
+			}
 		}
 		return data;
 	}
@@ -873,6 +899,11 @@ public class DictService {
 			root.setIdentifier(data.getUrl().getValue());
 			literalServ.createUpdateLiteral("prefLabel", data.getPrefLabel().getValue(), root);
 			literalServ.createUpdateLiteral("description", data.getDescription().getValue(), root);
+			
+			if(root.getIdentifier().equals(SystemService.DICTIONARY_ADMIN_UNITS)) {
+				literalServ.createUpdateLiteral(LiteralService.GIS_LOCATION, data.getGisLocation().getValue(), root);
+				literalServ.createUpdateLiteral(LiteralService.ZOMM, data.getZoom().getValue(), root);
+			}
 		}
 		return data;
 	}
@@ -1130,5 +1161,48 @@ public class DictService {
 		return ret;
 	}
 
+	/**
+	 * Перемещение в корзину словаря админ.единиц
+	 * Перемещает в корзину все уровни
+	 * остается только ROOT
+	 * @throws ObjectNotFoundException
+	 */
+	@Transactional
+	public void loadAllProvinces() throws ObjectNotFoundException {
+		Concept root = closureServ.loadRoot(SystemService.DICTIONARY_ADMIN_UNITS);
+		
+		List<Concept> provinces = literalServ.loadOnlyChilds(root);
+		for(Concept prov : provinces) {
+			DictNodeDTO provDTO = createNode(prov);
+			provDTO = nodeSuspend(provDTO);
+			
+			List<Concept> districts = literalServ.loadOnlyChilds(prov);
+			for(Concept distr : districts) {
+				DictNodeDTO distrDTO = createNode(distr);
+				distrDTO = nodeSuspend(distrDTO);
+				
+				List<Concept> communities = literalServ.loadOnlyChilds(distr);
+				for(Concept comm : communities) {
+					DictNodeDTO commDTO = createNode(comm);
+					commDTO = nodeSuspend(commDTO);
+				}
+			}
+		}
+	}
+	
+	public void loadAdminUnitsFormFile(byte[] bytes) throws JsonParseException, JsonMappingException, IOException, ObjectNotFoundException {
+		//TODO load some file
+		/*
+		 * получим данные и файл с формы
+		 * тут построим гланый рут
+		 */
+		Locale def = new Locale("en", "US");
+		LocaleContextHolder.setDefaultLocale(def);
+		LocaleContextHolder.setLocale(def);
+		
+		if(bytes.length > 0) {
+			importFromExcel.importAdmUnit(bytes);
+		}
+	}
 
 }

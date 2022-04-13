@@ -159,6 +159,16 @@ class RootNode extends Component{
                         <FieldInput mode='textarea' lines={4} attribute='description' component={this}/>
                     </Col>
                 </Row>
+                <Row hidden={!this.state.data.gisvisible}>
+                    <Col>   
+                        <FieldInput mode='text' attribute='gisLocation' component={this}/>
+                    </Col>
+                </Row>
+                <Row hidden={!this.state.data.gisvisible}>
+                    <Col>   
+                        <FieldInput mode='text' attribute='zoom' component={this}/>
+                    </Col>
+                </Row>
                 {this.buildButtons()}
                 <Row style={{height:'20px'}}></Row>
             </Container>

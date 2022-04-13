@@ -223,13 +223,19 @@ public class DoxViewTest {
 	}
 
 	/**
-	 * Test @form convertor
+	 * Test @form convertor. Abstract tables
 	 * @throws IOException 
 	 * @throws ObjectNotFoundException 
 	 */
 	@Test
 	public void testTableEL() throws ObjectNotFoundException, IOException {
-		Map<String, Object> model = new HashMap<String, Object>();
+		//init view
+		Path pathFile = Paths.get("src","test","resources", "Components_EL.docx");
+		File file = pathFile.toFile();
+		FileInputStream stream = new FileInputStream(file);
+		DocxView dx = new DocxView(stream,boilerServ);
+		//init model
+		Map<String, Object> model = dx.initModel();
 		model.put("/pharmacists/pharmacists/0/prefLabel@literal", "name of a Pharmacist");
 		TableQtb table = new TableQtb();
 		table.setPaintBorders(false);
@@ -242,15 +248,117 @@ public class DoxViewTest {
 		table.getRows().add(row);
 		model.put("/pharmacists/pharmacists/0@form", table);
 		model.put("/pharmacists/pharmacists/0/qualification@form", table);
-		
-		Path pathFile = Paths.get("src","test","resources", "Components_EL.docx");
-		File file = pathFile.toFile();
-		DocxView dx = new DocxView(new FileInputStream(file),boilerServ);
-		
+		//fill out EL
+		stream = new FileInputStream(file);
+		dx = new DocxView(stream,boilerServ);
 		dx.resolveDocument(model, true);
-		
+		//save result
 		XWPFDocument document = dx.getDoc();
 		Path pathFileout = Paths.get("src","test","resources", "Components_EL_out.docx");
+		File fileout = pathFileout.toFile();
+		FileOutputStream fos = new FileOutputStream(fileout);
+		document.write(fos);
+		fos.flush();
+		fos.close();
+	}
+	
+	/**
+	 * Test @form convertor. Real object. May not work on the some databases
+	 * @throws IOException 
+	 * @throws ObjectNotFoundException 
+	 */
+	//@Test
+	public void testRealTableELForm() throws ObjectNotFoundException, IOException {
+		//init view
+		Path pathFile = Paths.get("src","test","resources", "Components_EL.docx");
+		File file = pathFile.toFile();
+		FileInputStream stream = new FileInputStream(file);
+		DocxView dx = new DocxView(stream,boilerServ);
+		//init model
+		Map<String, Object> model = dx.initModel();
+		ResourceDTO fres = new ResourceDTO();
+		fres.setHistoryId(2889);
+		model=resolverServ.resolveModel(model, fres);
+		//fill out EL
+		stream = new FileInputStream(file);
+		dx = new DocxView(stream,boilerServ);
+		dx.resolveDocument(model, true);
+		//save result
+		XWPFDocument document = dx.getDoc();
+		Path pathFileout = Paths.get("src","test","resources", "Components_EL_out.docx");
+		File fileout = pathFileout.toFile();
+		FileOutputStream fos = new FileOutputStream(fileout);
+		document.write(fos);
+		fos.flush();
+		fos.close();
+	}
+	
+	/**
+	 * Test @changes convertor. Real object. May not work on the some databases
+	 * @throws IOException 
+	 * @throws ObjectNotFoundException 
+	 */
+	//@Test
+	public void testRealTableELChanges() throws ObjectNotFoundException, IOException {
+		//init view
+		Path pathFile = Paths.get("src","test","resources", "Components_EL_Changes.docx");
+		File file = pathFile.toFile();
+		FileInputStream stream = new FileInputStream(file);
+		DocxView dx = new DocxView(stream,boilerServ);
+		//init model
+		Map<String, Object> model = dx.initModel();
+		ResourceDTO fres = new ResourceDTO();
+		//fres.setHistoryId(5280);		//qualif
+		//fres.setHistoryId(5281);		//owner
+		//fres.setHistoryId(5283);   //pharmacist
+		//fres.setHistoryId(5284);       //address
+		//fres.setHistoryId(5285);          //capital
+		//fres.setHistoryId(5286);             //the name
+		//fres.setHistoryId(5217);			//implemented persons
+		//fres.setHistoryId(3603);           //implemented capital
+		//fres.setHistoryId(5288);			//implemented address
+		//fres.setHistoryId(3603);			//implemented capital
+		//fres.setHistoryId(5293);			//implemented name
+		fres.setHistoryId(5296);				//implement qualif
+		model=resolverServ.resolveModel(model, fres);
+		//fill out EL
+		stream = new FileInputStream(file);
+		dx = new DocxView(stream,boilerServ);
+		dx.resolveDocument(model, true);
+		//save result
+		XWPFDocument document = dx.getDoc();
+		Path pathFileout = Paths.get("src","test","resources", "Components_EL_Changes_out.docx");
+		File fileout = pathFileout.toFile();
+		FileOutputStream fos = new FileOutputStream(fileout);
+		document.write(fos);
+		fos.flush();
+		fos.close();
+	}
+	
+	/**
+	 * Test @changes convertor. Real object. May not work on the some databases
+	 * @throws IOException 
+	 * @throws ObjectNotFoundException 
+	 */
+	//@Test
+	public void testRealTableELChangesList() throws ObjectNotFoundException, IOException {
+		//init view
+		Path pathFile = Paths.get("src","test","resources", "Components_EL_ChangesList.docx");
+		File file = pathFile.toFile();
+		FileInputStream stream = new FileInputStream(file);
+		DocxView dx = new DocxView(stream,boilerServ);
+		//init model
+		Map<String, Object> model = dx.initModel();
+		ResourceDTO fres = new ResourceDTO();
+		fres.setHistoryId(2889);
+		model=resolverServ.resolveModel(model, fres);
+		//fill out EL
+		stream = new FileInputStream(file);
+		dx = new DocxView(stream,boilerServ);
+		dx.resolveDocument(model, true);
+		//save result
+		XWPFDocument document = dx.getDoc();
+		Path pathFileout = Paths.get("src","test","resources", "Components_EL_ChangesList_out.docx");
 		File fileout = pathFileout.toFile();
 		FileOutputStream fos = new FileOutputStream(fileout);
 		document.write(fos);

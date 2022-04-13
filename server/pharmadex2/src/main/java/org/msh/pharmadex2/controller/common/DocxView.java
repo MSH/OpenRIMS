@@ -43,7 +43,9 @@ import org.msh.pharmadex2.service.common.BoilerService;
 import org.openxmlformats.schemas.drawingml.x2006.main.CTNonVisualDrawingProps;
 import org.openxmlformats.schemas.drawingml.x2006.main.CTPositiveSize2D;
 import org.openxmlformats.schemas.drawingml.x2006.wordprocessingDrawing.CTInline;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTHMerge;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTblWidth;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.STMerge;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.STTblWidth;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,6 +58,8 @@ import org.springframework.web.servlet.view.AbstractView;
  *
  */
 public class DocxView extends AbstractView{
+
+	private static final String SELECTED_ROW_COLOR = "F0EDED";
 
 	private BoilerService boilerServ;
 
@@ -311,7 +315,7 @@ public class DocxView extends AbstractView{
 		if(cell == null) {
 			tableDoc = par.getDocument().insertNewTbl(par.getCTP().newCursor());
 			headerRow = tableDoc.getRow(0);
-			headerRow.setRepeatHeader(true);
+			headerRow.setRepeatHeader(false);
 		}else {
 			tableDoc = cell.insertNewTbl(par.getCTP().newCursor());
 			headerRow = tableDoc.createRow();
@@ -353,14 +357,18 @@ public class DocxView extends AbstractView{
 			switch(headers.get(cellIndex).getColumnType()) {
 			case TableHeader.COLUMN_DECIMAL:
 			case TableHeader.COLUMN_LONG:
-				setTextAndAlignCell(ParagraphAlignment.RIGHT,cell.getValue(),ret.getCell(cellIndex),false);
+				setTextAndAlignCell(ParagraphAlignment.RIGHT,cell.getValue(),ret.getCell(cellIndex),row.getSelected());
 				break;
 			case TableHeader.COLUMN_LOCALDATE:
 			case TableHeader.COLUMN_LOCALDATETIME:
-				setTextAndAlignCell(ParagraphAlignment.CENTER,cell.getValue(),ret.getCell(cellIndex),false);
+				setTextAndAlignCell(ParagraphAlignment.CENTER,cell.getValue(),ret.getCell(cellIndex),row.getSelected());
 				break;
 			default:
-				ret.getCell(cellIndex).setText(cell.getValue());
+				//ret.getCell(cellIndex).setText(cell.getValue());
+				setTextAndAlignCell(ParagraphAlignment.LEFT,cell.getValue(),ret.getCell(cellIndex),row.getSelected());
+			}
+			if(row.getSelected()) {
+				ret.getCell(cellIndex).setColor(SELECTED_ROW_COLOR);
 			}
 			cellIndex++;
 		}
@@ -379,7 +387,8 @@ public class DocxView extends AbstractView{
 		int cellIndex=0;
 		for(TableHeader header : headers) {
 			XWPFTableCell cell = headerRow.getCell(cellIndex);
-			setTextAndAlignCell(ParagraphAlignment.CENTER, header.getDisplayValue(), cell,true);
+			cell.setColor(SELECTED_ROW_COLOR);
+			setTextAndAlignCell(ParagraphAlignment.LEFT, header.getDisplayValue(), cell,true);
 			if(header.getExcelWidth()>0) {
 				CTTblWidth cellWidth = cell.getCTTc().addNewTcPr().addNewTcW();
 				cellWidth.setW(BigInteger.valueOf(header.getExcelWidth()*50));
@@ -387,7 +396,6 @@ public class DocxView extends AbstractView{
 			}
 			cellIndex++;
 		}
-
 		return tableDoc;
 	}
 	/**
@@ -458,6 +466,19 @@ public class DocxView extends AbstractView{
 					org.openxmlformats.schemas.wordprocessingml.x2006.main.STBorder.SINGLE);
 			tableDoc.getCTTbl().getTblPr().getTblBorders().addNewInsideV().setVal(
 					org.openxmlformats.schemas.wordprocessingml.x2006.main.STBorder.SINGLE);
+		}else {
+			tableDoc.getCTTbl().addNewTblPr().addNewTblBorders().addNewLeft().setVal(
+					org.openxmlformats.schemas.wordprocessingml.x2006.main.STBorder.NONE);
+			tableDoc.getCTTbl().getTblPr().getTblBorders().addNewRight().setVal(
+					org.openxmlformats.schemas.wordprocessingml.x2006.main.STBorder.NONE);
+			tableDoc.getCTTbl().getTblPr().getTblBorders().addNewTop().setVal(
+					org.openxmlformats.schemas.wordprocessingml.x2006.main.STBorder.NONE);
+			tableDoc.getCTTbl().getTblPr().getTblBorders().addNewBottom().setVal(
+					org.openxmlformats.schemas.wordprocessingml.x2006.main.STBorder.NONE);
+			tableDoc.getCTTbl().getTblPr().getTblBorders().addNewInsideH().setVal(
+					org.openxmlformats.schemas.wordprocessingml.x2006.main.STBorder.NONE);
+			tableDoc.getCTTbl().getTblPr().getTblBorders().addNewInsideV().setVal(
+					org.openxmlformats.schemas.wordprocessingml.x2006.main.STBorder.NONE);
 		}
 	}
 

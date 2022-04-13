@@ -111,5 +111,14 @@ public class RegisterDTO extends AllowValidation {
 		}
 		return dto;
 	}
+	/**
+	 * Has this DTO expiration date?
+	 * @return
+	 */
+	public boolean hasExpired() {
+		LocalDate reg = getRegistration_date().getValue();
+		LocalDate exp = getExpiry_date().getValue();
+		return exp.isAfter(reg);
+	}
 	
 }

@@ -45,7 +45,7 @@ public class AmendmentServiceTest {
 		nodes=amendServ.dataNodes(rootNode);
 		assertTrue(nodes.size()>0);
 	}
-	@Test
+	//@Test
 	public void reversePath() throws ObjectNotFoundException {
 		//pure root
 		Concept node = closureServ.loadConceptById(68105);

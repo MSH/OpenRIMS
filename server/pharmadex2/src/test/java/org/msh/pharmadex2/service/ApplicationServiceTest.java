@@ -48,7 +48,7 @@ public class ApplicationServiceTest {
 		System.out.println(objectMapper.writeValueAsString(wpdto));
 		
 	}
-	@Test
+	//@Test
 	public void executors_select() throws ObjectNotFoundException {
 		Concept actConf = closureServ.loadConceptById(34316);
 		History prevHis = boilerServ.historyById(3295);
@@ -60,7 +60,7 @@ public class ApplicationServiceTest {
 		System.out.println(executors);
 	}
 	
-	@Test
+	//@Test
 	@Transactional
 	public void executors_select_jdbc() throws ObjectNotFoundException {
 		History curHis = boilerServ.historyById(3385);

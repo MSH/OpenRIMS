@@ -1097,14 +1097,4 @@ public class BoilerService {
 		}
 	}
 
-	/**
-	 * Application data for host or guest application
-	 * @param node
-	 * @return
-	 */
-	private Concept applicationData(Concept node) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
 }

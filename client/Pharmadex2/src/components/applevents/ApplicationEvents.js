@@ -41,6 +41,7 @@ class ApplicationEvents extends Component{
                 if(data.subject=='closeEventData'){
                     this.state.data.selected=0
                     this.setState(this.state)
+                    Navigator.message(this.state.identifier, "*", "reload_application_event", this.state.data)
                 }
             }
            
@@ -99,6 +100,7 @@ class ApplicationEvents extends Component{
                                             this.state.data.title=col.value
                                             this.state.data.eventDate=this.state.data.table.rows[row].row[0].value
                                             this.setState(this.state)
+                                            Navigator.message(this.state.identifier, "*", "reload_application_event", this.state.data)
                                         }}
                                     />
                                 </Col>

@@ -1528,7 +1528,7 @@ public class ValidationService {
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	private boolean isAmendmentWorkflow(History curHis) throws ObjectNotFoundException {
+	public boolean isAmendmentWorkflow(History curHis) throws ObjectNotFoundException {
 		if(curHis.getApplicationData()!=null) {
 			Thing thing = boilerServ.thingByNode(curHis.getApplicationData());
 			return thing.getAmendments().size()>0;

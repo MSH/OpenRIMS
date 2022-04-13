@@ -108,7 +108,7 @@ public class RegisterService {
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	private Map<String, RegisterDTO> registersLoadByApplicationData(Concept applicationData) throws ObjectNotFoundException {
+	public Map<String, RegisterDTO> registersLoadByApplicationData(Concept applicationData) throws ObjectNotFoundException {
 		Map<String, RegisterDTO> ret = new HashMap<String, RegisterDTO>();
 		if(applicationData !=null) {
 			TableQtb regTable = applicationRegistersTable(new TableQtb(), applicationData.getID(), true);

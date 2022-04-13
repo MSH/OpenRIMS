@@ -18,6 +18,11 @@ public class RootNodeDTO  extends AllowValidation {
 	@Validator(above=3,below=80)
 	private FormFieldDTO<String> prefLabel = FormFieldDTO.of("");
 	private FormFieldDTO<String> description = FormFieldDTO.of("");
+	
+	private boolean gisvisible = false;
+	private FormFieldDTO<String> gisLocation = FormFieldDTO.of("");
+	private FormFieldDTO<String> zoom = FormFieldDTO.of("");
+	
 	public long getRootId() {
 		return rootId;
 	}
@@ -41,6 +46,25 @@ public class RootNodeDTO  extends AllowValidation {
 	}
 	public void setDescription(FormFieldDTO<String> description) {
 		this.description = description;
+	}
+	
+	public boolean isGisvisible() {
+		return gisvisible;
+	}
+	public void setGisvisible(boolean gisvisible) {
+		this.gisvisible = gisvisible;
+	}
+	public FormFieldDTO<String> getGisLocation() {
+		return gisLocation;
+	}
+	public void setGisLocation(FormFieldDTO<String> gisLocation) {
+		this.gisLocation = gisLocation;
+	}
+	public FormFieldDTO<String> getZoom() {
+		return zoom;
+	}
+	public void setZoom(FormFieldDTO<String> zoom) {
+		this.zoom = zoom;
 	}
 	
 }

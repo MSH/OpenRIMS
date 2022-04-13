@@ -39,13 +39,20 @@ class ApplicationEventData extends Component{
                     this.setState(this.state)
                 }
             }
+            if(data.from==this.props.recipient){
+                if(data.subject='reload_application_event'){
+                    this.state.data=this.props.data
+                    this.state.data.leftThing.repaint=true
+                    this.state.data.rightThing.repaint=true
+                    this.setState(this.state)
+                    this.load()
+                }
+            }
            
         }
 
     componentDidMount(){
         window.addEventListener("message",this.eventProcessor)
-        //Locales.resolveLabels(this)
-        this.load()
     }
     /**
      * load data for left and right column
@@ -61,16 +68,6 @@ class ApplicationEventData extends Component{
             this.state.data.rightThing.repaint=true
             this.setState(this.state)
         })
-    }
-
-    componentDidUpdate(){
-        if(this.props.data.selected != this.state.data.selected){
-            this.state.data=this.props.data
-            this.state.data.leftThing.repaint=true
-            this.state.data.rightThing.repaint=true
-            this.setState(this.state)
-           this.load()
-        }
     }
 
     componentWillUnmount(){

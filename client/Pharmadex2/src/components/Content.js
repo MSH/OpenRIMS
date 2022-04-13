@@ -38,6 +38,7 @@ class Content extends Component{
         this.inspectorTab=this.inspectorTab.bind(this)
         this.accountantTab=this.accountantTab.bind(this)
         this.secretaryTab=this.secretaryTab.bind(this)
+        this.landingTab=this.landingTab.bind(this)
     }
     /**
      * Initial load tiles from the server
@@ -247,7 +248,15 @@ class Content extends Component{
                     return this.paintRows()
             }
         }
-
+    landingTab(){
+        switch(Navigator.tabName().toLowerCase()){
+            case "reports":
+                return <Reports />
+            default:
+                return this.paintRows()
+        }
+        
+    }
 
     /**
      * palce tiles to select a tabset or tabset itself, if defined
@@ -255,7 +264,7 @@ class Content extends Component{
     placeContent(){
         switch(Navigator.tabSetName().toLowerCase()){
             case "landing":
-                return this.paintRows(); 
+                return this.landingTab(); 
             case "guest":
                 return(this.guestTab())
             case "moderator":
