@@ -298,7 +298,7 @@ public class DoxViewTest {
 	 * @throws IOException 
 	 * @throws ObjectNotFoundException 
 	 */
-	//@Test
+	@Test
 	public void testRealTableELChanges() throws ObjectNotFoundException, IOException {
 		//init view
 		Path pathFile = Paths.get("src","test","resources", "Components_EL_Changes.docx");
@@ -310,7 +310,7 @@ public class DoxViewTest {
 		ResourceDTO fres = new ResourceDTO();
 		//fres.setHistoryId(5280);		//qualif
 		//fres.setHistoryId(5281);		//owner
-		//fres.setHistoryId(5283);   //pharmacist
+		fres.setHistoryId(5283);   //pharmacist
 		//fres.setHistoryId(5284);       //address
 		//fres.setHistoryId(5285);          //capital
 		//fres.setHistoryId(5286);             //the name
@@ -319,7 +319,7 @@ public class DoxViewTest {
 		//fres.setHistoryId(5288);			//implemented address
 		//fres.setHistoryId(3603);			//implemented capital
 		//fres.setHistoryId(5293);			//implemented name
-		fres.setHistoryId(5296);				//implement qualif
+		//fres.setHistoryId(5296);				//implement qualif
 		model=resolverServ.resolveModel(model, fres);
 		//fill out EL
 		stream = new FileInputStream(file);
@@ -340,7 +340,7 @@ public class DoxViewTest {
 	 * @throws IOException 
 	 * @throws ObjectNotFoundException 
 	 */
-	//@Test
+	@Test
 	public void testRealTableELChangesList() throws ObjectNotFoundException, IOException {
 		//init view
 		Path pathFile = Paths.get("src","test","resources", "Components_EL_ChangesList.docx");
@@ -350,7 +350,8 @@ public class DoxViewTest {
 		//init model
 		Map<String, Object> model = dx.initModel();
 		ResourceDTO fres = new ResourceDTO();
-		fres.setHistoryId(2889);
+		fres.setHistoryId(2889); //pharmacist
+		//fres.setHistoryId(3847);     //pharmacist qualif
 		model=resolverServ.resolveModel(model, fres);
 		//fill out EL
 		stream = new FileInputStream(file);

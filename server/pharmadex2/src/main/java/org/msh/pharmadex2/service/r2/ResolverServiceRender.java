@@ -88,12 +88,14 @@ public class ResolverServiceRender {
 			value.put(FORM,initTable(varName,"",value));
 		}
 		TableQtb table = (TableQtb) value.get(FORM);
+		//first row should be a prefLabel, in case the prefLabel is not under the var
 		for(Assembly asm :assms) {
 			table=clazz(asm, var, table, deepDive);
 		}
 
 		return value;
 	}
+
 
 	/**
 	 * Create or get the table
@@ -208,7 +210,7 @@ public class ResolverServiceRender {
 			if(thing.getID()>0) {
 				if(thing.getAmendments().iterator().hasNext()) {
 					//all persons from amended
-					 addNames= personNameList(thing.getAmendments().iterator().next().getConcept(),true);
+					addNames= personNameList(thing.getAmendments().iterator().next().getConcept(),true);
 				}
 			}
 			for(String name : addNames) {
@@ -450,12 +452,6 @@ public class ResolverServiceRender {
 	@Transactional
 	private Map<String, Object> rootAmendment(ResourceDTO fres, History his,
 			Map<String, List<AssemblyDTO>> assemblies, Map<String, Object> value) throws ObjectNotFoundException {
-		//initialize the table
-		String header = literalServ.readPrefLabel(his.getApplDict());
-		if(value.get(CHANGES)==null) {
-			value.put(CHANGES,initChangesTable(header));
-		}
-		TableQtb table = (TableQtb) value.get(CHANGES);
 		//calculate values
 		Concept amended = amendServ.amendedConcept(his.getApplicationData());
 		Concept amendment = amendServ.amendmentConcept(his.getApplicationData(), amended);
@@ -464,6 +460,30 @@ public class ResolverServiceRender {
 		if(amendedThing.getOldValue() != null) {
 			amended=amendedThing.getOldValue().getConcept();
 		}
+		//initialize the table
+		String header = literalServ.readPrefLabel(his.getApplDict());
+		String prefLabel=boilerServ.prefLabelCheck(amendment);
+		if(prefLabel.length()==0) {
+			prefLabel=boilerServ.prefLabelCheck(amended);
+		}
+		if(value.get(CHANGES)==null) {
+			value.put(CHANGES,initChangesTable(header,prefLabel));
+		}
+		TableQtb table = (TableQtb) value.get(CHANGES);
+		table=amendmentRows(assemblies, table, amended, amendment);
+		return value;
+	}
+	/**
+	 * Add to the table rows with previous and amended values
+	 * @param assemblies
+	 * @param table
+	 * @param amended
+	 * @param amendment
+	 * @throws ObjectNotFoundException
+	 */
+	@Transactional
+	public TableQtb amendmentRows(Map<String, List<AssemblyDTO>> assemblies, TableQtb table, Concept amended,
+			Concept amendment) throws ObjectNotFoundException {
 		Map<String,Object> amendedValues=new HashMap<String, Object>();
 		Map<String,Object> amendmentValues=new HashMap<String, Object>();
 		amendedValues = objectAsTable(amended, closureServ.getUrlByNode(amended), "", assemblies, amendedValues,false);
@@ -480,21 +500,21 @@ public class ResolverServiceRender {
 					table = tableChangeRow(0l, label, oldValue, newValue, false, table);
 				}
 			}
-			
 		}
-		return value;
+		return table;
 	}
 	/**
 	 * Init changes table - header and sub
 	 * @param header
+	 * @param prefLabel 
 	 * @return
 	 */
-	private TableQtb initChangesTable(String header) {
+	private TableQtb initChangesTable(String header, String prefLabel) {
 		TableQtb table = new TableQtb();
 		Headers headers =table.getHeaders();
 		table.setPaintBorders(false);
 		headers.getHeaders().add(TableHeader.instanceOf("1", header, 20, TableHeader.COLUMN_STRING));
-		headers.getHeaders().add(TableHeader.instanceOf("2","" , 40, TableHeader.COLUMN_STRING));
+		headers.getHeaders().add(TableHeader.instanceOf("2",prefLabel , 40, TableHeader.COLUMN_STRING));
 		headers.getHeaders().add(TableHeader.instanceOf("3","" , 40, TableHeader.COLUMN_STRING));
 		TableRow row=TableRow.instanceOf(0l);
 		row.getRow().add(TableCell.instanceOf("1", ""));
@@ -502,6 +522,21 @@ public class ResolverServiceRender {
 		row.getRow().add(TableCell.instanceOf("3", mess.get("amendment")));
 		row.setSelected(true);
 		table.getRows().add(row);
+		return table;
+	}
+
+	/**
+	 * Init changes table - for a list of changes
+	 * @param header
+	 * @return
+	 */
+	private TableQtb initListChangesTable() {
+		TableQtb table = new TableQtb();
+		Headers headers =table.getHeaders();
+		table.setPaintBorders(false);
+		headers.getHeaders().add(TableHeader.instanceOf("1", "", 20, TableHeader.COLUMN_STRING));
+		headers.getHeaders().add(TableHeader.instanceOf("2","" , 40, TableHeader.COLUMN_STRING));
+		headers.getHeaders().add(TableHeader.instanceOf("3","" , 40, TableHeader.COLUMN_STRING));
 		return table;
 	}
 
@@ -526,7 +561,7 @@ public class ResolverServiceRender {
 			if(parents.size()>0) {
 				String pref=literalServ.readPrefLabel(topConcept);
 				value=registers(topConcept, pref,value);
-				value=listOfChanges(topConcept, value);
+				value=listOfChanges(topConcept, assemblies, value);
 				value=objectAsTable(topConcept, parents.get(0).getIdentifier(), "", assemblies, value,true);
 			}
 		}
@@ -535,22 +570,33 @@ public class ResolverServiceRender {
 	/**
 	 * Create a list of changes under @changes
 	 * @param topConcept
+	 * @param assemblies 
 	 * @param value
 	 * @return
+	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	private Map<String, Object> listOfChanges(Concept topConcept, Map<String, Object> value) {
+	private Map<String, Object> listOfChanges(Concept topConcept, Map<String, List<AssemblyDTO>> assemblies, Map<String, Object> value) throws ObjectNotFoundException {
 		jdbcRepo.application_events(topConcept.getID());
 		Headers headers=new Headers();
 		headers.setPageSize(Integer.MAX_VALUE);
 		headers.getHeaders().add(TableHeader.instanceOf("eventdate", TableHeader.COLUMN_LOCALDATE));
+		headers.getHeaders().add(TableHeader.instanceOf("pref", TableHeader.COLUMN_STRING));
 		headers.getHeaders().add(TableHeader.instanceOf("newdata", TableHeader.COLUMN_LONG));
 		headers.getHeaders().get(0).setSort(true);
 		headers.getHeaders().get(0).setSortValue(TableHeader.SORT_ASC);
 		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from application_events", "", "", headers);
-		TableQtb resTable = initChangesTable("");
+		TableQtb resTable = initListChangesTable();
 		for(TableRow row : rows) {
-			
+			Concept prev=closureServ.loadConceptById(row.getDbID());
+			Concept modi=closureServ.loadConceptById(row.getRow().get(2).getIntValue());
+			String prefLabel=boilerServ.prefLabelCheck(modi);
+			if(prefLabel.length()==0) {
+				prefLabel=boilerServ.prefLabelCheck(prev);
+			}
+			resTable=tableChangeRow(0, row.getRow().get(0).getValue(), row.getRow().get(1).getValue(), prefLabel, true, resTable);
+			resTable=tableChangeRow(0, "", mess.get("prev"), mess.get("amendment"), true, resTable);
+			resTable=amendmentRows(assemblies, resTable, prev, modi);
 		}
 		value.put("changes",resTable);
 		return value;

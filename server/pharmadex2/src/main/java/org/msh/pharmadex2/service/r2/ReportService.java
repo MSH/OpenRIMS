@@ -611,6 +611,7 @@ public class ReportService {
 	 */
 	@Transactional
 	private ApplicationEventsDTO eventDataLoadAmendment(List<Long> dataIds, ApplicationEventsDTO data) throws ObjectNotFoundException {
+		String prefLabel="";
 		if(dataIds.size()==2) {
 			Concept amendmentConcept = closureServ.loadConceptById(dataIds.get(1));
 			Concept amdApplRoot = amendServ.amendedApplication(amendmentConcept);
@@ -623,9 +624,17 @@ public class ReportService {
 				data.getRightThing().setNodeId(dataIds.get(1));
 				data.getRightThing().setApplDictNodeId(hisl.get(0).getApplDict().getID());
 				data.setChecklist(new CheckListDTO());
+				Concept amended=closureServ.loadConceptById(dataIds.get(0));
+				Concept amendment=closureServ.loadConceptById(dataIds.get(1));
+				prefLabel=boilerServ.prefLabelCheck(amendment);
+				if(prefLabel.length()==0) {
+					prefLabel=boilerServ.prefLabelCheck(amended);
+				}
 			}
 		}
 		//titles for data
+		String title = data.getTitle()+" "+prefLabel;
+		data.setTitle(title.trim());
 		data.setLeftTitle(mess.get("prev"));
 		data.setRigthTitle(mess.get("amendment"));
 		return data;
