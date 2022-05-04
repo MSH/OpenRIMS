@@ -1096,15 +1096,27 @@ public class BoilerService {
 			return t.getAmendments().iterator().next().getApplicationData();
 		}
 	}
-
+	
 	/**
-	 * Application data for host or guest application
-	 * @param node
+	 * PrefLabel should be in the object data to identify the object
+	 * @param var
 	 * @return
+	 * @throws ObjectNotFoundException 
 	 */
-	private Concept applicationData(Concept node) {
-		// TODO Auto-generated method stub
-		return null;
+	@Transactional
+	public String prefLabelCheck(Concept var) throws ObjectNotFoundException {
+		String prefLabel=literalServ.readPrefLabel(var);
+		if(prefLabel.length()==0) {
+			ThingThing tt = new ThingThing();
+			tt=thingThing(var, false);
+			if(tt!=null) {
+				Thing t = thingByThingThing(tt, true);
+				prefLabel=literalServ.readPrefLabel(t.getConcept());
+			}else {
+				prefLabel="";
+			}
+		}
+		return prefLabel;
 	}
 
 }

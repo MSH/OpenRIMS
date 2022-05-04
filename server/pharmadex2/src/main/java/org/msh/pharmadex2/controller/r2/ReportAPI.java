@@ -174,7 +174,7 @@ public class ReportAPI {
 		return data;
 	}
 	/**
-	 * Load data regarding an event
+	 * Load data regarding the event - modification or some else
 	 * @param auth
 	 * @param data
 	 * @return

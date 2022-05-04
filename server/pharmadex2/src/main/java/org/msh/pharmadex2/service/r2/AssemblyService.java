@@ -44,7 +44,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AssemblyService {
 
-
+	private static final String DATAIMPORT_ADDRESS = "dataimport_address";
+	private static final String DATAIMPORT_RESULT = "dataimport_result";
+	private static final String DATAIMPORT_DATA = "dataimport";
+	public static final String SYSTEM_IMPORT_ADMINUNITS="system.import.adminunits";
 	private static final String ACTIVITY_EXECUTIVES = "executives";
 	public static final String ACTIVITY_CONFIG_FINALIZE = "finalize";
 	private static final String ACTIVITY_CONFIGURATION = "activity.configuration";
@@ -286,7 +289,7 @@ public class AssemblyService {
 		}
 
 		//Address related
-		if(url.equalsIgnoreCase("dictionary.admin.units")) {
+		if(url.equalsIgnoreCase(SystemService.DICTIONARY_ADMIN_UNITS)) {
 			AssemblyDTO fld = new AssemblyDTO();
 			fld.setRequired(false);
 			fld.setPropertyName(LiteralService.GIS_LOCATION); 
@@ -295,6 +298,14 @@ public class AssemblyService {
 			fld = new AssemblyDTO();
 			fld.setRequired(false);
 			fld.setPropertyName(LiteralService.ZOMM); 
+			ret.add(fld);
+		}
+		
+		if(url.equalsIgnoreCase(SYSTEM_IMPORT_ADMINUNITS)) {
+			AssemblyDTO fld = new AssemblyDTO();
+			fld.setPropertyName(DATAIMPORT_RESULT);
+			fld.setReadOnly(true);
+			fld.setMult(true);
 			ret.add(fld);
 		}
 
@@ -334,7 +345,12 @@ public class AssemblyService {
 	 */
 	public List<AssemblyDTO> auxAddresses(String url) throws ObjectNotFoundException {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
-
+		if(url.equalsIgnoreCase(SYSTEM_IMPORT_ADMINUNITS)) {
+			AssemblyDTO addr = new AssemblyDTO();
+			addr.setPropertyName(DATAIMPORT_ADDRESS);
+			addr.setUrl("address.tests");
+			ret.add(addr);
+		}
 		if(ret.size()==0) {
 			List<Assembly> assms = loadDataConfiguration(url);
 			for(Assembly assm : assms) {
@@ -425,7 +441,16 @@ public class AssemblyService {
 	@Transactional
 	public List<AssemblyDTO> auxDocuments(String url) throws ObjectNotFoundException{
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
-
+		if(url.equalsIgnoreCase(SYSTEM_IMPORT_ADMINUNITS)) {
+			AssemblyDTO assm = new AssemblyDTO();
+			assm.setPropertyName(DATAIMPORT_DATA);
+			assm.setUrl("data.import");
+			assm.setDescription(messages.get("pleaseuploadimportdata"));
+			assm.setRequired(true);
+			assm.setFileTypes(".xlsx");
+			assm.setDictUrl(SystemService.DICTIONARY_SYSTEM_IMPORT_DATA);
+			ret.add(assm);
+		}
 		if(ret.size()==0) {
 			List<Assembly> assms = loadDataConfiguration(url);
 			for(Assembly assm : assms) {
@@ -579,7 +604,20 @@ public class AssemblyService {
 			row_2.getCells().add(cell_23);
 			ret.add(row_2);
 		}
-
+		
+		if(url.equalsIgnoreCase(SYSTEM_IMPORT_ADMINUNITS)) {
+			//file uploader and r/o field for messages output
+			LayoutRowDTO row= new LayoutRowDTO();
+			LayoutCellDTO cell1 = new LayoutCellDTO();
+			cell1.getVariables().add(DATAIMPORT_DATA);
+			cell1.getVariables().add(DATAIMPORT_RESULT);
+			row.getCells().add(cell1);
+			//address
+			LayoutCellDTO cell2 = new LayoutCellDTO();
+			cell2.getVariables().add(DATAIMPORT_ADDRESS);
+			row.getCells().add(cell2);
+			ret.add(row);
+		}
 		/*************************************** LOAD FROM CONFIGURATION ******************************************************************/
 		if(ret.size()==0) {
 			List<Assembly> as = loadDataConfiguration(url);	//right sort order is assumed!

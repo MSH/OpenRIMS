@@ -41,6 +41,7 @@ import org.msh.pharmadex2.dto.PersonSelectorDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
+import org.msh.pharmadex2.service.common.ValidationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,7 +57,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class AmendmentService {
-	private static final String REMOVE_PERSON = "_REMOVE_PERSON_";
+	public static final String REMOVE_PERSON = "_REMOVE_PERSON_";
 	private static final Logger logger = LoggerFactory.getLogger(AmendmentService.class);
 	@Autowired
 	private AssemblyService assemblyServ;
@@ -72,6 +73,8 @@ public class AmendmentService {
 	private Messages mess;
 	@Autowired
 	private ThingAmendmentRepo thingAmendmentRepo;
+	@Autowired
+	private ValidationService validServ;
 
 	/**
 	 * Save an amendment data
@@ -196,7 +199,7 @@ public class AmendmentService {
 		}
 		return data;
 	}
-	
+
 	/**
 	 * Implement persons modifications
 	 * @param configUrl 
@@ -1497,19 +1500,28 @@ public class AmendmentService {
 			for(TableRow row :dto.getRtable().getRows()) {
 				if(row.getSelected()) {
 					toRemove.put(row.getDbID(),dto.getUrl());
+					row.setSelected(false);
 				}
 			}
 		}
-		List<ThingPerson> linkedPersons = linkedPersons(thing,true);
-		thing.getPersons().clear();
-		thing.getPersons().addAll(linkedPersons);
-		for(Long nodeId : toRemove.keySet()) {
-			Concept persNode = closureServ.loadConceptById(nodeId);
-			ThingPerson tp = new ThingPerson();
-			tp.setVarName(REMOVE_PERSON);
-			tp.setPersonUrl(toRemove.get(nodeId));
-			tp.setConcept(persNode);
-			thing.getPersons().add(tp);
+		if(toRemove.size()>0) {
+			List<ThingPerson> linkedPersons = linkedPersons(thing,true);
+			thing.getPersons().clear();
+			thing.getPersons().addAll(linkedPersons);
+			for(Long nodeId : toRemove.keySet()) {
+				Concept persNode = closureServ.loadConceptById(nodeId);
+				ThingPerson tp = new ThingPerson();
+				tp.setVarName(REMOVE_PERSON);
+				tp.setPersonUrl(toRemove.get(nodeId));
+				tp.setConcept(persNode);
+				thing.getPersons().add(tp);
+			}
+		}else {
+			//unmark if one
+			List<ThingPerson> unmark = linkedPersons(thing,false);
+			if(unmark.size()>0) {
+				thing.getPersons().removeAll(unmark);
+			}
 		}
 		return data;
 	}
@@ -1533,7 +1545,7 @@ public class AmendmentService {
 		}
 		return linkedPersons;
 	}
-	
+
 	/**
 	 * Load person to remove if one
 	 * @param data
@@ -1576,5 +1588,8 @@ public class AmendmentService {
 				thingAmendmentRepo.save(ta);
 			}
 		}
-	}	
+	}
+
+
+
 }

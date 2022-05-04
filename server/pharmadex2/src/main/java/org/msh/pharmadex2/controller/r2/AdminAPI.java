@@ -26,6 +26,7 @@ import org.msh.pharmadex2.service.common.UserService;
 import org.msh.pharmadex2.service.r2.ApplicationService;
 import org.msh.pharmadex2.service.r2.ContentService;
 import org.msh.pharmadex2.service.r2.DictService;
+import org.msh.pharmadex2.service.r2.LegacyDataService;
 import org.msh.pharmadex2.service.r2.PubOrgService;
 import org.msh.pharmadex2.service.r2.ReportService;
 import org.msh.pharmadex2.service.r2.SupervisorService;
@@ -67,6 +68,8 @@ public class AdminAPI {
 	private SystemService systemServ;
 	@Autowired
 	private ReportService reportServ;
+	@Autowired
+	private LegacyDataService legacyDataServ;
 
 	/**
 	 * Tiles for landing page
@@ -771,6 +774,23 @@ public class AdminAPI {
 	public ReportConfigDTO reportParametersRenew(@RequestBody ReportConfigDTO data) throws DataNotFoundException {
 		try {
 			data = reportServ.reportParametersRenew(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
+	/**
+	 * Load import admin units feature
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/import/adminunits/load")
+	public ThingDTO importAdminunitsLoad(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		try {
+			data=legacyDataServ.importAdminunitsLoad(data,user);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}

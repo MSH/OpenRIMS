@@ -26,6 +26,8 @@ import org.msh.pdex2.repository.r2.LegacyDataRepo;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.LegacyDataDTO;
+import org.msh.pharmadex2.dto.ThingDTO;
+import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +61,8 @@ public class LegacyDataService {
 	private BoilerService boilerServ;
 	@Autowired
 	private JdbcRepository jdbcRepo;
+	@Autowired
+	private ThingService thingServ;
 
 	/**
 	 * Create a new legacy data using the assembly
@@ -320,5 +324,27 @@ public class LegacyDataService {
 		dto=reloadTable(dto);
 		return dto;
 	}
-
+	/**
+	 * prepare electronic form for import admin units
+	 * @param data
+	 * @param user 
+	 * @throws ObjectNotFoundException 
+	 */
+	public ThingDTO importAdminunitsLoad(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		//load and save only one and only under the root of the tree
+		data.setUrl(AssemblyService.SYSTEM_IMPORT_ADMINUNITS);
+		Concept root = closureServ.loadRoot(data.getUrl());
+		data.setParentId(root.getID());
+		List<Concept> nodes = closureServ.loadLevel(root);
+		if(nodes.size()>0) {
+			data.setNodeId(nodes.get(0).getID());
+		}
+		if(data.getNodeId()==0) {
+			data=thingServ.createThing(data, user);
+		}else {
+			data=thingServ.loadThing(data, user);
+		}
+		return data;
+	}
+	
 }

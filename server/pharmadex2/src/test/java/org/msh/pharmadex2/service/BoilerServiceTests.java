@@ -24,7 +24,7 @@ public class BoilerServiceTests {
 	BoilerService boilerServ;
 	@Autowired
 	ClosureService closureServ;
-	@Test
+	//@Test
 	public void objectData() throws ObjectNotFoundException {
 		List<Long> ids = Arrays.asList(
 				83453l,

@@ -34,7 +34,6 @@ class Register extends Component{
      */
     static place(res,index, readOnly,recipient,label){
         if(res!=undefined){
-            Navigator.message(Date.now().toString(), recipient, "register_loaded", res)
             return(
             <Row key={index}>
                 <Col>
@@ -71,6 +70,7 @@ class Register extends Component{
         this.state.data=this.props.data
         Locales.createLabels(this)
         Locales.resolveLabels(this)
+        Navigator.message(this.state.identifier,this.props.recipient, "register_loaded", this.state.data)
     }
 
     componentDidUpdate(){

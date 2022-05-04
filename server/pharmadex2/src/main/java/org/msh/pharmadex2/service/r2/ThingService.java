@@ -1504,7 +1504,7 @@ public class ThingService {
 					fr=fileRepo.save(fr);
 				}
 			}
-			docDto.getLinked().clear();
+			//docDto.getLinked().clear();
 		}
 		//createDocuments(assemblyServ.auxDocuments(data.getUrl()), data,user);
 		return data;

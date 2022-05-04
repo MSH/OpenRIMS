@@ -190,7 +190,7 @@ public class AccessControlService {
 	 */
 	@Transactional
 	public boolean readAllowed(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
-		//TODO more advanced??	
+		//user may be null
 		return true;
 	}
 
@@ -299,6 +299,9 @@ public class AccessControlService {
 	 * @throws ObjectNotFoundException 
 	 */
 	public boolean writeAllowed(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		if(user==null) {
+			return false;
+		}
 		if(data.getNodeId()>0) {
 			Concept node = closureServ.loadConceptById(data.getNodeId());
 			List<Concept> parents = closureServ.loadParents(node);

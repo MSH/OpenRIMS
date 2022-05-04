@@ -33,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class SystemService {
+	public static final String DICTIONARY_SYSTEM_IMPORT_DATA = "dictionary.system.import.data";
 	//Finalization activity related
 	private static final String FINAL_DEREGISTRATION = "deregistration";
 	public static final String FINAL_AMEND = "AMEND";
@@ -74,7 +75,7 @@ public class SystemService {
 	public static String ROLE_APPLICANT="APPLICANT";
 	public static String[] ROLES = {ROLE_ADMIN, "ROLE_MODERATOR", "ROLE_REVIEWER", "ROLE_INSPECTOR", 
 			"ROLE_ACCOUNTANT", "ROLE_SCREENER", ROLE_SECRETARY,ROLE_APPLICANT};
-
+	
 	@Autowired
 	private DictService dictServ;
 	@Autowired
@@ -312,6 +313,33 @@ public class SystemService {
 		ret.setMult(false);
 		ret.setSystem(true);
 		return ret;
+	}
+	
+	/**
+	 * Upload data for import dictionary
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private DictionaryDTO uploadImportDataDictionary() throws ObjectNotFoundException {
+		DictionaryDTO ret = new DictionaryDTO();
+		ret.setUrl(DICTIONARY_SYSTEM_IMPORT_DATA);
+		Concept root = closureServ.loadRoot(DICTIONARY_SYSTEM_IMPORT_DATA);
+		String prefLabel=literalServ.readPrefLabel(root);
+		String descr = literalServ.readDescription(root);
+		if(prefLabel.length()==0 && descr.length()==0) {
+			root=literalServ.prefAndDescription(messages.get("dataimport"), "", root);
+			literalServ.createUpdateLiteral("type", "system", root);
+		}
+		List<Concept> level = literalServ.loadOnlyChilds(root);
+		if(level.size()!=1) {
+			//create level
+			systemDictNode(root, "0", "XLSX file contains data to import");
+		}
+		ret=dictServ.createDictionary(ret);
+		ret.setMult(false);
+		ret.setSystem(true);
+		return ret;
+		
 	}
 	/**
 	 * Add a node to the system application conclusion dictionary
@@ -552,9 +580,9 @@ public class SystemService {
 		userRolesDict(new DictionaryDTO());
 		checkLifeCycleDicts();
 		submitActionDictionary();
+		uploadImportDataDictionary();
 		finalizeDict();
 	}
-
 
 	/**
 	 * Guest, Host and Shutdown

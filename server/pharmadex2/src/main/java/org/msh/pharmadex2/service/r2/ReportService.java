@@ -79,7 +79,7 @@ public class ReportService {
 			ReportConfigDTO repConf = assmServ.reportConfig(data.getConfig());
 			data.setConfig(repConf);
 			if(repConf.getAddressUrl().length()>0) {
-				data = siteReport(data, repConf);
+				data = siteReport(data, repConf, user);
 			}else {
 				data = productReport(user, data, repConf);
 			}
@@ -94,13 +94,14 @@ public class ReportService {
 	 * @param user
 	 * @param data
 	 * @param repConf
+	 * @param user2
 	 * @return
 	 */
 	@Transactional
 	private ReportDTO productReport(UserDetailsDTO user, ReportDTO data, ReportConfigDTO repConf) {
 		//get headers
 		TableQtb table = data.getTable();
-		Headers headers= headersProduct(table.getHeaders());
+		Headers headers= headersProduct(table.getHeaders(), user);
 		if(table.getHeaders().getHeaders().size()!=headers.getHeaders().size()) {
 			table.setHeaders(headers);
 		}else {
@@ -124,17 +125,22 @@ public class ReportService {
 	/**
 	 * Create headers for simple product reports
 	 * @param headers
+	 * @param user 
 	 * @return
 	 */
-	private Headers headersProduct(Headers headers) {
+	private Headers headersProduct(Headers headers, UserDetailsDTO user) {
 		headers.getHeaders().clear();
+		int prefHeader=TableHeader.COLUMN_LINK;
+		if(user.getGranted().size()==0) {
+			prefHeader=TableHeader.COLUMN_STRING;
+		}
 		headers.getHeaders().add(TableHeader.instanceOf(
 				"pref",
 				"prefLabel",
 				true,
 				true,
 				true,
-				TableHeader.COLUMN_LINK,
+				prefHeader,
 				40));
 		headers.getHeaders().add(TableHeader.instanceOf(
 				"applicant",
@@ -176,13 +182,14 @@ public class ReportService {
 	 * Simple site report
 	 * @param data
 	 * @param repConf
+	 * @param user 
 	 * @return
 	 */
-	public ReportDTO siteReport(ReportDTO data, ReportConfigDTO repConf) {
+	public ReportDTO siteReport(ReportDTO data, ReportConfigDTO repConf, UserDetailsDTO user) {
 		if(repConf.isDeregistered()) {
-			data=siteDeregisteredTable(data,repConf);
+			data=siteDeregisteredTable(data,repConf,user);
 		}else {
-			data=siteExistedTable(data, repConf);
+			data=siteExistedTable(data, repConf, user);
 		}
 		return data;
 	}
@@ -193,10 +200,10 @@ public class ReportService {
 	 * @param repConf
 	 * @return
 	 */
-	private ReportDTO siteDeregisteredTable(ReportDTO data, ReportConfigDTO repConf) {
+	private ReportDTO siteDeregisteredTable(ReportDTO data, ReportConfigDTO repConf, UserDetailsDTO user) {
 		TableQtb table = data.getTable();
 		if(table.getHeaders().getHeaders().size()==0) {
-			Headers headers= headersDeRegisteredSite(table.getHeaders());
+			Headers headers= headersDeRegisteredSite(table.getHeaders(),user);
 			table.setHeaders(headers);
 		}
 		jdbcRepo.report_deregister(repConf.getAddressUrl(), repConf.getRegisterAppUrl());
@@ -211,8 +218,12 @@ public class ReportService {
 	 * @param headers
 	 * @return
 	 */
-	private Headers headersDeRegisteredSite(Headers headers) {
+	private Headers headersDeRegisteredSite(Headers headers, UserDetailsDTO user) {
 		headers.getHeaders().clear();
+		int prefHeader=TableHeader.COLUMN_LINK;
+		if(user.getGranted().size()==0) {
+			prefHeader=TableHeader.COLUMN_STRING;
+		}
 		headers.getHeaders().add(TableHeader.instanceOf(
 				"deregistered",
 				"deregistration",
@@ -227,7 +238,7 @@ public class ReportService {
 				true,
 				true,
 				true,
-				TableHeader.COLUMN_LINK,
+				prefHeader,
 				40));
 		headers.getHeaders().add(TableHeader.instanceOf(
 				"address",
@@ -258,10 +269,10 @@ public class ReportService {
 	 * @return
 	 */
 	@Transactional
-	private ReportDTO siteExistedTable(ReportDTO data, ReportConfigDTO repConf) {
+	private ReportDTO siteExistedTable(ReportDTO data, ReportConfigDTO repConf, UserDetailsDTO user) {
 		TableQtb table = data.getTable();
 		if(table.getHeaders().getHeaders().size()==0) {
-			Headers headers= headersRegisteredSite(table.getHeaders());
+			Headers headers= headersRegisteredSite(table.getHeaders(), user);
 			table.setHeaders(headers);
 		}
 		jdbcRepo.report_sites(repConf.getDataUrl(), repConf.getDictStageUrl(), repConf.getAddressUrl(), repConf.getOwnerUrl(),
@@ -277,15 +288,19 @@ public class ReportService {
 	 * @param headers
 	 * @return
 	 */
-	private Headers headersRegisteredSite(Headers headers) {
+	private Headers headersRegisteredSite(Headers headers, UserDetailsDTO user) {
 		headers.getHeaders().clear();
+		int prefHeader=TableHeader.COLUMN_LINK;
+		if(user.getGranted().size()==0) {
+			prefHeader=TableHeader.COLUMN_STRING;
+		}
 		headers.getHeaders().add(TableHeader.instanceOf(
 				"pref",
 				"prefLabel",
 				true,
 				true,
 				true,
-				TableHeader.COLUMN_LINK,
+				prefHeader,
 				40));
 		headers.getHeaders().add(TableHeader.instanceOf(
 				"address",
@@ -458,6 +473,7 @@ public class ReportService {
 	 * @param data
 	 * @return
 	 */
+	@Transactional
 	public TableQtb all(UserDetailsDTO user, TableQtb data) {
 		if(!data.hasHeaders()) {
 			data.setHeaders(headersUserReport(data.getHeaders()));
@@ -595,6 +611,7 @@ public class ReportService {
 	 */
 	@Transactional
 	private ApplicationEventsDTO eventDataLoadAmendment(List<Long> dataIds, ApplicationEventsDTO data) throws ObjectNotFoundException {
+		String prefLabel="";
 		if(dataIds.size()==2) {
 			Concept amendmentConcept = closureServ.loadConceptById(dataIds.get(1));
 			Concept amdApplRoot = amendServ.amendedApplication(amendmentConcept);
@@ -607,9 +624,17 @@ public class ReportService {
 				data.getRightThing().setNodeId(dataIds.get(1));
 				data.getRightThing().setApplDictNodeId(hisl.get(0).getApplDict().getID());
 				data.setChecklist(new CheckListDTO());
+				Concept amended=closureServ.loadConceptById(dataIds.get(0));
+				Concept amendment=closureServ.loadConceptById(dataIds.get(1));
+				prefLabel=boilerServ.prefLabelCheck(amendment);
+				if(prefLabel.length()==0) {
+					prefLabel=boilerServ.prefLabelCheck(amended);
+				}
 			}
 		}
 		//titles for data
+		String title = data.getTitle()+" "+prefLabel;
+		data.setTitle(title.trim());
 		data.setLeftTitle(mess.get("prev"));
 		data.setRigthTitle(mess.get("amendment"));
 		return data;
@@ -654,7 +679,7 @@ public class ReportService {
 	 * @param data
 	 * @return
 	 */
-	private List<Long> eventDataIds(ApplicationEventsDTO data, List<Long> result) {
+	public List<Long> eventDataIds(ApplicationEventsDTO data, List<Long> result) {
 		if(data.getSelected()>0) {
 			jdbcRepo.application_events(data.getAppldataid());
 			Headers headers=new Headers();

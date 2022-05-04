@@ -19,6 +19,8 @@ import ATCCodes from './ATCCodes'
 import Excipients from './Excipients'
 import Inns from './Inns'
 import ReportConfigurator from './reports/ReportConfigurator'
+import Import_A from './Import_A'
+import Import_B from './Import_B'
 
 /**
  * Administrative functions for the supervisor
@@ -48,6 +50,9 @@ class Administrate extends Component{
                 stages:'',
                 label_actions:'',
                 configurations:'',
+                dataimport:'',
+                adminunits:'',
+                legacydata:'',
             },
             isOpen:false,
             menu:'',
@@ -114,6 +119,10 @@ class Administrate extends Component{
                 return <Excipients recipient={this.state.identifier} readOnly={false}/>
             case "inns":
                 return <Inns recipient={this.state.identifier} readOnly={false}/>
+            case "import_a":
+                return <Import_A/>
+            case "import_b":
+                return <Import_B/>
             default:
                 return []
         }
@@ -244,6 +253,35 @@ class Administrate extends Component{
                                                             <i className="fas fa-xs fa-th mr-1"></i>
                                                             {this.state.labels.tiles}
                                                         </div>
+                                                    </NavLink>
+                                                </NavItem>
+                                            </DropdownItem>
+                                        </DropdownMenu>
+                                        </UncontrolledDropdown>
+                                        <UncontrolledDropdown nav inNavbar>
+                                        <DropdownToggle nav caret>
+                                            {this.state.labels.dataimport}
+                                        </DropdownToggle>
+                                        <DropdownMenu right>
+                                            <DropdownItem>
+                                                <NavItem active={this.state.menu=='import_a'}>
+                                                    <NavLink active={this.state.menu=='import_a'}
+                                                                href="/admin#administrate/import_a">
+                                                    <div>
+                                                        <i className="fas fa-map-marked-alt mr-1"></i>
+                                                        {this.state.labels.adminunits}
+                                                    </div>
+                                                    </NavLink>
+                                                </NavItem>
+                                            </DropdownItem>
+                                            <DropdownItem>
+                                                <NavItem active={this.state.menu=='import_b'}>
+                                                    <NavLink active={this.state.menu=='import_b'}
+                                                                href="/admin#administrate/import_b">
+                                                    <div>
+                                                        <i className="fas fa-file-import mr-1"></i>
+                                                        {this.state.labels.legacydata}
+                                                    </div>
                                                     </NavLink>
                                                 </NavItem>
                                             </DropdownItem>

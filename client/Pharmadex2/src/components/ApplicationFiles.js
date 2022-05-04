@@ -148,7 +148,7 @@ class ApplicationFiles extends Component{
         Fetchers.postJSONNoSpinner('/api/'+Navigator.tabSetName() +'/thing/file/load', this.state.data,(query,result)=>{
             Fetchers.setJustLoaded(result,false)
             this.state.data=result;
-            //Navigator.message(this.state.identifier,this.props.recipient, "onSelectionChange", this.state.data)
+            Navigator.message(this.state.identifier,this.props.recipient, "onSelectionChange", this.state.data)
             this.setState(this.state)
         })
     }
@@ -166,6 +166,7 @@ class ApplicationFiles extends Component{
                 this.state.file = {}
                 this.tableLoader()
                 Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.saved, color:'success'})
+                Navigator.message(this.state.identifier,this.props.recipient, "onSelectionChange", this.state.data)
             }else{
                 Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:result.identifier, color:'danger'})
             }
