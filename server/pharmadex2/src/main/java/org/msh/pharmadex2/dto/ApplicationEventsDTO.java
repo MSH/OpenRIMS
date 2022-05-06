@@ -8,6 +8,9 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties(ignoreUnknown=true)
 public class ApplicationEventsDTO extends AllowValidation {
 	private long appldataid=0;
+	private long oldDataId=0l;	//old data stored while the amendment implementation
+	private long amdDataId=0l;	//data in amendment
+	private long currDataId=0l;	//ID of the current data changed while the amendment implementation
 	private TableQtb table= new TableQtb();
 	private long selected=0;
 	private String eventDate="";
@@ -22,6 +25,25 @@ public class ApplicationEventsDTO extends AllowValidation {
 	}
 	public void setAppldataid(long appldataid) {
 		this.appldataid = appldataid;
+	}
+	
+	public long getOldDataId() {
+		return oldDataId;
+	}
+	public void setOldDataId(long oldDataId) {
+		this.oldDataId = oldDataId;
+	}
+	public long getAmdDataId() {
+		return amdDataId;
+	}
+	public void setAmdDataId(long amdDataId) {
+		this.amdDataId = amdDataId;
+	}
+	public long getCurrDataId() {
+		return currDataId;
+	}
+	public void setCurrDataId(long currDataId) {
+		this.currDataId = currDataId;
 	}
 	public TableQtb getTable() {
 		return table;
@@ -77,6 +99,21 @@ public class ApplicationEventsDTO extends AllowValidation {
 	}
 	public void setChecklist(CheckListDTO checklist) {
 		this.checklist = checklist;
+	}
+	/**
+	 * The old, amendment and amended data are defined
+	 * @return
+	 */
+	public boolean hasEvent() {
+		return getOldDataId()>0 && getAmdDataId()>0 && getCurrDataId()>0;
+	}
+	/**
+	 * Is this activity event?
+	 * for future extension...
+	 * @return
+	 */
+	public boolean hasActivity() {
+		return getOldDataId()==getAmdDataId();
 	}
 	
 }

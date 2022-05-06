@@ -94,6 +94,7 @@ public class MonitoringService {
 		}
 		String where = "applicant='"+applicant.getEmail()+"'" + " and officeID is not null";
 		data = loadTablesApplicant(where, data);
+		data.getTable().setSelectable(true);
 		return data;
 	}
 	/**
@@ -307,7 +308,7 @@ public class MonitoringService {
 				true,
 				true,
 				true,
-				TableHeader.COLUMN_LINK,
+				TableHeader.COLUMN_STRING,
 				30));
 		headers.getHeaders().add(TableHeader.instanceOf(
 				"process",

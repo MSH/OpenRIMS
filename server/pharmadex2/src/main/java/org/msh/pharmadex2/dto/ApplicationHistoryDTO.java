@@ -29,6 +29,8 @@ public class ApplicationHistoryDTO extends AllowValidation {
 	private String title="";
 	//selected column name
 	private String  columnName="";
+	//notes in case the application has been reverted
+	private String notes="";
 	
 	public long getApplDictNodeId() {
 		return applDictNodeId;
@@ -86,6 +88,12 @@ public class ApplicationHistoryDTO extends AllowValidation {
 	}
 	public void setColumnName(String columnName) {
 		this.columnName = columnName;
+	}
+	public String getNotes() {
+		return notes;
+	}
+	public void setNotes(String notes) {
+		this.notes = notes;
 	}
 	
 }

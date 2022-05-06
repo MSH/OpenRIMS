@@ -28,8 +28,8 @@ public class ThingDict implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22227417FFB32C96005F70")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22227417FFB32C96005F70", strategy="native")	
+	@GeneratedValue(generator="VAC2222741804C28664D075CB")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222741804C28664D075CB", strategy="native")	
 	private long ID;
 	
 	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	

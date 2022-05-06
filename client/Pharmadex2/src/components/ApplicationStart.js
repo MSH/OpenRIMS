@@ -1,5 +1,5 @@
 import React , {Component} from 'react'
-import {Container,Row, Col, Button} from 'reactstrap'
+import {Container,Row, Col, Button, Collapse,Alert} from 'reactstrap'
 import PropTypes from 'prop-types'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
@@ -21,6 +21,8 @@ class ApplicationStart extends Component{
         super(props)
         this.state={
             next:true,
+            hist:false,
+            notes:false,
             submit:false,
             identifier:Date.now().toString(),
             title:'',
@@ -33,7 +35,8 @@ class ApplicationStart extends Component{
                 global_submit:'',
                 return_action:'',
                 route_action:'',
-                global_showPrint:""
+                global_showPrint:"",
+                notes:'',
             },
             history:{},             //histroy table
             data:{},                //data to conclude                
@@ -227,35 +230,89 @@ class ApplicationStart extends Component{
         return(
             <Row>
                 <Col>
-                    <CollectorTable
-                        tableData={this.state.history.table}
-                        loader={this.loadHistory}
-                        headBackground={Pharmadex.settings.tableHeaderBackground}
-                        linkProcessor={(rowNo, cell)=>{
-                            this.state.historyId=this.state.history.table.rows[rowNo].dbID
+                <Row>
+                    <Col className="btn btn-link p-0 border-0 d-flex justify-content-start"
+                        onClick={()=>{
+                            this.state.hist=!this.state.hist
+                            this.state.historyId=0
                             this.setState(this.state)
-                        }}
-                        styleCorrector={(header)=>{
-                            if(header=='come'){
-                                return {width:'12%'}
-                            }
-                            if(header=='go'){
-                                return {width:'12%'}
-                            }
-                            if(header=='days'){
-                                return {width:'5%'}
-                            }
-                            if(header=='workflow'){
-                                return {width:'20%'}
-                            }
-                            if(header=='activity'){
-                                return {width:'15%'}
-                            }
-                        }}
-                    />
+                        }}>
+                        <h4 className="ml-3">{this.state.labels.application_info}</h4>
+                    </Col>
+                </Row>
+                <Row>
+                    <Col>
+                        <Collapse isOpen={this.state.hist}>
+                            <Row>
+                                <Col>
+                            <CollectorTable
+                                tableData={this.state.history.table}
+                                loader={this.loadHistory}
+                                headBackground={Pharmadex.settings.tableHeaderBackground}
+                                linkProcessor={(rowNo, cell)=>{
+                                    this.state.historyId=this.state.history.table.rows[rowNo].dbID
+                                    this.setState(this.state)
+                                }}
+                                styleCorrector={(header)=>{
+                                    if(header=='come'){
+                                        return {width:'12%'}
+                                    }
+                                    if(header=='go'){
+                                        return {width:'12%'}
+                                    }
+                                    if(header=='days'){
+                                        return {width:'5%'}
+                                    }
+                                    if(header=='workflow'){
+                                        return {width:'20%'}
+                                    }
+                                    if(header=='activity'){
+                                        return {width:'15%'}
+                                    }
+                                }}
+                            />
+                            </Col>
+                            </Row>
+                            <Row>
+                                <Col>
+                                    {this.activityHistory()}
+                                </Col>
+                            </Row>
+                        </Collapse>
+                    </Col>
+                </Row>
                 </Col>
             </Row>
         )
+    }
+    /**
+     * Return notes data if the application has been reverted to the appicant
+     */
+    notes(){
+        if(this.state.history.notes.length==0){
+            return []
+        }
+        return (
+            <Row>
+                <Col>
+                    <Row>
+                        <Col className="btn btn-link p-0 border-0 d-flex justify-content-start"
+                            onClick={()=>{
+                                this.state.notes=!this.state.notes
+                                this.setState(this.state)
+                            }}>
+                            <h4 className="ml-3">{this.state.labels.notes}</h4>
+                        </Col>
+                    </Row>
+                    <Collapse isOpen={this.state.notes}>
+                        <Alert color="info">
+                            {this.state.history.notes}
+                        </Alert>
+                    </Collapse>
+                </Col>
+            </Row>    
+        )       
+
     }
     render(){
         if(this.state.labels.locale == undefined || this.state.history.table==undefined){
@@ -265,7 +322,7 @@ class ApplicationStart extends Component{
         return(
             <Container fluid style={{fontSize:"0.8rem"}}>
                 {this.historyTable()}
-                {this.activityHistory()}
+                {this.notes()}
                 {this.headerFooter()}
                 {this.content()}
                 {this.headerFooter()}

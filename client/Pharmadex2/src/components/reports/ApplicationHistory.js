@@ -6,6 +6,7 @@ import Fetchers from '../utils/Fetchers'
 import Navigator from '../utils/Navigator'
 import CollectorTable from '../utils/CollectorTable'
 import Pharmadex from '../Pharmadex'
+import ActivityData from './ActivityData'
 
 /**
  * Provides list of application history and changes sheet
@@ -15,6 +16,8 @@ class ApplicationHistory extends Component{
         super(props)
         this.state={
             hist:false,
+            tableView:true,
+            histId:0,
             data:{
                 nodeId:this.props.nodeid,       //ApplicationHistoryDTO
             },
@@ -33,6 +36,13 @@ class ApplicationHistory extends Component{
      */
         eventProcessor(event){
             let data=event.data
+            if(data.to==this.state.identifier){
+                if(data.subject=="closeActivityData"){
+                    this.state.tableView=true;
+                    this.state.histId=0;
+                    this.setState(this.state)
+                }
+            }
         }
 
     componentDidMount(){
@@ -59,30 +69,41 @@ class ApplicationHistory extends Component{
         if(this.state.data.table == undefined || this.state.labels.locale == undefined){
             return Pharmadex.wait()
         }
-        return(
-            <Container fluid>
-                  <Row>
-                    <Col className="btn btn-link p-0 border-0 d-flex justify-content-start"
-                        onClick={()=>{
-                            this.state.hist=!this.state.hist
-                            this.setState(this.state)
-                        }}>
-                        <h4 className="ml-3">{this.state.labels.application_info}</h4>
-                    </Col>
-                </Row>
-                <Row className={Pharmadex.settings.activeBorder}>
-                    <Col>
-                        <Collapse isOpen={this.state.hist}>
-                            <CollectorTable
-                                tableData={this.state.data.table}
-                                loader={this.load}
-                                headBackground={Pharmadex.settings.tableHeaderBackground}
-                            />
-                        </Collapse>
-                    </Col>
-                </Row>
-            </Container>
-        )
+        if(this.state.tableView){
+                return(
+                    <Container fluid>
+                        <Row>
+                            <Col className="btn btn-link p-0 border-0 d-flex justify-content-start"
+                                onClick={()=>{
+                                    this.state.hist=!this.state.hist
+                                    this.setState(this.state)
+                                }}>
+                                <h4 className="ml-3">{this.state.labels.application_info}</h4>
+                            </Col>
+                        </Row>
+                        <Row className={Pharmadex.settings.activeBorder}>
+                            <Col>
+                                <Collapse isOpen={this.state.hist}>
+                                    <CollectorTable
+                                        tableData={this.state.data.table}
+                                        loader={this.load}
+                                        headBackground={Pharmadex.settings.tableHeaderBackground}
+                                        linkProcessor={(rowNo, cell)=>{
+                                            this.state.histId=this.state.data.table.rows[rowNo].dbID
+                                            this.state.tableView=false
+                                            this.setState(this.state)
+                                        }}
+                                    />
+                                </Collapse>
+                            </Col>
+                        </Row>
+                    </Container>
+                )
+        }else{
+            return (
+                <ActivityData historyId={this.state.histId} recipient={this.state.identifier} />
+            )
+        }
     }
 
 

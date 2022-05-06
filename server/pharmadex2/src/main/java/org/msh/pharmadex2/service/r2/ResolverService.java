@@ -1,15 +1,11 @@
 package org.msh.pharmadex2.service.r2;
 
-import java.text.DateFormat;
-import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -17,13 +13,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import javax.swing.text.DateFormatter;
-
-import org.msh.pdex2.dto.table.Headers;
-import org.msh.pdex2.dto.table.TableCell;
-import org.msh.pdex2.dto.table.TableHeader;
 import org.msh.pdex2.dto.table.TableQtb;
-import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.r2.Assembly;
@@ -34,7 +24,6 @@ import org.msh.pdex2.model.r2.Scheduler;
 import org.msh.pdex2.model.r2.Thing;
 import org.msh.pdex2.model.r2.ThingDict;
 import org.msh.pdex2.model.r2.ThingDoc;
-import org.msh.pdex2.model.r2.ThingPerson;
 import org.msh.pdex2.model.r2.ThingRegister;
 import org.msh.pdex2.model.r2.ThingScheduler;
 import org.msh.pdex2.model.r2.ThingThing;
@@ -46,13 +35,11 @@ import org.msh.pharmadex2.dto.RegisterDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
 import org.msh.pharmadex2.dto.SchedulerDTO;
 import org.msh.pharmadex2.dto.ThingValuesDTO;
-import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.common.DtoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -75,14 +62,7 @@ public class ResolverService {
 	@Autowired
 	private AssemblyService assemblyServ;
 	@Autowired
-	private AmendmentService amendServ;
-	@Autowired
-	private DtoService dtoServ;
-	@Autowired
-	private Messages mess;
-	@Autowired
 	private ResolverServiceRender renderServ;
-
 
 	/**
 	 * Resolve model to values map for using in DocxView
@@ -97,12 +77,9 @@ public class ResolverService {
 		for(String key :model.keySet()) {
 			String[] expr = key.split("@");
 			if(expr.length==2) {
-				//logger.trace("resolve "+key);
 				Map<String, Object> value = resolve(expr[0],fres, assemblies);	//first change here in READVARIABLE
-				//logger.trace("value to string "+key);
 				model.put(key, valueToString(value, expr[1]));				//second there
 				errors = resolveError(value, errors);
-				//logger.trace("over "+key);
 			}else {
 				if(!key.equalsIgnoreCase(ResolverServiceRender.ERROR_TAG)) {
 					model=renderServ.error("resolveModel. Wrong expression "+key, key, model);
@@ -498,7 +475,8 @@ public class ResolverService {
 		//dictionaries
 		DictValuesDTO valDict = data.getDictionaries().get(varName.toUpperCase());
 		if(valDict != null) {
-			List<AssemblyDTO> adList = assemblyServ.auxDictionaries(data.getUrl());
+			List<Assembly> assemblies =assemblyServ.loadDataConfiguration(data.getUrl());
+			List<AssemblyDTO> adList = assemblyServ.auxDictionaries(data.getUrl(),assemblies);
 			for(AssemblyDTO ad : adList) {
 				List<Concept> selected = new ArrayList<Concept>();
 				for(Long id : valDict.getSelected()) {
@@ -835,7 +813,7 @@ public class ResolverService {
 			if(ts.getVarName().equalsIgnoreCase(varName)) {
 				Scheduler sched = boilerServ.schedulerByNode(ts.getConcept());
 				if(sched.getScheduled() != null) {
-					LocalDate ld = boilerServ.convertToLocalDateViaMilisecond(sched.getScheduled());
+					LocalDate ld = boilerServ.convertToLocalDate(sched.getScheduled());
 					value.put("date",ld);
 					break;
 				}
@@ -946,8 +924,8 @@ public class ResolverService {
 		Thing thing = boilerServ.thingByNode(var);
 		for(ThingRegister tr : thing.getRegisters()) {
 			Register reg = boilerServ.registerByConcept(tr.getConcept());
-			LocalDate regDate = boilerServ.convertToLocalDateViaMilisecond(reg.getRegisteredAt());
-			LocalDate expDate = boilerServ.convertToLocalDateViaMilisecond(reg.getValidTo());
+			LocalDate regDate = boilerServ.convertToLocalDate(reg.getRegisteredAt());
+			LocalDate expDate = boilerServ.convertToLocalDate(reg.getValidTo());
 			value.put("literal",reg.getRegister());
 			value.put("registered",regDate);				//to locale string!!!!
 			value.put("registeredBS", boilerServ.localDateToNepali(regDate, false));

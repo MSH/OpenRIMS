@@ -491,7 +491,6 @@ public class DocxView extends AbstractView{
 	public boolean compareRuns(XWPFRun prev, XWPFRun actual){
 		return	prev.getCharacterSpacing() == actual.getCharacterSpacing()
 				&& prev.getKerning() == actual.getKerning()
-				&& prev.getSubscript().equals(actual.getSubscript())
 				&& prev.getUnderline().equals(actual.getUnderline())
 				&& prev.isBold() == actual.isBold()
 				&& prev.isCapitalized() == actual.isCapitalized()

@@ -12,7 +12,9 @@ import java.util.Map;
 
 import org.msh.pdex2.dto.table.HasRow;
 import org.msh.pdex2.dto.table.Headers;
+import org.msh.pdex2.dto.table.TableCell;
 import org.msh.pdex2.dto.table.TableHeader;
+import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.model.r2.Concept;
 import org.slf4j.Logger;
@@ -23,6 +25,7 @@ import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcCall;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +43,41 @@ public class JdbcRepository {
 	private static final Logger logger = LoggerFactory.getLogger(JdbcRepository.class);
 	@Autowired
 	JdbcTemplate jdbcTemplate;
+
+	/**
+	 * For manual initialization
+	 * @param schemaDb
+	 * @param jdbcTemplate
+	 * @param messages
+	 * @return 
+	 * @throws SQLException 
+	 */
+	public static JdbcRepository instanceOf(String schemaDb, JdbcTemplate jdbcTemplate,
+			String userName, String password) throws SQLException{
+		JdbcRepository ret = new JdbcRepository();
+		if(jdbcTemplate.getDataSource().getConnection().getMetaData().getURL().toUpperCase().contains(schemaDb.toUpperCase())) {
+			ret.setJdbcTemplate(jdbcTemplate);
+		}else {
+			//TODO create a new JDBC template with a new simple data source
+			DriverManagerDataSource dataSource = new DriverManagerDataSource();
+			dataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
+			dataSource.setUrl("jdbc:mysql://localhost/"+schemaDb+"?useSSL=false");
+			dataSource.setUsername(userName);
+			dataSource.setPassword(password);
+			JdbcTemplate template = new JdbcTemplate();
+			template.setDataSource(dataSource);
+			ret.setJdbcTemplate(template);
+		}
+		return ret;
+	}
+
+	public JdbcTemplate getJdbcTemplate() {
+		return jdbcTemplate;
+	}
+
+	public void setJdbcTemplate(JdbcTemplate jdbcTemplate) {
+		this.jdbcTemplate = jdbcTemplate;
+	}
 
 	/**
 	 * Select rows with GroupBy phrase
@@ -403,7 +441,7 @@ public class JdbcRepository {
 		params.addValue("actconfigid", actConfigId);
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
-		
+
 	}
 	/**
 	 * Read register's records by regester's url
@@ -420,7 +458,7 @@ public class JdbcRepository {
 	 * Get all opened activities by user's email
 	 * @param email
 	 */
-	public void myActivities(String email) {
+	public void activities(String email) {
 		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
 		proc.withProcedureName("activities");
 		MapSqlParameterSource params = new MapSqlParameterSource();
@@ -429,7 +467,7 @@ public class JdbcRepository {
 		params.addValue("exec", email);
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
-		
+
 	}
 	/**
 	 * Get all opened monitoring activities by user's email
@@ -455,7 +493,7 @@ public class JdbcRepository {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("root", node.getID());
 		proc.execute(params);
-		
+
 	}
 	/**
 	 * Report sites
@@ -468,31 +506,31 @@ public class JdbcRepository {
 	 */
 	public void report_sites(String dataUrl, String dictStageUrl, String addressUrl, String ownerUrl,
 			String inspectAppUrl, String renewAppUrl, String certAppUrl) {
-			SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
-			proc.withProcedureName("report_sites");
-			MapSqlParameterSource params = new MapSqlParameterSource();
-			params.addValue("site_url", dataUrl);
-			params.addValue("dict_stage_url", dictStageUrl);
-			params.addValue("addr_url", addressUrl);
-			params.addValue("owner_url", ownerUrl);
-			params.addValue("appl_inspection_url", inspectAppUrl);
-			params.addValue("appl_renew_url", renewAppUrl);
-			params.addValue("appl_cert_url", certAppUrl);
-			params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
-			proc.execute(params);
-		
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("report_sites");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("site_url", dataUrl);
+		params.addValue("dict_stage_url", dictStageUrl);
+		params.addValue("addr_url", addressUrl);
+		params.addValue("owner_url", ownerUrl);
+		params.addValue("appl_inspection_url", inspectAppUrl);
+		params.addValue("appl_renew_url", renewAppUrl);
+		params.addValue("appl_cert_url", certAppUrl);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+
 	}
 	/**
 	 * load amendments
 	 * @param email user's email, if null - all users all amendments
 	 */
 	public void amendments(String email) {
-			SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
-			proc.withProcedureName("amendments");
-			MapSqlParameterSource params = new MapSqlParameterSource();
-			params.addValue("email", email);
-			params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
-			proc.execute(params);
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("amendments");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("email", email);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
 	}
 	/**
 	 * Move root of some tree to a new root
@@ -592,7 +630,7 @@ public class JdbcRepository {
 		params.addValue("nodeid", nodeId);
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
-		
+
 	}
 	/**
 	 * All configurations for reports
@@ -640,7 +678,7 @@ public class JdbcRepository {
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 	}
-	
+
 	/**
 	 * List of all inactive hosted applications
 	 * @param url application data url
@@ -680,7 +718,7 @@ public class JdbcRepository {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("regurl", regurl);
 		proc.execute(params);
-		
+
 	}
 	/**
 	 * List of schedulers to the temporary table
@@ -707,7 +745,7 @@ public class JdbcRepository {
 		params.addValue("url", url);
 		params.addValue("appldataid", appldataid);
 		proc.execute(params);
-		
+
 	}
 	/**
 	 * Get all data units in the application data given 
@@ -732,7 +770,7 @@ public class JdbcRepository {
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 	}
-	
+
 	/**
 	 * Plain list of admin units up to level 2 (usually districts)
 	 */
@@ -742,7 +780,7 @@ public class JdbcRepository {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
-		
+
 	}
 	/**
 	 * Select executors by the criteria given
@@ -770,7 +808,7 @@ public class JdbcRepository {
 		params.addValue("url", url);
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
-		
+
 	}
 	/**
 	 * Load all known open activities to the temporary table in_activities for the future querying 
@@ -807,6 +845,141 @@ public class JdbcRepository {
 		params.addValue("addrurl", addressUrl);
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
+	}
+	/**
+	 * Get ID of the initial application by id of any related data of it
+	 * @param applicationID data id of main application or null if unknown
+	 * @param applicationDataID data id of any data related to the main application, or null if we want all of them 
+	 * @return null if not found
+	 */
+	@Transactional
+	public Long application_data(Long applicationID, Long  applicationDataID) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("application_data");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("nodeid", applicationID);
+		params.addValue("dataid", applicationDataID);
+		proc.execute(params);
+		TableQtb table = new TableQtb();
+		table.getHeaders().getHeaders().add(TableHeader.instanceOf("nodeid", TableHeader.COLUMN_LONG));
+		List<TableRow> rows= qtbGroupReport("select * from application_data", "", "", table.getHeaders());
+		if(rows.size()>0) {
+			Long retl = (Long)rows.get(0).getRow().get(0).getOriginalValue();
+			return retl;
+		}else {
+			return null;
+		}
+	}
+	/**
+	 * Get a register by register URL for application with initial node nodeId
+	 * @param nodeId
+	 * @param url
+	 * @return
+	 */
+	public Long registerApplication(long nodeId, String url) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("registers_application");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("nodeid", nodeId);
+		proc.execute(params);
+		TableQtb table = new TableQtb();
+		String where = "url='"+url+"'";
+		table.getHeaders().getHeaders().add(TableHeader.instanceOf("regid", TableHeader.COLUMN_LONG));
+		List<TableRow> rows= qtbGroupReport("select * from registers_application", "", where, table.getHeaders());
+		if(rows.size()>0) {
+			Long retl = (Long)rows.get(0).getRow().get(0).getOriginalValue();
+			return retl;
+		}else {
+			return null;
+		}
+	}
+	/**
+	 * Create and execute a single insert
+	 * @param tableName
+	 * @param row
+	 */
+	@Transactional
+	public boolean insert(String tableName, TableRow row) {
+		if(row.getDbID()==0) {
+			String sql = "INSERT INTO `"+tableName+"` " + col_Names(row) + " VALUES " + col_Values(row);
+			return getJdbcTemplate().update(sql)==1;
+		}else {
+			return update(tableName, row);
+		}
+	}
+
+	/**
+	 * Values of columns
+	 * @param headers
+	 * @param row
+	 * @return empty string if no values
+	 */
+	private String col_Values(TableRow row) {
+		String ret="";
+		List<String> cols = new ArrayList<String>();
+		for(TableCell cell : row.getRow()) {
+			cols.add(cell.getDbInsertValue());
+		}
+		if(cols.size()>0) {
+			ret="("+String.join(",", cols) + ")";
+		}
+		return ret;
+	}
+
+	/**
+	 * String with colun names
+	 * @param headers
+	 * @param row
+	 * @return string like (colname1, colname2..) or empty string
+	 */
+	private String col_Names(TableRow row) {
+		String ret="";
+		List<String> cols = new ArrayList<String>();
+		for(TableCell cell : row.getRow()) {
+			cols.add("`"+cell.getKey()+"`");
+		}
+		if(cols.size()>0) {
+			ret="("+String.join(",", cols) + ")";
+		}
+		return ret;
+	}
+	/**
+	 * Execute SQL update on the table, using row
+	 * @param string
+	 * @param tableRow
+	 */
+	public boolean update(String tableName, TableRow row) {
+		if(row.getDbID()>0) {
+			String sql = "UPDATE `"+tableName+"` SET " +  col_NamesValues(row) + " where ID="+row.getDbID();
+			return getJdbcTemplate().update(sql)==1;
+		}else {
+			return insert(tableName, row);
+		}
+	}
+	/**
+	 * Col names and values for SQL UPDATE
+	 * @param row
+	 * @return
+	 */
+	private String col_NamesValues(TableRow row) {
+		String ret="";
+		List<String> cols = new ArrayList<String>();
+		for(TableCell cell : row.getRow()) {
+			String s = "`"+cell.getKey()+"`=" + cell.getDbInsertValue();
+			cols.add(s);
+		}
+		if(cols.size()>0) {
+			ret=String.join(",", cols);
+		}
+		return ret;
+	}
+	/**
+	 * Run insert/update SQL
+	 * @param sql
+	 * @return
+	 */
+	public int update(String sql) {
+		return getJdbcTemplate().update(sql);
 	}
 
 

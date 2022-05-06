@@ -11,6 +11,7 @@ import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
+import org.msh.pdex2.model.r2.Thing;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.ApplicationEventsDTO;
@@ -37,6 +38,8 @@ public class ReportService {
 
 	@Autowired
 	private ClosureService closureServ;
+	@Autowired
+	private LiteralService literalServ;
 	@Autowired
 	private AssemblyService assmServ;
 	@Autowired
@@ -189,7 +192,7 @@ public class ReportService {
 		if(repConf.isDeregistered()) {
 			data=siteDeregisteredTable(data,repConf,user);
 		}else {
-			data=siteExistedTable(data, repConf, user);
+			data=siteExistingTable(data, repConf, user);
 		}
 		return data;
 	}
@@ -206,8 +209,12 @@ public class ReportService {
 			Headers headers= headersDeRegisteredSite(table.getHeaders(),user);
 			table.setHeaders(headers);
 		}
+		String where="";
+		if(accessControl.isApplicant(user)) {
+			where="email='"+user.getEmail()+"'";
+		}
 		jdbcRepo.report_deregister(repConf.getAddressUrl(), repConf.getRegisterAppUrl());
-		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from report_deregister", "", "", table.getHeaders());
+		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from report_deregister", "", where, table.getHeaders());
 		TableQtb.tablePage(rows, table);
 		table.setSelectable(false);
 		return data;
@@ -269,7 +276,7 @@ public class ReportService {
 	 * @return
 	 */
 	@Transactional
-	private ReportDTO siteExistedTable(ReportDTO data, ReportConfigDTO repConf, UserDetailsDTO user) {
+	private ReportDTO siteExistingTable(ReportDTO data, ReportConfigDTO repConf, UserDetailsDTO user) {
 		TableQtb table = data.getTable();
 		if(table.getHeaders().getHeaders().size()==0) {
 			Headers headers= headersRegisteredSite(table.getHeaders(), user);
@@ -277,7 +284,11 @@ public class ReportService {
 		}
 		jdbcRepo.report_sites(repConf.getDataUrl(), repConf.getDictStageUrl(), repConf.getAddressUrl(), repConf.getOwnerUrl(),
 				repConf.getInspectAppUrl(), repConf.getRenewAppUrl(), repConf.getRegisterAppUrl());
-		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from report_sites", "", "", table.getHeaders());
+		String where="";
+		if(accessControl.isApplicant(user)) {
+			where="email='"+user.getEmail()+"'";
+		}
+		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from report_sites", "", where, table.getHeaders());
 		TableQtb.tablePage(rows, table);
 		table.setSelectable(false);
 		return data;
@@ -574,10 +585,9 @@ public class ReportService {
 	 * @throws ObjectNotFoundException 
 	 */
 	public ApplicationEventsDTO applicationEventsData(UserDetailsDTO user, ApplicationEventsDTO data) throws ObjectNotFoundException {
-		List<Long> dataIds=new ArrayList<Long>();
-		dataIds = eventDataIds(data, dataIds);
-		if(dataIds.size()==2) {
-			data=eventDataLoad(dataIds, data);
+		data = eventDataIds(data);
+		if(data.hasEvent()) {
+			data=eventDataLoad(data);
 		}else {
 			data=eventDataCleanUp(data);
 		}
@@ -585,17 +595,16 @@ public class ReportService {
 	}
 	/**
 	 * Prepare event data
-	 * @param dataIds
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	private ApplicationEventsDTO eventDataLoad(List<Long> dataIds, ApplicationEventsDTO data) throws ObjectNotFoundException {
-		if(dataIds.size()==2) {
-			if(dataIds.get(0).equals(dataIds.get(1))) {
-				data=eventDataLoadActivity(data);
+	private ApplicationEventsDTO eventDataLoad(ApplicationEventsDTO data) throws ObjectNotFoundException {
+		if(data.hasEvent()) {
+			if(data.hasActivity()) {
+				data=eventDataLoadActivity(data);					//not used yet
 			}else {
-				data=eventDataLoadAmendment(dataIds,data);
+				data=eventDataLoadAmendment(data);
 			}
 		}else {
 			data=eventDataCleanUp(data);
@@ -604,18 +613,20 @@ public class ReportService {
 	}
 	/**
 	 * Load amended and amendment things and compare them
-	 * @param dataIds
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	private ApplicationEventsDTO eventDataLoadAmendment(List<Long> dataIds, ApplicationEventsDTO data) throws ObjectNotFoundException {
+	private ApplicationEventsDTO eventDataLoadAmendment(ApplicationEventsDTO data) throws ObjectNotFoundException {
 		String prefLabel="";
-		if(dataIds.size()==2) {
-			Concept amendmentConcept = closureServ.loadConceptById(dataIds.get(1));
-			Concept amdApplRoot = amendServ.amendedApplication(amendmentConcept);
-			List<History> hisl = boilerServ.historyAll(amdApplRoot);
+		data.getLeftThing().setNodeId(data.getOldDataId());
+		data.getRightThing().setNodeId(data.getCurrDataId());
+			
+			/*
+			
+			
+			List<History> hisl = boilerServ.historyAll(amendmentAppRoot);
 			if(hisl.size()>0) {
 				//amended
 				data.getLeftThing().setNodeId(dataIds.get(0));
@@ -631,7 +642,7 @@ public class ReportService {
 					prefLabel=boilerServ.prefLabelCheck(amended);
 				}
 			}
-		}
+		}*/
 		//titles for data
 		String title = data.getTitle()+" "+prefLabel;
 		data.setTitle(title.trim());
@@ -669,17 +680,21 @@ public class ReportService {
 	 */
 	private ApplicationEventsDTO eventDataCleanUp(ApplicationEventsDTO data) {
 		data.setSelected(0);
+		data.setOldDataId(0l);
+		data.setAmdDataId(0l);
+		data.setCurrDataId(0l);
 		data.setLeftThing(new ThingDTO());
 		data.setRightThing(new ThingDTO());
 		data.setChecklist(new CheckListDTO());
 		return data;
 	}
 	/**
-	 * Load ID's for selected data
+	 * Load additional ID's - old data, amendment data, current data
 	 * @param data
 	 * @return
+	 * @throws ObjectNotFoundException 
 	 */
-	public List<Long> eventDataIds(ApplicationEventsDTO data, List<Long> result) {
+	public ApplicationEventsDTO eventDataIds(ApplicationEventsDTO data) throws ObjectNotFoundException {
 		if(data.getSelected()>0) {
 			jdbcRepo.application_events(data.getAppldataid());
 			Headers headers=new Headers();
@@ -687,12 +702,22 @@ public class ReportService {
 			headers.getHeaders().add(TableHeader.instanceOf("newdata", TableHeader.COLUMN_LONG));
 			List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from application_events", "", "ID="+data.getSelected(), headers);
 			if(rows.size()==1) {
-				result.add(rows.get(0).getDbID());
+				data.setOldDataId(rows.get(0).getDbID());
 				Long newID = (Long) rows.get(0).getRow().get(0).getOriginalValue();
-				result.add(newID);
+				data.setAmdDataId(newID);
+			}
+			//determine amended data
+			Concept amendmentUnit = closureServ.loadConceptById(data.getAmdDataId());
+			Concept amedmentAppl = amendServ.amendmentApplicationByAmendmentUnit(amendmentUnit);
+			Concept currData = amendServ.amendedConcept(amedmentAppl);
+			if(currData != null) {
+				data.setCurrDataId(currData.getID());
+			}else {
+				throw new ObjectNotFoundException("The amended (current) data unit nod found. Application ID/amendment ID="+
+						data.getAppldataid()+"/"+data.getAmdDataId(),logger);
 			}
 		}
-		return result;
+		return data;
 	}
 	/**
 	 * Renew report parameters cache - addresses, etc.
@@ -721,13 +746,33 @@ public class ReportService {
 		if(data.getNodeId()>0) {
 			TableQtb table=data.getTable();
 			if(!table.hasHeaders()) {
-				table.setHeaders(applServ.historyHeaders(table.getHeaders(),user));
+				table.setHeaders(applServ.historyHeaders(table.getHeaders(),user,false));
 			}
 			jdbcRepo.application_history(data.getNodeId());
-			table=applServ.historyTableRows(user, table);
+			table=applServ.historyTableRows(user, table, false);
 			table.setSelectable(false);
 		}
 		return data;
+	}
+	/**
+	 * Init thingDTO using history ID
+	 * @param historyID
+	 * @param user
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public ThingDTO activityDataLoad(Long historyId, UserDetailsDTO user) throws ObjectNotFoundException {
+		ThingDTO dto = new ThingDTO();
+		History history = boilerServ.historyById(historyId);
+		if(history.getActivityData() != null) {
+			dto.setNodeId(history.getActivityData().getID());
+			String pref = literalServ.readPrefLabel(history.getActConfig());
+			dto.setTitle(pref);
+		}else {
+			throw new ObjectNotFoundException("activityDataLoad. activityDataID is null. history ID="+historyId,logger);
+		}
+		return dto;
 	}
 
 }

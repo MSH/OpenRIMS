@@ -612,7 +612,7 @@ public class SystemService {
 	 * If address dictionary does not exist, create new one
 	 * @throws ObjectNotFoundException 
 	 */
-	private void checkAddressDict() throws ObjectNotFoundException {
+	public void checkAddressDict() throws ObjectNotFoundException {
 		dictServ.checkDictionary(DICTIONARY_ADMIN_UNITS);
 	}
 

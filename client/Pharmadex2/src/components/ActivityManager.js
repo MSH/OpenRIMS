@@ -147,7 +147,7 @@ class ActivityManager extends Component{
         }
 
     loadHistory(){
-        Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName()+"/application/history", this.state.history, (query,result)=>{
+        Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName()+"/application/manager/history", this.state.history, (query,result)=>{
             this.state.history=result
             this.state.color = "success"
             this.setState(this.state)

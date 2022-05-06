@@ -211,7 +211,27 @@ public class ActivityAPI {
 			throws DataNotFoundException {
 		try {
 			UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
-			data = applServ.historyTable(user, data);
+			data = applServ.applicationInformationTable(user, data, true);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
+	/**
+	 * Reload history
+	 * 
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping({ "/api/*/application/manager/history"})
+	public ApplicationHistoryDTO applicationManagerHistory(Authentication auth, @RequestBody ApplicationHistoryDTO data)
+			throws DataNotFoundException {
+		try {
+			UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+			data = applServ.applicationInformationTable(user, data, true);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -228,6 +248,7 @@ public class ActivityAPI {
 	 */
 	@PostMapping({ "/api/*/thing/load"})
 	public ThingDTO thingLoad(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
+		logger.debug("start thing");
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			if (data.getNodeId() == 0) {
@@ -238,6 +259,7 @@ public class ActivityAPI {
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
+		logger.debug("end thing");
 		return data;
 	}
 
@@ -285,7 +307,9 @@ public class ActivityAPI {
 	@PostMapping({ "/api/*/activity/path"})
 	public ThingDTO path(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
 		try {
+			//logger.debug("Start path");
 			data = thingServ.path(data);
+			//logger.debug("end path");
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}

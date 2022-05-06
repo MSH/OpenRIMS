@@ -28,8 +28,8 @@ public class FileResource implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22227417FFB32C95E05F6E")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22227417FFB32C95E05F6E", strategy="native")	
+	@GeneratedValue(generator="VAC2222741804C28664A075C9")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222741804C28664A075C9", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	

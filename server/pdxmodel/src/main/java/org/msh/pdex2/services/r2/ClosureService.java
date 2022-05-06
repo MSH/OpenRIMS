@@ -10,7 +10,6 @@ import javax.persistence.PersistenceContext;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.model.r2.Closure;
 import org.msh.pdex2.model.r2.Concept;
-import org.msh.pdex2.model.r2.ThingPerson;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.r2.ClosureRepo;
 import org.msh.pdex2.repository.r2.ConceptRepo;

@@ -17,6 +17,7 @@ import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
+import org.msh.pdex2.model.r2.Assembly;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.model.r2.Thing;
@@ -145,10 +146,11 @@ public class AmendmentService {
 	}
 
 	/**
-	 * Search for of amended data unit by amend data It is presumed that the link to
+	 * Search for of amended data in the original application unit using amendment application
+	 * It is presumed that the link to
 	 * ameded data is always at the root thing!
 	 * 
-	 * @param applicationData amend data unit
+	 * @param applicationData amendment application
 	 * @return ID>0 if found, otherwise ID==0
 	 */
 	@Transactional
@@ -211,7 +213,8 @@ public class AmendmentService {
 	 */
 	@Transactional
 	private Concept implementPersons(String configUrl, Concept amendment, Concept amended, Concept storedValues) throws ObjectNotFoundException {
-		List<AssemblyDTO> ads = assemblyServ.auxPersons(configUrl);
+		List<Assembly> assemblies =assemblyServ.loadDataConfiguration(configUrl);
+		List<AssemblyDTO> ads = assemblyServ.auxPersons(configUrl,assemblies);
 		//prepare
 		List<String> keys = new ArrayList<String>();
 		for(AssemblyDTO ad : ads) {
@@ -327,7 +330,8 @@ public class AmendmentService {
 	 */
 	@Transactional
 	private Concept implementDictionaries(String configUrl, Concept amendment, Concept amended, Concept storedValues) throws ObjectNotFoundException {
-		List<AssemblyDTO> ads = assemblyServ.auxDictionaries(configUrl);
+		List<Assembly> assemblies =assemblyServ.loadDataConfiguration(configUrl);
+		List<AssemblyDTO> ads = assemblyServ.auxDictionaries(configUrl,assemblies);
 		if(ads.size()>0) {
 			//prepare
 			List<String> keys = new ArrayList<String>();
@@ -386,7 +390,8 @@ public class AmendmentService {
 	 */
 	@Transactional
 	private Concept implementFiles(String configUrl, Concept amendment, Concept amended, Concept storedValues) throws ObjectNotFoundException {
-		List<AssemblyDTO> ads = assemblyServ.auxDocuments(configUrl);
+		List<Assembly> assemblies =assemblyServ.loadDataConfiguration(configUrl);
+		List<AssemblyDTO> ads = assemblyServ.auxDocuments(configUrl,assemblies);
 		if(ads.size()>0) {
 			//prepare
 			List<String> keys = new ArrayList<String>();
@@ -506,7 +511,8 @@ public class AmendmentService {
 			throws ObjectNotFoundException {
 		Thing storedThing = storedThing(storedValues);
 		Thing amendedThing = boilerServ.thingByNode(amended);
-		List<AssemblyDTO> ads = assemblyServ.auxAddresses(configUrl);
+		List<Assembly> assemblies =assemblyServ.loadDataConfiguration(configUrl);
+		List<AssemblyDTO> ads = assemblyServ.auxAddresses(configUrl,assemblies);
 		Map<String, ThingThing> oldValue = mapThingThing(ads, amended);
 		Map<String, ThingThing> newValue = mapThingThing(ads, amendment);
 		Map<String, ThingThing> oldStored = mapThingThing(ads, storedValues);
@@ -643,13 +649,15 @@ public class AmendmentService {
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
+	@Transactional
 	public List<AssemblyDTO> primitiveCollect(String configUrl, Concept amendment) throws ObjectNotFoundException {
 		List<AssemblyDTO> all = new ArrayList<AssemblyDTO>();
-		all.addAll(assemblyServ.auxStrings(configUrl));
-		all.addAll(assemblyServ.auxLiterals(configUrl));
-		all.addAll(assemblyServ.auxNumbers(configUrl));
-		all.addAll(assemblyServ.auxDates(configUrl));
-		all.addAll(assemblyServ.auxLogicals(configUrl));
+		List<Assembly> assemblies =assemblyServ.loadDataConfiguration(configUrl);
+		all.addAll(assemblyServ.auxStrings(configUrl,assemblies));
+		all.addAll(assemblyServ.auxLiterals(configUrl,assemblies));
+		all.addAll(assemblyServ.auxNumbers(configUrl,assemblies));
+		all.addAll(assemblyServ.auxDates(configUrl,assemblies));
+		all.addAll(assemblyServ.auxLogicals(configUrl,assemblies));
 		return all;
 	}
 
@@ -1085,10 +1093,12 @@ public class AmendmentService {
 			data.getPersons().get(key).setChanged(false);
 		}
 		Set<String> keys = personsCompare(node, modiUnit);
-		for(String key : keys) {
-			if(!key.equalsIgnoreCase(REMOVE_PERSON)) {
-				PersonDTO dto = data.getPersons().get(key);
-				dto.setChanged(true);
+		if(keys.size()>0) {
+			for(String key : keys) {
+				if(!key.equalsIgnoreCase(REMOVE_PERSON)) {
+					PersonDTO dto = data.getPersons().get(key);
+					dto.setChanged(true);
+				}
 			}
 		}
 		return data;
@@ -1339,7 +1349,8 @@ public class AmendmentService {
 		Thing newThing = boilerServ.thingByNode(amendment);
 		Map<String, Concept> newAddr = new LinkedHashMap<String, Concept>();
 		Map<String, Concept> oldAddr = new LinkedHashMap<String, Concept>();
-		List<AssemblyDTO> adl = assemblyServ.auxAddresses(nodeUrl);
+		List<Assembly> assemblies =assemblyServ.loadDataConfiguration(nodeUrl);
+		List<AssemblyDTO> adl = assemblyServ.auxAddresses(nodeUrl,assemblies);
 		for (AssemblyDTO ad : adl) {
 			String key = ad.getPropertyName();
 			// collect addresses
@@ -1411,22 +1422,22 @@ public class AmendmentService {
 	}
 
 	/**
-	 * Determine application data of amended application
+	 * Determine amendment application by the amended unit
 	 * 
 	 * @param amendedUnit any unit inside the application data
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	public Concept amendedApplication(Concept amendedUnit) throws ObjectNotFoundException {
-		List<DataUnitDTO> reversePath = reversePath(amendedUnit);
+	public Concept amendmentApplicationByAmendmentUnit(Concept amendmentUnit) throws ObjectNotFoundException {
+		List<DataUnitDTO> reversePath = reversePath(amendmentUnit);
 		int size = reversePath.size();
 		if (size > 0) {
 			DataUnitDTO applRoot = reversePath.get(size - 1);
 			Concept ret = closureServ.loadConceptById(applRoot.getNodeId());
 			return ret;
 		} else {
-			throw new ObjectNotFoundException("amendedApplication. Not found for modification ID=" + amendedUnit.getID());
+			throw new ObjectNotFoundException("amendedApplication. Not found for modification ID=" + amendmentUnit.getID());
 		}
 	}
 
@@ -1442,7 +1453,7 @@ public class AmendmentService {
 	public Concept initialApplicationData(Concept currentApplData) throws ObjectNotFoundException {
 		Concept amended = amendedConcept(currentApplData);	//does the application data contain an amendment for some amended data?
 		if(amended.getID()>0) {
-			return amendedApplication(amended);	//current application data is amendment, thus search for amended data 
+			return amendmentApplicationByAmendmentUnit(amended);	//current application data is amendment, thus search for amended data 
 		}else {
 			return currentApplData; //current application data is the initial application data
 		}
@@ -1584,12 +1595,10 @@ public class AmendmentService {
 		Iterable<ThingAmendment> taList = thingAmendmentRepo.findAll();
 		for(ThingAmendment ta : taList) {
 			if(ta.getApplicationData()==null) {
-				ta.setApplicationData(amendedApplication(ta.getConcept()));
+				ta.setApplicationData(amendmentApplicationByAmendmentUnit(ta.getConcept()));
 				thingAmendmentRepo.save(ta);
 			}
 		}
 	}
-
-
 
 }

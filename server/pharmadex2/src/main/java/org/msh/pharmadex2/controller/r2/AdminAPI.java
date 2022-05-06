@@ -1,5 +1,7 @@
 package org.msh.pharmadex2.controller.r2;
 
+import java.io.IOException;
+
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pharmadex2.dto.ContentDTO;
@@ -26,6 +28,7 @@ import org.msh.pharmadex2.service.common.UserService;
 import org.msh.pharmadex2.service.r2.ApplicationService;
 import org.msh.pharmadex2.service.r2.ContentService;
 import org.msh.pharmadex2.service.r2.DictService;
+import org.msh.pharmadex2.service.r2.ImportAService;
 import org.msh.pharmadex2.service.r2.LegacyDataService;
 import org.msh.pharmadex2.service.r2.PubOrgService;
 import org.msh.pharmadex2.service.r2.ReportService;
@@ -37,6 +40,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 
 /**
  * Common API for all authenticated users
@@ -69,7 +75,9 @@ public class AdminAPI {
 	@Autowired
 	private ReportService reportServ;
 	@Autowired
-	private LegacyDataService legacyDataServ;
+	private ImportAService importAService;
+	@Autowired
+	private ThingService thingServ;
 
 	/**
 	 * Tiles for landing page
@@ -772,11 +780,12 @@ public class AdminAPI {
 	 */
 	@PostMapping("/api/admin/report/parameters/renew")
 	public ReportConfigDTO reportParametersRenew(@RequestBody ReportConfigDTO data) throws DataNotFoundException {
-		try {
-			data = reportServ.reportParametersRenew(data);
+		/*try {
+			//2022.04.25 data
+			 * reportServ.reportParametersRenew(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
-		}
+		}*/
 		return data;
 	}
 	
@@ -790,11 +799,35 @@ public class AdminAPI {
 	public ThingDTO importAdminunitsLoad(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 		try {
-			data=legacyDataServ.importAdminunitsLoad(data,user);
+			data=importAService.importAdminunitsLoad(data,user);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
 	}
 	
+	/**
+	 * Load import admin units feature
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 * @throws IOException 
+	 * @throws JsonMappingException 
+	 * @throws JsonParseException 
+	 */
+	@PostMapping("/api/admin/importa")
+	public ThingDTO runImportAdminunits(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException, JsonParseException, JsonMappingException, IOException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		try {
+			data = importAService.importAdminunitsVerify(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
+	@PostMapping("/api/admin/importa/verifstatus")
+	public Boolean verifstatusImportAdminunits(Authentication auth, @RequestBody ThingDTO data) throws ObjectNotFoundException{
+		return importAService.verifstatusImportA(data);
+	}
 }

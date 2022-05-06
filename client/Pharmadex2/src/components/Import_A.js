@@ -20,11 +20,15 @@ class Import_A extends Component{
                 global_cancel:'',
                 global_save:'',
                 askforimportrun:'',
+                errorvariffile:'Error varification file!',
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
         this.headerFooter=this.headerFooter.bind(this)
         this.load=this.load.bind(this)
+        this.verifyImport=this.verifyImport.bind(this)
+        this.runImport=this.runImport.bind(this)
+        this.reloadStatus=this.reloadStatus.bind(this)
     }
 
     /**
@@ -42,6 +46,7 @@ class Import_A extends Component{
                     Alerts.warning(this.state.labels.askforimportrun,
                         ()=>{   //yes
                             //run import
+                            this.verifyImport()
                         },
                         ()=>{   //no
 
@@ -56,6 +61,53 @@ class Import_A extends Component{
         Locales.resolveLabels(this)
         this.load()
     }
+
+    verifyImport(){
+        Fetchers.postJSON("/api/admin/importa/verif", this.state.data, (query, result)=>{
+            this.state.data=result
+            if(this.state.data.valid){
+                Navigator.message('*', '*', 'show.alert.pharmadex.2', "File is OK. Start import data")
+                window.location="/"+Navigator.tabSetName()+"#"+Navigator.tabName()
+                this.setState(this.state)
+                this.runImport()
+            }else{
+                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.errorvariffile, color:'danger'})
+                this.setState(this.state)
+            }
+        })
+    }
+
+    runImport(){
+        clearTimeout()  
+        this.setState(this.state)
+
+        var data = this.state.data.url + "&&" + this.state.data.nodeId
+        let formData = new FormData()
+        formData.append('data', data)
+        Fetchers.postForm("/api/admin/importa/run", formData, (formData, result)=>{   
+        })
+        const timeout = setTimeout(() => {
+            this.reloadStatus();
+        }, 10000); 
+    }
+
+    reloadStatus(){
+        Fetchers.postJSONNoSpinner("/api/admin/importa/verifstatus",this.state.data,(query,result)=>{
+            let s = this.state
+            if(result){//import end
+                Navigator.message('*', '*', 'show.alert.pharmadex.2', "End import data")
+                this.setState( {data: this.state.data})
+                clearTimeout()          
+                let loop2 = setTimeout(this.loadData,60000)
+            }else{
+                clearTimeout()
+                let loop1 = setTimeout(this.reloadStatus,1500)
+                this.setState(this.state)
+            }
+            
+        })
+    }
+
     /**
      * Load data
      */

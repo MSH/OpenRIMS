@@ -267,7 +267,7 @@ public class DoxViewTest {
 	 * @throws IOException 
 	 * @throws ObjectNotFoundException 
 	 */
-	//@Test
+	@Test
 	public void testRealTableELForm() throws ObjectNotFoundException, IOException {
 		//init view
 		Path pathFile = Paths.get("src","test","resources", "Components_EL.docx");

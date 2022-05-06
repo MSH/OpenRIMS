@@ -43,8 +43,8 @@ public class FollowUpService {
 						sc = boilerServ.schedulerByNode(ts.getConcept());
 						sdto.setNodeId(thing.getConcept().getID());
 						sdto.setConceptId(ts.getConcept().getID());
-						sdto.getSchedule().setValue(boilerServ.convertToLocalDateViaMilisecond(sc.getScheduled()));
-						sdto.setCreatedAt(boilerServ.convertToLocalDateViaMilisecond(sc.getCreatedAt()));
+						sdto.getSchedule().setValue(boilerServ.convertToLocalDate(sc.getScheduled()));
+						sdto.setCreatedAt(boilerServ.convertToLocalDate(sc.getCreatedAt()));
 					} catch (ObjectNotFoundException e) {
 						//nothing to do
 					}
@@ -76,7 +76,7 @@ public class FollowUpService {
 			if(sl.size()<=1) {
 				if(sl.size()==1) {
 					Scheduler sc = sl.get(0);
-					data.getSchedule().setValue(boilerServ.convertToLocalDateViaMilisecond(sc.getScheduled()));
+					data.getSchedule().setValue(boilerServ.convertToLocalDate(sc.getScheduled()));
 					data.setConceptId(sc.getConcept().getID());
 				}
 			}else {

@@ -28,8 +28,8 @@ public class History implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22227417FFB32C95905F6B")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22227417FFB32C95905F6B", strategy="native")	
+	@GeneratedValue(generator="VAC2222741804C286644075C6")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222741804C286644075C6", strategy="native")	
 	private long ID;
 	
 	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	

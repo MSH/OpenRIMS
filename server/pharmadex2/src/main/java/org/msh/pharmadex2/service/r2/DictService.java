@@ -81,8 +81,6 @@ public class DictService {
 	AssemblyService assembServ;
 	@Autowired
 	QueryRepository queryRep;
-	@Autowired
-	ImportFromExcel importFromExcel;
 
 	/**
 	 * Save the node.
@@ -1160,49 +1158,6 @@ public class DictService {
 		 ret=String.join(",", retList);
 		return ret;
 	}
-
-	/**
-	 * Перемещение в корзину словаря админ.единиц
-	 * Перемещает в корзину все уровни
-	 * остается только ROOT
-	 * @throws ObjectNotFoundException
-	 */
-	@Transactional
-	public void loadAllProvinces() throws ObjectNotFoundException {
-		Concept root = closureServ.loadRoot(SystemService.DICTIONARY_ADMIN_UNITS);
-		
-		List<Concept> provinces = literalServ.loadOnlyChilds(root);
-		for(Concept prov : provinces) {
-			DictNodeDTO provDTO = createNode(prov);
-			provDTO = nodeSuspend(provDTO);
-			
-			List<Concept> districts = literalServ.loadOnlyChilds(prov);
-			for(Concept distr : districts) {
-				DictNodeDTO distrDTO = createNode(distr);
-				distrDTO = nodeSuspend(distrDTO);
-				
-				List<Concept> communities = literalServ.loadOnlyChilds(distr);
-				for(Concept comm : communities) {
-					DictNodeDTO commDTO = createNode(comm);
-					commDTO = nodeSuspend(commDTO);
-				}
-			}
-		}
-	}
 	
-	public void loadAdminUnitsFormFile(byte[] bytes) throws JsonParseException, JsonMappingException, IOException, ObjectNotFoundException {
-		//TODO load some file
-		/*
-		 * получим данные и файл с формы
-		 * тут построим гланый рут
-		 */
-		Locale def = new Locale("en", "US");
-		LocaleContextHolder.setDefaultLocale(def);
-		LocaleContextHolder.setLocale(def);
-		
-		if(bytes.length > 0) {
-			importFromExcel.importAdmUnit(bytes);
-		}
-	}
 
 }
