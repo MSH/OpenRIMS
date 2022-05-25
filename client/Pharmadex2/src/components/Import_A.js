@@ -20,7 +20,7 @@ class Import_A extends Component{
                 global_cancel:'',
                 global_save:'',
                 askforimportrun:'',
-                errorvariffile:'Error varification file!',
+                reload:""
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -28,7 +28,7 @@ class Import_A extends Component{
         this.load=this.load.bind(this)
         this.verifyImport=this.verifyImport.bind(this)
         this.runImport=this.runImport.bind(this)
-        this.reloadStatus=this.reloadStatus.bind(this)
+        this.reload=this.reload.bind(this)
     }
 
     /**
@@ -53,7 +53,7 @@ class Import_A extends Component{
                         })
                 }
             }
-           
+           //Navigator.message(this.state.identifier, this.props.recipient, "thingUpdated", this.state.data)
         }
 
     componentDidMount(){
@@ -66,45 +66,20 @@ class Import_A extends Component{
         Fetchers.postJSON("/api/admin/importa/verif", this.state.data, (query, result)=>{
             this.state.data=result
             if(this.state.data.valid){
-                Navigator.message('*', '*', 'show.alert.pharmadex.2', "File is OK. Start import data")
-                window.location="/"+Navigator.tabSetName()+"#"+Navigator.tabName()
                 this.setState(this.state)
                 this.runImport()
             }else{
-                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.errorvariffile, color:'danger'})
+                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'danger'})
                 this.setState(this.state)
             }
         })
     }
 
     runImport(){
-        clearTimeout()  
-        this.setState(this.state)
-
-        var data = this.state.data.url + "&&" + this.state.data.nodeId
-        let formData = new FormData()
-        formData.append('data', data)
-        Fetchers.postForm("/api/admin/importa/run", formData, (formData, result)=>{   
-        })
-        const timeout = setTimeout(() => {
-            this.reloadStatus();
-        }, 10000); 
-    }
-
-    reloadStatus(){
-        Fetchers.postJSONNoSpinner("/api/admin/importa/verifstatus",this.state.data,(query,result)=>{
-            let s = this.state
-            if(result){//import end
-                Navigator.message('*', '*', 'show.alert.pharmadex.2', "End import data")
-                this.setState( {data: this.state.data})
-                clearTimeout()          
-                let loop2 = setTimeout(this.loadData,60000)
-            }else{
-                clearTimeout()
-                let loop1 = setTimeout(this.reloadStatus,1500)
-                this.setState(this.state)
-            }
-            
+        Fetchers.postJSON("/api/admin/importa/run", this.state.data, (query, result)=>{
+            this.state.data=result
+            this.setState(this.state)
+            Navigator.message('*', '*', 'show.alert.pharmadex.2', "Start import data")
         })
     }
 
@@ -115,6 +90,14 @@ class Import_A extends Component{
         Fetchers.postJSON("/api/admin/import/adminunits/load", this.state.data, (query,result)=>{
             this.state.data=result
             this.setState(this.state)
+        })
+    }
+
+    reload(){
+        Fetchers.postJSON("/api/admin/import/adminunits/reload", this.state.data, (query,result)=>{
+            this.state.data=result
+            this.setState(this.state)
+            Navigator.message(this.state.identifier, "*", "thingReload", this.state.data)
         })
     }
 
@@ -131,6 +114,14 @@ class Import_A extends Component{
                     Navigator.message(this.state.identifier, "*", "saveAll", {})
                 }}
                 >{this.state.labels.global_save}</Button>{' '}
+
+                <Button size="sm"
+                className="mr-1" color="primary"
+                hidden={this.state.data.nodeId == 0}
+                onClick={()=>{
+                    this.reload()
+                }}
+                >{this.state.labels.reload}</Button>{' '}
 
                 <Button size="sm"
                 className="mr-1" color="info"

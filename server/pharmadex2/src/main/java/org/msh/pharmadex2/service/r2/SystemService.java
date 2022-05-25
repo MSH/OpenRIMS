@@ -34,6 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class SystemService {
 	public static final String DICTIONARY_SYSTEM_IMPORT_DATA = "dictionary.system.import.data";
+	//public static final String DICTIONARY_SYSTEM_IMPORT_LEGACY_DATA = "dictionary.system.import.legacy.data";
 	//Finalization activity related
 	private static final String FINAL_DEREGISTRATION = "deregistration";
 	public static final String FINAL_AMEND = "AMEND";

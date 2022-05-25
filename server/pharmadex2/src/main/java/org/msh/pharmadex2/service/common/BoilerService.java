@@ -175,7 +175,7 @@ public class BoilerService {
 	 * @param date
 	 * @return now if parameter is null
 	 */
-	public LocalDate convertToLocalDate(Date date) {
+	public LocalDate localDateFromDate(Date date) {
 		if(date== null) {
 			return LocalDate.now();
 		}
@@ -1246,6 +1246,16 @@ public class BoilerService {
 			}
 		}
 		return null;
+	}
+	/**
+	 * Create LocalDateTime from java.util.date
+	 * @param dateToConvert
+	 * @return
+	 */
+	public LocalDateTime localDateTimeServer(Date dateToConvert) {
+		return Instant.ofEpochMilli(dateToConvert.getTime())
+			      .atZone(ZoneId.systemDefault())
+			      .toLocalDateTime();
 	}
 
 }

@@ -5,11 +5,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -18,7 +15,6 @@ import org.msh.pdex2.dto.table.TableHeader;
 import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
-import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.LegacyData;
 import org.msh.pdex2.repository.common.JdbcRepository;
@@ -27,8 +23,6 @@ import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.LegacyDataDTO;
 import org.msh.pharmadex2.dto.LegacyDataErrorsDTO;
-import org.msh.pharmadex2.dto.ThingDTO;
-import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,16 +49,7 @@ public class LegacyDataService {
 	private BoilerService boilerServ;
 	@Autowired
 	private JdbcRepository jdbcRepo;
-	@Autowired
-	private ThingService thingServ;
-	@Autowired
-	private Messages messages;
-	@Autowired
-	private SystemService systemService;
 	
-	private static String SHEET_NAME_COUNTRY = "country";
-	/**Список языков перепишем: первый в списке ОБЯЗАТЕЛЬНО язык по умолчанию (en_US) берем из org.msh.pdex2.i18n.Messages */
-	private String[] langs = new String[2];
 
 	/**
 	 * Create a new legacy data using the assembly
@@ -294,7 +279,7 @@ public class LegacyDataService {
 		if(validString(prefLabel) && validString(altLabel) && validString(regNo) && validDate(regDate) && validDate(expDate)) {	
 			Concept node = new Concept();
 			node.setIdentifier(regNo);
-			node = closureServ.saveToTree(root, node);
+			node = closureServ.saveToTreeFast(root, node);
 			node = literalServ.createUpdateLiteral("prefLabel", prefLabel, node);
 			node = literalServ.createUpdateLiteral("altLabel", altLabel, node);
 			LegacyData ld = new LegacyData();

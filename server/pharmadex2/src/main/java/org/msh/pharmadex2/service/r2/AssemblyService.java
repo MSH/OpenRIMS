@@ -15,14 +15,12 @@ import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.r2.Assembly;
 import org.msh.pdex2.model.r2.Concept;
-import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.model.r2.Thing;
 import org.msh.pdex2.model.r2.ThingDict;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.r2.AssemblyRepo;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AssemblyDTO;
-import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.LayoutCellDTO;
 import org.msh.pharmadex2.dto.LayoutRowDTO;
 import org.msh.pharmadex2.dto.ReportConfigDTO;
@@ -44,10 +42,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AssemblyService {
 
-	private static final String DATAIMPORT_ADDRESS = "dataimport_address";
+	public static final String DATAIMPORT_ADDRESS = "dataimport_address";
 	public static final String DATAIMPORT_RESULT = "dataimport_result";
 	public static final String DATAIMPORT_DATA = "dataimport";
 	public static final String SYSTEM_IMPORT_ADMINUNITS="system.import.adminunits";
+	public static final String SYSTEM_IMPORT_ADMINUNITS_RELOAD="system.import.adminunits_reload";
 	private static final String ACTIVITY_EXECUTIVES = "executives";
 	public static final String ACTIVITY_CONFIG_FINALIZE = "finalize";
 	private static final String ACTIVITY_CONFIGURATION = "activity.configuration";
@@ -304,7 +303,15 @@ public class AssemblyService {
 			ret.add(fld);
 		}
 		
-		if(url.equalsIgnoreCase(SYSTEM_IMPORT_ADMINUNITS)) {
+		if(url.equalsIgnoreCase(SYSTEM_IMPORT_ADMINUNITS) || url.equalsIgnoreCase(SYSTEM_IMPORT_ADMINUNITS_RELOAD)) {
+			AssemblyDTO fld = new AssemblyDTO();
+			fld.setPropertyName(DATAIMPORT_RESULT);
+			fld.setReadOnly(true);
+			fld.setMult(true);
+			ret.add(fld);
+		}
+		
+		if(url.equalsIgnoreCase(SYSTEM_IMPORT_LEGACY_DATA)) {
 			AssemblyDTO fld = new AssemblyDTO();
 			fld.setPropertyName(DATAIMPORT_RESULT);
 			fld.setReadOnly(true);
@@ -349,12 +356,14 @@ public class AssemblyService {
 	 */
 	public List<AssemblyDTO> auxAddresses(String url, List<Assembly> assemblies) throws ObjectNotFoundException {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
-		if(url.equalsIgnoreCase(SYSTEM_IMPORT_ADMINUNITS)) {
-			AssemblyDTO addr = new AssemblyDTO();
+		// irka
+		if(url.equalsIgnoreCase(SYSTEM_IMPORT_ADMINUNITS) /*|| url.equalsIgnoreCase(SYSTEM_IMPORT_LEGACY_DATA)*/) { 
+			AssemblyDTO addr = new AssemblyDTO(); 
 			addr.setPropertyName(DATAIMPORT_ADDRESS);
-			addr.setUrl("address.tests");
-			ret.add(addr);
+			addr.setUrl("address.tests"); 
+			ret.add(addr); 
 		}
+
 		if(ret.size()==0) {
 			//List<Assembly> assms = loadDataConfiguration(url);
 			for(Assembly assm : assemblies) {
@@ -448,7 +457,17 @@ public class AssemblyService {
 	@Transactional
 	public List<AssemblyDTO> auxDocuments(String url, List<Assembly> assemblies) throws ObjectNotFoundException{
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
-		if(url.equalsIgnoreCase(SYSTEM_IMPORT_ADMINUNITS)) {
+		if(url.equalsIgnoreCase(SYSTEM_IMPORT_ADMINUNITS) || url.equalsIgnoreCase(SYSTEM_IMPORT_ADMINUNITS_RELOAD)) {
+			AssemblyDTO assm = new AssemblyDTO();
+			assm.setPropertyName(DATAIMPORT_DATA);
+			assm.setUrl("data.import");
+			assm.setDescription(messages.get("pleaseuploadimportdata"));
+			assm.setRequired(true);
+			assm.setFileTypes(".xlsx");
+			assm.setDictUrl(SystemService.DICTIONARY_SYSTEM_IMPORT_DATA);
+			ret.add(assm);
+		}
+		if(url.equalsIgnoreCase(SYSTEM_IMPORT_LEGACY_DATA)) {
 			AssemblyDTO assm = new AssemblyDTO();
 			assm.setPropertyName(DATAIMPORT_DATA);
 			assm.setUrl("data.import");
@@ -615,6 +634,29 @@ public class AssemblyService {
 		}
 		
 		if(url.equalsIgnoreCase(SYSTEM_IMPORT_ADMINUNITS)) {
+			//file uploader and r/o field for messages output
+			LayoutRowDTO row= new LayoutRowDTO();
+			LayoutCellDTO cell1 = new LayoutCellDTO();
+			cell1.getVariables().add(DATAIMPORT_DATA);
+			cell1.getVariables().add(DATAIMPORT_RESULT);
+			row.getCells().add(cell1);
+			//address
+			LayoutCellDTO cell2 = new LayoutCellDTO();
+			cell2.getVariables().add(DATAIMPORT_ADDRESS);
+			row.getCells().add(cell2);
+			ret.add(row);
+		}
+		if(url.equalsIgnoreCase(SYSTEM_IMPORT_ADMINUNITS_RELOAD)) {
+			//file uploader and r/o field for messages output
+			LayoutRowDTO row= new LayoutRowDTO();
+			LayoutCellDTO cell1 = new LayoutCellDTO();
+			cell1.getVariables().add(DATAIMPORT_DATA);
+			cell1.getVariables().add(DATAIMPORT_RESULT);
+			row.getCells().add(cell1);
+			//address
+			ret.add(row);
+		}
+		if(url.equalsIgnoreCase(SYSTEM_IMPORT_LEGACY_DATA)) {
 			//file uploader and r/o field for messages output
 			LayoutRowDTO row= new LayoutRowDTO();
 			LayoutCellDTO cell1 = new LayoutCellDTO();

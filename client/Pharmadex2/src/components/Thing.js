@@ -156,6 +156,14 @@ class Thing extends Component{
                     Navigator.message(this.state.identifier, this.props.recipient, "thingValidated", result)
                 })
             }
+            if(data.subject=='thingReload'){
+                if(this.props.noload){
+                    this.state.data=data.data
+                    this.setState(this.state)
+                }else{
+                    this.load()
+                }
+            }
             if(data.subject=='saveResource'){
                 Fetchers.postJSON("/api/admin/resource/save", this.state.data, (query,result)=>{
                     this.state.data=result

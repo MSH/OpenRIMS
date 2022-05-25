@@ -32,11 +32,11 @@ public class LegacyDataServiceTest {
 	
 	@Test
 	public void importPharmacies() throws IOException, ObjectNotFoundException {
-		Path pathFile = Paths.get("src","test","resources", "Combined Pharmacy List Nepal.xlsx");
+		Path pathFile = Paths.get("src","test","resources", "all branch retail pharmacies.xlsx");
 		byte[] bytes = Files.readAllBytes(pathFile);
 		if(bytes.length > 0) {
 			XSSFWorkbook wb = legacyService.importLegacyData(bytes);
-			Path pathFileOut = Paths.get("src","test","resources", "Combined Pharmacy List NepalOut.xlsx");
+			Path pathFileOut = Paths.get("src","test","resources", "all branch retail pharmacies.xlsxOut.xlsx");
 			File fileout = pathFileOut.toFile();
 			FileOutputStream fos = new FileOutputStream(fileout);
 			wb.write(fos);

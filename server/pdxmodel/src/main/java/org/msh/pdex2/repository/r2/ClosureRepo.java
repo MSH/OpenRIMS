@@ -8,6 +8,7 @@ import org.msh.pdex2.model.r2.Concept;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.repository.query.Param;
 
 public interface ClosureRepo extends CrudRepository<Closure, Long> {
 	/**
@@ -31,5 +32,9 @@ public interface ClosureRepo extends CrudRepository<Closure, Long> {
 
 	@Query(value="call dictvariables(?1,?2)", nativeQuery = true)
 	List<String> dictvariables(long rootid, String varname);
+	
+	@Query(value="select clo from Closure clo inner join clo.child child where clo.level=1 and child.identifier=:identifier and clo.parent=:parent")
+	List<Closure> findInBranchByConceptIdentifier(@Param("parent") Concept parent, @Param("identifier") String identifier);
+	
 
 }

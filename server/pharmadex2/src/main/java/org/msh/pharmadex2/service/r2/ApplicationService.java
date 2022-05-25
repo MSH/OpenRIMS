@@ -1245,7 +1245,7 @@ public class ApplicationService {
 					for(ThingScheduler ts :th.getSchedulers()){
 						Scheduler sch = boilerServ.schedulerByNode(ts.getConcept());
 						String process = sch.getProcessUrl();
-						LocalDate sched = boilerServ.convertToLocalDate(sch.getScheduled());
+						LocalDate sched = boilerServ.localDateFromDate(sch.getScheduled());
 						TableRow row = TableRow.instanceOf(ts.getID());		//we need only unique long
 						row.getRow().add(TableCell.instanceOf("processes",process));
 						row.getRow().add(TableCell.instanceOf("scheduled",sched,LocaleContextHolder.getLocale()));
@@ -2356,11 +2356,11 @@ public class ApplicationService {
 				data.setPrefLabel("");
 			}
 			//dates
-			LocalDate come = boilerServ.convertToLocalDate(his.getCome());
+			LocalDate come = boilerServ.localDateFromDate(his.getCome());
 			data.getGlobal_startdate().setValue(come);
 			LocalDate go=null;
 			if(his.getGo() != null) {
-				go=boilerServ.convertToLocalDate(his.getGo());
+				go=boilerServ.localDateFromDate(his.getGo());
 				data.getCompleteddate().setValue(go);
 				data.setCompleted(true);
 			}else {

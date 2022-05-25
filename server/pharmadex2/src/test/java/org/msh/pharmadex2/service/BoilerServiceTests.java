@@ -66,7 +66,7 @@ public class BoilerServiceTests {
 	public void testLocalTime() {
 		LocalDate ld = LocalDate.now();
 		Date dt = boilerServ.localDateToDate(ld);
-		LocalDate ld1 = boilerServ.convertToLocalDate(dt);
+		LocalDate ld1 = boilerServ.localDateFromDate(dt);
 		assertEquals(ld, ld1);
 		
 	}

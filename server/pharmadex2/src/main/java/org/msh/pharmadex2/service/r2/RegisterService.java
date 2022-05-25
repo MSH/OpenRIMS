@@ -90,10 +90,10 @@ public class RegisterService {
 						Register register = boilerServ.registerById(regId);
 						dto.setNodeID(register.getConcept().getID());
 						dto.setReg_number(FormFieldDTO.of(register.getRegister()));
-						LocalDate regDate = boilerServ.convertToLocalDate(register.getRegisteredAt());
+						LocalDate regDate = boilerServ.localDateFromDate(register.getRegisteredAt());
 						dto.setRegistration_date(FormFieldDTO.of(regDate));
 						if(ad.isMult()) {
-							LocalDate expDate = boilerServ.convertToLocalDate(register.getValidTo());
+							LocalDate expDate = boilerServ.localDateFromDate(register.getValidTo());
 							dto.setExpirable(true);
 							dto.setExpiry_date(FormFieldDTO.of(expDate));
 						}

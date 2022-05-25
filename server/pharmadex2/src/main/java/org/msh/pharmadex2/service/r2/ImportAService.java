@@ -3,13 +3,14 @@ package org.msh.pharmadex2.service.r2;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -32,6 +33,7 @@ import org.msh.pharmadex2.service.common.ValidationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,7 +42,7 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 
 @Service
-@Transactional
+//@Transactional
 public class ImportAService {
 	private static final Logger logger = LoggerFactory.getLogger(ImportAService.class);
 	@Autowired
@@ -135,16 +137,39 @@ public class ImportAService {
 		}
 		if(data.getNodeId()==0) {
 			data=thingServ.createThing(data, user);
+			// показываем существующий словарь (если он есть)
 		}else {
+			root = closureServ.loadConceptById(data.getNodeId());
+			String result = literalServ.readValue(AssemblyService.DATAIMPORT_RESULT, root);
+			if(!(result.isEmpty() || result.startsWith("End"))) {
+				data.setUrl(AssemblyService.SYSTEM_IMPORT_ADMINUNITS_RELOAD);
+			}
 			data=thingServ.loadThing(data, user);
+			data.setValid(true);
+			data.setUrl(AssemblyService.SYSTEM_IMPORT_ADMINUNITS);
 		}
+		return data;
+	}
+	
+	public ThingDTO importAdminunitsReload(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		if(data.getNodeId() > 0) {
+			Concept root = closureServ.loadConceptById(data.getNodeId());
+			String result = literalServ.readValue(AssemblyService.DATAIMPORT_RESULT, root);
+			if(!(result.isEmpty() || result.startsWith("End"))) {
+				data.setUrl(AssemblyService.SYSTEM_IMPORT_ADMINUNITS_RELOAD);
+			}
+			
+			data=thingServ.loadThing(data, user);
+			data.setValid(true);
+		}
+		data.setUrl(AssemblyService.SYSTEM_IMPORT_ADMINUNITS);
 		return data;
 	}
 
 	public ThingDTO importAdminunitsVerify(ThingDTO data) throws ObjectNotFoundException, JsonParseException, JsonMappingException, IOException {
 		// проверяем файл на наличие обязательных листов, колонок и т.д.
 		data.setValid(false);
-		
+
 		FileDTO dto = data.getDocuments().get(AssemblyService.DATAIMPORT_DATA);
 		Concept fileNode = null;
 		Iterator<Long> it = dto.getLinked().keySet().iterator();
@@ -159,16 +184,95 @@ public class ImportAService {
 			book = new XSSFWorkbook(inputStream);
 			if(book != null){
 				countSheets = book.getNumberOfSheets();
-				for(int i = 0 ; i < countSheets; i++) {
+				boolean verCou=false;
+				boolean verPro=false;
+				String pr="";
+				for(int i = 0 ; i < countSheets; i++) {//sh
 					XSSFSheet sh = book.getSheetAt(i);
 					if(sh.getSheetName().trim().toLowerCase().equals(SHEET_NAME_COUNTRY)) {
+						XSSFRow r1=sh.getRow(0);
+						verCou=verySheetCountry(r1);
+					}else {
+						XSSFRow r2=sh.getRow(0);
+						verPro=verySheetProvince(r2);
+						if(!verPro) {
+							pr+=" "+sh.getSheetName();
+						}
+					}
+					/*if(sh.getSheetName().trim().toLowerCase().equals(SHEET_NAME_COUNTRY)) {
 						data.setValid(true);
 						return data;
-					}
-				}
+					}*/
+				}//sh
+				String err="";
+				data.setValid(true);
+				if(!verCou) {
+					data.setValid(false);
+					err=err+" Error sheet country.";}
+				if(!pr.equals("")) {
+					data.setValid(false);
+					err=err+" Error sheets a provinces:"+pr;}
+				data.setIdentifier(err);
 			}
 		}
 		return data;
+	}
+
+	private boolean verySheetCountry(XSSFRow r1) {
+		boolean ver=false;
+		int c=0;
+		for (Iterator<Cell> it1 = r1.cellIterator(); it1.hasNext(); ) {//r
+			Cell cell = (Cell) it1.next();
+			if(cell.getStringCellValue().equalsIgnoreCase(NAME_COUNTRY)) {
+				c+=1; 
+			}else if(cell.getStringCellValue().equalsIgnoreCase(NAME_COUNTRY_NATIONAL)) {
+				c+=1; 
+			}else if(cell.getStringCellValue().equalsIgnoreCase(DESCR_COUNTRY)) {
+				c+=1;
+			}else if(cell.getStringCellValue().equalsIgnoreCase(DESCR_COUNTRY_NATIONAL)) {
+				c+=1;
+			}else if(cell.getStringCellValue().equalsIgnoreCase(X_COORDINATE)) {
+				c+=1;
+			}else if(cell.getStringCellValue().equalsIgnoreCase(Y_COORDINATE)) {
+				c+=1;
+			}
+			;
+		}//r
+		if(c==6) {
+			ver=true;
+		}
+		return ver;
+	}
+	private boolean verySheetProvince(XSSFRow r1) {
+		boolean ver=false;
+		int c=0;
+		for (Iterator<Cell> it1 = r1.cellIterator(); it1.hasNext(); ) {//r
+			Cell cell = (Cell) it1.next();
+			if(cell.getStringCellValue().equalsIgnoreCase(SN)) {
+				c+=1;
+			}else if(cell.getStringCellValue().equalsIgnoreCase(NAME_PROVINCE)) {
+				c+=1;
+			}else if(cell.getStringCellValue().equalsIgnoreCase(NAME_PROVINCE_NATIONAL)) {
+				c+=1;
+			}else if(cell.getStringCellValue().equalsIgnoreCase(NAME_DISTRICT)) {
+				c+=1;
+			}else if(cell.getStringCellValue().equalsIgnoreCase(NAME_DISTRICT_NATIONAL)) {
+				c+=1;
+			}else if(cell.getStringCellValue().equalsIgnoreCase(NAME_COMMUNITY)) {
+				c+=1;
+			}else if(cell.getStringCellValue().equalsIgnoreCase(NAME_COMMUNITY_NATIONAL)) {
+				c+=1;
+			}else if(cell.getStringCellValue().equalsIgnoreCase(X_COORDINATE)) {
+				c+=1;
+			}else if(cell.getStringCellValue().equalsIgnoreCase(Y_COORDINATE)) {
+				c+=1;
+			}
+			;
+		}//r
+		if(c==9) {
+			ver=true;
+		}
+		return ver;
 	}
 
 	/**
@@ -180,7 +284,7 @@ public class ImportAService {
 	@Transactional
 	private Concept archiveDictionary() throws ObjectNotFoundException {
 		Concept root = closureServ.loadRoot(SystemService.DICTIONARY_ADMIN_UNITS);
-		LocalDate currentDate = LocalDate.now();
+		LocalDateTime currentDate = LocalDateTime.now();
 		String d = currentDate.getYear() + "";
 		d += (currentDate.getMonthValue() < 10?"0":"") + currentDate.getMonthValue();
 		d += (currentDate.getDayOfMonth() < 10?"0":"") + currentDate.getDayOfMonth();
@@ -196,19 +300,28 @@ public class ImportAService {
 	}
 
 	@Async
-	@Transactional
-	//@Transactional(propagation=Propagation.REQUIRES_NEW)
 	public void importAdminunitsRun(ThingDTO data) throws ObjectNotFoundException, IOException{
+		String curLoc = LocaleContextHolder.getLocale().toString().toUpperCase();
+		String defLoc = messages.getDefaultLocaleName().toUpperCase();
+		boolean hasOtherLoc = true;
 		for(String l:messages.getAllUsedUpperCase()) {
-			if(l.equals(messages.getDefaultLocaleName().toUpperCase())) {
+			if(l.equals(defLoc)) {
 				langs[0] = l;
 			}else {
 				langs[1] = l;
 			}
+			if(l.equals(curLoc)) {
+				hasOtherLoc = false;
+			}
+		}
+		if(hasOtherLoc) {
+			LocaleContextHolder.setDefaultLocale(messages.getCurrentLocale());
 		}
 
-		Concept protocol=protocolConcept(AssemblyService.SYSTEM_IMPORT_ADMINUNITS);
-		writeProtocol(protocol, "start import");
+		
+		
+		//Concept protocol=protocolConcept(AssemblyService.SYSTEM_IMPORT_ADMINUNITS);
+		writeProtocol("Start import");
 
 		Concept rootCountry = archiveDictionary();
 		if(book != null){
@@ -222,7 +335,7 @@ public class ImportAService {
 				if(sheet.getSheetName().toLowerCase().equals(SHEET_NAME_COUNTRY)) {
 					rootCountry = closureServ.loadRoot(SystemService.DICTIONARY_ADMIN_UNITS);
 
-					rootCountry = importAdminunitsCountrySheet(sheet, errors, rootCountry, protocol);
+					rootCountry = importAdminunitsCountrySheet(sheet, errors, rootCountry);
 				}
 				sheetIndex++;
 				sheet = boilerServ.getSheetAt(book,sheetIndex);
@@ -233,21 +346,22 @@ public class ImportAService {
 				sheetIndex = 0;
 				sheet = boilerServ.getSheetAt(book, sheetIndex);
 
+				writeProtocol("Start import sheet - count  " + book.getNumberOfSheets());
 				while(!errors.isErrorOrNullSheet(sheet)) {
 					if(!sheet.getSheetName().toLowerCase().equals(SHEET_NAME_COUNTRY)) {
-						importAdminunitsSheet(sheet, errors, rootCountry, sheetIndex, protocol);
+						importAdminunitsSheet(sheet, errors, rootCountry, sheetIndex);
 					}
 					sheetIndex++;
 					sheet = boilerServ.getSheetAt(book,sheetIndex);
 				}
 			}else {
-				writeProtocol(protocol, "Not find sheet " + SHEET_NAME_COUNTRY);
+				writeProtocol("Not find sheet " + SHEET_NAME_COUNTRY);
 			}
 		}
-		writeProtocol(protocol, "end import");
+		writeProtocol("End import");
 	}
 
-	public Boolean verifstatusImportA(ThingDTO data) throws ObjectNotFoundException {
+	/**public ThingDTO verifstatusImportA(ThingDTO data) throws ObjectNotFoundException {
 		boolean stop = false;
 		Concept protocol=legacyDataService.protocolConcept(AssemblyService.SYSTEM_IMPORT_ADMINUNITS);
 		String val = literalServ.readValue(AssemblyService.DATAIMPORT_RESULT, protocol);
@@ -257,7 +371,7 @@ public class ImportAService {
 			}
 		}
 		return stop;
-	}
+	}**/
 
 	/**
 	 * Import data from the particular data sheet
@@ -267,13 +381,13 @@ public class ImportAService {
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	private Concept importAdminunitsCountrySheet(XSSFSheet sheet, LegacyDataErrorsDTO errors, Concept rootCntr, Concept protocol) throws ObjectNotFoundException {
+	private Concept importAdminunitsCountrySheet(XSSFSheet sheet, LegacyDataErrorsDTO errors, Concept rootCntr) throws ObjectNotFoundException {
 		String sheetName = legacyDataService.sheetName(sheet);
 		int rownum = 1;
 		XSSFRow row = boilerServ.getSheetRow(sheet, rownum);
 		XSSFRow rowHdr = boilerServ.getSheetRow(sheet, 0);
 
-		writeProtocol(protocol, "started for "+ sheetName);
+		writeProtocol("Create Country " + sheetName);
 		int threshold=0;			//when the data will finished?
 		while(row !=null && threshold<300) { //see 300 invalid records before finish
 			if(importAdminunitsCountrySheetRow(rowHdr, row, errors, rootCntr)) {
@@ -284,17 +398,17 @@ public class ImportAService {
 			rownum++;
 			row = boilerServ.getSheetRow(sheet,rownum);
 		}
-		writeProtocol(protocol, "completed for "+sheetName);
+		//writeProtocol("End " + sheetName);
 
 		return rootCntr;
 	}
 
 	@Transactional
-	private void importAdminunitsSheet(XSSFSheet sheet, LegacyDataErrorsDTO errors, Concept rootCountry, int sheetIndex, Concept protocol) throws ObjectNotFoundException {
+	private void importAdminunitsSheet(XSSFSheet sheet, LegacyDataErrorsDTO errors, Concept rootCountry, int sheetIndex) throws ObjectNotFoundException {
 		String url = legacyDataService.sheetName(sheet);
 		int rownum = 1;
 		XSSFRow row = boilerServ.getSheetRow(sheet, rownum);
-		writeProtocol(protocol, "started for "+url);
+		writeProtocol("Start import sheet " + url);
 
 		Concept province = null;
 		String prevDistrict = "";
@@ -310,7 +424,7 @@ public class ImportAService {
 				String sn = "";
 				Double s = boilerServ.getNumberCellValue(row, listColumns.get(SN));
 				if(s != null) {
-					sn = String.valueOf(s);
+					sn = String.valueOf(s.intValue());
 				}else {
 					sn = boilerServ.getStringCellValue(row, listColumns.get(SN));
 				}
@@ -340,7 +454,6 @@ public class ImportAService {
 
 					boolean createNewDistr = !prevDistrict.equals(nameDistr);
 					if(createNewDistr) {//TODO
-						writeProtocol(protocol, "Create District - " + nameDistr);
 						district = createDistrict(nameDistr, nameDistrLang, province, numDist);
 						prevDistrict = nameDistr;
 						numDist++;
@@ -361,8 +474,6 @@ public class ImportAService {
 			XSSFRow rowh = boilerServ.getSheetRow(sheet, 0);
 			errors.add(rowh, rowh.getLastCellNum(), url);
 		}
-
-		writeProtocol(protocol, "completed for "+url);
 	}
 
 	/**
@@ -435,7 +546,7 @@ public class ImportAService {
 		}
 
 	}
-	 
+
 	/**
 	 * Создаем новую
 	 * Есть полоное перемещение в корзину предыдущего адм.деления
@@ -486,8 +597,16 @@ public class ImportAService {
 
 		// создаем или обновляем данные
 		Map<String, String> values = new HashMap<String, String>();
-		values.put(langs[0], n);
-		values.put(langs[1], nLang);
+		if(n != null && !n.isEmpty() && (nLang == null  || nLang.isEmpty())) {
+			values.put(langs[0], n);
+			values.put(langs[1], n);
+		}else if((n == null || n.isEmpty()) && nLang != null  && !nLang.isEmpty()) {
+			values.put(langs[0], nLang);
+			values.put(langs[1], nLang);
+		}else {
+			values.put(langs[0], n);
+			values.put(langs[1], nLang);
+		}
 		district = literalServ.createUpdateLiteral(LiteralService.PREF_NAME, district, values);
 
 		values = new HashMap<String, String>();
@@ -516,8 +635,16 @@ public class ImportAService {
 
 		// создаем или обновляем данные
 		Map<String, String> values = new HashMap<String, String>();
-		values.put(langs[0], n);
-		values.put(langs[1], nLang);
+		if(n != null && !n.isEmpty() && (nLang == null  || nLang.isEmpty())) {
+			values.put(langs[0], n);
+			values.put(langs[1], n);
+		}else if((n == null || n.isEmpty()) && nLang != null  && !nLang.isEmpty()) {
+			values.put(langs[0], nLang);
+			values.put(langs[1], nLang);
+		}else {
+			values.put(langs[0], n);
+			values.put(langs[1], nLang);
+		}
 		community = literalServ.createUpdateLiteral(LiteralService.PREF_NAME, community, values);
 
 		values = new HashMap<String, String>();
@@ -602,24 +729,21 @@ public class ImportAService {
 	}
 
 	@Transactional
-	public void writeProtocol(Concept protocol, String val) throws ObjectNotFoundException {
-		Map<String, String> values = new HashMap<String, String>();
-		values.put(langs[0], val);
-		values.put(langs[1], val);
-		protocol = literalServ.createUpdateLiteral(AssemblyService.DATAIMPORT_RESULT, protocol, values);
-		//protocol = literalServ.createUpdateLiteral(AssemblyService.DATAIMPORT_RESULT, val, protocol);
+	public void writeProtocol(String val) throws ObjectNotFoundException {
+		val += ". Date " + getCurrentDate();
+		Concept protocol=protocolConcept(AssemblyService.SYSTEM_IMPORT_ADMINUNITS);
+		protocol = literalServ.createUpdateLiteral(AssemblyService.DATAIMPORT_RESULT, val, protocol);
 		logger.info(val);
-		/*if(rownum>step) {
-			int modulo = rownum % step;
-			if(modulo==0) {
-				String val=literalServ.readValue(AssemblyService.SYSTEM_IMPORT_LEGACY_DATA, protocol);
-				val=val + " "+ url+"-" + rownum;
-				protocol=literalServ.createUpdateLiteral(AssemblyService.DATAIMPORT_RESULT, val.trim(), protocol);
-				logger.info(val.trim());
-			}
-		}*/
 	}
 
-
-
+	private String getCurrentDate() {
+		LocalDateTime currentDate = LocalDateTime.now();
+		String d = (currentDate.getDayOfMonth() < 10?"0":"") + currentDate.getDayOfMonth();
+		d += "/" + (currentDate.getMonthValue() < 10?"0":"") + currentDate.getMonthValue();
+		d += "/" + currentDate.getYear();
+		
+		d += " " + currentDate.getHour() + ":" + currentDate.getMinute() + ":" + currentDate.getSecond();
+		return d;
+	}
+	
 }

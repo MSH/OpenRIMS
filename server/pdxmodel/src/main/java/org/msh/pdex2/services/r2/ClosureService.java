@@ -110,7 +110,7 @@ public class ClosureService {
 					//}
 				}
 
-				//closures to all parents of the parent and parent itself
+				//closures to all parents of the parent and parent itself ONLY FOR NEW CONCEPT!!!!
 				List<Closure> allParents = closureRepo.findByChild(parent);
 				for(Closure clos : allParents) {
 					Closure closure1 = new Closure();
@@ -132,6 +132,98 @@ public class ClosureService {
 			throw new ObjectNotFoundException("Node is null or node identifier not defined. Cannot save to the tree!",logger);
 		}
 	}
+
+	/**
+	 * Save a concept to a tree. Fast version for tall trees
+	 * Create a new tree if needed. Concept identifiers on any level as well as tree roots should be unique
+	 * @param parent parent node
+	 * @param node child node
+	 * @return saved child node
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public Concept saveToTreeFast(Concept parent, Concept node) throws ObjectNotFoundException {
+		if(node != null && node.getIdentifier()==null) {
+			throw new ObjectNotFoundException("saveToTree. Identifier is null",logger);
+		}
+		if(node != null && node.getIdentifier().length()>0) {
+			if(parent==null) { 									//search for tree root with the same identifier
+				List<Concept> concepts = conceptRepo.findByIdentifierIgnoreCase(node.getIdentifier());
+				for(Concept conc: concepts) {
+					List<Closure> list = closureRepo.findByChild(conc);
+					//if(conc.getParents().size()==1) {
+					if(list.size() == 1) {
+						if(node.getLabel()!=null) {
+							conc.setLabel(node.getLabel().trim());
+						}else {
+							if(conc.getLabel()==null) {
+								conc.setLabel("");
+							}
+						}
+						conc= conceptRepo.save(conc);
+						try {
+							entityManager.flush();
+						} catch (Exception e) {
+							// nothing to do
+						}
+						if(parent != null) {
+							entityManager.refresh(parent);	//to ensure new children
+						}
+						return conc;								//we will return the root of the tree with the same identifier
+					}
+				}
+			}
+			List<Closure> toInsert=new ArrayList<Closure>();
+			//closure to itself
+			Closure closure = new Closure();
+			closure.setChild(node);
+			closure.setParent(node);
+			closure.setLevel(0);
+			toInsert.add(closure);
+			if(parent != null) {
+				parent = loadConceptById(parent.getID());
+
+				Concept oldNode = findConceptInBranchByIdentifier(parent, node.getIdentifier());
+				if(oldNode.getID()>0) {
+					if(node.getLabel()!=null) {
+						oldNode.setLabel(node.getLabel().trim());
+					}
+					oldNode.setActive(node.getActive());
+					oldNode = conceptRepo.save(oldNode);
+					try {
+						entityManager.flush();
+					} catch (Exception e) {
+						// nothing to do
+					}
+					if(parent != null) {
+						entityManager.refresh(parent);	//to ensure new children
+					}
+					return oldNode;									//we will return the node with the same identifier
+				}
+
+				//closures to all parents of the parent and parent itself ONLY FOR NEW CONCEPT!!!!
+				List<Closure> allParents = closureRepo.findByChild(parent);
+				for(Closure clos : allParents) {
+					Closure closure1 = new Closure();
+					closure1.setChild(node);
+					closure1.setParent(clos.getParent());
+					closure1.setLevel(clos.getLevel()+1);
+					toInsert.add(closure1);
+				}
+			}
+			closureRepo.saveAll(toInsert);
+			node = conceptRepo.save(node);
+			entityManager.flush();
+			if(parent != null) {
+				entityManager.refresh(parent);	//to ensure new children
+			}
+			entityManager.refresh(node);
+			return node;
+		}else {
+			throw new ObjectNotFoundException("Node is null or node identifier not defined. Cannot save to the tree!",logger);
+		}
+	}
+
 
 	/**
 	 * Get a tree level right below some parent node
@@ -412,6 +504,31 @@ public class ClosureService {
 		List<Concept> ret= new ArrayList<Concept>();
 		ret=conceptRepo.findAllByIdentifierAndLabel(identifier, label);
 		return ret;
+	}
+
+	/**
+	 * Find concept in a branch by the identifier.
+	 * @param root
+	 * @param string
+	 * @return if not found, return new concept with the identifier given
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public Concept findConceptInBranchByIdentifier(Concept root, String identifier) throws ObjectNotFoundException {
+		List<Closure> childs = closureRepo.findInBranchByConceptIdentifier(root, identifier);
+		if(childs.size()==1) {
+			return childs.get(0).getChild();
+		}else {
+			if(childs.size()==0) {
+				Concept ret = new Concept();
+				ret.setIdentifier(identifier);
+				return ret;
+			}else {
+				throw new ObjectNotFoundException(
+						"findConceptInBranchByIdentifier.  The branch has more than one child with the same Identifier. Closures IDs are"+ childs
+						+" branch root is "+root,logger);
+			}
+		}
 	}
 
 

@@ -29,6 +29,7 @@ import org.msh.pharmadex2.service.r2.ApplicationService;
 import org.msh.pharmadex2.service.r2.ContentService;
 import org.msh.pharmadex2.service.r2.DictService;
 import org.msh.pharmadex2.service.r2.ImportAService;
+import org.msh.pharmadex2.service.r2.ImportBService;
 import org.msh.pharmadex2.service.r2.LegacyDataService;
 import org.msh.pharmadex2.service.r2.PubOrgService;
 import org.msh.pharmadex2.service.r2.ReportService;
@@ -40,9 +41,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 
 /**
  * Common API for all authenticated users
@@ -78,6 +76,8 @@ public class AdminAPI {
 	private ImportAService importAService;
 	@Autowired
 	private ThingService thingServ;
+	@Autowired
+	private ImportBService importBServ;
 
 	/**
 	 * Tiles for landing page
@@ -780,12 +780,11 @@ public class AdminAPI {
 	 */
 	@PostMapping("/api/admin/report/parameters/renew")
 	public ReportConfigDTO reportParametersRenew(@RequestBody ReportConfigDTO data) throws DataNotFoundException {
-		/*try {
-			//2022.04.25 data
-			 * reportServ.reportParametersRenew(data);
+		try {
+			data = reportServ.reportParametersRenew(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
-		}*/
+		}
 		return data;
 	}
 	
@@ -806,28 +805,82 @@ public class AdminAPI {
 		return data;
 	}
 	
-	/**
-	 * Load import admin units feature
-	 * @param data
-	 * @return
-	 * @throws DataNotFoundException
-	 * @throws IOException 
-	 * @throws JsonMappingException 
-	 * @throws JsonParseException 
-	 */
-	@PostMapping("/api/admin/importa")
-	public ThingDTO runImportAdminunits(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException, JsonParseException, JsonMappingException, IOException {
-		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+	@PostMapping("/api/admin/importa/verif")
+	public ThingDTO importAVerif(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
 		try {
 			data = importAService.importAdminunitsVerify(data);
+		} catch (ObjectNotFoundException | IOException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
+	@PostMapping("/api/admin/importa/run")
+	public ThingDTO importARun(Authentication auth, @RequestBody ThingDTO data ) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		try {
+			importAService.importAdminunitsRun(data); 
+			data=thingServ.loadThing(data, user);
+			return data;
+		} catch (ObjectNotFoundException | IOException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+	
+	@PostMapping("/api/admin/import/adminunits/reload")
+	public ThingDTO importAdminunitsReLoad(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		try {
+			data=importAService.importAdminunitsReload(data,user); 
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
 	}
 	
-	@PostMapping("/api/admin/importa/verifstatus")
-	public Boolean verifstatusImportAdminunits(Authentication auth, @RequestBody ThingDTO data) throws ObjectNotFoundException{
-		return importAService.verifstatusImportA(data);
+	/**
+	 * Load import admin units feature
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/import/legacydata/load")
+	public ThingDTO importLegacyDataLoad(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		try {
+			data=importBServ.importLegacyDataLoad(data,user);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
+	@PostMapping("/api/admin/import/legacydata/verif")
+	public ThingDTO importLegacyDataVerif(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException{
+			data = importBServ.importLegacyDataVerify(data);
+		return data;
+	}
+	
+	@PostMapping("/api/admin/import/legacydata/run")
+	public ThingDTO importLegacyDataRun(Authentication auth, @RequestBody ThingDTO data ) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		try {
+			importBServ.importLegacyDataRun(data); 
+			data=thingServ.loadThing(data, user);
+			return data;
+		} catch (ObjectNotFoundException | IOException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+	
+	@PostMapping("/api/admin/import/legacydata/reload")
+	public ThingDTO importLegacyDataReLoad(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		try {
+			data=importBServ.importLegacyDataReload(data,user); 
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
 	}
 }

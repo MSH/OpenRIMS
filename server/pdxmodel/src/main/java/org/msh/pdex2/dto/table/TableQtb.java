@@ -125,6 +125,11 @@ public class TableQtb {
 		table.getHeaders().setPages(TableHeader.calcPages(table.getHeaders().getPageSize(),rows.size()));
 		table.getRows().addAll(TableHeader.fetchPage(rows,table.getHeaders().getPage(),
 				table.getHeaders().getPageSize()));
+		boolean filtered=false;
+		for(TableHeader th : table.getHeaders().getHeaders()) {
+			filtered = filtered || th.getGeneralCondition().length()>0 || th.getConditionS().length()>0;
+		}
+		table.getHeaders().setFiltered(filtered);
 	}
 
 	/**

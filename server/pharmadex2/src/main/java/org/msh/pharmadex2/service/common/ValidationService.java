@@ -580,7 +580,7 @@ public class ValidationService {
 		if(dto.getNodeID()>0) {
 			Concept node = closureServ.loadConceptById(dto.getNodeID());
 			Register reg = boilerServ.registerByConcept(node);
-			createdAt=boilerServ.convertToLocalDate(reg.getCreatedAt());
+			createdAt=boilerServ.localDateFromDate(reg.getCreatedAt());
 		}
 		String regNum = dto.getReg_number().getValue();
 		//register date should fit an interval

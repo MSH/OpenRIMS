@@ -813,7 +813,7 @@ public class ResolverService {
 			if(ts.getVarName().equalsIgnoreCase(varName)) {
 				Scheduler sched = boilerServ.schedulerByNode(ts.getConcept());
 				if(sched.getScheduled() != null) {
-					LocalDate ld = boilerServ.convertToLocalDate(sched.getScheduled());
+					LocalDate ld = boilerServ.localDateFromDate(sched.getScheduled());
 					value.put("date",ld);
 					break;
 				}
@@ -924,8 +924,8 @@ public class ResolverService {
 		Thing thing = boilerServ.thingByNode(var);
 		for(ThingRegister tr : thing.getRegisters()) {
 			Register reg = boilerServ.registerByConcept(tr.getConcept());
-			LocalDate regDate = boilerServ.convertToLocalDate(reg.getRegisteredAt());
-			LocalDate expDate = boilerServ.convertToLocalDate(reg.getValidTo());
+			LocalDate regDate = boilerServ.localDateFromDate(reg.getRegisteredAt());
+			LocalDate expDate = boilerServ.localDateFromDate(reg.getValidTo());
 			value.put("literal",reg.getRegister());
 			value.put("registered",regDate);				//to locale string!!!!
 			value.put("registeredBS", boilerServ.localDateToNepali(regDate, false));
