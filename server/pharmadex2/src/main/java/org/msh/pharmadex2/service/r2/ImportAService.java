@@ -137,7 +137,6 @@ public class ImportAService {
 		}
 		if(data.getNodeId()==0) {
 			data=thingServ.createThing(data, user);
-			// показываем существующий словарь (если он есть)
 		}else {
 			root = closureServ.loadConceptById(data.getNodeId());
 			String result = literalServ.readValue(AssemblyService.DATAIMPORT_RESULT, root);

@@ -16,7 +16,7 @@ package org.msh.pdex2.model.dwh;
 import java.io.Serializable;
 import javax.persistence.*;
 /**
- * An event, related to the object
+ * follow up and registration events bound to a Data Module 
  */
 @Entity
 @org.hibernate.annotations.Proxy(lazy=false)
@@ -28,8 +28,8 @@ public class ReportEvent implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22227418098A2C21F03832")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22227418098A2C21F03832", strategy="native")	
+	@GeneratedValue(generator="VAC22227418129ECB58C0CEC8")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227418129ECB58C0CEC8", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	
@@ -38,29 +38,26 @@ public class ReportEvent implements Serializable {
 	@Basic(fetch=FetchType.LAZY)	
 	private org.msh.pdex2.model.dwh.ReportSession reportSession;
 	
-	@Column(name="ObjectConceptId", nullable=false, length=20)	
-	private long objectConceptId;
+	@Column(name="DataModuleId", nullable=false, length=20)	
+	private long dataModuleId;
 	
 	@Column(name="Url", nullable=true, length=255)	
 	private String url;
 	
-	@Column(name="Come", nullable=true)	
-	private java.util.Date come;
+	@Column(name="EventDate", nullable=true)	
+	private java.util.Date eventDate;
 	
-	@Column(name="Go", nullable=true)	
-	private java.util.Date go;
+	@Column(name="EventNumber", nullable=true, length=255)	
+	private String eventNumber;
 	
-	@Column(name="First", nullable=false, length=1)	
-	private boolean first;
+	@Column(name="ReportPageId", nullable=false, length=20)	
+	private long reportPageId;
 	
-	@Column(name="Last", nullable=false, length=1)	
-	private boolean last;
+	@Column(name="Event", nullable=true, length=255)	
+	private String event;
 	
-	@Column(name="Appldictid", nullable=false, length=20)	
-	private long appldictid;
-	
-	@Column(name="ActivityConfigId", nullable=false, length=20)	
-	private long activityConfigId;
+	@Column(name="EventId", nullable=false, length=20)	
+	private long eventId;
 	
 	private void setID(long value) {
 		this.ID = value;
@@ -77,15 +74,15 @@ public class ReportEvent implements Serializable {
 	/**
 	 * The concept related to
 	 */
-	public void setObjectConceptId(long value) {
-		this.objectConceptId = value;
+	public void setDataModuleId(long value) {
+		this.dataModuleId = value;
 	}
 	
 	/**
 	 * The concept related to
 	 */
-	public long getObjectConceptId() {
-		return objectConceptId;
+	public long getDataModuleId() {
+		return dataModuleId;
 	}
 	
 	/**
@@ -105,85 +102,71 @@ public class ReportEvent implements Serializable {
 	/**
 	 * Start of the event
 	 */
-	public void setCome(java.util.Date value) {
-		this.come = value;
+	public void setEventDate(java.util.Date value) {
+		this.eventDate = value;
 	}
 	
 	/**
 	 * Start of the event
 	 */
-	public java.util.Date getCome() {
-		return come;
+	public java.util.Date getEventDate() {
+		return eventDate;
 	}
 	
 	/**
-	 * End date of the event
+	 * Register number
 	 */
-	public void setGo(java.util.Date value) {
-		this.go = value;
+	public void setEventNumber(String value) {
+		this.eventNumber = value;
 	}
 	
 	/**
-	 * End date of the event
+	 * Register number
 	 */
-	public java.util.Date getGo() {
-		return go;
+	public String getEventNumber() {
+		return eventNumber;
 	}
 	
 	/**
-	 * the first event
+	 * Type of the event
 	 */
-	public void setFirst(boolean value) {
-		this.first = value;
+	public void setEvent(String value) {
+		this.event = value;
 	}
 	
 	/**
-	 * the first event
+	 * Type of the event
 	 */
-	public boolean getFirst() {
-		return first;
+	public String getEvent() {
+		return event;
 	}
 	
 	/**
-	 * Is this event last in the process
+	 * Register ID or history id for follow up events
 	 */
-	public void setLast(boolean value) {
-		this.last = value;
+	public void setEventId(long value) {
+		this.eventId = value;
 	}
 	
 	/**
-	 * Is this event last in the process
+	 * Register ID or history id for follow up events
 	 */
-	public boolean getLast() {
-		return last;
-	}
-	
-	/**
-	 * Application concept in the guest dictionary
-	 */
-	public void setAppldictid(long value) {
-		this.appldictid = value;
-	}
-	
-	/**
-	 * Application concept in the guest dictionary
-	 */
-	public long getAppldictid() {
-		return appldictid;
+	public long getEventId() {
+		return eventId;
 	}
 	
 	/**
 	 * ID of activity configuration
 	 */
-	public void setActivityConfigId(long value) {
-		this.activityConfigId = value;
+	public void setReportPageId(long value) {
+		this.reportPageId = value;
 	}
 	
 	/**
 	 * ID of activity configuration
 	 */
-	public long getActivityConfigId() {
-		return activityConfigId;
+	public long getReportPageId() {
+		return reportPageId;
 	}
 	
 	public void setReportSession(org.msh.pdex2.model.dwh.ReportSession value) {

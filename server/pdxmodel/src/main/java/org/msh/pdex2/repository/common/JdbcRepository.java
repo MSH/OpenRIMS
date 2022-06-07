@@ -981,6 +981,18 @@ public class JdbcRepository {
 	public int update(String sql) {
 		return getJdbcTemplate().update(sql);
 	}
-
+	/**
+	 * Update all DWH tables
+	 * @param newSessionID
+	 */
+	@Transactional
+	public void dwh_update(long newSessionID) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("dwh_update");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("sessionId", newSessionID);
+		proc.execute(params);
+		
+	}
 
 }

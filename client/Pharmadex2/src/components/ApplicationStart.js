@@ -10,6 +10,7 @@ import ThingsManager from './ThingsManager'
 import CheckList from './CheckList'
 import AlertFloat from './utils/AlertFloat'
 import ActivityHistoryData from './ActivityHistoryData'
+import SpinnerMain from './utils/SpinnerMain'
 /**
  * Starts an application
  * Contains component's display logic and nothing else
@@ -39,7 +40,9 @@ class ApplicationStart extends Component{
                 notes:'',
             },
             history:{},             //histroy table
-            data:{},                //data to conclude                
+            data:{},                //data to conclude   
+            nextlabel:"",
+            btnname:""             
         }
         this.loadHistory=this.loadHistory.bind(this)
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -72,6 +75,15 @@ class ApplicationStart extends Component{
                 if(data.subject=="activityHistoryClose"){
                     this.state.historyId=0
                     this.setState(this.state)
+                }
+                if(data.subject=='nextButton'){
+                    if(this.state.btnname == "" || this.state.btnname != data.data.btnname){
+                        this.state.nextlabel = data.data.label
+                        this.state.btnname = data.data.btnname
+                        this.state.submit=false
+                        this.state.next=true
+                        this.setState(this.state)
+                    }
                 }
             }
         }
@@ -158,6 +170,7 @@ class ApplicationStart extends Component{
             )
         }
     }
+    
     headerFooter(){
         let applName= this.state.data.applName
         if(this.state.history != undefined){
@@ -172,6 +185,12 @@ class ApplicationStart extends Component{
                 </Col>
                 <Col>
                     <div className="mb-1 d-flex justify-content-end">
+                                <Button size="sm" hidden={this.state.submit}
+                                    className="mr-1" color="primary"
+                                    onClick={()=>{
+                                        Navigator.message(this.state.identifier, "*", "nextButtonPressed", {btnname:this.state.btnname})
+                                    }}
+                                >{this.state.nextlabel}</Button>{' '}
                                 <Button size="sm" hidden={this.state.history.historyId == 0}
                                         className="mr-1" color="info"
                                         onClick={()=>{

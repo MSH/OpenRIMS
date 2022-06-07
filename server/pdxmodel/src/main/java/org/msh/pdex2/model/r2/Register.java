@@ -28,8 +28,8 @@ public class Register implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22227418098A2C20D03825")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22227418098A2C20D03825", strategy="native")	
+	@GeneratedValue(generator="VAC22227418129ECB57E0CEBD")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227418129ECB57E0CEBD", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	

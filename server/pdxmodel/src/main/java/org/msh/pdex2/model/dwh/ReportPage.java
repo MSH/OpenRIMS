@@ -28,8 +28,8 @@ public class ReportPage implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22227418098A2C22303835")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22227418098A2C22303835", strategy="native")	
+	@GeneratedValue(generator="VAC22227418129ECB58E0CECA")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227418129ECB58E0CECA", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	
@@ -38,11 +38,11 @@ public class ReportPage implements Serializable {
 	@Basic(fetch=FetchType.LAZY)	
 	private org.msh.pdex2.model.dwh.ReportSession reportSession;
 	
-	@Column(name="RootId", nullable=false, length=20)	
-	private long rootId;
+	@Column(name="DataModuleId", nullable=false, length=20)	
+	private long dataModuleId;
 	
-	@Column(name="RootUrl", nullable=true, length=255)	
-	private String rootUrl;
+	@Column(name="DataModuleUrl", nullable=true, length=255)	
+	private String dataModuleUrl;
 	
 	@Column(name="Lang", nullable=true, length=255)	
 	private String lang;
@@ -62,6 +62,9 @@ public class ReportPage implements Serializable {
 	@Column(name="Owner", nullable=true, length=255)	
 	private String owner;
 	
+	@Column(name="State", nullable=true, length=255)	
+	private String state;
+	
 	private void setID(long value) {
 		this.ID = value;
 	}
@@ -77,29 +80,29 @@ public class ReportPage implements Serializable {
 	/**
 	 * Id of root (first) page in the form
 	 */
-	public void setRootId(long value) {
-		this.rootId = value;
+	public void setDataModuleId(long value) {
+		this.dataModuleId = value;
 	}
 	
 	/**
 	 * Id of root (first) page in the form
 	 */
-	public long getRootId() {
-		return rootId;
+	public long getDataModuleId() {
+		return dataModuleId;
 	}
 	
 	/**
 	 * URL of the root page
 	 */
-	public void setRootUrl(String value) {
-		this.rootUrl = value;
+	public void setDataModuleUrl(String value) {
+		this.dataModuleUrl = value;
 	}
 	
 	/**
 	 * URL of the root page
 	 */
-	public String getRootUrl() {
-		return rootUrl;
+	public String getDataModuleUrl() {
+		return dataModuleUrl;
 	}
 	
 	/**
@@ -184,6 +187,20 @@ public class ReportPage implements Serializable {
 	 */
 	public String getOwner() {
 		return owner;
+	}
+	
+	/**
+	 * This data module is dereregistered of in process of registration
+	 */
+	public void setState(String value) {
+		this.state = value;
+	}
+	
+	/**
+	 * This data module is dereregistered of in process of registration
+	 */
+	public String getState() {
+		return state;
 	}
 	
 	public void setReportSession(org.msh.pdex2.model.dwh.ReportSession value) {

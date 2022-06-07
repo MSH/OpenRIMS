@@ -176,7 +176,7 @@ public class ThingService {
 	 */
 	@Transactional
 	public ThingDTO createContent(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
-		logger.info("START CONTENT");
+		logger.trace("START CONTENT");
 		List<Assembly> assemblies =assemblyServ.loadDataConfiguration(data.getUrl());
 		//literals
 		List<AssemblyDTO> headings = assemblyServ.auxHeadings(data.getUrl(),assemblies);
@@ -1960,7 +1960,9 @@ public class ThingService {
 					node = closureServ.loadConceptById(data.getNodeId());
 				}
 				Concept parent = closureServ.getParent(node);
-				if(accessControlServ.sameEmail(parent.getIdentifier(), user.getEmail())) {
+				if(accessControlServ.sameEmail(parent.getIdentifier(), user.getEmail()) || accessControlServ.isSupervisor(user)) {
+					parent.setIdentifier(user.getEmail());
+					parent=closureServ.save(parent);
 					//dictionary item
 					Concept dictItem = closureServ.loadConceptById(data.getDictNodeId());
 					//file name

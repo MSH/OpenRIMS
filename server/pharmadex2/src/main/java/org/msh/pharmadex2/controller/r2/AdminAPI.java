@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
+import org.msh.pharmadex2.dto.ActuatorAdmDTO;
 import org.msh.pharmadex2.dto.ContentDTO;
 import org.msh.pharmadex2.dto.DataCollectionDTO;
 import org.msh.pharmadex2.dto.DataConfigDTO;
@@ -25,12 +26,12 @@ import org.msh.pharmadex2.dto.WorkflowDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.exception.DataNotFoundException;
 import org.msh.pharmadex2.service.common.UserService;
+import org.msh.pharmadex2.service.r2.ActuatorService;
 import org.msh.pharmadex2.service.r2.ApplicationService;
 import org.msh.pharmadex2.service.r2.ContentService;
 import org.msh.pharmadex2.service.r2.DictService;
 import org.msh.pharmadex2.service.r2.ImportAService;
 import org.msh.pharmadex2.service.r2.ImportBService;
-import org.msh.pharmadex2.service.r2.LegacyDataService;
 import org.msh.pharmadex2.service.r2.PubOrgService;
 import org.msh.pharmadex2.service.r2.ReportService;
 import org.msh.pharmadex2.service.r2.SupervisorService;
@@ -78,6 +79,8 @@ public class AdminAPI {
 	private ThingService thingServ;
 	@Autowired
 	private ImportBService importBServ;
+	@Autowired
+	private ActuatorService actuatorService;
 
 	/**
 	 * Tiles for landing page
@@ -881,6 +884,13 @@ public class AdminAPI {
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
+		return data;
+	}
+	
+	@PostMapping("/api/admin/actuator/load")
+	public ActuatorAdmDTO actuatorLoad(Authentication auth, @RequestBody ActuatorAdmDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		data=actuatorService.loadData(data);
 		return data;
 	}
 }

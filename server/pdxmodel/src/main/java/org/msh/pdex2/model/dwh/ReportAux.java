@@ -25,8 +25,8 @@ public class ReportAux implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22227418098A2C22403836")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22227418098A2C22403836", strategy="native")	
+	@GeneratedValue(generator="VAC22227418129ECB5900CECB")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227418129ECB5900CECB", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	
@@ -35,11 +35,11 @@ public class ReportAux implements Serializable {
 	@Basic(fetch=FetchType.LAZY)	
 	private org.msh.pdex2.model.dwh.ReportSession reportSession;
 	
-	@Column(name="ParentId", nullable=false, length=20)	
-	private long parentId;
+	@Column(name="DataModuleId", nullable=false, length=20)	
+	private long dataModuleId;
 	
-	@Column(name="ParentUrl", nullable=true, length=255)	
-	private String parentUrl;
+	@Column(name="DataModuleUrl", nullable=true, length=255)	
+	private String dataModuleUrl;
 	
 	@Column(name="AuxId", nullable=false, length=20)	
 	private long auxId;
@@ -71,29 +71,29 @@ public class ReportAux implements Serializable {
 	/**
 	 * ID of parent page for aux pages
 	 */
-	public void setParentId(long value) {
-		this.parentId = value;
+	public void setDataModuleId(long value) {
+		this.dataModuleId = value;
 	}
 	
 	/**
 	 * ID of parent page for aux pages
 	 */
-	public long getParentId() {
-		return parentId;
+	public long getDataModuleId() {
+		return dataModuleId;
 	}
 	
 	/**
 	 * URL of the parent page
 	 */
-	public void setParentUrl(String value) {
-		this.parentUrl = value;
+	public void setDataModuleUrl(String value) {
+		this.dataModuleUrl = value;
 	}
 	
 	/**
 	 * URL of the parent page
 	 */
-	public String getParentUrl() {
-		return parentUrl;
+	public String getDataModuleUrl() {
+		return dataModuleUrl;
 	}
 	
 	/**

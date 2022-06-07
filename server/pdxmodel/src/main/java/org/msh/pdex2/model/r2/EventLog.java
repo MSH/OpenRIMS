@@ -28,8 +28,8 @@ public class EventLog implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22227418098A2C20A03823")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22227418098A2C20A03823", strategy="native")	
+	@GeneratedValue(generator="VAC22227418129ECB57C0CEBB")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227418129ECB57C0CEBB", strategy="native")	
 	private long ID;
 	
 	@Column(name="Email", nullable=true, length=255)	

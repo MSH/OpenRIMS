@@ -30,7 +30,7 @@ public class LegacyDataServiceTest {
 	ImportAService importAService;
 	
 	
-	@Test
+	//@Test
 	public void importPharmacies() throws IOException, ObjectNotFoundException {
 		Path pathFile = Paths.get("src","test","resources", "all branch retail pharmacies.xlsx");
 		byte[] bytes = Files.readAllBytes(pathFile);

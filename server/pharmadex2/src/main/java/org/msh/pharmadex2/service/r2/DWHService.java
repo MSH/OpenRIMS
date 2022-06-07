@@ -38,12 +38,7 @@ public class DWHService {
 	public void upload() throws SQLException {
 		long newSessionID = sessionOpen();
 		if(newSessionID>0) {
-			updateAux(newSessionID);
-			updatePage(newSessionID);
-			//uploadReportObjects(newSessionID);
-			uploadClassifiers(newSessionID);
-			uploadLiterals(newSessionID);
-			uploadEvents(newSessionID);
+			jdbcRepo.dwh_update(newSessionID);
 			sessionClose(newSessionID);
 		}else {
 			logger.error("can't start upload");
@@ -51,84 +46,6 @@ public class DWHService {
 		return;
 	}
 	
-	/**
-	 * Update ReportPage (form structure)
-	 * @param newSessionID
-	 * @param dwhRepo
-	 * @return 
-	 */
-	private int updatePage(long newSessionID) {
-		int ret=0;
-		String sql="insert into reportpage (`reportsessionID`,`RootId`,`RootUrl`,`Lang`,`PrefLabel`,`PageId`,`PageUrl`,`PageVar`,`Owner`)\r\n" + 
-				"SELECT "+newSessionID+", `rootId`,`rootUrl`,`lang`,`prefLabel`,`pageId`,`pageUrl`,`pageVar`,`owner` FROM reportpages;";
-		ret = jdbcRepo.update(sql);
-		return ret;
-		
-	}
-	/**
-	 * Update ReportAux (persons, warehouses, etc)
-	 * @param newSessionID
-	 * @param dwhRepo
-	 */
-	private int updateAux(long newSessionID) {
-		int ret=0;
-		String sql="insert into reportaux (`reportsessionID`,`ParentId`,`ParentUrl`,`AuxId`,`AuxUrl`,`Lang`,`PrefLabel`,`Owner`)\r\n" + 
-				"select "+newSessionID+",`parentId`,`parentUrl`,`auxId`,`auxUrl`,`lang`,`prefLabel`,`owner` from reportaux";
-		ret = jdbcRepo.update(sql);
-		return ret;
-	}
-
-	/**
-	 * Upload application events
-	 * @param newSessionID
-	 * @param dwhRepo
-	 */
-	private int uploadEvents(long newSessionID) {
-		int ret=0;
-		String sql="insert into reportevent (`ObjectConceptId`,`Url`,`Come`,`Go`,`First`,`Last`,`Appldictid`, `ActivityConfigId`, `reportsessionID`)\r\n" + 
-				"select objectid,stage,come,go,isStart,isFinish,appldictid, actConfigId,"+newSessionID+" from reportactivities";
-		ret = jdbcRepo.update(sql);
-		return ret;
-	}
-	/**
-	 * Upload all literals on all languages
-	 * @param newSessionID
-	 * @param dwhRepo
-	 */
-	private int uploadLiterals(long newSessionID) {
-		int ret=0;
-		String sql="insert into reportliteral (`ConceptID`,`Variable`,`Language`,`ValueStr`, `reportsessionID`)\r\n" + 
-				"select conceptid, varname,lang,varvalue, "+newSessionID+" from pdx2.reportliterals";
-		ret = jdbcRepo.update(sql);
-		return ret;
-		
-	}
-
-	/**
-	 * Upload classifiers
-	 * @param newSessionID
-	 * @param dwhRepo
-	 */
-	private int uploadClassifiers(long newSessionID) {
-		int ret=0;
-		String sql="insert into reportclassifier (`ObjectConceptId`,`Level`,`ItemConceptId`,`DictUrl`,`DictRootId`,`Variable`,`PageUrl`,`prefLabel`, `Lang`,`reportsessionID`)\r\n" + 
-				"select `objectid`, `level`, `dictitemid`,`dictUrl`, `dictRootId`,`variable`,`pageurl`, `pref`,`lang`,"+ newSessionID + " from pdx2.reportclassifiers";
-		ret = jdbcRepo.update(sql);
-		return ret;
-	}
-	/**
-	 * Upload report objects to the DWH database
-	 * @param newSessionID
-	 * @param dwhRepo
-	 */
-	private int uploadReportObjects(long newSessionID) {
-		int ret=0;
-		String sql="insert into reportobject (`ObjectConceptID`,`Url`, `Email`,`reportsessionID`)\r\n" + 
-				"SELECT objectid, objecturl,authemail,"+newSessionID +" FROM reportobjects;";
-		ret = jdbcRepo.update(sql);
-		return ret;
-	}
-
 	/**
 	 * Close the current session and perform the housekeeping
 	 * The two session should be left - previous marked as inactive and the current, marked as active

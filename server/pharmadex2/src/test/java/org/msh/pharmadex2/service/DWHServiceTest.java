@@ -13,7 +13,7 @@ public class DWHServiceTest {
 	@Autowired
 	DWHService dwhServ;
 	
-	@Test
+	//@Test
 	public void update() throws SQLException {
 		dwhServ.upload();
 	}

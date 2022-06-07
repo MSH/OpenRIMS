@@ -25,8 +25,8 @@ public class ReportClassifier implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22227418098A2C21B0382F")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22227418098A2C21B0382F", strategy="native")	
+	@GeneratedValue(generator="VAC22227418129ECB5890CEC6")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227418129ECB5890CEC6", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	
@@ -35,32 +35,38 @@ public class ReportClassifier implements Serializable {
 	@Basic(fetch=FetchType.LAZY)	
 	private org.msh.pdex2.model.dwh.ReportSession reportSession;
 	
-	@Column(name="ObjectConceptId", nullable=false, length=20)	
-	private long objectConceptId;
-	
-	@Column(name="Level", nullable=false, length=11)	
-	private int level;
-	
-	@Column(name="ItemConceptId", nullable=false, length=20)	
-	private long itemConceptId;
+	@Column(name="DataModuleID", nullable=false, length=20)	
+	private long dataModuleID;
 	
 	@Column(name="DictUrl", nullable=true, length=255)	
 	private String dictUrl;
 	
-	@Column(name="DictRootId", nullable=false, length=20)	
-	private long dictRootId;
+	@Column(name="Level", nullable=false, length=11)	
+	private int level;
 	
-	@Column(name="Variable", nullable=true, length=255)	
-	private String variable;
+	@Column(name="ItemId", nullable=false, length=20)	
+	private long itemId;
 	
 	@Column(name="PageUrl", nullable=true, length=255)	
 	private String pageUrl;
 	
-	@Column(name="PrefLabel", nullable=true, length=255)	
-	private String prefLabel;
+	@Column(name="Variable", nullable=true, length=255)	
+	private String variable;
 	
 	@Column(name="Lang", nullable=true, length=255)	
 	private String lang;
+	
+	@Column(name="DictPrefLabel", nullable=true, length=255)	
+	private String dictPrefLabel;
+	
+	@Column(name="ItemPrefLabel", nullable=true, length=255)	
+	private String itemPrefLabel;
+	
+	@Column(name="PathToItem", nullable=true, length=1024)	
+	private String pathToItem;
+	
+	@Column(name="ReportPageID", nullable=false, length=20)	
+	private long reportPageID;
 	
 	private void setID(long value) {
 		this.ID = value;
@@ -77,15 +83,29 @@ public class ReportClassifier implements Serializable {
 	/**
 	 * ID of the dictionary item's concept in the database
 	 */
-	public void setObjectConceptId(long value) {
-		this.objectConceptId = value;
+	public void setDataModuleID(long value) {
+		this.dataModuleID = value;
 	}
 	
 	/**
 	 * ID of the dictionary item's concept in the database
 	 */
-	public long getObjectConceptId() {
-		return objectConceptId;
+	public long getDataModuleID() {
+		return dataModuleID;
+	}
+	
+	/**
+	 * URL of the dictionary
+	 */
+	public void setDictUrl(String value) {
+		this.dictUrl = value;
+	}
+	
+	/**
+	 * URL of the dictionary
+	 */
+	public String getDictUrl() {
+		return dictUrl;
 	}
 	
 	/**
@@ -105,57 +125,15 @@ public class ReportClassifier implements Serializable {
 	/**
 	 * The concept of the Classifier's item
 	 */
-	public void setItemConceptId(long value) {
-		this.itemConceptId = value;
+	public void setItemId(long value) {
+		this.itemId = value;
 	}
 	
 	/**
 	 * The concept of the Classifier's item
 	 */
-	public long getItemConceptId() {
-		return itemConceptId;
-	}
-	
-	/**
-	 * URL of the dictionary
-	 */
-	public void setDictUrl(String value) {
-		this.dictUrl = value;
-	}
-	
-	/**
-	 * URL of the dictionary
-	 */
-	public String getDictUrl() {
-		return dictUrl;
-	}
-	
-	/**
-	 * The root identifier for the dictionary
-	 */
-	public void setDictRootId(long value) {
-		this.dictRootId = value;
-	}
-	
-	/**
-	 * The root identifier for the dictionary
-	 */
-	public long getDictRootId() {
-		return dictRootId;
-	}
-	
-	/**
-	 * Variable name of the classifier in the electronic form
-	 */
-	public void setVariable(String value) {
-		this.variable = value;
-	}
-	
-	/**
-	 * Variable name of the classifier in the electronic form
-	 */
-	public String getVariable() {
-		return variable;
+	public long getItemId() {
+		return itemId;
 	}
 	
 	/**
@@ -173,17 +151,17 @@ public class ReportClassifier implements Serializable {
 	}
 	
 	/**
-	 * PrefLabel value
+	 * Variable name of the classifier in the electronic form
 	 */
-	public void setPrefLabel(String value) {
-		this.prefLabel = value;
+	public void setVariable(String value) {
+		this.variable = value;
 	}
 	
 	/**
-	 * PrefLabel value
+	 * Variable name of the classifier in the electronic form
 	 */
-	public String getPrefLabel() {
-		return prefLabel;
+	public String getVariable() {
+		return variable;
 	}
 	
 	/**
@@ -198,6 +176,62 @@ public class ReportClassifier implements Serializable {
 	 */
 	public String getLang() {
 		return lang;
+	}
+	
+	/**
+	 * The name of the classifier
+	 */
+	public void setDictPrefLabel(String value) {
+		this.dictPrefLabel = value;
+	}
+	
+	/**
+	 * The name of the classifier
+	 */
+	public String getDictPrefLabel() {
+		return dictPrefLabel;
+	}
+	
+	/**
+	 * PrefLabel value
+	 */
+	public void setItemPrefLabel(String value) {
+		this.itemPrefLabel = value;
+	}
+	
+	/**
+	 * PrefLabel value
+	 */
+	public String getItemPrefLabel() {
+		return itemPrefLabel;
+	}
+	
+	/**
+	 * The path to this choice
+	 */
+	public void setPathToItem(String value) {
+		this.pathToItem = value;
+	}
+	
+	/**
+	 * The path to this choice
+	 */
+	public String getPathToItem() {
+		return pathToItem;
+	}
+	
+	/**
+	 * ID of the corresponded record in the report page
+	 */
+	public void setReportPageID(long value) {
+		this.reportPageID = value;
+	}
+	
+	/**
+	 * ID of the corresponded record in the report page
+	 */
+	public long getReportPageID() {
+		return reportPageID;
 	}
 	
 	public void setReportSession(org.msh.pdex2.model.dwh.ReportSession value) {
