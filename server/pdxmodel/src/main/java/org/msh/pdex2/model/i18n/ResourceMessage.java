@@ -25,8 +25,8 @@ public class ResourceMessage implements Serializable {
 	
 	@Column(name="Id", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22227418129ECB5670CEAB")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22227418129ECB5670CEAB", strategy="native")	
+	@GeneratedValue(generator="VAC2222741818604E90A07128")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222741818604E90A07128", strategy="native")	
 	private long id;
 	
 	@Column(name="Message_key", nullable=true, length=255)	

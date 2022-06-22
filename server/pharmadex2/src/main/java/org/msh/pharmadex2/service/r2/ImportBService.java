@@ -1,10 +1,13 @@
 package org.msh.pharmadex2.service.r2;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.msh.pdex2.dto.table.Headers;
 import org.msh.pdex2.dto.table.TableHeader;
 import org.msh.pdex2.dto.table.TableQtb;
@@ -14,7 +17,6 @@ import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.FileResource;
 import org.msh.pdex2.repository.common.JdbcRepository;
-import org.msh.pdex2.repository.r2.LegacyDataRepo;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.FileDTO;
@@ -47,7 +49,10 @@ public class ImportBService {
 	private ThingService thingServ;
 	@Autowired
 	private LegacyDataService legacyDataServ;
-	
+	@Autowired
+	Messages messages;
+	@Autowired
+	private LiteralService literalServ;
 	/**
 	 * Create a new legacy data using the assembly
 	 * @param assm
@@ -155,11 +160,25 @@ public class ImportBService {
 		}
 		if(data.getNodeId()==0) {
 			data=thingServ.createThing(data, user);
-			//data.getAddresses().clear();
 		}else {
 			data=thingServ.loadThing(data, user);
-			//data.getAddresses().clear();
 		}
+		
+		Long dictNodeId = loadDictConcept(false).getID();
+		if(data.getDocuments().get(AssemblyService.DATAIMPORT_DATA) != null) {
+			TableQtb t = data.getDocuments().get(AssemblyService.DATAIMPORT_DATA).getTable();
+			List<TableRow> rows = t.getRows();
+			List<TableRow> rowsNew = new ArrayList<TableRow>();
+			if(rows.get(0).getDbID() == dictNodeId) {
+				rowsNew.add(0, rows.get(0));
+				rowsNew.add(1, rows.get(1));
+			}else if(rows.get(1).getDbID() == dictNodeId) {
+				rowsNew.add(0, rows.get(1));
+				rowsNew.add(1, rows.get(0));
+			}
+			data.getDocuments().get(AssemblyService.DATAIMPORT_DATA).getTable().setRows(rowsNew);
+		}
+		
 		return data;
 	}
 	
@@ -180,18 +199,58 @@ public class ImportBService {
 		return data;
 	}
 	
+	/**
+	 * Identificator=0 - file by import
+	 * Identificator=1 - file with errors in import
+	 * @param data
+	 * @param user
+	 * @throws ObjectNotFoundException
+	 * @throws IOException
+	 */
 	@Async
-	public void importLegacyDataRun(ThingDTO data) throws ObjectNotFoundException, IOException{
+	public void importLegacyDataRun(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException, IOException{
 		FileDTO dto = data.getDocuments().get(AssemblyService.DATAIMPORT_DATA);
 		Concept fileNode = null;
-		Iterator<Long> it = dto.getLinked().keySet().iterator();
-		if(it.hasNext()) {
-			Long dictNodeId = it.next();
-			fileNode = closureServ.loadConceptById(dto.getLinked().get(dictNodeId));
-		}
+		Long dictNodeId = loadDictConcept(false).getID();
+		fileNode = closureServ.loadConceptById(dto.getLinked().get(dictNodeId));
 		if(fileNode != null) {
+			String curLoc = LocaleContextHolder.getLocale().toString().toUpperCase();
+			boolean hasOtherLoc = true;
+			for(String l:messages.getAllUsedUpperCase()) {
+				if(l.equals(curLoc)) {
+					hasOtherLoc = false;
+				}
+			}
+			if(hasOtherLoc) {
+				LocaleContextHolder.setDefaultLocale(messages.getCurrentLocale());
+			}
+			
 			FileResource fr = boilerServ.fileResourceByNode(fileNode);
-			legacyDataServ.importLegacyData(fr.getFile());
+			XSSFWorkbook wb = legacyDataServ.importLegacyData(fr.getFile());
+			
+			String fnameErr = "Error.xlsx";
+			String nfile = fileNode.getLabel();
+			if(nfile.endsWith(".xlsx")) {
+				fnameErr = nfile.replace(".xlsx", ".xlsxOut.xlsx");
+			}
+			
+			File fError = new File(fnameErr);
+			FileOutputStream fos = new FileOutputStream(fError);
+			wb.write(fos);
+			fos.flush();
+			fos.close();
+			
+			FileDTO fdto = new FileDTO();
+			fdto.setThingNodeId(dto.getThingNodeId());
+			fdto.setThingUrl(dto.getThingUrl());
+			fdto.setDictNodeId(loadDictConcept(true).getID());
+			fdto.setDictUrl(dto.getDictUrl());
+			fdto.setUrl(dto.getUrl());
+			fdto.setVarName(dto.getVarName());
+			fdto.setFileName(fError.getName());
+			fdto.setFileSize(fError.length());
+			fdto.setMediaType(fr.getMediatype());
+			thingServ.fileSave(fdto, user, Files.readAllBytes(fError.toPath()));
 		}
 	}
 
@@ -225,5 +284,26 @@ public class ImportBService {
 		dto.setSelectedNode(concept.getID());
 		dto=reloadTable(dto);
 		return dto;
+	}
+	
+	private Concept loadDictConcept(boolean byError) throws ObjectNotFoundException {
+		Concept itemDict = null;
+		Concept root = closureServ.loadRoot(SystemService.DICTIONARY_SYSTEM_IMPORT_DATA);
+		List<Concept> level = literalServ.loadOnlyChilds(root);
+		if(level.size() == 2) {
+			for(int i = 0; i < level.size(); i++) {
+				Concept item = level.get(i);
+				if(byError && item.getIdentifier().equals(AssemblyService.DATAIMPORT_DATA_ERROR)) {
+					itemDict = item;
+					break;
+				}else if(!byError && item.getIdentifier().equals(AssemblyService.DATAIMPORT_DATA)) {
+					itemDict = item;
+					break;
+				}
+			}
+			
+		}
+		
+		return itemDict;
 	}
 }

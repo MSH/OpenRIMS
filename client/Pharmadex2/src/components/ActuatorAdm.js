@@ -18,6 +18,8 @@ class ActuatorAdm extends Component{
             labels:{
                 global_cancel:'',
                 global_save:'',
+                saved:'',
+                global_fail:'',
                 healthEndpointStatus:'healthEndpointStatus',
                 reload:""
             }
@@ -28,6 +30,7 @@ class ActuatorAdm extends Component{
         this.buildData=this.buildData.bind(this)
         this.buildDataTwo=this.buildDataTwo.bind(this)
         this.buildDataThree=this.buildDataThree.bind(this)
+        this.buildDataFour=this.buildDataFour.bind(this)
     }
 
     /**
@@ -120,7 +123,33 @@ class ActuatorAdm extends Component{
         let ret=[]
         if(Fetchers.isGoodArray(this.state.data.keys)){
             this.state.data.keys.forEach((k, index)=>{
-                if(index >= 19){
+                if(index >= 19 && index < 25){
+                    let fieldDTO = this.state.data.literals[k]
+                    if(fieldDTO != undefined){
+                        ret.push(
+                            <Row key={index}>
+                                <Col>
+                                    <ViewEdit mode='text' attribute={k}
+                                    component={this} 
+                                    data={this.state.data.literals}
+                                    rows="6"
+                                    hideEmpty
+                                    />
+                                </Col>
+                            </Row>
+                        )
+                    }
+                }
+            })
+        }
+        return ret;
+    }
+
+    buildDataFour(){
+        let ret=[]
+        if(Fetchers.isGoodArray(this.state.data.keys)){
+            this.state.data.keys.forEach((k, index)=>{
+                if(index >= 25){
                     let fieldDTO = this.state.data.literals[k]
                     if(fieldDTO != undefined){
                         ret.push(
@@ -151,6 +180,18 @@ class ActuatorAdm extends Component{
                     window.location="/"+Navigator.tabSetName()+"#"+Navigator.tabName()
                 }}
                 >{this.state.labels.global_cancel}</Button>{' '}
+                 <Button size="sm"
+                className="mr-1" color="primary"
+                onClick={()=>{
+                    Fetchers.postJSON("/api/admin/metrics/save", this.state.data, (query,result)=>{
+                        if(result.valid){
+                            Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.saved, color:'success'})
+                        }else{
+                            Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.global_fail, color:'warning'})
+                        }
+                    })
+                }}
+                >{this.state.labels.global_save}</Button>{' '}
             </div>
         )
     }
@@ -174,6 +215,9 @@ class ActuatorAdm extends Component{
                     </Col>
                     <Col>
                         {this.buildDataThree()}
+                    </Col>
+                    <Col>
+                        {this.buildDataFour()}
                     </Col>
                 </Row>
                 <Row>

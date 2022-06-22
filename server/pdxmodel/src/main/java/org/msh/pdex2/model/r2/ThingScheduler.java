@@ -28,8 +28,8 @@ public class ThingScheduler implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22227418129ECB57B0CEBA")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22227418129ECB57B0CEBA", strategy="native")	
+	@GeneratedValue(generator="VAC2222741818604E91E07137")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222741818604E91E07137", strategy="native")	
 	private long ID;
 	
 	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	

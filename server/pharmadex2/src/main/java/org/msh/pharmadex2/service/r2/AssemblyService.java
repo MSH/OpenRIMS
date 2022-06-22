@@ -45,6 +45,7 @@ public class AssemblyService {
 	public static final String DATAIMPORT_ADDRESS = "dataimport_address";
 	public static final String DATAIMPORT_RESULT = "dataimport_result";
 	public static final String DATAIMPORT_DATA = "dataimport";
+	public static final String DATAIMPORT_DATA_ERROR = "dataimporterror";
 	public static final String SYSTEM_IMPORT_ADMINUNITS="system.import.adminunits";
 	public static final String SYSTEM_IMPORT_ADMINUNITS_RELOAD="system.import.adminunits_reload";
 	private static final String ACTIVITY_EXECUTIVES = "executives";
@@ -469,12 +470,19 @@ public class AssemblyService {
 		}
 		if(url.equalsIgnoreCase(SYSTEM_IMPORT_LEGACY_DATA)) {
 			AssemblyDTO assm = new AssemblyDTO();
-			assm.setPropertyName(DATAIMPORT_DATA);
-			assm.setUrl("data.import");
-			assm.setDescription(messages.get("pleaseuploadimportdata"));
-			assm.setRequired(true);
-			assm.setFileTypes(".xlsx");
 			assm.setDictUrl(SystemService.DICTIONARY_SYSTEM_IMPORT_DATA);
+			assm.setFileTypes(".xlsx");
+			assm.setMax(new BigDecimal(0));
+			assm.setMin(new BigDecimal(0));
+			assm.setMult(false);
+			assm.setUnique(false);
+			assm.setPropertyName(DATAIMPORT_DATA);
+			assm.setDescription(messages.get("pleaseuploadimportdata"));
+			assm.setReadOnly(false);
+			assm.setRequired(true);
+			assm.setTextArea(false);
+			assm.setUrl("data.import");
+			assm.setAuxDataUrl("");
 			ret.add(assm);
 		}
 		if(ret.size()==0) {

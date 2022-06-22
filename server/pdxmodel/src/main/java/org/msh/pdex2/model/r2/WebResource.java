@@ -28,8 +28,8 @@ public class WebResource implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22227418129ECB5690CEAD")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22227418129ECB5690CEAD", strategy="native")	
+	@GeneratedValue(generator="VAC2222741818604E90C0712A")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222741818604E90C0712A", strategy="native")	
 	private long ID;
 	
 	@Column(name="Url", nullable=true, length=255)	

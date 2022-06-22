@@ -332,9 +332,14 @@ public class SystemService {
 			literalServ.createUpdateLiteral("type", "system", root);
 		}
 		List<Concept> level = literalServ.loadOnlyChilds(root);
-		if(level.size()!=1) {
-			//create level
-			systemDictNode(root, "0", "XLSX file contains data to import");
+		if(level.size() == 0) {
+			systemDictNode(root, AssemblyService.DATAIMPORT_DATA, "XLSX file contains data to import");
+			systemDictNode(root, AssemblyService.DATAIMPORT_DATA_ERROR, "XLSX file contains data import errors");
+		}else if(level.size() == 1) {
+			Concept c = level.get(0);
+			c.setIdentifier(AssemblyService.DATAIMPORT_DATA);
+			closureServ.save(c);
+			systemDictNode(root, AssemblyService.DATAIMPORT_DATA_ERROR, "XLSX file contains data import errors");
 		}
 		ret=dictServ.createDictionary(ret);
 		ret.setMult(false);

@@ -10,7 +10,6 @@ import ThingsManager from './ThingsManager'
 import CheckList from './CheckList'
 import AlertFloat from './utils/AlertFloat'
 import ActivityHistoryData from './ActivityHistoryData'
-import SpinnerMain from './utils/SpinnerMain'
 /**
  * Starts an application
  * Contains component's display logic and nothing else
@@ -222,7 +221,7 @@ class ApplicationStart extends Component{
                             <Button size="sm" hidden={!this.state.submit}
                             className="mr-1" color="primary"
                             onClick={()=>{
-                                Navigator.message(this.state.identifier,"*","submit",{})
+                                Navigator.message(this.state.identifier,"*","submit",{})    //PROCESSED BY CHECKLIST!!!!
                             }}
                             >{this.state.labels.global_submit}</Button>{' '}
                         </div>

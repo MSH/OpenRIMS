@@ -28,8 +28,8 @@ public class ReportLiteral implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22227418129ECB58B0CEC7")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22227418129ECB58B0CEC7", strategy="native")	
+	@GeneratedValue(generator="VAC2222741818604E92E07143")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222741818604E92E07143", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	
@@ -44,11 +44,14 @@ public class ReportLiteral implements Serializable {
 	@Column(name="Variable", nullable=true, length=255)	
 	private String variable;
 	
-	@Column(name="Language", nullable=true, length=255)	
-	private String language;
+	@Column(name="Lang", nullable=true, length=255)	
+	private String lang;
 	
-	@Column(name="ValueStr", nullable=true, length=255)	
+	@Column(name="ValueStr", nullable=true, length=2048)	
 	private String valueStr;
+	
+	@Column(name="ValueDate", nullable=true)	
+	private java.util.Date valueDate;
 	
 	private void setID(long value) {
 		this.ID = value;
@@ -93,15 +96,15 @@ public class ReportLiteral implements Serializable {
 	/**
 	 * The language
 	 */
-	public void setLanguage(String value) {
-		this.language = value;
+	public void setLang(String value) {
+		this.lang = value;
 	}
 	
 	/**
 	 * The language
 	 */
-	public String getLanguage() {
-		return language;
+	public String getLang() {
+		return lang;
 	}
 	
 	/**
@@ -116,6 +119,20 @@ public class ReportLiteral implements Serializable {
 	 */
 	public String getValueStr() {
 		return valueStr;
+	}
+	
+	/**
+	 * In case the value can be represented as Date
+	 */
+	public void setValueDate(java.util.Date value) {
+		this.valueDate = value;
+	}
+	
+	/**
+	 * In case the value can be represented as Date
+	 */
+	public java.util.Date getValueDate() {
+		return valueDate;
 	}
 	
 	public void setReportSession(org.msh.pdex2.model.dwh.ReportSession value) {

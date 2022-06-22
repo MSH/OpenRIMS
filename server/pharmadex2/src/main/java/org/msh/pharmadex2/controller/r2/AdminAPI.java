@@ -32,6 +32,7 @@ import org.msh.pharmadex2.service.r2.ContentService;
 import org.msh.pharmadex2.service.r2.DictService;
 import org.msh.pharmadex2.service.r2.ImportAService;
 import org.msh.pharmadex2.service.r2.ImportBService;
+import org.msh.pharmadex2.service.r2.MetricService;
 import org.msh.pharmadex2.service.r2.PubOrgService;
 import org.msh.pharmadex2.service.r2.ReportService;
 import org.msh.pharmadex2.service.r2.SupervisorService;
@@ -81,6 +82,8 @@ public class AdminAPI {
 	private ImportBService importBServ;
 	@Autowired
 	private ActuatorService actuatorService;
+	@Autowired
+	private MetricService metricServ;
 
 	/**
 	 * Tiles for landing page
@@ -868,7 +871,7 @@ public class AdminAPI {
 	public ThingDTO importLegacyDataRun(Authentication auth, @RequestBody ThingDTO data ) throws DataNotFoundException {
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 		try {
-			importBServ.importLegacyDataRun(data); 
+			importBServ.importLegacyDataRun(data, user); 
 			data=thingServ.loadThing(data, user);
 			return data;
 		} catch (ObjectNotFoundException | IOException e) {
@@ -891,6 +894,20 @@ public class AdminAPI {
 	public ActuatorAdmDTO actuatorLoad(Authentication auth, @RequestBody ActuatorAdmDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 		data=actuatorService.loadData(data);
+		return data;
+	}
+	
+	/**
+	 * Intermediate save mainly for debug
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/metrics/save")
+	public ActuatorAdmDTO metricsSave(Authentication auth, @RequestBody ActuatorAdmDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		metricServ.collectMetrics();
 		return data;
 	}
 }

@@ -255,7 +255,9 @@ public class LiteralService {
 		//literals
 		Concept literals = new Concept();
 		literals.setIdentifier(IDENTIFIER);
+		//logger.trace("s}");
 		literals = closureServ.saveToTree(parent, literals);
+		//logger.trace("}");
 		return literals;
 	}
 

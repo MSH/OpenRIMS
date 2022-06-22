@@ -176,7 +176,7 @@ public class ThingService {
 	 */
 	@Transactional
 	public ThingDTO createContent(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
-		logger.trace("START CONTENT");
+		//logger.trace("START CONTENT");
 		List<Assembly> assemblies =assemblyServ.loadDataConfiguration(data.getUrl());
 		//literals
 		List<AssemblyDTO> headings = assemblyServ.auxHeadings(data.getUrl(),assemblies);
@@ -187,7 +187,7 @@ public class ThingService {
 			dto.setUrl(head.getUrl());
 			data.getHeading().put(head.getPropertyName(), dto);
 		}
-		logger.trace("literals{");
+		//logger.trace("literals{");
 		List<String> exts=boilerServ.variablesExtensions(data);
 
 		data.getStrings().clear();
@@ -205,22 +205,22 @@ public class ThingService {
 		//logical
 		List<AssemblyDTO> logicals=assemblyServ.auxLogicals(data.getUrl(),assemblies);
 		data=dtoServ.createLogicals(data,logicals);
-		logger.trace("}");
+		//logger.trace("}");
 		//dictionaries
 		List<AssemblyDTO> dictionaries = assemblyServ.auxDictionaries(data.getUrl(),assemblies);
-		logger.trace("dictionaries{");
+		//logger.trace("dictionaries{");
 		data=createDictonaries(data, dictionaries);
-		logger.trace("}");
+		//logger.trace("}");
 		//addresses
 		List<AssemblyDTO> addresses = assemblyServ.auxAddresses(data.getUrl(),assemblies);
-		logger.trace("addresses{");
+		//logger.trace("addresses{");
 		data=createAddresses(data, addresses);
-		logger.trace("}");
+		//logger.trace("}");
 		//files
 		List<AssemblyDTO> documents = assemblyServ.auxDocuments(data.getUrl(),assemblies);
-		logger.trace("documents{");
+		//logger.trace("documents{");
 		data=createDocuments(documents, data,user);
-		logger.trace("}");
+		//logger.trace("}");
 		//resources
 		List<AssemblyDTO> resources = assemblyServ.auxResources(data.getUrl(),assemblies);
 		data=createResources(resources,data);
@@ -239,10 +239,10 @@ public class ThingService {
 		List<AssemblyDTO> schedulers = assemblyServ.auxSchedulers(data.getUrl(),assemblies);
 		data=createSchedulers(schedulers, data);
 		//Registers
-		logger.trace("registers{");
+		//logger.trace("registers{");
 		List<AssemblyDTO> registers = assemblyServ.auxRegisters(data.getUrl(),assemblies);
 		data=registerServ.createRegisters(registers,data);
-		logger.trace("}");
+		//logger.trace("}");
 		//Amendments
 		//List<AssemblyDTO> amendments = assemblyServ.auxAmendments(data.getUrl());
 		//data=createAmendments(amendments,data,user);
@@ -261,7 +261,7 @@ public class ThingService {
 		//main labels rewrite
 		data.getMainLabels().clear();
 		data.getMainLabels().putAll(assemblyServ.mainLabelsByUrl(data.getUrl()));
-		logger.trace("END content");
+		//logger.trace("END content");
 		return data;
 	}
 	/**
@@ -713,7 +713,9 @@ public class ThingService {
 				addr.setNodeId(th.getConcept().getID());
 			}
 		}
+		logger.trace("addresses(createDi){");
 		addr.setDictionary(dictServ.createDictionary(addr.getDictionary()));
+		logger.trace("}");
 		dictServ.loadHomeLocation(addr);
 		return addr;
 	}

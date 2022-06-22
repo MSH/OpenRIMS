@@ -160,10 +160,11 @@ public class DictService {
 	 * @param selectedIds list of previous selected 
 	 * @param selectedOnly load selected only
 	 * @param readOnly for readOnly tables
-	 * @return
+	 * @return 
 	 */
 	@Transactional
 	public TableQtb loadTable(Concept parentNode, TableQtb table, List<Long> selectedIds, boolean selectedOnly, boolean readOnly) {
+		//logger.trace("loadTable{");
 		if(table.getHeaders().getHeaders().size()==0) {
 			table.setHeaders(createHeaders(table.getHeaders(), readOnly));
 		}
@@ -182,6 +183,7 @@ public class DictService {
 			}
 			TableQtb.tablePage(rowsToTable, table);
 		}
+		//logger.trace("}");
 		return table;
 	}
 
@@ -439,9 +441,13 @@ public class DictService {
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public DictionaryDTO createDictionaryFromRoot(DictionaryDTO ret) throws ObjectNotFoundException {
-		Concept root = closureServ.loadRoot(ret.getUrl());
+	public DictionaryDTO createDictionaryFromRoot(DictionaryDTO ret, Concept root) throws ObjectNotFoundException {
+		//ika
+		if(root==null) {
+		//Concept 
+		root = closureServ.loadRoot(ret.getUrl());
 		ret.setSystem(checkSystem(root));
+		}
 		if(ret.isReadOnly()) {
 			ret.setSelectedOnly(true);
 		}
@@ -527,7 +533,7 @@ public class DictService {
 				OptionDTO opt = optionFromNode(prevNode);
 				ret.getSelection().setValue(opt);
 			}else {
-				ret = createDictionaryFromRoot(ret);
+				ret = createDictionaryFromRoot(ret, null);
 			}
 		}
 		ret= selectRows(ret);
@@ -643,7 +649,7 @@ public class DictService {
 	 */
 	public DictionaryDTO rootDictionary(DictionaryDTO data) throws ObjectNotFoundException {
 		DictionaryDTO ret = data.cloneImportant();
-		ret=createDictionaryFromRoot(ret);
+		ret=createDictionaryFromRoot(ret, null);
 		return ret;
 	}
 	/**
@@ -743,17 +749,18 @@ public class DictService {
 
 		if(data.getSelectId() > 0) {
 			DictionaryDTO dict = new DictionaryDTO();
-			if(data.isEditor()) {//edit fields dictionary
+			// ika if(data.isEditor()) {//edit fields dictionary
 				Concept root = closureServ.loadConceptById(data.getSelectId());
 				dict.setUrlId(root.getID());
 				dict.setUrl(root.getIdentifier());
 
-			}else {//show list item dictionary
+			/*ika }else {//show list item dictionary
 				Concept root = closureServ.loadConceptById(data.getSelectId());
 				dict.setUrlId(root.getID());
 				dict.setUrl(root.getIdentifier());
-			}
-			data.setSelect(createDictionaryFromRoot(dict));
+			}*/
+				dict.setSystem(checkSystem(root));//ika
+			data.setSelect(createDictionaryFromRoot(dict, root));
 			reloadTable = false;
 		}else if(data.getSelectId() == 0 && data.isEditor()) {//create new fields dictionary
 			DictionaryDTO dict = new DictionaryDTO();
@@ -922,7 +929,7 @@ public class DictService {
 		if(data.getPrevSelected().size()>0) {
 			data= createDictionaryFromSelected(data.getPrevSelected(), data);
 		}else {
-			data=createDictionaryFromRoot(data);
+			data=createDictionaryFromRoot(data, root);
 		}
 		return data;
 	}
@@ -950,7 +957,7 @@ public class DictService {
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	private boolean checkSystem(Concept root) throws ObjectNotFoundException {
+	public boolean checkSystem(Concept root) throws ObjectNotFoundException {
 		String dicType = literalServ.readValue("type", root);
 		return dicType.equalsIgnoreCase("system");
 	}
@@ -1089,7 +1096,7 @@ public class DictService {
 			String url = literalServ.readValue("url", node);
 			DictionaryDTO guest = new DictionaryDTO();
 			guest.setUrl(SystemService.DICTIONARY_GUEST_APPLICATIONS);
-			guest = createDictionaryFromRoot(guest);
+			guest = createDictionaryFromRoot(guest, null);
 			List<TableRow> rows = guest.getTable().getRows();
 			long dictNodeId=0;
 			for(TableRow row : rows) {
