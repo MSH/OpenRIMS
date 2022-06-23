@@ -9,3 +9,4 @@ Directories:
   * pharmadex2 - web project. This project built on Spring Boot Maven. Created by Spring Boot Initializer 
 * database - databse structure. The real database is not fit GitHub constrains. Please, ask alex.kurasoff@gmail.com for more data
 * date-convertor - utility project to conert Nepali dates.
+____________________________________________________________________________
