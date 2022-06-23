@@ -1,4 +1,4 @@
-git remote add origin https://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@github.com/MSH/Pharmadex2.git
+git remote add origin https://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@github.com/MSH/Pharmadex2.git
 git branch -M main
 git add *
 git commit -m "the first commit"
