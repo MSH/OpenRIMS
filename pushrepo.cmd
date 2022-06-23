@@ -1,5 +1,5 @@
 git remote remove origin
-git remote add origin https://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@github.com/MSH/Pharmadex2.git
+git remote add origin https://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@github.com/MSH/Pharmadex2.git
 git branch -M main
 git add *
 git commit -m "the first commit"
