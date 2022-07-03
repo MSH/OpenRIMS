@@ -25,8 +25,8 @@ public class ReportSession implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC2222741818604E93007145")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC2222741818604E93007145", strategy="native")	
+	@GeneratedValue(generator="VAC222274181AB73CE690B14F")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC222274181AB73CE690B14F", strategy="native")	
 	private long ID;
 	
 	@Column(name="StartedAt", nullable=true)	

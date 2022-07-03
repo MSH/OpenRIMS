@@ -25,8 +25,8 @@ public class ReportClassifier implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC2222741818604E92C07142")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC2222741818604E92C07142", strategy="native")	
+	@GeneratedValue(generator="VAC222274181AB73CE640B14C")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC222274181AB73CE640B14C", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	

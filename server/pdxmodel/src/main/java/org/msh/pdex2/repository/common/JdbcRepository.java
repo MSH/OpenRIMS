@@ -378,10 +378,20 @@ public class JdbcRepository {
 	/**
 	 * Prepare temporary table  _prefdescription contains pref labels and descriptions
 	 */
+	@Deprecated
 	public void preparePrefDescription() {
 		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
 		proc.withProcedureName("prefdescription");
 		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+	}
+	
+	public void userByOrganization(long orgID) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("users_org");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("orgID", orgID);
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 	}
@@ -991,6 +1001,19 @@ public class JdbcRepository {
 		proc.withProcedureName("dwh_update");
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("sessionId", newSessionID);
+		proc.execute(params);
+		
+	}
+	/**
+	 * Read resource to upload
+	 * @param dictRootId - the dictionary root the resource built upon
+	 */
+	public void resource_read(long dictRootId) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("resource_read");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("dictRootId", dictRootId);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 		
 	}

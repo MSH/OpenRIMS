@@ -27,8 +27,8 @@ public class Metric implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC2222741818604E93507148")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC2222741818604E93507148", strategy="native")	
+	@GeneratedValue(generator="VAC222274181AB73CE6E0B152")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC222274181AB73CE6E0B152", strategy="native")	
 	private long ID;
 	
 	@Column(name="Application", nullable=true, length=255)	

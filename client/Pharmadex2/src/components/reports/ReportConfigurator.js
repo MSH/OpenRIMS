@@ -19,7 +19,7 @@ class ReportConfigurator extends Component{
             identifier:Date.now().toString(),
             thingid:'*',
             data:{                      //ReportConfigDTO.java
-                form:false,
+                form:false
             },
             labels:{
                 reports:'',
@@ -28,11 +28,13 @@ class ReportConfigurator extends Component{
                 global_save:'',
                 global_add:'',
                 success:'',
-            }
+                global_renewExternal:'',
+            },
         }
         this.eventProcessor=this.eventProcessor.bind(this)
         this.content=this.content.bind(this)
         this.load=this.load.bind(this)
+        this.renewExternal=this.renewExternal.bind(this)
     }
 
     /**
@@ -73,6 +75,14 @@ class ReportConfigurator extends Component{
             this.setState(this.state)
         })
     }
+
+    renewExternal(){
+        Fetchers.postJSON("/api/admin/report/renewexternal", this.state.data, (query, result)=>{
+            //this.state.data=result
+            //this.setState(this.state)
+        })
+    }
+
     /**
      * Save, Suspend, Cancel on the form
      * @returns the button bar
@@ -140,7 +150,21 @@ class ReportConfigurator extends Component{
                 <Row>
                     <Col>
                         <Row>
-                            <Col xs='0' sm='6' lg='11' xl='11'>
+                            <Col xs='0' sm='0' lg='10' xl='10'>
+                            </Col>
+                            <Col xs='12' sm='6' lg='1' xl='1'>
+                                <ButtonUni
+                                    label={this.state.labels.global_renewExternal}
+                                    color="primary"
+                                    disabled = {!this.state.data.enabledrenewext}
+                                    onClick={()=>{
+                                        this.state.data.report.nodeId=0
+                                        this.state.data.form=false
+                                        this.state.data.enabledrenewext=false
+                                        this.setState(this.state)
+                                        this.renewExternal()
+                                    }}
+                                />
                             </Col>
                             <Col xs='12' sm='6' lg='1' xl='1'>
                                 <ButtonUni

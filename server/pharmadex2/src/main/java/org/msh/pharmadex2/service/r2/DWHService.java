@@ -6,14 +6,17 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.msh.pdex2.model.dwh.ReportSession;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.dwh.ReportSessionRepo;
+import org.msh.pharmadex2.dto.ReportConfigDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 /**
@@ -31,19 +34,42 @@ public class DWHService {
 	@Autowired
 	private BoilerService boilerServ;
 
+	private static AtomicBoolean uploadFlag = new AtomicBoolean(true);
+	
+	
+	public static AtomicBoolean getUploadFlag() {
+		return uploadFlag;
+	}
+
+	public static void setUploadFlag(AtomicBoolean uploadFlag) {
+		DWHService.uploadFlag = uploadFlag;
+	}
+
 	/**
 	 * Upload DWH data
 	 * @throws SQLException 
 	 */
+	@Async
 	public void upload() throws SQLException {
-		long newSessionID = sessionOpen();
-		if(newSessionID>0) {
-			jdbcRepo.dwh_update(newSessionID);
-			sessionClose(newSessionID);
-		}else {
-			logger.error("can't start upload");
+		if(uploadFlag.get()) {
+			logger.info("DWHService.upload() start");
+			uploadFlag.set(false);
+			long newSessionID = sessionOpen();
+			if(newSessionID>0) {
+				jdbcRepo.dwh_update(newSessionID);
+				sessionClose(newSessionID);
+					
+			}else {
+				logger.error("can't start upload");
+			}
+			uploadFlag.set(true);
+			logger.info("DWHService.upload() end");
 		}
-		return;
+		return ;
+	}
+	
+	public boolean enablesBtn() {
+		return uploadFlag.get();
 	}
 	
 	/**
@@ -72,6 +98,7 @@ public class DWHService {
 	/**
 	 * Only one previous session should be left and marked as inactive
 	 */
+	@Transactional
 	private void removeExtraSessions() {
 		Iterable<ReportSession> rss = sessionRepo.findAll();
 		LocalDateTime min = LocalDateTime.now().minusYears(100);

@@ -25,8 +25,8 @@ public class ReportPageAux implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC2222741818604E93307147")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC2222741818604E93307147", strategy="native")	
+	@GeneratedValue(generator="VAC222274181AB73CE6B0B151")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC222274181AB73CE6B0B151", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	

@@ -32,6 +32,14 @@ public class ReportConfigDTO extends AllowValidation{
 	//screen logic related
 	private boolean form=false;
 	
+	private boolean enabledrenewext = true;
+	
+	public boolean isEnabledrenewext() {
+		return enabledrenewext;
+	}
+	public void setEnabledrenewext(boolean enabledrenewext) {
+		this.enabledrenewext = enabledrenewext;
+	}
 	public long getNodeId() {
 		return nodeId;
 	}

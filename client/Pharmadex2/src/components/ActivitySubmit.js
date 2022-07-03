@@ -237,7 +237,7 @@ class ActivitySubmit extends Component{
                     </Col>
                 </Row>
                 <Row>
-                    <Col xs='12' sm='12' xl='6' xl='6'>
+                    <Col xs='12' sm='12' lg='6' xl='6'>
                         <Row>
                             <Col>
                                 <h6>{this.state.labels.conclusion}</h6>
@@ -275,15 +275,15 @@ class ActivitySubmit extends Component{
                             </Col>
                         </Row>
                     </Col>
-                    <Col xs='12' sm='12' xl='6' xl='6'>
+                    <Col xs='12' sm='12' lg='6' xl='6'>
                         {this.rightUp()}
                     </Col>
                 </Row>
                 <Row>
-                    <Col xs='12' sm='12' xl='6' xl='6'>
+                    <Col xs='12' sm='12' lg='6' xl='6'>
                         {this.leftBottom()}
                     </Col>
-                    <Col xs='12' sm='12' xl='6' xl='6'>
+                    <Col xs='12' sm='12' lg='6' xl='6'>
                         {this.rightBottom()}
                     </Col>
                 </Row>

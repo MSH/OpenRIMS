@@ -28,8 +28,8 @@ public class ReportEvent implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC2222741818604E92F07144")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC2222741818604E92F07144", strategy="native")	
+	@GeneratedValue(generator="VAC222274181AB73CE670B14E")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC222274181AB73CE670B14E", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	
@@ -46,6 +46,9 @@ public class ReportEvent implements Serializable {
 	
 	@Column(name="EventDate", nullable=true)	
 	private java.util.Date eventDate;
+	
+	@Column(name="NextEventDate", nullable=true)	
+	private java.util.Date nextEventDate;
 	
 	@Column(name="EventNumber", nullable=true, length=255)	
 	private String eventNumber;
@@ -111,6 +114,20 @@ public class ReportEvent implements Serializable {
 	 */
 	public java.util.Date getEventDate() {
 		return eventDate;
+	}
+	
+	/**
+	 * Expiration or any other left side date
+	 */
+	public void setNextEventDate(java.util.Date value) {
+		this.nextEventDate = value;
+	}
+	
+	/**
+	 * Expiration or any other left side date
+	 */
+	public java.util.Date getNextEventDate() {
+		return nextEventDate;
 	}
 	
 	/**

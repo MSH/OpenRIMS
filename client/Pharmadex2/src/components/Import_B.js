@@ -64,7 +64,7 @@ class Import_B extends Component{
     }
 
     verifyImport(){
-        this.runImport()
+        //this.runImport()
         Fetchers.postJSON("/api/admin/import/legacydata/verif", this.state.data, (query, result)=>{
             this.state.data=result
             if(this.state.data.valid){

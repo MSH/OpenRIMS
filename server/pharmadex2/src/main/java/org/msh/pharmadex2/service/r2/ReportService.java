@@ -58,6 +58,8 @@ public class ReportService {
 	private ApplicationService applServ;
 	@Autowired
 	private RegisterService registerServ;
+	@Autowired
+	private DWHService dwhServ;
 
 	/**
 	 * Load a report
@@ -210,9 +212,9 @@ public class ReportService {
 			table.setHeaders(headers);
 		}
 		String where="";
-		if(accessControl.isApplicant(user)) {
+		/*if(accessControl.isApplicant(user)) {
 			where="email='"+user.getEmail()+"'";
-		}
+		}*/
 		jdbcRepo.report_deregister(repConf.getAddressUrl(), repConf.getRegisterAppUrl());
 		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from report_deregister", "", where, table.getHeaders());
 		TableQtb.tablePage(rows, table);
@@ -285,9 +287,9 @@ public class ReportService {
 		jdbcRepo.report_sites(repConf.getDataUrl(), repConf.getDictStageUrl(), repConf.getAddressUrl(), repConf.getOwnerUrl(),
 				repConf.getInspectAppUrl(), repConf.getRenewAppUrl(), repConf.getRegisterAppUrl());
 		String where="";
-		if(accessControl.isApplicant(user)) {
+		/*if(accessControl.isApplicant(user)) {
 			where="email='"+user.getEmail()+"'";
-		}
+		}*/
 		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from report_sites", "", where, table.getHeaders());
 		TableQtb.tablePage(rows, table);
 		table.setSelectable(false);
@@ -419,6 +421,8 @@ public class ReportService {
 	@Transactional
 	public ReportConfigDTO reportConfigurationLoad(ReportConfigDTO data) throws ObjectNotFoundException {
 		data=reportConfiguratuonTable(data);
+		
+		data.setEnabledrenewext(dwhServ.enablesBtn());
 		return data;
 	}
 	/**

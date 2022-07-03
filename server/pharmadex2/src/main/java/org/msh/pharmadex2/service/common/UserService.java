@@ -1,5 +1,6 @@
 package org.msh.pharmadex2.service.common;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -39,8 +40,11 @@ import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.service.r2.AssemblyService;
 import org.msh.pharmadex2.service.r2.DictService;
+import org.msh.pharmadex2.service.r2.ImportAService;
 import org.msh.pharmadex2.service.r2.LiteralService;
 import org.msh.pharmadex2.service.r2.SystemService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -63,6 +67,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class UserService implements UserDetailsService {
 
+	private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 	@Autowired
 	UserRepo userRepo;
 
@@ -511,9 +516,8 @@ public class UserService implements UserDetailsService {
 			data.getNode().getTable().setHeaders(boilerServ.translateHeaders(data.getNode().getTable().getHeaders()));
 		}
 		TableQtb table = data.getNode().getTable();
-		jdbcRepo.preparePrefDescription();
-		String sql = boilerServ.loadQuery("usersbyorganization");
-		List<TableRow> rows = jdbcRepo.qtbGroupReport(sql, "", "user.organizationID="+data.getConceptId(), table.getHeaders());
+		jdbcRepo.userByOrganization(data.getConceptId());
+		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from users_org", "", "", table.getHeaders());
 		TableQtb.tablePage(rows, table);
 		data.getNode().getTable().setSelectable(false);
 		data.getNode().getTitle().clear();

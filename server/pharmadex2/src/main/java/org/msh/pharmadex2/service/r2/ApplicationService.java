@@ -1171,14 +1171,17 @@ public class ApplicationService {
 				switch(selected) {
 				case 0:
 					data=nextJobChoice(his,user,data);
+					data.getExecs().getRows().clear();//ika24062022
 					data=executorsNextChoice(his,user,data,false);
 					break;
 				case 1:
 					data.getNextJob().getRows().clear();
+					data.getExecs().getRows().clear();//ika24062022
 					data=executorsThisChoice(his,user,data);
 					break;
 				case 2:
 					data=nextJobChoice(his,user,data);
+					data.getExecs().getRows().clear();//ika24062022
 					data=executorsNextChoice(his,user,data,false);
 					break;
 				case 3:
@@ -1196,6 +1199,7 @@ public class ApplicationService {
 					break;
 				case 6:
 					data.getNextJob().getRows().clear();
+					data.getExecs().getRows().clear();//ika24062022
 					data=executorsThisChoice(his,user,data);
 					break;
 				case 7:
@@ -1205,6 +1209,7 @@ public class ApplicationService {
 					break;
 				case 8:
 					data=nextJobChoice(his,user,data);
+					data.getExecs().getRows().clear();//ika24062022
 					data=executorsNextChoice(his,user,data,false);
 					break;
 				default:
@@ -1324,6 +1329,7 @@ public class ApplicationService {
 		Long nextActConfId = data.nextActivity(); 
 		if(nextActConfId>0) {
 			Concept actConf=closureServ.loadConceptById(nextActConfId);
+			data.getExecs().getRows().clear();
 			data.setExecs(executorsTable(his, actConf, data.getExecs(),limitToAU));
 		}else {
 			data.getExecs().getRows().clear();
@@ -1529,8 +1535,34 @@ public class ApplicationService {
 					}
 					execTable.setSelectable(true);
 					TableQtb.tablePage(rows, execTable);
+					}
+				}else {
+					Concept parent=closureServ.getParent(curHis.getApplicationData());
+					String applicant=parent.getIdentifier();
+					execTable.setHeaders(headersExecutors(execTable.getHeaders()));
+					List<TableRow> rows = new ArrayList<TableRow>();
+					List<TableCell> cells = new ArrayList<TableCell>();
+					TableRow row= new TableRow();
+					TableCell cell= new TableCell();
+					cell.setKey("username");
+					cell.setValue("APPLICANT");
+					cells.add(cell);
+					TableCell cell1= new TableCell();
+					cell1.setKey("orgname");
+					cell1.setValue("-----");
+					cells.add(cell1);
+					TableCell cell2= new TableCell();
+					cell2.setKey("email");
+					cell2.setValue(applicant);
+					cells.add(cell2);
+					row.setRow(cells);
+					row.setSelected(true);
+					rows.add(row);
+					
+					execTable.setSelectable(true);
+					
+					TableQtb.tablePage(rows, execTable);
 				}
-			}
 		}else {
 			execTable.getRows().clear();
 		}
@@ -2164,8 +2196,15 @@ public class ApplicationService {
 				data=amendmentServ.implement(curHis, actConf, data, user);	//is it amendment?
 				if(data.isValid()) {
 					for(Long execId : executors) {
+						//ika => execId=0 !!! APPLICANT
+						String identifierUser="";
+							if(execId==0) {
+								identifierUser=data.getExecs().getRows().get(0).getRow().get(2).getValue();
+							}else {
 						Concept userConc = closureServ.loadConceptById(execId);
-						activityCreate(null,actConf, curHis, userConc.getIdentifier(), data.getNotes().getValue());
+						identifierUser=userConc.getIdentifier();
+							}
+						activityCreate(null,actConf, curHis, identifierUser, data.getNotes().getValue());
 					}
 				}
 			}else {

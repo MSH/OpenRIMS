@@ -1,20 +1,11 @@
 package org.msh.pharmadex2.service.r2;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.msh.pdex2.dto.i18n.Language;
 import org.msh.pdex2.dto.i18n.Languages;
 import org.msh.pdex2.dto.table.Headers;
@@ -45,12 +36,8 @@ import org.msh.pharmadex2.service.common.ValidationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 /**
  * Responsible for dictionaries - DictNodeDTO and DictionaryDTO
  * DictNodeDTO represents a concept for any object
@@ -155,6 +142,7 @@ public class DictService {
 
 	/**
 	 * Create or load dictionary table
+	 * Excludes not active items that are not selected
 	 * @param parentNode parent node 
 	 * @param table table to load
 	 * @param selectedIds list of previous selected 
@@ -170,16 +158,26 @@ public class DictService {
 		}
 		if(parentNode!=null) {
 			jdbcRepo.prepareDictionaryLevel(parentNode.getID());
-			List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from _dictlevel", "", "active>0", table.getHeaders());
-			List<TableRow> rowsToTable = new ArrayList<TableRow>();
+			table.getHeaders().getHeaders().add(TableHeader.instanceOf("Active", TableHeader.COLUMN_LONG));
+			List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from _dictlevel", "", "", table.getHeaders());
+			List<TableRow> rows1 = new ArrayList<TableRow>();
+			for(TableRow row : rows ) {
+				int active = row.getCellByKey("Active").getIntValue();
+				if(active>0 || selectedIds.contains(row.getDbID())) {
+					row.getRow().remove(2);		//we will not need Active
+					rows1.add(row);
+				}
+			}
+			table.getHeaders().getHeaders().remove(2);		//we will not need Active
+			List<TableRow> rowsToTable = new ArrayList<TableRow>();			
 			if(selectedOnly) {
-				for(TableRow row : rows) {
+				for(TableRow row : rows1) {
 					if(selectedIds.contains(row.getDbID())) {
 						rowsToTable.add(row);
 					}
 				}
 			}else {
-				rowsToTable.addAll(rows);
+				rowsToTable.addAll(rows1);
 			}
 			TableQtb.tablePage(rowsToTable, table);
 		}
@@ -719,10 +717,12 @@ public class DictService {
 		data=validServ.node(data,"", true);
 		if(data.isValid() && data.getNodeId()>0) {
 			Concept conc=closureServ.loadConceptById(data.getNodeId());
-			/*	conc.setActive(false);
-				conc = closureServ.save(conc);*/
-			Concept recycle= closureServ.loadRoot(SystemService.RECYCLE);
+			conc.setActive(false);
+			conc = closureServ.save(conc);
+			/*
+			recycle= closureServ.loadRoot(SystemService.RECYCLE);
 			jdbcRepo.moveSubTree(conc, recycle);
+			*/
 		}
 		if(data.getNodeId()==0 && data.isValid()) {
 			data.setValid(false);

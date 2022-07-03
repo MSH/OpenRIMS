@@ -1,6 +1,7 @@
 package org.msh.pharmadex2.controller.r2;
 
 import java.io.IOException;
+import java.sql.SQLException;
 
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
@@ -29,6 +30,7 @@ import org.msh.pharmadex2.service.common.UserService;
 import org.msh.pharmadex2.service.r2.ActuatorService;
 import org.msh.pharmadex2.service.r2.ApplicationService;
 import org.msh.pharmadex2.service.r2.ContentService;
+import org.msh.pharmadex2.service.r2.DWHService;
 import org.msh.pharmadex2.service.r2.DictService;
 import org.msh.pharmadex2.service.r2.ImportAService;
 import org.msh.pharmadex2.service.r2.ImportBService;
@@ -84,7 +86,8 @@ public class AdminAPI {
 	private ActuatorService actuatorService;
 	@Autowired
 	private MetricService metricServ;
-
+	@Autowired
+	private DWHService dwhServ;
 	/**
 	 * Tiles for landing page
 	 * 
@@ -908,6 +911,13 @@ public class AdminAPI {
 	public ActuatorAdmDTO metricsSave(Authentication auth, @RequestBody ActuatorAdmDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 		metricServ.collectMetrics();
+		return data;
+	}
+	
+	@PostMapping("/api/admin/report/renewexternal")
+	public ReportConfigDTO reportsRenewExternal(Authentication auth, @RequestBody ReportConfigDTO data) throws DataNotFoundException, SQLException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		dwhServ.upload();
 		return data;
 	}
 }

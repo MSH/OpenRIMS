@@ -72,7 +72,7 @@ class UserLevel extends Component{
             return []
         }
         if(this.state.labels.locale == undefined || this.state.data.node == undefined){
-            return []
+            return Pharmadex.wait()
         }
         return(
             <Container fluid>
