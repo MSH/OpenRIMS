@@ -13,6 +13,7 @@ import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
+import org.msh.pdex2.model.r2.Register;
 import org.msh.pdex2.model.r2.Thing;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.services.r2.ClosureService;
@@ -53,53 +54,69 @@ public class RegisterService {
 	 */
 	@Transactional
 	public ThingDTO createRegisters(List<AssemblyDTO> registers, ThingDTO data) throws ObjectNotFoundException {
-		data.getRegisters().clear();
-		//get empty registers from the configurations
-		for(AssemblyDTO ad : registers) {
-			RegisterDTO dto = new RegisterDTO();
-			dto.setReadOnly(ad.isReadOnly());
-			dto.setUrl(ad.getUrl());
-			dto.setVarName(ad.getPropertyName());
-			LocalDate expLd = LocalDate.now().plusMonths(ad.getMax().intValue());
-			FormFieldDTO<LocalDate> expiry = FormFieldDTO.of(expLd);
-			dto.setExpiry_date(expiry);
-			dto.setExpirable(ad.isMult());
-			dto.setNumberPrefix(ad.getFileTypes());
-			data.getRegisters().put(dto.getVarName(),dto);
-		}
-		//determine the node
-		Concept node = new Concept();
-		if(data.getNodeId()>0) {
-			node=closureServ.loadConceptById(data.getNodeId());
-		}
-		if(node.getID()==0 && data.getHistoryId()>0) {
-			History history = boilerServ.historyById(data.getHistoryId());
-			node=history.getApplicationData();
-		}
-		//try to load values by the URLs from all registers related to the initial application object
-		if(data.getRegisters().size()>0 && data.getHistoryId()>0) {
-			History history = boilerServ.historyById(data.getHistoryId());
-			//determine the initial application object
-			Concept objectData=boilerServ.objectData(node);
-			//load all registers that belong to the object
-			Map<String,RegisterDTO> allRegisters = registersLoadByApplicationData(objectData);
-			//fill out all registers belong to this thing
-			Set<String> keySet = data.getRegisters().keySet();
-			for(String  key : keySet) {
-				RegisterDTO dto = data.getRegisters().get(key);
-				RegisterDTO dtol = allRegisters.get(dto.getUrl());
-				if(dtol!=null) {
-					dto.setRegistration_date(dtol.getRegistration_date());
-					dto.setExpiry_date(dtol.getExpiry_date());
-					dto.setReg_number(dtol.getReg_number());
-				}else {
-					//create new one
-					dto.getReg_number().setValue(dto.getNumberPrefix());
-					dto.getRegistration_date().setValue(LocalDate.now());
+		if(registers.size()>0) {
+			// try to load the existing register
+			//determine the data node concept
+			Concept node = new Concept();
+			if(data.getNodeId()>0) {
+				node=closureServ.loadConceptById(data.getNodeId());
+			}
+			if(node.getID()==0) {
+				if(data.getHistoryId()>0) {
+					History h = boilerServ.historyById(data.getHistoryId());
+					node=h.getApplicationData();	//for new elements in the existing data sets or workflows
+				}
+			}
+			//determine the application data
+			Concept ia = boilerServ.initialApplicationNode(node);
+			//clear old registers
+			data.getRegisters().clear();
+			//get empty registers from the configurations
+			for(AssemblyDTO ad : registers) {
+				RegisterDTO dto = new RegisterDTO();
+				dto.setReadOnly(ad.isReadOnly());
+				dto.setUrl(ad.getUrl());
+				dto.setVarName(ad.getPropertyName());
+				LocalDate expLd = LocalDate.now().plusMonths(ad.getMax().intValue());
+				FormFieldDTO<LocalDate> expiry = FormFieldDTO.of(expLd);
+				dto.setExpiry_date(expiry);
+				dto.setExpirable(ad.isMult());
+				dto.setNumberPrefix(ad.getFileTypes());
+				data.getRegisters().put(dto.getVarName(),dto);
+				if(ia != null) {
+					//load existing
+					Long regId = jdbcRepo.registerApplication(ia.getID(), dto.getUrl());
+					if(regId != null) {
+						Register register = boilerServ.registerById(regId);
+						dto.setNodeID(register.getConcept().getID());
+						dto.setReg_number(FormFieldDTO.of(register.getRegister()));
+						LocalDate regDate = boilerServ.localDateFromDate(register.getRegisteredAt());
+						dto.setRegistration_date(FormFieldDTO.of(regDate));
+						if(ad.isMult()) {
+							LocalDate expDate = boilerServ.localDateFromDate(register.getValidTo());
+							dto.setExpirable(true);
+							dto.setExpiry_date(FormFieldDTO.of(expDate));
+						}
+					}
 				}
 			}
 		}
 		return data;
+	}
+	
+	/**
+	 * ASk new register number for the register url given
+	 * @param url
+	 * @return
+	 */
+	@Transactional
+	public RegisterDTO askNewNumber(RegisterDTO dto) {
+		Long newNumber = jdbcRepo.register_number(dto.getUrl());
+		String num = "000000" + newNumber;
+		num=num.substring(num.length()-6, num.length());
+		String regNumber=dto.getNumberPrefix()+num;
+		dto.setReg_number(FormFieldDTO.of(regNumber));
+		return dto;
 	}
 	/**
 	 * load all registers for an application data given and 
@@ -249,10 +266,19 @@ public class RegisterService {
 					false,
 					TableHeader.COLUMN_I18,
 					0));
+			headers.getHeaders().add(TableHeader.instanceOf(
+					"url",
+					"url",
+					true,
+					false,
+					false,
+					TableHeader.COLUMN_STRING,
+					0));
 		}
 		headers.getHeaders().get(0).setSort(true);
 		boilerServ.translateHeaders(headers);
 		return headers;
 	}
+
 
 }

@@ -116,7 +116,8 @@ public class ContentService {
 			Concept root = closureServ.loadRoot(urlDict);
 			dict.setUrlId(root.getID());
 			dict.getPrevSelected().clear();
-			dict = dictServ.createDictionaryFromRoot(dict);
+			dict.setSystem(dictServ.checkSystem(root));//ika
+			dict = dictServ.createDictionaryFromRoot(dict, root);
 			data.setDictionary(dict);
 		}
 

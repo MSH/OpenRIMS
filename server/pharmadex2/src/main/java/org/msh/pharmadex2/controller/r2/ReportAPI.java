@@ -218,4 +218,22 @@ public class ReportAPI {
 		data=reportServ.applicationRegisters(data,user);
 		return data;
 	}
+	/**
+	 * Init, not load, ThingDTO using history ID
+	 * @param auth
+	 * @param historyID
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/*/report/activity/data/load")
+	public ThingDTO activityDataLoad(Authentication auth, @RequestBody Long historyID) throws DataNotFoundException {
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		ThingDTO thingDto;
+		try {
+			thingDto = reportServ.activityDataLoad(historyID,user);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return thingDto;
+	}
 }

@@ -91,8 +91,14 @@ class ToDoList extends Component{
                                     applDictNodeId:this.state.data.dictItemId,
                                     historyId:this.state.data.table.rows[row].dbID,
                                 }
-                                    let param = JSON.stringify(data)
-                                    Navigator.navigate(Navigator.tabName(),"activitymanager",param)
+                                let param = JSON.stringify(data)
+                                Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName()+"/application/or/activity", data, (query,result)=>{
+                                    if(result.application){
+                                        Navigator.navigate("applications","applicationstart",param) 
+                                    }else{
+                                        Navigator.navigate(Navigator.tabName(),"activitymanager",param)
+                                    }
+                                })
                                 }}   
                             />
                         </Col>

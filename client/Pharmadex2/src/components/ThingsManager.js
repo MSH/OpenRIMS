@@ -58,6 +58,8 @@ class ThingsManager extends Component{
         this.paintCurrentThing=this.paintCurrentThing.bind(this)
         this.createAuxBreadCrumb=this.createAuxBreadCrumb.bind(this)
         this.paintRegister=this.paintRegister.bind(this)
+        this.onNextClick=this.onNextClick.bind(this)
+        this.onConcludeClick=this.onConcludeClick.bind(this)
     } 
     /**
      * Propagate values from the master thing to the rest of path
@@ -168,6 +170,13 @@ class ThingsManager extends Component{
                 }
                 if(data.subject=="submit"){
                     Navigator.message(this.state.identifier,"*","submit",{})
+                }
+                if(data.subject=="nextButtonPressed"){
+                    if(data.data.btnname == "next"){
+                        this.onNextClick()
+                    }else if(data.data.btnname == "conclude"){
+                        this.onConcludeClick()
+                    }
                 }
                 return
             }
@@ -286,10 +295,10 @@ class ThingsManager extends Component{
     createAuxBreadCrumb(){
         let ret=[]
         if(Fetchers.isGoodArray(this.state.data.auxPath)){
-                this.state.data.auxPath.forEach((thing, index)=>{
-                    if(index<=this.state.data.auxPathIndex){
-                        if(index!=this.state.data.auxPathIndex){
-                            ret.push(
+            this.state.data.auxPath.forEach((thing, index)=>{
+                if(index<=this.state.data.auxPathIndex){
+                    if(index!=this.state.data.auxPathIndex){
+                        ret.push(
                                 <BreadcrumbItem className="d-inline"  key={index}>
                                     <div className="btn btn-link p-0 border-0"
                                 onClick={()=>{
@@ -301,20 +310,20 @@ class ThingsManager extends Component{
                                 </div>
                                 </BreadcrumbItem>
                             )
-                        }else{
-                            ret.push(
+                    }else{
+                        ret.push(
                                 <BreadcrumbItem className="d-inline"  key={index}>
                                     <h6 className="d-inline">{thing.title}</h6>
                                 </BreadcrumbItem>
                             )
-                        }
-                    }})
+                    }
+                }})
+            Navigator.message(this.state.identifier, this.props.recipient, "nextButton", {label:this.state.labels.next, btnname:'next'})
             ret.push(
                 <BreadcrumbItem className="d-inline"  key={this.state.data.pathIndex+1}>
                     <div className="btn btn-link p-0 border-0"
                         onClick={()=>{
-                            SpinnerMain.show()
-                            Navigator.message(this.state.identifier, this.state.thingIdentifier, "saveGuest", {})
+                            this.onNextClick()
                         }}
                     >
                         <h6 className="d-inline">{this.state.labels.next}</h6>
@@ -359,12 +368,12 @@ class ThingsManager extends Component{
             })
             if(this.state.data.pathIndex<this.state.data.path.length-1){
                     if(this.state.data.auxPath.length==0){
+                        Navigator.message(this.state.identifier, this.props.recipient, "nextButton", {label:this.state.labels.next, btnname:'next'})
                         ret.push(
                         <BreadcrumbItem className="d-inline"  key={this.state.data.pathIndex+1}>
                             <div className="btn btn-link p-0 border-0"
                                 onClick={()=>{
-                                    SpinnerMain.show()
-                                    Navigator.message(this.state.identifier, this.state.thingIdentifier, "saveGuest", {})
+                                    this.onNextClick()
                                 }}
                             >
                                 <h6 className="d-inline">{this.state.labels.next}</h6>
@@ -376,12 +385,12 @@ class ThingsManager extends Component{
             //the concluder
             if(this.state.data.pathIndex==(this.state.data.path.length-1) && this.state.data.auxPath.length==0){
                 Navigator.message(this.state.identifier,this.props.recipient,"hideNext",{})
+                Navigator.message(this.state.identifier, this.props.recipient, "nextButton", {label:this.state.labels.conclude, btnname:'conclude'})
                 ret.push(
                     <BreadcrumbItem className="d-inline"  key={this.state.data.pathIndex+2}>
                         <div className="btn btn-link p-0 border-0"
                             onClick={()=>{
-                                this.state.conclude=true
-                                Navigator.message(this.state.identifier, this.state.thingIdentifier, "saveGuest", {})
+                               this.onConcludeClick()
                             }}
                         >
                             <h6 className="d-inline">{this.state.labels.conclude}</h6>
@@ -393,6 +402,16 @@ class ThingsManager extends Component{
             ret.push(this.createAuxBreadCrumb())
         }
         return ret
+    }
+
+    onNextClick(){
+        SpinnerMain.show()
+        Navigator.message(this.state.identifier, this.state.thingIdentifier, "saveGuest", {})
+    }
+
+    onConcludeClick(){
+        this.state.conclude=true
+        Navigator.message(this.state.identifier, this.state.thingIdentifier, "saveGuest", {})
     }
     /**
      * paint register or not

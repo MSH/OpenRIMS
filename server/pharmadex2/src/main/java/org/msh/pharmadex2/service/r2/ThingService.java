@@ -15,7 +15,6 @@ import java.util.Set;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
-import org.apache.commons.lang3.StringUtils;
 import org.msh.pdex2.dto.table.Headers;
 import org.msh.pdex2.dto.table.TableCell;
 import org.msh.pdex2.dto.table.TableHeader;
@@ -177,8 +176,10 @@ public class ThingService {
 	 */
 	@Transactional
 	public ThingDTO createContent(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		//logger.trace("START CONTENT");
+		List<Assembly> assemblies =assemblyServ.loadDataConfiguration(data.getUrl());
 		//literals
-		List<AssemblyDTO> headings = assemblyServ.auxHeadings(data.getUrl());
+		List<AssemblyDTO> headings = assemblyServ.auxHeadings(data.getUrl(),assemblies);
 		data.getHeading().clear();
 		for(AssemblyDTO head : headings) {
 			HeadingDTO dto = new HeadingDTO();
@@ -186,70 +187,81 @@ public class ThingService {
 			dto.setUrl(head.getUrl());
 			data.getHeading().put(head.getPropertyName(), dto);
 		}
-
-		List<Assembly> assms = assemblyServ.loadDataConfiguration(data.getUrl());
+		//logger.trace("literals{");
 		List<String> exts=boilerServ.variablesExtensions(data);
 
 		data.getStrings().clear();
-		List<AssemblyDTO> strings = assemblyServ.auxStrings(data.getUrl());
+		List<AssemblyDTO> strings = assemblyServ.auxStrings(data.getUrl(),assemblies);
 		data=dtoServ.createStrings(data,strings);
 
 		List<AssemblyDTO> literals = assemblyServ.auxLiterals(data.getUrl());
 		data=dtoServ.createLiterals(data, literals);
 		//dates
-		List<AssemblyDTO> dates=assemblyServ.auxDates(data.getUrl());
+		List<AssemblyDTO> dates=assemblyServ.auxDates(data.getUrl(),assemblies);
 		data=dtoServ.createDates(data, dates);
 		//numbers
-		List<AssemblyDTO> numbers=assemblyServ.auxNumbers(data.getUrl());
+		List<AssemblyDTO> numbers=assemblyServ.auxNumbers(data.getUrl(),assemblies);
 		data=dtoServ.createNumbers(data,numbers);
 		//logical
-		List<AssemblyDTO> logicals=assemblyServ.auxLogicals(data.getUrl());
+		List<AssemblyDTO> logicals=assemblyServ.auxLogicals(data.getUrl(),assemblies);
 		data=dtoServ.createLogicals(data,logicals);
+		//logger.trace("}");
 		//dictionaries
-		List<AssemblyDTO> dictionaries = assemblyServ.auxDictionaries(data.getUrl());
+		List<AssemblyDTO> dictionaries = assemblyServ.auxDictionaries(data.getUrl(),assemblies);
+		//logger.trace("dictionaries{");
 		data=createDictonaries(data, dictionaries);
+		//logger.trace("}");
 		//addresses
-		List<AssemblyDTO> addresses = assemblyServ.auxAddresses(data.getUrl());
+		List<AssemblyDTO> addresses = assemblyServ.auxAddresses(data.getUrl(),assemblies);
+		//logger.trace("addresses{");
 		data=createAddresses(data, addresses);
+		//logger.trace("}");
 		//files
-		List<AssemblyDTO> documents = assemblyServ.auxDocuments(data.getUrl());
+		List<AssemblyDTO> documents = assemblyServ.auxDocuments(data.getUrl(),assemblies);
+		//logger.trace("documents{");
 		data=createDocuments(documents, data,user);
-		List<AssemblyDTO> resources = assemblyServ.auxResources(data.getUrl());
+		//logger.trace("}");
+		//resources
+		List<AssemblyDTO> resources = assemblyServ.auxResources(data.getUrl(),assemblies);
 		data=createResources(resources,data);
 		//things
-		List<AssemblyDTO> things = assemblyServ.auxThings(data.getUrl());
+		List<AssemblyDTO> things = assemblyServ.auxThings(data.getUrl(),assemblies);
 		data=createThings(things,data);
 		//persons
-		List<AssemblyDTO> persons =assemblyServ.auxPersons(data.getUrl());
+		List<AssemblyDTO> persons =assemblyServ.auxPersons(data.getUrl(),assemblies);
 		data=createPersons(persons, data);
 		//person selectors
-		List<AssemblyDTO> personselectors = assemblyServ.auxPersonSelector(data.getUrl());
-		data=createPersonSelectors(personselectors,data);
-		List<AssemblyDTO> personspecial = assemblyServ.auxPersonSpecials(data.getUrl());
-		data = createPersonSpecial(personspecial, data);
+		//List<AssemblyDTO> personselectors = assemblyServ.auxPersonSelector(data.getUrl());
+		//data=createPersonSelectors(personselectors,data);
+		//List<AssemblyDTO> personspecial = assemblyServ.auxPersonSpecials(data.getUrl());
+		//data = createPersonSpecial(personspecial, data);
 		//Schedulers
-		List<AssemblyDTO> schedulers = assemblyServ.auxSchedulers(data.getUrl());
+		List<AssemblyDTO> schedulers = assemblyServ.auxSchedulers(data.getUrl(),assemblies);
 		data=createSchedulers(schedulers, data);
 		//Registers
-		List<AssemblyDTO> registers = assemblyServ.auxRegisters(data.getUrl());
+		//logger.trace("registers{");
+		List<AssemblyDTO> registers = assemblyServ.auxRegisters(data.getUrl(),assemblies);
 		data=registerServ.createRegisters(registers,data);
+		//logger.trace("}");
 		//Amendments
-		List<AssemblyDTO> amendments = assemblyServ.auxAmendments(data.getUrl());
-		data=createAmendments(amendments,data,user);
+		//List<AssemblyDTO> amendments = assemblyServ.auxAmendments(data.getUrl());
+		//data=createAmendments(amendments,data,user);
 		//ATC codes
-		List<AssemblyDTO> atc = assemblyServ.auxAtc(data.getUrl());
+		List<AssemblyDTO> atc = assemblyServ.auxAtc(data.getUrl(),assemblies);
 		data=createAtc(atc,data);
 		//Legacy data
-		List<AssemblyDTO> legacy = assemblyServ.auxLegacyData(data.getUrl(), assms);
+		List<AssemblyDTO> legacy = assemblyServ.auxLegacyData(data.getUrl(), assemblies);
 		data=createLegacy(legacy, data);
 		//Intervals
 		List<AssemblyDTO> intervals = assemblyServ.auxIntervals(data,"intervals");
 		data=createIntervals(intervals, data);
+		//logger.info("CONTENT done intervals");
 		//layout
 		data=createLayout(data);
 		//main labels rewrite
 		data.getMainLabels().clear();
 		data.getMainLabels().putAll(assemblyServ.mainLabelsByUrl(data.getUrl()));
+		//logger.trace("END content");
 		return data;
 	}
 	/**
@@ -581,20 +593,22 @@ public class ThingService {
 	 */
 	@Transactional
 	private ThingDTO createPersons(List<AssemblyDTO> persons, ThingDTO data) throws ObjectNotFoundException {
-		data.getPersons().clear();
-		for(AssemblyDTO pers : persons) {
-			PersonDTO dto = new PersonDTO();
-			dto.setDictUrl(pers.getDictUrl());
-			dto.setUrl(pers.getAuxDataUrl());
-			dto.setReadOnly(pers.isReadOnly());
-			dto.setRequired(pers.isRequired());
-			dto.setVarName(pers.getPropertyName());
-			dto.setThingNodeId(data.getNodeId());
-			dto.setAmendedNodeId(data.getModiUnitId());
-			dto =createPersTable(dto, data.isReadOnly());
-			data.getPersons().put(pers.getPropertyName(),dto);
+		if(persons.size()>0) {
+			data.getPersons().clear();
+			for(AssemblyDTO pers : persons) {
+				PersonDTO dto = new PersonDTO();
+				dto.setDictUrl(pers.getDictUrl());
+				dto.setUrl(pers.getAuxDataUrl());
+				dto.setReadOnly(pers.isReadOnly());
+				dto.setRequired(pers.isRequired());
+				dto.setVarName(pers.getPropertyName());
+				dto.setThingNodeId(data.getNodeId());
+				dto.setAmendedNodeId(data.getModiUnitId());
+				dto =createPersTable(dto, data.isReadOnly());
+				data.getPersons().put(pers.getPropertyName(),dto);
+			}
+			data=amendServ.personToRemove(data);
 		}
-		data=amendServ.personToRemove(data);
 		return data;
 	}
 	/**
@@ -652,14 +666,16 @@ public class ThingService {
 	@Transactional
 	private ThingDTO createAddresses(ThingDTO data, List<AssemblyDTO> addresses) throws ObjectNotFoundException {
 		data.getAddresses().clear();
-		Concept thingNode = new Concept();
-		Thing thing = new Thing();
-		if(data.getNodeId()>0) {
-			thingNode=closureServ.loadConceptById(data.getNodeId());
-			thing = boilerServ.thingByNode(thingNode,thing);
-		}
-		for(AssemblyDTO addr: addresses) {
-			data.getAddresses().put(addr.getPropertyName(), createAddress(data, thing, addr));
+		if(addresses.size()>0) {
+			Concept thingNode = new Concept();
+			Thing thing = new Thing();
+			if(data.getNodeId()>0) {
+				thingNode=closureServ.loadConceptById(data.getNodeId());
+				thing = boilerServ.thingByNode(thingNode,thing);
+			}
+			for(AssemblyDTO addr: addresses) {
+				data.getAddresses().put(addr.getPropertyName(), createAddress(data, thing, addr));
+			}
 		}
 		return data;
 	}
@@ -697,7 +713,9 @@ public class ThingService {
 				addr.setNodeId(th.getConcept().getID());
 			}
 		}
+		logger.trace("addresses(createDi){");
 		addr.setDictionary(dictServ.createDictionary(addr.getDictionary()));
+		logger.trace("}");
 		dictServ.loadHomeLocation(addr);
 		return addr;
 	}
@@ -792,6 +810,7 @@ public class ThingService {
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
+	@Transactional
 	private FileDTO createDocUploaded(FileDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		data.getLinked().clear();
 		if(data.getThingNodeId()>0) {
@@ -929,24 +948,26 @@ public class ThingService {
 			dict.setSelectedOnly(data.isReadOnly());
 			data.getDictionaries().put(dicta.getPropertyName(), dict);
 		}
-		//restore selections if ones
-		if(data.getNodeId()>0) {
-			Concept node = closureServ.loadConceptById(data.getNodeId());
-			Thing thing = new Thing();
-			thing= boilerServ.thingByNode(node,thing);
-			for(ThingDict adict :thing.getDictionaries()) {
-				for(String key :data.getDictionaries().keySet()) {
-					DictionaryDTO dict = data.getDictionaries().get(key);
-					if(adict.getUrl().equalsIgnoreCase(dict.getUrl())
-							&& adict.getVarname().equalsIgnoreCase(dict.getVarName())) {
-						dict.getPrevSelected().add(adict.getConcept().getID());
+		if(dictas.size()>0) {
+			//restore selections if ones
+			if(data.getNodeId()>0) {
+				Concept node = closureServ.loadConceptById(data.getNodeId());
+				Thing thing = new Thing();
+				thing= boilerServ.thingByNode(node,thing);
+				for(ThingDict adict :thing.getDictionaries()) {
+					for(String key :data.getDictionaries().keySet()) {
+						DictionaryDTO dict = data.getDictionaries().get(key);
+						if(adict.getUrl().equalsIgnoreCase(dict.getUrl())
+								&& adict.getVarname().equalsIgnoreCase(dict.getVarName())) {
+							dict.getPrevSelected().add(adict.getConcept().getID());
+						}
 					}
 				}
 			}
-		}
-		//load data
-		for(String key : data.getDictionaries().keySet()) {
-			data.getDictionaries().put(key, dictServ.createDictionary(data.getDictionaries().get(key)));
+			//load data
+			for(String key : data.getDictionaries().keySet()) {
+				data.getDictionaries().put(key, dictServ.createDictionary(data.getDictionaries().get(key)));
+			}
 		}
 		return data;
 	}
@@ -994,7 +1015,7 @@ public class ThingService {
 						ta.setConcept(modiConcept);
 						ta.setUrl("amendment");
 						ta.setVarName("amendment");
-						ta.setApplicationData(amendServ.amendedApplication(modiConcept));
+						ta.setApplicationData(amendServ.amendmentApplicationByAmendmentUnit(modiConcept));
 						thing.getAmendments().clear();
 						thing.getAmendments().add(ta);
 					}
@@ -1017,8 +1038,9 @@ public class ThingService {
 					Concept incl=closureServ.loadConceptById(data.getParentId());
 					Concept email=closureServ.getParent(incl);
 					Concept root = closureServ.getParent(email);
-					List<AssemblyDTO> things = assemblyServ.auxThings(root.getIdentifier());
-					List<AssemblyDTO> persons = assemblyServ.auxPersons(root.getIdentifier());
+					List<Assembly> assemblies =assemblyServ.loadDataConfiguration(root.getIdentifier());
+					List<AssemblyDTO> things = assemblyServ.auxThings(root.getIdentifier(),assemblies);
+					List<AssemblyDTO> persons = assemblyServ.auxPersons(root.getIdentifier(),assemblies);
 					Thing inclThing = boilerServ.thingByNode(incl);
 					for(AssemblyDTO th :things) {
 						if(th.getPropertyName().equalsIgnoreCase(data.getVarName())) {
@@ -1438,40 +1460,39 @@ public class ThingService {
 	 */
 	@Transactional
 	public ThingDTO storeRegister(UserDetailsDTO user, Thing thing, ThingDTO data) throws ObjectNotFoundException {
-		thing.getRegisters().clear();
-		for(String key :data.getRegisters().keySet()) {			//for each register
-			RegisterDTO regDto = data.getRegisters().get(key);
-			//register node and record
-			Concept regNode = new Concept();
-			Register reg = new Register();
-			if(regDto.getNodeID()>0) {
-				regNode=closureServ.loadConceptById(regDto.getNodeID());
-				reg=boilerServ.registerByConcept(regNode);
+		if(data.getRegisters().keySet().size()>0) {
+			thing.getRegisters().clear();
+			for(String key :data.getRegisters().keySet()) {			//for each register
+				RegisterDTO regDto = data.getRegisters().get(key);
+				//register node and record
+				Concept regNode = new Concept();
+				Register reg = new Register();
+				if(regDto.getNodeID()>0) {
+					regNode=closureServ.loadConceptById(regDto.getNodeID());
+					reg=boilerServ.registerByConcept(regNode);
+				}
+				if(regDto.empty()) {//create new
+					regDto = registerServ.askNewNumber(regDto);
+				}
+				Concept root = closureServ.loadRoot(regDto.getUrl());
+				Concept owner = closureServ.saveToTree(root, user.getEmail());
+				regNode = closureServ.save(regNode);
+				regNode.setIdentifier(regNode.getID()+"");
+				regNode=closureServ.saveToTree(owner, regNode);
+				regDto.setNodeID(regNode.getID());
+				//determine application data
+				ThingRegister thre = new ThingRegister();
+				thre.setConcept(regNode);
+				thre.setUrl(regDto.getUrl());
+				thre.setVarName(key);
+				thing.getRegisters().add(thre);
+				reg.setConcept(regNode);
+				reg.setRegister(regDto.getReg_number().getValue());
+				reg.setRegisteredAt(boilerServ.localDateToDate(regDto.getRegistration_date().getValue()));
+				reg.setValidTo(boilerServ.localDateToDate(regDto.getExpiry_date().getValue()));
+				//save all
+				reg=boilerServ.saveRegister(reg);
 			}
-			if(regDto.empty()) {//create new
-				Long num = jdbcRepo.register_number(regDto.getUrl()); //from 2022-03-07 on save
-				String numStr=RegisterDTO.EMPTY+num;
-				numStr=StringUtils.right(numStr, 6);
-				regDto.getReg_number().setValue(regDto.getNumberPrefix()+numStr);
-			}
-			Concept root = closureServ.loadRoot(regDto.getUrl());
-			Concept owner = closureServ.saveToTree(root, user.getEmail());
-			regNode = closureServ.save(regNode);
-			regNode.setIdentifier(regNode.getID()+"");
-			regNode=closureServ.saveToTree(owner, regNode);
-			regDto.setNodeID(regNode.getID());
-			//determine application data
-			ThingRegister thre = new ThingRegister();
-			thre.setConcept(regNode);
-			thre.setUrl(regDto.getUrl());
-			thre.setVarName(key);
-			thing.getRegisters().add(thre);
-			reg.setConcept(regNode);
-			reg.setRegister(regDto.getReg_number().getValue());
-			reg.setRegisteredAt(boilerServ.localDateToDate(regDto.getRegistration_date().getValue()));
-			reg.setValidTo(boilerServ.localDateToDate(regDto.getExpiry_date().getValue()));
-			//save all
-			reg=boilerServ.saveRegister(reg);
 		}
 		return data;
 	}
@@ -1851,7 +1872,8 @@ public class ThingService {
 		if(path.size()==0) {
 			path.add(deepCloneThing(dto));	//will be included to path property of the dto
 		}
-		List<AssemblyDTO> things = assemblyServ.auxThings(dto.getUrl());
+		List<Assembly> assemblies =assemblyServ.loadDataConfiguration(dto.getUrl());
+		List<AssemblyDTO> things = assemblyServ.auxThings(dto.getUrl(),assemblies);
 		dto = createThings(things, dto);
 		Set<String> keys = dto.getThings().keySet();	//variables names
 		int nextParIndex = path.size()-1;
@@ -1940,7 +1962,9 @@ public class ThingService {
 					node = closureServ.loadConceptById(data.getNodeId());
 				}
 				Concept parent = closureServ.getParent(node);
-				if(accessControlServ.sameEmail(parent.getIdentifier(), user.getEmail())) {
+				if(accessControlServ.sameEmail(parent.getIdentifier(), user.getEmail()) || accessControlServ.isSupervisor(user)) {
+					parent.setIdentifier(user.getEmail());
+					parent=closureServ.save(parent);
 					//dictionary item
 					Concept dictItem = closureServ.loadConceptById(data.getDictNodeId());
 					//file name

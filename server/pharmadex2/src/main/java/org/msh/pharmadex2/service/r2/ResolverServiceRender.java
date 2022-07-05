@@ -92,7 +92,6 @@ public class ResolverServiceRender {
 		for(Assembly asm :assms) {
 			table=clazz(asm, var, table, deepDive);
 		}
-
 		return value;
 	}
 
@@ -184,11 +183,9 @@ public class ResolverServiceRender {
 			String toStr="*";
 			if(vals.get("to") instanceof LocalDate) {
 				LocalDate toLd = (LocalDate) vals.get("to");
-				toStr=localDateToString(toLd);
+				toStr=" / "+localDateToString(toLd);
 			}
-			table=tableRow(asm.getID(), mess.get(varName),"" , false, table);
-			table=tableRow(asm.getID(), mess.get("valid_from"),fromStr, false, table);
-			table=tableRow(asm.getID(), mess.get("valid_to"),toStr, false, table);
+			table=tableRow(asm.getID(), mess.get(varName),fromStr+ toStr , false, table);
 		}
 
 		if(clazz.equalsIgnoreCase("addresses")) {
@@ -202,24 +199,10 @@ public class ResolverServiceRender {
 		}
 
 		if(clazz.equalsIgnoreCase("persons")) {
-			List<String> names = personNameList(var,true);
-			List<String> removed=personNameList(var,false);
-			List<String> addNames = new ArrayList<String>();
-			Thing thing = new Thing();
-			thing=boilerServ.thingByNode(var);
-			if(thing.getID()>0) {
-				if(thing.getAmendments().iterator().hasNext()) {
-					//all persons from amended
-					addNames= personNameList(thing.getAmendments().iterator().next().getConcept(),true);
-				}
+			table = presonsTable(asm, var, table);
+			if(deepDive) {
+				table=personDetails(asm,var,table);
 			}
-			for(String name : addNames) {
-				if(!names.contains(name)) {
-					names.add(name);
-				}
-			}
-			names.removeAll(removed);
-			table=tableRow(asm.getID(), mess.get("prefLabel"), String.join(", ", names), false, table);
 		}
 
 		if(clazz.equalsIgnoreCase("things") && deepDive) {
@@ -236,12 +219,77 @@ public class ResolverServiceRender {
 						}
 						if(table.getRows().size()==rows) {
 							//no add, remove the header
-							table.setRows(table.getRows().subList(0, rows-2));
+							table.setRows(table.getRows().subList(0, rows-1));
 						}
 					}
 				}
 			}
 		}
+		return table;
+	}
+
+
+	/**
+	 * Person details for all persons 
+	 * @param asm
+	 * @param var
+	 * @param table
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private TableQtb personDetails(Assembly asm, Concept var, TableQtb table) throws ObjectNotFoundException {
+		Thing thing = new Thing();
+		thing=boilerServ.thingByNode(var,thing);
+		if(thing.getID()>0 && thing.getUrl() != null && thing.getUrl().length()>0) {
+			int num=1;
+			for(ThingPerson tp : thing.getPersons()) {
+				if(tp.getConcept().getActive()) {
+					String label=literalServ.readPrefLabel(tp.getConcept());
+					table=tableRow(0l,num+")" , label, true, table);
+					//get all assemblies
+					if(tp.getPersonUrl()!=null && tp.getPersonUrl().length()>0) {
+						List<Assembly> assms = assemblyServ.loadDataConfiguration(tp.getPersonUrl()); 
+						for(Assembly assm : assms ) {
+							table=clazz(assm, tp.getConcept(), table,true);
+						}
+					}
+					num++;
+				}
+			}
+		}
+		return table;
+	}
+
+
+	/**
+	 * Represent persons component as a table
+	 * @param asm
+	 * @param var
+	 * @param table
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	@Transactional
+	public TableQtb presonsTable(Assembly asm, Concept var, TableQtb table) throws ObjectNotFoundException {
+		List<String> names = personNameList(var,true);
+		List<String> removed=personNameList(var,false);
+		List<String> addNames = new ArrayList<String>();
+		Thing thing = new Thing();
+		thing=boilerServ.thingByNode(var,thing);
+		if(thing.getID()>0) {
+			if(thing.getAmendments().iterator().hasNext()) {
+				//all persons from amended
+				addNames= personNameList(thing.getAmendments().iterator().next().getConcept(),true);
+			}
+		}
+		for(String name : addNames) {
+			if(!names.contains(name)) {
+				names.add(name);
+			}
+		}
+		names.removeAll(removed);
+		table=tableRow(asm.getID(), mess.get("prefLabel"), String.join(", ", names), false, table);
 		return table;
 	}
 	/**
@@ -260,6 +308,7 @@ public class ResolverServiceRender {
 				names.add(pref);
 			}
 		}
+		Collections.sort(names);
 		return names;
 	}
 
@@ -616,18 +665,16 @@ public class ResolverServiceRender {
 			value.put(FORM, initTable(pref,"",value));
 		}
 		TableQtb table=(TableQtb) value.get(FORM);
-		Concept objectData=boilerServ.objectData(topConcept);
+		Concept objectData=boilerServ.initialApplicationNode(topConcept);
 		Map<String,RegisterDTO> allRegisters = regServ.registersLoadByApplicationData(objectData);
 		for(String key : allRegisters.keySet()) {
 			RegisterDTO rDto = allRegisters.get(key);
-			table=tableRow(0l, mess.get(rDto.getVarName()), "", false, table);
-			table=tableRow(0l, mess.get("reg_number"), rDto.getReg_number().getValue(), false, table);
-			table=tableRow(0l, mess.get("registration_date"), 
-					localDateToString(rDto.getRegistration_date().getValue()), false, table);
+			String expiry="";
 			if(rDto.hasExpired()) {
-				table=tableRow(0l, mess.get("expiry_date"), localDateToString(rDto.getExpiry_date().getValue()),
-						false, table);
+				expiry="/"+ localDateToString(rDto.getExpiry_date().getValue());
 			}
+			String register= rDto.getReg_number().getValue() +"/"+rDto.getRegistration_date().getValue()+expiry;
+			table=tableRow(0l, mess.get(rDto.getVarName()), register, true, table);
 		}
 		return value;
 	}

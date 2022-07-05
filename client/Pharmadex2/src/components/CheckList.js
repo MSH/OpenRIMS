@@ -36,7 +36,8 @@ class CheckList extends Component{
                 return_action:"",
                 route_action:"",
                 cancel:"",
-                requiredvalue:""
+                requiredvalue:"",
+                success:""
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -97,16 +98,18 @@ class CheckList extends Component{
 
 
     save(){
-        Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName()+"/application/checklist/save", 
+        Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/application/checklist/save", 
         this.state.data, (query,result)=>{
             if(result.valid){
                 if(this.state.submit){
                     Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/application/submit", this.state.data, (query,result)=>{
                         this.state.data=result
                         if(this.state.data.valid){
+                            Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.success, color:'success'})
                             Navigator.message(this.state.identifier, this.props.recipient, "cancelThing", {})
                             Navigator.message(this.state.identifier, this.props.recipient, "afterSubmit", {})
                         }else{
+                            Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'warning'})
                             this.setState(this.state)
                         }
                     })

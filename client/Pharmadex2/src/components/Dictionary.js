@@ -398,6 +398,8 @@ class Dictionary extends Component{
             </Container>
            )
        }else{
+		   let hideControls = (this.state.data.table.rows==0 || this.state.data.table.headers.pages<2) && 
+                            !this.state.data.selectedOnly && !this.state.data.table.headers.filtered
         return(
             <Container fluid className={Pharmadex.settings.activeBorder}>
                 <Row>
@@ -417,12 +419,12 @@ class Dictionary extends Component{
                 </Row>
                 <Row hidden={this.state.data.readOnly}>
                     <Col xs='12' sm='12' lg='5' xl='5'>
-                        <div hidden={this.state.data.table.rows==0 || this.state.data.table.headers.pages<2}>
+                        <div hidden={hideControls}>
                         <SearchControl label={this.state.labels.search} table={this.state.data.table} loader={this.tableLoader}/>
                         </div>
                     </Col>
                     <Col xs='12' sm='12' lg='4' xl='4'>
-                        <FormGroup hidden={this.state.data.table.rows==0 || this.state.data.table.headers.pages<2} check className="form-control-sm">
+                        <FormGroup hidden={hideControls} check className="form-control-sm">
                             <Label check>
                             <Input 
                                 type="checkbox"

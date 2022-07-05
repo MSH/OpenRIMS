@@ -179,7 +179,7 @@ public class GuestAPI {
 	 * @return
 	 * @throws DataNotFoundException 
 	 */
-	@PostMapping("/api/guest/application/or/activity")
+	@PostMapping("/api/*/application/or/activity")
 	public ApplicationOrActivityDTO applicationOrActivity(@RequestBody ApplicationOrActivityDTO data) throws DataNotFoundException{
 		try {
 			data=applServ.applOrAct(data);

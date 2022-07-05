@@ -5,6 +5,7 @@ import Locales from './utils/Locales'
 import Navigator from './utils/Navigator'
 import UserLevel from './UserLevel'
 import Fetchers from './utils/Fetchers'
+import Pharmadex from './Pharmadex'
 
 
 /**
@@ -106,10 +107,10 @@ class Authorities extends Component{
 
     render(){
         if(this.state.labels.locale == undefined){
-            return []
+            return Pharmadex.wait()
         }
         if(!this.state.ready){
-            return []
+            return Pharmadex.wait()
         }
         return(
             <Container fluid>

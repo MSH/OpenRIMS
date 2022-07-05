@@ -30,7 +30,8 @@ public class Headers {
 	//useful counters
 	private int selectedCount=0;
 	private int allCount=0;
-
+	//is filtered?
+	private boolean filtered=false;
 	/**
 	 * Clone headers, needs for some non standard searches 
 	 * @param headers
@@ -146,6 +147,15 @@ public class Headers {
 
 	public void setAllCount(int allCount) {
 		this.allCount = allCount;
+	}
+	
+
+	public boolean isFiltered() {
+		return filtered;
+	}
+
+	public void setFiltered(boolean filtered) {
+		this.filtered = filtered;
 	}
 
 	/**

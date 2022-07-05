@@ -20,11 +20,15 @@ class Import_A extends Component{
                 global_cancel:'',
                 global_save:'',
                 askforimportrun:'',
+                reload:""
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
         this.headerFooter=this.headerFooter.bind(this)
         this.load=this.load.bind(this)
+        this.verifyImport=this.verifyImport.bind(this)
+        this.runImport=this.runImport.bind(this)
+        this.reload=this.reload.bind(this)
     }
 
     /**
@@ -42,13 +46,14 @@ class Import_A extends Component{
                     Alerts.warning(this.state.labels.askforimportrun,
                         ()=>{   //yes
                             //run import
+                            this.verifyImport()
                         },
                         ()=>{   //no
 
                         })
                 }
             }
-           
+           //Navigator.message(this.state.identifier, this.props.recipient, "thingUpdated", this.state.data)
         }
 
     componentDidMount(){
@@ -56,6 +61,28 @@ class Import_A extends Component{
         Locales.resolveLabels(this)
         this.load()
     }
+
+    verifyImport(){
+        Fetchers.postJSON("/api/admin/importa/verif", this.state.data, (query, result)=>{
+            this.state.data=result
+            if(this.state.data.valid){
+                this.setState(this.state)
+                this.runImport()
+            }else{
+                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'danger'})
+                this.setState(this.state)
+            }
+        })
+    }
+
+    runImport(){
+        Fetchers.postJSON("/api/admin/importa/run", this.state.data, (query, result)=>{
+            this.state.data=result
+            this.setState(this.state)
+            Navigator.message('*', '*', 'show.alert.pharmadex.2', "Start import data")
+        })
+    }
+
     /**
      * Load data
      */
@@ -63,6 +90,14 @@ class Import_A extends Component{
         Fetchers.postJSON("/api/admin/import/adminunits/load", this.state.data, (query,result)=>{
             this.state.data=result
             this.setState(this.state)
+        })
+    }
+
+    reload(){
+        Fetchers.postJSON("/api/admin/import/adminunits/reload", this.state.data, (query,result)=>{
+            this.state.data=result
+            this.setState(this.state)
+            Navigator.message(this.state.identifier, "*", "thingReload", this.state.data)
         })
     }
 
@@ -79,6 +114,14 @@ class Import_A extends Component{
                     Navigator.message(this.state.identifier, "*", "saveAll", {})
                 }}
                 >{this.state.labels.global_save}</Button>{' '}
+
+                <Button size="sm"
+                className="mr-1" color="primary"
+                hidden={this.state.data.nodeId == 0}
+                onClick={()=>{
+                    this.reload()
+                }}
+                >{this.state.labels.reload}</Button>{' '}
 
                 <Button size="sm"
                 className="mr-1" color="info"

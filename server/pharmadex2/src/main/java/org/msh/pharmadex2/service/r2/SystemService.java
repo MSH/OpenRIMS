@@ -34,6 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class SystemService {
 	public static final String DICTIONARY_SYSTEM_IMPORT_DATA = "dictionary.system.import.data";
+	//public static final String DICTIONARY_SYSTEM_IMPORT_LEGACY_DATA = "dictionary.system.import.legacy.data";
 	//Finalization activity related
 	private static final String FINAL_DEREGISTRATION = "deregistration";
 	public static final String FINAL_AMEND = "AMEND";
@@ -331,9 +332,14 @@ public class SystemService {
 			literalServ.createUpdateLiteral("type", "system", root);
 		}
 		List<Concept> level = literalServ.loadOnlyChilds(root);
-		if(level.size()!=1) {
-			//create level
-			systemDictNode(root, "0", "XLSX file contains data to import");
+		if(level.size() == 0) {
+			systemDictNode(root, AssemblyService.DATAIMPORT_DATA, "XLSX file contains data to import");
+			systemDictNode(root, AssemblyService.DATAIMPORT_DATA_ERROR, "XLSX file contains data import errors");
+		}else if(level.size() == 1) {
+			Concept c = level.get(0);
+			c.setIdentifier(AssemblyService.DATAIMPORT_DATA);
+			closureServ.save(c);
+			systemDictNode(root, AssemblyService.DATAIMPORT_DATA_ERROR, "XLSX file contains data import errors");
 		}
 		ret=dictServ.createDictionary(ret);
 		ret.setMult(false);
@@ -612,7 +618,7 @@ public class SystemService {
 	 * If address dictionary does not exist, create new one
 	 * @throws ObjectNotFoundException 
 	 */
-	private void checkAddressDict() throws ObjectNotFoundException {
+	public void checkAddressDict() throws ObjectNotFoundException {
 		dictServ.checkDictionary(DICTIONARY_ADMIN_UNITS);
 	}
 

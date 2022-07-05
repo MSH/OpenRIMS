@@ -117,4 +117,78 @@ public class ClosureTreeTests {
 		Concept clone = closureServ.cloneTree(root,pers);
 	}
 	
+	@Test
+	public void findNodeByIdentifier() throws ObjectNotFoundException {
+		Concept root = closureServ.loadRoot("dictionary.system.roles");
+		Concept node = closureServ.findConceptInBranchByIdentifier(root,"ROLE_ADMIN");
+		assertTrue(node.getID()>0);
+		node = closureServ.findConceptInBranchByIdentifier(root,"ROLE_ADMINO");
+		assertTrue(node.getID()==0);
+	}
+	
+	@Test
+	public void saveToTreeFast() throws ObjectNotFoundException {
+		Concept root = new Concept();
+		root.setIdentifier("test");
+		root = closureServ.saveToTreeFast(null, root);
+		assertTrue(root.getID()>0);
+		long rootId = root.getID();
+
+		//try to create a tree with the same identifier
+		Concept root1 = new Concept();
+		root1.setIdentifier("test");
+		root1 = closureServ.saveToTreeFast(null, root);
+		assertEquals(rootId, root1.getID());
+
+		//add two nodes to a root
+		Concept node = new Concept();
+		node.setIdentifier("Springfield");
+		node = closureServ.saveToTreeFast(root, node);
+		Concept node2 = new Concept();
+		node2.setIdentifier("Melford");
+		node2 = closureServ.saveToTree(root, node2);
+
+		//try to add a node with the same identifier
+		long nodeID = node2.getID();
+		Concept node3 = new Concept();
+		node3.setIdentifier("Melford");
+		node3 = closureServ.saveToTreeFast(root, node3);
+		assertEquals(nodeID, node3.getID());
+
+		//add third level with 3 nodes
+		Concept node31 = new Concept();
+		node31.setIdentifier("name");
+		node31 = closureServ.saveToTreeFast(node3, node31);
+		Concept node32 = new Concept();
+		node32.setIdentifier("street");
+		node32 = closureServ.saveToTreeFast(node3, node32);
+		Concept node321= new Concept();
+		node321.setIdentifier("Elm");
+		node321 = closureServ.saveToTreeFast(node32, node321);
+		Concept node33 = new Concept();
+		node33.setIdentifier("phone");
+		node33 = closureServ.saveToTreeFast(node3, node33);
+
+		//read a level
+		List<Concept> level = closureServ.loadLevel(node3);
+		assertEquals(3, level.size());
+
+		//get a url by the node
+		String url = closureServ.getUrlByNode(node33);
+		assertEquals("test", url);
+
+		//remove a leaf
+		closureServ.removeNode(node33);
+		level=closureServ.loadLevel(node3);
+		assertEquals(2, level.size());
+
+		//remove a node
+		closureServ.removeNode(node3);
+		level=closureServ.loadLevel(root);
+		assertEquals(1, level.size());
+
+		//remove a tree
+		closureServ.removeNode(root);
+	}
+	
 }

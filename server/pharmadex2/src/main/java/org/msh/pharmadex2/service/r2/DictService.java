@@ -1,20 +1,11 @@
 package org.msh.pharmadex2.service.r2;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.msh.pdex2.dto.i18n.Language;
 import org.msh.pdex2.dto.i18n.Languages;
 import org.msh.pdex2.dto.table.Headers;
@@ -45,12 +36,8 @@ import org.msh.pharmadex2.service.common.ValidationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 /**
  * Responsible for dictionaries - DictNodeDTO and DictionaryDTO
  * DictNodeDTO represents a concept for any object
@@ -81,8 +68,6 @@ public class DictService {
 	AssemblyService assembServ;
 	@Autowired
 	QueryRepository queryRep;
-	@Autowired
-	ImportFromExcel importFromExcel;
 
 	/**
 	 * Save the node.
@@ -157,33 +142,46 @@ public class DictService {
 
 	/**
 	 * Create or load dictionary table
+	 * Excludes not active items that are not selected
 	 * @param parentNode parent node 
 	 * @param table table to load
 	 * @param selectedIds list of previous selected 
 	 * @param selectedOnly load selected only
 	 * @param readOnly for readOnly tables
-	 * @return
+	 * @return 
 	 */
 	@Transactional
 	public TableQtb loadTable(Concept parentNode, TableQtb table, List<Long> selectedIds, boolean selectedOnly, boolean readOnly) {
+		//logger.trace("loadTable{");
 		if(table.getHeaders().getHeaders().size()==0) {
 			table.setHeaders(createHeaders(table.getHeaders(), readOnly));
 		}
 		if(parentNode!=null) {
 			jdbcRepo.prepareDictionaryLevel(parentNode.getID());
-			List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from _dictlevel", "", "active>0", table.getHeaders());
-			List<TableRow> rowsToTable = new ArrayList<TableRow>();
+			table.getHeaders().getHeaders().add(TableHeader.instanceOf("Active", TableHeader.COLUMN_LONG));
+			List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from _dictlevel", "", "", table.getHeaders());
+			List<TableRow> rows1 = new ArrayList<TableRow>();
+			for(TableRow row : rows ) {
+				int active = row.getCellByKey("Active").getIntValue();
+				if(active>0 || selectedIds.contains(row.getDbID())) {
+					row.getRow().remove(2);		//we will not need Active
+					rows1.add(row);
+				}
+			}
+			table.getHeaders().getHeaders().remove(2);		//we will not need Active
+			List<TableRow> rowsToTable = new ArrayList<TableRow>();			
 			if(selectedOnly) {
-				for(TableRow row : rows) {
+				for(TableRow row : rows1) {
 					if(selectedIds.contains(row.getDbID())) {
 						rowsToTable.add(row);
 					}
 				}
 			}else {
-				rowsToTable.addAll(rows);
+				rowsToTable.addAll(rows1);
 			}
 			TableQtb.tablePage(rowsToTable, table);
 		}
+		//logger.trace("}");
 		return table;
 	}
 
@@ -441,9 +439,13 @@ public class DictService {
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public DictionaryDTO createDictionaryFromRoot(DictionaryDTO ret) throws ObjectNotFoundException {
-		Concept root = closureServ.loadRoot(ret.getUrl());
+	public DictionaryDTO createDictionaryFromRoot(DictionaryDTO ret, Concept root) throws ObjectNotFoundException {
+		//ika
+		if(root==null) {
+		//Concept 
+		root = closureServ.loadRoot(ret.getUrl());
 		ret.setSystem(checkSystem(root));
+		}
 		if(ret.isReadOnly()) {
 			ret.setSelectedOnly(true);
 		}
@@ -529,7 +531,7 @@ public class DictService {
 				OptionDTO opt = optionFromNode(prevNode);
 				ret.getSelection().setValue(opt);
 			}else {
-				ret = createDictionaryFromRoot(ret);
+				ret = createDictionaryFromRoot(ret, null);
 			}
 		}
 		ret= selectRows(ret);
@@ -645,7 +647,7 @@ public class DictService {
 	 */
 	public DictionaryDTO rootDictionary(DictionaryDTO data) throws ObjectNotFoundException {
 		DictionaryDTO ret = data.cloneImportant();
-		ret=createDictionaryFromRoot(ret);
+		ret=createDictionaryFromRoot(ret, null);
 		return ret;
 	}
 	/**
@@ -715,10 +717,12 @@ public class DictService {
 		data=validServ.node(data,"", true);
 		if(data.isValid() && data.getNodeId()>0) {
 			Concept conc=closureServ.loadConceptById(data.getNodeId());
-			/*	conc.setActive(false);
-				conc = closureServ.save(conc);*/
-			Concept recycle= closureServ.loadRoot(SystemService.RECYCLE);
+			conc.setActive(false);
+			conc = closureServ.save(conc);
+			/*
+			recycle= closureServ.loadRoot(SystemService.RECYCLE);
 			jdbcRepo.moveSubTree(conc, recycle);
+			*/
 		}
 		if(data.getNodeId()==0 && data.isValid()) {
 			data.setValid(false);
@@ -745,17 +749,18 @@ public class DictService {
 
 		if(data.getSelectId() > 0) {
 			DictionaryDTO dict = new DictionaryDTO();
-			if(data.isEditor()) {//edit fields dictionary
+			// ika if(data.isEditor()) {//edit fields dictionary
 				Concept root = closureServ.loadConceptById(data.getSelectId());
 				dict.setUrlId(root.getID());
 				dict.setUrl(root.getIdentifier());
 
-			}else {//show list item dictionary
+			/*ika }else {//show list item dictionary
 				Concept root = closureServ.loadConceptById(data.getSelectId());
 				dict.setUrlId(root.getID());
 				dict.setUrl(root.getIdentifier());
-			}
-			data.setSelect(createDictionaryFromRoot(dict));
+			}*/
+				dict.setSystem(checkSystem(root));//ika
+			data.setSelect(createDictionaryFromRoot(dict, root));
 			reloadTable = false;
 		}else if(data.getSelectId() == 0 && data.isEditor()) {//create new fields dictionary
 			DictionaryDTO dict = new DictionaryDTO();
@@ -924,7 +929,7 @@ public class DictService {
 		if(data.getPrevSelected().size()>0) {
 			data= createDictionaryFromSelected(data.getPrevSelected(), data);
 		}else {
-			data=createDictionaryFromRoot(data);
+			data=createDictionaryFromRoot(data, root);
 		}
 		return data;
 	}
@@ -952,7 +957,7 @@ public class DictService {
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	private boolean checkSystem(Concept root) throws ObjectNotFoundException {
+	public boolean checkSystem(Concept root) throws ObjectNotFoundException {
 		String dicType = literalServ.readValue("type", root);
 		return dicType.equalsIgnoreCase("system");
 	}
@@ -1091,7 +1096,7 @@ public class DictService {
 			String url = literalServ.readValue("url", node);
 			DictionaryDTO guest = new DictionaryDTO();
 			guest.setUrl(SystemService.DICTIONARY_GUEST_APPLICATIONS);
-			guest = createDictionaryFromRoot(guest);
+			guest = createDictionaryFromRoot(guest, null);
 			List<TableRow> rows = guest.getTable().getRows();
 			long dictNodeId=0;
 			for(TableRow row : rows) {
@@ -1160,49 +1165,6 @@ public class DictService {
 		 ret=String.join(",", retList);
 		return ret;
 	}
-
-	/**
-	 * Перемещение в корзину словаря админ.единиц
-	 * Перемещает в корзину все уровни
-	 * остается только ROOT
-	 * @throws ObjectNotFoundException
-	 */
-	@Transactional
-	public void loadAllProvinces() throws ObjectNotFoundException {
-		Concept root = closureServ.loadRoot(SystemService.DICTIONARY_ADMIN_UNITS);
-		
-		List<Concept> provinces = literalServ.loadOnlyChilds(root);
-		for(Concept prov : provinces) {
-			DictNodeDTO provDTO = createNode(prov);
-			provDTO = nodeSuspend(provDTO);
-			
-			List<Concept> districts = literalServ.loadOnlyChilds(prov);
-			for(Concept distr : districts) {
-				DictNodeDTO distrDTO = createNode(distr);
-				distrDTO = nodeSuspend(distrDTO);
-				
-				List<Concept> communities = literalServ.loadOnlyChilds(distr);
-				for(Concept comm : communities) {
-					DictNodeDTO commDTO = createNode(comm);
-					commDTO = nodeSuspend(commDTO);
-				}
-			}
-		}
-	}
 	
-	public void loadAdminUnitsFormFile(byte[] bytes) throws JsonParseException, JsonMappingException, IOException, ObjectNotFoundException {
-		//TODO load some file
-		/*
-		 * получим данные и файл с формы
-		 * тут построим гланый рут
-		 */
-		Locale def = new Locale("en", "US");
-		LocaleContextHolder.setDefaultLocale(def);
-		LocaleContextHolder.setLocale(def);
-		
-		if(bytes.length > 0) {
-			importFromExcel.importAdmUnit(bytes);
-		}
-	}
 
 }

@@ -4,13 +4,10 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.util.AreaReference;
-import org.apache.poi.xssf.usermodel.XSSFName;
+import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.msh.pdex2.dto.table.Headers;
@@ -18,7 +15,6 @@ import org.msh.pdex2.dto.table.TableHeader;
 import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
-import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.LegacyData;
 import org.msh.pdex2.repository.common.JdbcRepository;
@@ -26,8 +22,7 @@ import org.msh.pdex2.repository.r2.LegacyDataRepo;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.LegacyDataDTO;
-import org.msh.pharmadex2.dto.ThingDTO;
-import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
+import org.msh.pharmadex2.dto.LegacyDataErrorsDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,15 +37,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class LegacyDataService {
-	private static final String EXPIRATION_DATE = "expiration";
-	private static final String REGISTRATION_DATE = "registration";
-	private static final String REGISTER = "register";
-	private static final String ALTERNATIVE_NAME = "alternative";
-	private static final String NAME = "name";
 
 	private static final Logger logger = LoggerFactory.getLogger(LegacyDataService.class);
-	@Autowired
-	private Messages messages;
 	@Autowired
 	private LegacyDataRepo legacyRepo;
 	@Autowired
@@ -61,8 +49,7 @@ public class LegacyDataService {
 	private BoilerService boilerServ;
 	@Autowired
 	private JdbcRepository jdbcRepo;
-	@Autowired
-	private ThingService thingServ;
+	
 
 	/**
 	 * Create a new legacy data using the assembly
@@ -161,138 +148,192 @@ public class LegacyDataService {
 	}
 	/**
 	 * Import legacy data from xlsx file
-	 * Add records for which the registration numbers are not in the database yet
+	 * Scan all sheets, except the errors sheet
+	 * The name of the scanned sheet is URL for legacy data, e.g., legacy.pharmacies or legacy.wholesalers
+	 * The legacy data layout on the sheet should from the first row, the zero row assumes for headers, and:
+	 * <ul>
+	 * <li> prefLabel - mandatory
+	 * <li> altLabel, or empty in this case the altLabel=prefLabel
+	 * <li> registration number - mandatory
+	 * <li> registration start date - mandatory
+	 * <li> registration expiration date - mandatory
+	 * </ul>
 	 * @param xlsx byte array represents xlsx file
-	 * @param url - URL of the data, e.g., "legacy.pharmacy" or "legacy.medicines"
-	 * @return
+	 * @return null if the workbook can't be read, or workbook otherwise. The errors sheet in the workbook may contain errors
 	 * @throws IOException 
 	 * @throws ObjectNotFoundException 
 	 */
-	public String importData(byte[] xlsx, String url) throws IOException, ObjectNotFoundException {
-		String mess="";
+	public XSSFWorkbook importLegacyData(byte[] xlsx) throws IOException, ObjectNotFoundException {
 		if(xlsx.length > 0){						
 			InputStream inputStream = new ByteArrayInputStream(xlsx);
 			XSSFWorkbook book=new XSSFWorkbook(inputStream);
-			// retrieve the ranges
-			Map<String,XSSFName> ranges= new LinkedHashMap<String, XSSFName>();
-			XSSFName nameRange =   book.getName(NAME);
-			if(nameRange!=null) {
-				ranges.put(NAME,nameRange);
-			}else {
-				mess=NAME;
+			LegacyDataErrorsDTO errors= new LegacyDataErrorsDTO(book);
+			int sheetIndex=0;
+			XSSFSheet sheet = boilerServ.getSheetAt(book, sheetIndex);
+			while(!errors.isErrorOrNullSheet(sheet)) {
+				importLegacyDataSheet(sheet, errors);
+				sheetIndex++;
+				sheet=boilerServ.getSheetAt(book,sheetIndex);
 			}
-			XSSFName altNameRange = book.getName(ALTERNATIVE_NAME);
-			if(altNameRange!=null) {
-				ranges.put(ALTERNATIVE_NAME, altNameRange);
-			}else {
-				mess=ALTERNATIVE_NAME;
-			}
-			XSSFName registerRange = book.getName(REGISTER);
-			if(registerRange!=null) {
-				ranges.put(REGISTER,registerRange);
-			}else {
-				mess=REGISTER;
-			}
-			XSSFName regDateRange = book.getName(REGISTRATION_DATE);
-			if(regDateRange!=null) {
-				ranges.put(REGISTRATION_DATE,regDateRange);
-			}else {
-				mess=REGISTRATION_DATE;
-			}
-			XSSFName expDateRange = book.getName(EXPIRATION_DATE);
-			if(expDateRange!=null) {
-				ranges.put(EXPIRATION_DATE, expDateRange);
-			}else {
-				mess=EXPIRATION_DATE;
-			}
-			if(mess.length()==0) {
-				mess=storeLegacyData(book,ranges, url);
-			}else {
-				mess=messages.get("error_bmpFile")+" <"+mess+">";
-			}
-			book.close();
+			return book;
 		}else {
-			mess=messages.get("Error.uploadFile");
+			return null;
 		}
-		return mess;
 	}
-
 	/**
-	 * Import the legacy data to the database
-	 * @param book 
-	 * @param ranges
-	 * @param url 
-	 * @return
+	 * Import data from the particular data sheet
+	 * Import will start from the first row. Zero row assumed for headers
+	 * @param sheet
+	 * @param errors
 	 * @throws ObjectNotFoundException 
 	 */
-	private String storeLegacyData(XSSFWorkbook book, Map<String, XSSFName> ranges, String url) throws ObjectNotFoundException {
-		String mess="";
-		XSSFSheet sheet=book.getSheetAt(0);
-		for(int row=1; row<=sheet.getLastRowNum();row++) {
-			storeLegacyRow(sheet,ranges,row,url);
+	@Transactional
+	private void importLegacyDataSheet(XSSFSheet sheet, LegacyDataErrorsDTO errors) throws ObjectNotFoundException {
+		String url=sheetName(sheet);
+		int rownum=1;
+		XSSFRow row = boilerServ.getSheetRow(sheet,rownum);
+		Concept root=closureServ.loadRoot(url);
+		Concept protocol=protocolConcept(AssemblyService.SYSTEM_IMPORT_LEGACY_DATA);
+		protocol=literalServ.createUpdateLiteral(AssemblyService.DATAIMPORT_RESULT, "started for "+ url, protocol);
+		logger.info("started for "+url);
+		int threshold=0;			//when the data will finished?
+		while(row !=null && threshold<300) {					//see 300 invalid records before finish
+			writeProtocol(rownum, 100, url, protocol);
+			if(importLegacyDataRow(row, errors, root)) {
+				threshold=0;
+			}else {
+				threshold++;
+			}
+			rownum++;
+			row = boilerServ.getSheetRow(sheet,rownum);
 		}
-		return mess;
+		protocol=literalServ.createUpdateLiteral(AssemblyService.DATAIMPORT_RESULT, "completed for "+ url, protocol);
+		logger.info("completed for "+url);
 	}
 	/**
-	 * Store a row to the database
-	 * @param sheet
-	 * @param ranges
-	 * @param index
+	 * Write a record to the protocol, if % of uploaded rows reaches the step
+	 * @param rownum
+	 * @param lastRow
 	 * @param url 
+	 * @param i
+	 * @param protocol
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public void writeProtocol(int rownum, int step, String url, Concept protocol) throws ObjectNotFoundException {
+		if(rownum>step) {
+			int modulo = rownum % step;
+			if(modulo==0) {
+				String val=literalServ.readValue(AssemblyService.SYSTEM_IMPORT_LEGACY_DATA, protocol);
+				val=val + " "+ url+"-" + rownum;
+				protocol=literalServ.createUpdateLiteral(AssemblyService.DATAIMPORT_RESULT, val.trim(), protocol);
+				logger.info(val.trim());
+			}
+		}
+	}
+	/**
+	 * Concept to protocol data import process
+	 * @param systemImportLegacyData
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	private String storeLegacyRow(XSSFSheet sheet, Map<String, XSSFName> ranges, int index, String url) throws ObjectNotFoundException {
-		String mess ="";
-		Cell cell = fetchCell(sheet, ranges.get(REGISTER), index);
-		String register=cell.getStringCellValue();
-		List<LegacyData> datl = legacyRepo.findByRegisterAndUrl(register, url);
-		if(datl.size()==0) {
-			LegacyData ld= new LegacyData();
-			//concept
-			Concept root = closureServ.loadRoot(url);
+	public Concept protocolConcept(String protocolUrl) throws ObjectNotFoundException {
+		Concept root=closureServ.loadRoot(protocolUrl);
+		List<Concept> nodes = closureServ.loadLevel(root);
+		if(nodes.size()>0) {
+			return nodes.get(0);
+		}else {
 			Concept node = new Concept();
-			node.setIdentifier(register);
-			node=closureServ.saveToTree(root, node);
-			Cell nameCell = fetchCell(sheet, ranges.get(NAME), index);
-			String name=nameCell.getStringCellValue();
-			if(name!=null) {
-				Cell altNameCell = fetchCell(sheet, ranges.get(ALTERNATIVE_NAME), index);
-				node=literalServ.createUpdateLiteral("prefLabel", nameCell.getStringCellValue(), node);
-				node=literalServ.createUpdateLiteral("altLabel", altNameCell.getStringCellValue(), node);
-				ld.setConcept(closureServ.loadConceptById(node.getID()));
-				//registration data
-				Cell regCell = fetchCell(sheet, ranges.get(REGISTER),index);
-				ld.setRegister(regCell.getStringCellValue());
-				Cell rDateCell = fetchCell(sheet, ranges.get(REGISTRATION_DATE), index);
-				ld.setRegDate(rDateCell.getDateCellValue());
-				Cell eDateCell = fetchCell(sheet, ranges.get(EXPIRATION_DATE), index);
-				ld.setExpDate(eDateCell.getDateCellValue());
-				ld.setUrl(url);
-				legacyRepo.save(ld);
-				
-			}else {
-				mess=messages.get("valid_namereq");
-			}
+			node=closureServ.save(node);
+			node.setIdentifier(node.getID()+"");
+			node = closureServ.saveToTree(root, node);
+			return node;
 		}
-		// extract the cell contents based on cell type etc.
-		return mess;
 	}
 	/**
-	 * Get a cell from the range 
-	 * @param sheet
-	 * @param xssfName
-	 * @param index
+	 * Import a row from the sheet or put this row to the "errors" sheet
+	 * @param row the row
+	 * @param errors the "errors" sheet
+	 * @param root the root concept under which the data should be stored 
+	 * @param root 
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private boolean importLegacyDataRow(XSSFRow row, LegacyDataErrorsDTO errors, Concept root) throws ObjectNotFoundException {
+		String prefLabel=boilerServ.getStringCellValue(row,0);
+		String altLabel=boilerServ.getStringCellValue(row,1);
+		if(!validString(altLabel)) {
+			altLabel=prefLabel;
+		}
+		String regNo=boilerServ.getStringCellValue(row,2);
+		Date regDate= boilerServ.getDateCellValue(row,3);
+		Date expDate=boilerServ.getDateCellValue(row,4);
+		String notes= boilerServ.getStringCellValue(row,5);
+		if(!validString(notes)) {
+			notes="";
+		}
+		if(notes.length()>500) {
+			notes=notes.substring(0,500);
+		}
+		if(validString(prefLabel) && validString(altLabel) && validString(regNo) && validDate(regDate) && validDate(expDate)) {	
+			Concept node = new Concept();
+			node.setIdentifier(regNo);
+			node = closureServ.saveToTreeFast(root, node);
+			node = literalServ.createUpdateLiteral("prefLabel", prefLabel, node);
+			node = literalServ.createUpdateLiteral("altLabel", altLabel, node);
+			LegacyData ld = new LegacyData();
+			List<LegacyData> ldl= legacyRepo.findByRegisterAndUrl(regNo, root.getIdentifier());
+			if(ldl.size()>0) {
+				ld=ldl.get(0);
+			}
+			ld.setConcept(node);
+			ld.setExpDate(expDate);
+			ld.setRegDate(regDate);
+			ld.setRegister(regNo);
+			ld.setUrl(root.getIdentifier());
+			ld.setNote(notes);
+			legacyRepo.save(ld);
+			return true;
+		}
+		if(validString(prefLabel)) {
+			errors.add(row,5, root.getIdentifier());
+			return true;
+		}else {
+			return false; //waiting for threshold
+		}
+	}
+	/**
+	 * Is this date valid
+	 * @param dateVal
 	 * @return
 	 */
-	public Cell fetchCell(XSSFSheet sheet, XSSFName xssfName, int rownum) {
-		AreaReference aref = new AreaReference(xssfName.getRefersToFormula(), null);
-		short col = aref.getFirstCell().getCol();
-		Cell cell = sheet.getRow(rownum).getCell(col);
-		return cell;
+	private boolean validDate(Date dateVal) {
+		return (dateVal!=null) && (dateVal instanceof Date);
 	}
-	
+	/**
+	 * Is this string valid?
+	 * @param str
+	 * @return
+	 */
+	public boolean validString(String str) {
+		return str!=null && str.length()>0;
+	}
+	/**
+	 * Get a name of the sheet
+	 * @param sheet
+	 * @return
+	 */
+	public String sheetName(XSSFSheet sheet) {
+		XSSFWorkbook wb=sheet.getWorkbook();
+		List<String> sheetNames = new ArrayList<String>();
+		for (int i=0; i<wb.getNumberOfSheets(); i++) {
+			sheetNames.add( wb.getSheetName(i) );
+		}
+		return sheetNames.get(wb.getSheetIndex(sheet));
+	}
+
+
 	/**
 	 * Reload table data
 	 * @param data
@@ -324,27 +365,5 @@ public class LegacyDataService {
 		dto=reloadTable(dto);
 		return dto;
 	}
-	/**
-	 * prepare electronic form for import admin units
-	 * @param data
-	 * @param user 
-	 * @throws ObjectNotFoundException 
-	 */
-	public ThingDTO importAdminunitsLoad(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
-		//load and save only one and only under the root of the tree
-		data.setUrl(AssemblyService.SYSTEM_IMPORT_ADMINUNITS);
-		Concept root = closureServ.loadRoot(data.getUrl());
-		data.setParentId(root.getID());
-		List<Concept> nodes = closureServ.loadLevel(root);
-		if(nodes.size()>0) {
-			data.setNodeId(nodes.get(0).getID());
-		}
-		if(data.getNodeId()==0) {
-			data=thingServ.createThing(data, user);
-		}else {
-			data=thingServ.loadThing(data, user);
-		}
-		return data;
-	}
-	
+
 }

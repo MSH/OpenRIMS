@@ -1,22 +1,18 @@
 package org.msh.pharmadex2.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import org.apache.poi.xssf.usermodel.XSSFRow;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.Test;
 import org.msh.pdex2.exception.ObjectNotFoundException;
-import org.msh.pdex2.model.r2.Concept;
 import org.msh.pharmadex2.Pharmadex2Application;
+import org.msh.pharmadex2.service.r2.ImportAService;
 import org.msh.pharmadex2.service.r2.LegacyDataService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -30,14 +26,22 @@ public class LegacyDataServiceTest {
 	
 	@Autowired
 	LegacyDataService legacyService;
+	@Autowired
+	ImportAService importAService;
 	
-	@Test
+	
+	//@Test
 	public void importPharmacies() throws IOException, ObjectNotFoundException {
-		Path pathFile = Paths.get("src","test","resources", "LegacyDataSample.xlsx");
+		Path pathFile = Paths.get("src","test","resources", "all branch retail pharmacies.xlsx");
 		byte[] bytes = Files.readAllBytes(pathFile);
 		if(bytes.length > 0) {
-			String mess = legacyService.importData(bytes,"legacy.pharmacies");
-			assertEquals("", mess);
+			XSSFWorkbook wb = legacyService.importLegacyData(bytes);
+			Path pathFileOut = Paths.get("src","test","resources", "all branch retail pharmacies.xlsxOut.xlsx");
+			File fileout = pathFileOut.toFile();
+			FileOutputStream fos = new FileOutputStream(fileout);
+			wb.write(fos);
+			fos.flush();
+			fos.close();
 		}
 	}
 }

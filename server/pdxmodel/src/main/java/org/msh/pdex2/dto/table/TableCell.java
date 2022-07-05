@@ -1,6 +1,7 @@
 package org.msh.pdex2.dto.table;
 
 import java.math.BigDecimal;
+import java.text.Format;
 import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -273,6 +274,40 @@ public class TableCell {
 	@Override
 	public String toString() {
 		return "TableCell [key=" + key + ", value=" + value + "]";
+	}
+	/**
+	 * Get a value that suit for the database insert
+	 * @return string value allowed for ANSI SQL insert
+	 */
+	public String getDbInsertValue() {
+		String ret="null";
+		Object val = getOriginalValue();
+		if(val != null) {
+			if(val instanceof String || val instanceof Long || val instanceof BigDecimal) {
+				ret="'"+ getValue() + "'";
+			}
+
+			if(val instanceof LocalDate) {
+				LocalDate ldval=(LocalDate) val;
+				String iso = DateTimeFormatter.BASIC_ISO_DATE.format(ldval);
+				ret="'"+iso+"'";
+			}
+			if(val instanceof LocalDateTime) {
+				LocalDateTime ldtval=(LocalDateTime) val;
+				String iso = DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(ldtval);
+				ret="'"+iso+"'";
+			}
+
+			if(val instanceof Boolean) {
+				Boolean bval = (Boolean) val; 
+				if(bval) {
+					ret="1";
+				}else {
+					ret="0";
+				}
+			}
+		}
+		return ret;
 	}
 
 }

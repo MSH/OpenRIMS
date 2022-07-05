@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.msh.pdex2.exception.ObjectNotFoundException;
+import org.msh.pdex2.model.r2.Assembly;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.model.r2.Thing;
@@ -63,8 +64,8 @@ public class PdfService {
 				//thing = thingServ.loadThing(thing, user);
 				//thing = thingServ.path(thing);
 				list.add(thing);
-
-				List<AssemblyDTO> persons = assemblyServ.auxPersons(thing.getUrl());
+				List<Assembly> allAssms = assemblyServ.loadDataConfiguration(thing.getUrl());
+				List<AssemblyDTO> persons = assemblyServ.auxPersons(thing.getUrl(),allAssms);
 				if(persons != null && persons.size() > 0) {
 					for(AssemblyDTO assembly:persons) {
 						Concept pconcept = closureServ.loadConceptById(thing.getNodeId());

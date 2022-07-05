@@ -28,8 +28,8 @@ public class Role implements Serializable {
 	
 	@Column(name="roleId", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22227217E2144F4690914F")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22227217E2144F4690914F", strategy="identity")	
+	@GeneratedValue(generator="VAC222274181AB73CE300B12B")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC222274181AB73CE300B12B", strategy="identity")	
 	private int roleId;
 	
 	@Column(name="createdDate", nullable=true)	

@@ -1,7 +1,11 @@
 package org.msh.pharmadex2.controller.r2;
 
+import java.io.IOException;
+import java.sql.SQLException;
+
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
+import org.msh.pharmadex2.dto.ActuatorAdmDTO;
 import org.msh.pharmadex2.dto.ContentDTO;
 import org.msh.pharmadex2.dto.DataCollectionDTO;
 import org.msh.pharmadex2.dto.DataConfigDTO;
@@ -23,10 +27,14 @@ import org.msh.pharmadex2.dto.WorkflowDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.exception.DataNotFoundException;
 import org.msh.pharmadex2.service.common.UserService;
+import org.msh.pharmadex2.service.r2.ActuatorService;
 import org.msh.pharmadex2.service.r2.ApplicationService;
 import org.msh.pharmadex2.service.r2.ContentService;
+import org.msh.pharmadex2.service.r2.DWHService;
 import org.msh.pharmadex2.service.r2.DictService;
-import org.msh.pharmadex2.service.r2.LegacyDataService;
+import org.msh.pharmadex2.service.r2.ImportAService;
+import org.msh.pharmadex2.service.r2.ImportBService;
+import org.msh.pharmadex2.service.r2.MetricService;
 import org.msh.pharmadex2.service.r2.PubOrgService;
 import org.msh.pharmadex2.service.r2.ReportService;
 import org.msh.pharmadex2.service.r2.SupervisorService;
@@ -69,8 +77,17 @@ public class AdminAPI {
 	@Autowired
 	private ReportService reportServ;
 	@Autowired
-	private LegacyDataService legacyDataServ;
-
+	private ImportAService importAService;
+	@Autowired
+	private ThingService thingServ;
+	@Autowired
+	private ImportBService importBServ;
+	@Autowired
+	private ActuatorService actuatorService;
+	@Autowired
+	private MetricService metricServ;
+	@Autowired
+	private DWHService dwhServ;
 	/**
 	 * Tiles for landing page
 	 * 
@@ -790,11 +807,117 @@ public class AdminAPI {
 	public ThingDTO importAdminunitsLoad(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 		try {
-			data=legacyDataServ.importAdminunitsLoad(data,user);
+			data=importAService.importAdminunitsLoad(data,user);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
 	}
 	
+	@PostMapping("/api/admin/importa/verif")
+	public ThingDTO importAVerif(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
+		try {
+			data = importAService.importAdminunitsVerify(data);
+		} catch (ObjectNotFoundException | IOException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
+	@PostMapping("/api/admin/importa/run")
+	public ThingDTO importARun(Authentication auth, @RequestBody ThingDTO data ) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		try {
+			importAService.importAdminunitsRun(data); 
+			data=thingServ.loadThing(data, user);
+			return data;
+		} catch (ObjectNotFoundException | IOException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+	
+	@PostMapping("/api/admin/import/adminunits/reload")
+	public ThingDTO importAdminunitsReLoad(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		try {
+			data=importAService.importAdminunitsReload(data,user); 
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
+	/**
+	 * Load import admin units feature
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/import/legacydata/load")
+	public ThingDTO importLegacyDataLoad(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		try {
+			data=importBServ.importLegacyDataLoad(data,user);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
+	@PostMapping("/api/admin/import/legacydata/verif")
+	public ThingDTO importLegacyDataVerif(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException{
+			data = importBServ.importLegacyDataVerify(data);
+		return data;
+	}
+	
+	@PostMapping("/api/admin/import/legacydata/run")
+	public ThingDTO importLegacyDataRun(Authentication auth, @RequestBody ThingDTO data ) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		try {
+			importBServ.importLegacyDataRun(data, user); 
+			data=thingServ.loadThing(data, user);
+			return data;
+		} catch (ObjectNotFoundException | IOException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+	
+	@PostMapping("/api/admin/import/legacydata/reload")
+	public ThingDTO importLegacyDataReLoad(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		try {
+			data=importBServ.importLegacyDataReload(data,user); 
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
+	@PostMapping("/api/admin/actuator/load")
+	public ActuatorAdmDTO actuatorLoad(Authentication auth, @RequestBody ActuatorAdmDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		data=actuatorService.loadData(data);
+		return data;
+	}
+	
+	/**
+	 * Intermediate save mainly for debug
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/metrics/save")
+	public ActuatorAdmDTO metricsSave(Authentication auth, @RequestBody ActuatorAdmDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		metricServ.collectMetrics();
+		return data;
+	}
+	
+	@PostMapping("/api/admin/report/renewexternal")
+	public ReportConfigDTO reportsRenewExternal(Authentication auth, @RequestBody ReportConfigDTO data) throws DataNotFoundException, SQLException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		dwhServ.upload();
+		return data;
+	}
 }

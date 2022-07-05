@@ -120,10 +120,10 @@ public class ResourceService {
 		if(thing.getDocuments().size()>0) {
 			ThingDoc td = thing.getDocuments().iterator().next();
 			TableQtb table = resDto.getTable();
-			String select =boilerServ.loadQuery("resourcesread");
+			String select ="select * from resource_read";
 			Concept dictRoot = closureServ.getParent(td.getDictNode());
-			jdbcRepo.prepareDictionaryLevel(dictRoot.getID());
-			List<TableRow> rows= jdbcRepo.qtbGroupReport(select, "", "td.DocUrl='"+td.getDocUrl()+"'", table.getHeaders());
+			jdbcRepo.resource_read(dictRoot.getID());
+			List<TableRow> rows= jdbcRepo.qtbGroupReport(select, "", "url='"+td.getDocUrl()+"'", table.getHeaders());
 			TableQtb.tablePage(rows, table);
 			table.setSelectable(false);
 		}

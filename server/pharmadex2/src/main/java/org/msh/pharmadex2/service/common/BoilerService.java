@@ -1,9 +1,15 @@
 package org.msh.pharmadex2.service.common;
 
+import java.text.DateFormat;
+import java.text.DecimalFormat;
+import java.text.Format;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -11,6 +17,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.msh.pdex2.dto.i18n.Language;
 import org.msh.pdex2.dto.table.Headers;
 import org.msh.pdex2.dto.table.TableCell;
@@ -62,6 +73,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
+import org.springframework.format.datetime.DateFormatter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -144,7 +156,7 @@ public class BoilerService {
 	 */
 	public Date localDateTimeToDate(LocalDateTime dateToConvert) {
 		return java.util.Date
-				.from(dateToConvert.atZone(ZoneId.systemDefault())
+				.from(dateToConvert.atZone(ZoneId.of("UTC"))
 						.toInstant());
 	}
 	/**
@@ -156,22 +168,21 @@ public class BoilerService {
 		if(dateToConvert==null) {
 			return new Date();
 		}
-		return java.util.Date.from(dateToConvert.atStartOfDay()
-				.atZone(ZoneId.systemDefault())
-				.toInstant());
+		return java.util.Date.from(dateToConvert.atStartOfDay(ZoneId.of("UTC")).toInstant());
 	}
 	/**
 	 * Date to local date
-	 * @param dateToConvert
+	 * @param date
 	 * @return now if parameter is null
 	 */
-	public LocalDate convertToLocalDateViaMilisecond(Date dateToConvert) {
-		if(dateToConvert== null) {
+	public LocalDate localDateFromDate(Date date) {
+		if(date== null) {
 			return LocalDate.now();
 		}
-		return Instant.ofEpochMilli(dateToConvert.getTime())
-				.atZone(ZoneId.systemDefault())
-				.toLocalDate();
+		String pattern = "yyyy-MM-dd";
+		SimpleDateFormat format = new SimpleDateFormat(pattern);
+		String dateStr=format.format(date);
+		return LocalDate.parse(dateStr);
 	}
 	/**
 	 * Create display value for all headers
@@ -388,6 +399,7 @@ public class BoilerService {
 			}
 		}
 	}
+
 	/**
 	 * Save an assembly
 	 * @param assm
@@ -538,6 +550,20 @@ public class BoilerService {
 			return rego.get();
 		}else {
 			throw new ObjectNotFoundException("registerByConcept. Register not found by concept. Concept ID is "+concept.getID(),logger);
+		}
+	}
+	/**
+	 * GEt register record by ID
+	 * @param regId
+	 * @return null if not found
+	 */
+	@Transactional
+	public Register registerById(Long regId) {
+		Optional<Register> rego = registerRepo.findById(regId);
+		if(rego.isPresent()) {
+			return rego.get();
+		}else {
+			return null;
 		}
 	}
 	/**
@@ -1060,43 +1086,20 @@ public class BoilerService {
 	/**
 	 * The object data is a data that describe an object - a site or a medicinal product, i.e. data of the initial application,
 	 * possible amended 
-	 * @param applicationData
-	 * @return
-	 * @throws ObjectNotFoundException 
+	 * @param any data related to some application
+	 * @return null if the initial application not found 
 	 */
 	@Transactional
-	public Concept objectData(Concept node) throws ObjectNotFoundException {
-		Thing t = thingByNode(node);
-		if(t.getAmendments().size()==0) {
-			//it may be application data or activity data
-			List<History> his = historyByActivitydata(node);
-			if(his.size() ==0) {
-				//things or persons?
-				ThingThing tt=thingThing(node, false);
-				if(tt==null) {
-					//the root of a person
-					ThingPerson tp = thingPerson(node, true);	//ThingPerson points to the root of a person
-					Thing t2=thingByThingPerson(tp, true);		//in own turn ThingPerson refers a some Thing inside the main object
-					return objectData(t2.getConcept());
-				}else {
-					//the thing under persons or application data
-					Thing t1 = thingByThingThing(tt, true);
-					return objectData(t1.getConcept());
-				}
-			}else {
-				Concept applData=his.get(0).getApplicationData();
-				if(applData.getID()==node.getID()) {
-					return node;
-				}else {
-					return objectData(his.get(0).getApplicationData());
-				}
-			}
+	public Concept initialApplicationNode(Concept data) throws ObjectNotFoundException {
+		if(data != null && data.getID()>0) {
+			Long nodeId = jdbcRepo.application_data(null,data.getID());
+			Concept node = closureServ.loadConceptById(nodeId);
+			return node;
 		}else {
-			//it is the amendment
-			return t.getAmendments().iterator().next().getApplicationData();
+			return null;
 		}
 	}
-	
+
 	/**
 	 * PrefLabel should be in the object data to identify the object
 	 * @param var
@@ -1117,6 +1120,142 @@ public class BoilerService {
 			}
 		}
 		return prefLabel;
+	}
+	/**
+	 * Get excel sheet on the index without exception
+	 * @param book
+	 * @param sheetIndex
+	 * @return
+	 */
+	public XSSFSheet getSheetAt(XSSFWorkbook book, int sheetIndex) {
+		try {
+			XSSFSheet ret = book.getSheetAt(sheetIndex);
+			return ret;
+		} catch (Exception e) {
+			return null;
+		}
+	}
+	/**
+	 * GEt a row in excel sheet without exception
+	 * @param sheet
+	 * @param rownum
+	 * @return
+	 */
+	public XSSFRow getSheetRow(XSSFSheet sheet, int rownum) {
+		try {
+			XSSFRow row = sheet.getRow(rownum);
+			return row;
+		} catch (Exception e) {
+			return null;
+		}
+	}
+	/**
+	 * Get a cell ,without exceptions and nulls
+	 * @param row
+	 * @param cellnum
+	 * @return empty string cell if none
+	 */
+	public Cell getCell(XSSFRow row, int cellnum) {
+		XSSFCell ret = row.getCell(cellnum);
+		if(ret!=null) {
+			return ret;
+		}else {
+			return row.createCell(cellnum);
+		}
+	}
+	/**
+	 * GEt date cell value no exception
+	 * @param row
+	 * @param col
+	 * @return
+	 */
+	public Date getDateCellValue(XSSFRow row, int col) {
+		XSSFCell cell;
+		try {
+			cell = row.getCell(col);
+		} catch (Exception e) {
+			return null;
+		}
+		if(cell!=null) {
+			try {
+				Date ret=cell.getDateCellValue();
+				return ret;
+			} catch (Exception e) {
+				return null;
+			}
+		}
+		return null;
+	}
+	/**
+	 * Get cell value as a string. No exceptions
+	 * @param row
+	 * @param col
+	 * @return
+	 */
+	public String getStringCellValue(XSSFRow row, int col) {
+		XSSFCell cell;
+		try {
+			cell = row.getCell(col);
+		} catch (Exception e) {
+			return null;
+		}
+		if(cell!=null) {
+			try {
+				String ret="";
+				try {
+					ret=cell.getStringCellValue();
+				} catch (Exception e) {
+					double regNod = cell.getNumericCellValue();
+					DecimalFormat df = new DecimalFormat("#");
+					df.setMaximumFractionDigits(0);
+					df.setMinimumFractionDigits(0);
+					ret=df.format(regNod);
+				}
+				return ret;
+			} catch (Exception e) {
+				return null;
+			}
+		}
+		return null;
+	}
+	
+	/**
+	 * Get cell value as a string. No exceptions
+	 * @param row
+	 * @param col
+	 * @return
+	 */
+	public Double getNumberCellValue(XSSFRow row, int col) {
+		XSSFCell cell;
+		try {
+			cell = row.getCell(col);
+		} catch (Exception e) {
+			return null;
+		}
+		if(cell!=null) {
+			try {
+				Double ret = null;
+				try {
+					ret = cell.getNumericCellValue();
+				} catch (Exception e) {
+					return null;
+				}
+				return ret;
+			} catch (Exception e) {
+				return null;
+			}
+		}
+		return null;
+	}
+	/**
+	 * Create LocalDateTime from java.util.date
+	 * @param dateToConvert
+	 * @return
+	 */
+	public LocalDateTime localDateTimeServer(Date dateToConvert) {
+		return Instant.ofEpochMilli(dateToConvert.getTime())
+			      .atZone(ZoneId.systemDefault())
+			      .toLocalDateTime();
 	}
 
 }

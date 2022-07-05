@@ -21,6 +21,7 @@ import Inns from './Inns'
 import ReportConfigurator from './reports/ReportConfigurator'
 import Import_A from './Import_A'
 import Import_B from './Import_B'
+import ActuatorAdm from './ActuatorAdm'
 
 /**
  * Administrative functions for the supervisor
@@ -123,6 +124,8 @@ class Administrate extends Component{
                 return <Import_A/>
             case "import_b":
                 return <Import_B/>
+            case "actuator":
+                return <ActuatorAdm/>
             default:
                 return []
         }
@@ -287,6 +290,14 @@ class Administrate extends Component{
                                             </DropdownItem>
                                         </DropdownMenu>
                                         </UncontrolledDropdown>
+                                        <NavItem>
+                                            <NavLink active={this.state.menu=='actuator'}
+                                                    href="/admin#administrate/actuator">
+                                                <div>
+                                                    actuatorMonitoring
+                                                </div>
+                                            </NavLink>
+                                        </NavItem>
                                         <NavItem>
                                             <NavLink href="/admin">{this.state.labels.global_exit}</NavLink>
                                         </NavItem>

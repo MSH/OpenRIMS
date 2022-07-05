@@ -200,30 +200,34 @@ public class ApplicationService {
 
 
 	/**
-	 * Create histroy table
+	 * Create application information table
 	 * @param user 
 	 * @param data
+	 * @param manager - called from the manager
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public ApplicationHistoryDTO historyTable(UserDetailsDTO user, ApplicationHistoryDTO data) throws ObjectNotFoundException {
+	public ApplicationHistoryDTO applicationInformationTable(UserDetailsDTO user, ApplicationHistoryDTO data, boolean manager) throws ObjectNotFoundException {
 		if(data.getApplDictNodeId()>0) {
 			Concept dictNode = closureServ.loadConceptById(data.getApplDictNodeId());
 			data.setApplName(literalServ.readPrefLabel(dictNode));
 		}
 		if(data.getHistoryId()>0) {
 			History his = boilerServ.historyById(data.getHistoryId());
+			if(his.getPrevNotes() != null) {
+				data.setNotes(his.getPrevNotes());
+			}
 			Concept dictNode = his.getApplDict();
 			data.setApplName(literalServ.readPrefLabel(dictNode));
 			data.setApplDictNodeId(dictNode.getID());
 			TableQtb table = data.getTable();
 			if(table.getHeaders().getHeaders().size()==0) {
-				table.setHeaders(historyHeaders(table.getHeaders(),user));
+				table.setHeaders(historyHeaders(table.getHeaders(),user,manager));
 			}
-			Concept objectData = boilerServ.objectData(his.getApplicationData());
+			Concept objectData = boilerServ.initialApplicationNode(his.getApplicationData());
 			jdbcRepo.application_history(objectData.getID());
-			table =historyTableRows(user, table);
+			table =historyTableRows(user, table, manager);
 			table.setSelectable(accServ.isSupervisor(user));
 			data.setTable(table);
 			return data;
@@ -234,11 +238,12 @@ public class ApplicationService {
 	 * Rows for history table
 	 * @param user
 	 * @param table
+	 * @param manager 
 	 */
 	@Transactional
-	public TableQtb historyTableRows(UserDetailsDTO user, TableQtb table) {
+	public TableQtb historyTableRows(UserDetailsDTO user, TableQtb table, boolean manager) {
 		String where = "come<(curdate() + Interval 1 day)";
-		if(accServ.isApplicant(user)) {
+		if(!manager) {
 			where = where + " and go is not null";
 		}
 		List<TableRow> rows=jdbcRepo.qtbGroupReport("select * from application_history", "", where, table.getHeaders());
@@ -251,9 +256,10 @@ public class ApplicationService {
 	 * usage in ApplicationService and ReportService
 	 * @param headers
 	 * @param user 
+	 * @param manager create table for TODO and Monitoring. Otherwise - report
 	 * @return
 	 */
-	public Headers historyHeaders(Headers headers, UserDetailsDTO user) {
+	public Headers historyHeaders(Headers headers, UserDetailsDTO user, boolean manager) {
 		headers.getHeaders().add(TableHeader.instanceOf(
 				"come",
 				"global_date",
@@ -278,13 +284,17 @@ public class ApplicationService {
 				true,
 				TableHeader.COLUMN_LONG,
 				0));
+		int colType = TableHeader.COLUMN_STRING;
+		if(manager) {
+			colType=TableHeader.COLUMN_LINK;
+		}
 		headers.getHeaders().add(TableHeader.instanceOf(
 				"workflow",
 				"workflows",
 				true,
 				true,
 				true,
-				TableHeader.COLUMN_STRING,
+				colType,
 				0));
 		headers.getHeaders().add(TableHeader.instanceOf(
 				"activity",
@@ -312,6 +322,16 @@ public class ApplicationService {
 				true,
 				TableHeader.COLUMN_STRING,
 				0));
+		if(!manager) {
+		headers.getHeaders().add(TableHeader.instanceOf(
+				"details",
+				"Global_details",
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_I18LINK,
+				0));
+		}
 		headers=boilerServ.translateHeaders(headers);
 		headers.getHeaders().get(0).setSort(true);
 		headers.getHeaders().get(0).setSortValue(TableHeader.SORT_ASC);
@@ -1012,7 +1032,7 @@ public class ApplicationService {
 		if(table.getHeaders().getHeaders().size()==0) {
 			table.setHeaders(myHeaders(table.getHeaders()));
 		}
-		jdbcRepo.myActivities(user.getEmail());
+		jdbcRepo.activities(user.getEmail());
 		String select="select * from _activities";
 		String where="Come<=(curdate() + INTERVAL 2 DAY)";
 		List<TableRow> rows =jdbcRepo.qtbGroupReport(select, "", where, table.getHeaders());
@@ -1043,7 +1063,7 @@ public class ApplicationService {
 				true,
 				true,
 				true,
-				TableHeader.COLUMN_STRING,
+				TableHeader.COLUMN_LINK,
 				0));
 		headers.getHeaders().add(TableHeader.instanceOf(
 				"applicant",
@@ -1067,7 +1087,7 @@ public class ApplicationService {
 				true,
 				true,
 				true,
-				TableHeader.COLUMN_LINK,
+				TableHeader.COLUMN_STRING,
 				0));
 		headers=boilerServ.translateHeaders(headers);
 		headers.getHeaders().get(0).setSortValue(TableHeader.SORT_ASC);
@@ -1084,7 +1104,7 @@ public class ApplicationService {
 		if(table.getHeaders().getHeaders().size()==0) {
 			table.setHeaders(myHeaders(table.getHeaders()));
 		}
-		jdbcRepo.myActivities(user.getEmail());
+		jdbcRepo.activities(user.getEmail());
 		String select="select * from _activities";
 		String where="Come>curdate()";
 		List<TableRow> rows =jdbcRepo.qtbGroupReport(select, "", where, table.getHeaders());
@@ -1151,14 +1171,17 @@ public class ApplicationService {
 				switch(selected) {
 				case 0:
 					data=nextJobChoice(his,user,data);
+					data.getExecs().getRows().clear();//ika24062022
 					data=executorsNextChoice(his,user,data,false);
 					break;
 				case 1:
 					data.getNextJob().getRows().clear();
+					data.getExecs().getRows().clear();//ika24062022
 					data=executorsThisChoice(his,user,data);
 					break;
 				case 2:
 					data=nextJobChoice(his,user,data);
+					data.getExecs().getRows().clear();//ika24062022
 					data=executorsNextChoice(his,user,data,false);
 					break;
 				case 3:
@@ -1176,6 +1199,7 @@ public class ApplicationService {
 					break;
 				case 6:
 					data.getNextJob().getRows().clear();
+					data.getExecs().getRows().clear();//ika24062022
 					data=executorsThisChoice(his,user,data);
 					break;
 				case 7:
@@ -1185,6 +1209,7 @@ public class ApplicationService {
 					break;
 				case 8:
 					data=nextJobChoice(his,user,data);
+					data.getExecs().getRows().clear();//ika24062022
 					data=executorsNextChoice(his,user,data,false);
 					break;
 				default:
@@ -1225,7 +1250,7 @@ public class ApplicationService {
 					for(ThingScheduler ts :th.getSchedulers()){
 						Scheduler sch = boilerServ.schedulerByNode(ts.getConcept());
 						String process = sch.getProcessUrl();
-						LocalDate sched = boilerServ.convertToLocalDateViaMilisecond(sch.getScheduled());
+						LocalDate sched = boilerServ.localDateFromDate(sch.getScheduled());
 						TableRow row = TableRow.instanceOf(ts.getID());		//we need only unique long
 						row.getRow().add(TableCell.instanceOf("processes",process));
 						row.getRow().add(TableCell.instanceOf("scheduled",sched,LocaleContextHolder.getLocale()));
@@ -1304,6 +1329,7 @@ public class ApplicationService {
 		Long nextActConfId = data.nextActivity(); 
 		if(nextActConfId>0) {
 			Concept actConf=closureServ.loadConceptById(nextActConfId);
+			data.getExecs().getRows().clear();
 			data.setExecs(executorsTable(his, actConf, data.getExecs(),limitToAU));
 		}else {
 			data.getExecs().getRows().clear();
@@ -1509,8 +1535,34 @@ public class ApplicationService {
 					}
 					execTable.setSelectable(true);
 					TableQtb.tablePage(rows, execTable);
+					}
+				}else {
+					Concept parent=closureServ.getParent(curHis.getApplicationData());
+					String applicant=parent.getIdentifier();
+					execTable.setHeaders(headersExecutors(execTable.getHeaders()));
+					List<TableRow> rows = new ArrayList<TableRow>();
+					List<TableCell> cells = new ArrayList<TableCell>();
+					TableRow row= new TableRow();
+					TableCell cell= new TableCell();
+					cell.setKey("username");
+					cell.setValue("APPLICANT");
+					cells.add(cell);
+					TableCell cell1= new TableCell();
+					cell1.setKey("orgname");
+					cell1.setValue("-----");
+					cells.add(cell1);
+					TableCell cell2= new TableCell();
+					cell2.setKey("email");
+					cell2.setValue(applicant);
+					cells.add(cell2);
+					row.setRow(cells);
+					row.setSelected(true);
+					rows.add(row);
+					
+					execTable.setSelectable(true);
+					
+					TableQtb.tablePage(rows, execTable);
 				}
-			}
 		}else {
 			execTable.getRows().clear();
 		}
@@ -1822,7 +1874,6 @@ public class ApplicationService {
 	 */
 	@Transactional
 	private ActivitySubmitDTO submitReject(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException, JsonProcessingException {
-		cancelWorkflow(curHis, data);
 		Concept applicant = closureServ.getParent(curHis.getApplicationData());
 		rejectApplication(curHis, applicant.getIdentifier(), data);
 		return data;
@@ -1837,13 +1888,20 @@ public class ApplicationService {
 	 */
 	@Transactional
 	private void rejectApplication(History curHis, String applicantEmail, ActivitySubmitDTO data) throws ObjectNotFoundException, JsonProcessingException {
+		//cancel all histories, close the current
+		List<History> allHist= boilerServ.historyAll(curHis.getApplicationData());
+		for(History h : allHist) {
+			if(h.getGo() == null) {
+				closeActivity(h, h.getID()!=curHis.getID());
+			}
+		}
+		//create new application
 		ThingDTO tdto  = new ThingDTO();
 		tdto.setNodeId(curHis.getApplicationData().getID());
 		Concept applicant = closureServ.getParent(curHis.getApplication());
 		Concept application = closureServ.getParent(applicant);
 		tdto.setApplicationUrl(application.getIdentifier());
 		tdto.setApplDictNodeId(curHis.getApplDict().getID());
-
 		UserDetailsDTO user = new UserDetailsDTO();
 		user.setEmail(applicantEmail);
 		tdto=thingServ.loadThing(tdto, user);
@@ -1852,9 +1910,7 @@ public class ApplicationService {
 		History his = boilerServ.historyById(tdto.getHistoryId());
 		his.setPrevNotes(data.getNotes().getValue());
 		his=boilerServ.saveHistory(his);
-		/*Concept activity = createActivityNode("activity.reject", applicantEmail);
-		openHistory(null,curHis, null, activity, null,data.getNotes().getValue());		//there is no activity configuration for application itself
-		 */	}
+	}
 	/**
 	 * Cancel all opened activities in this workflow
 	 * @param curHis
@@ -2140,8 +2196,15 @@ public class ApplicationService {
 				data=amendmentServ.implement(curHis, actConf, data, user);	//is it amendment?
 				if(data.isValid()) {
 					for(Long execId : executors) {
+						//ika => execId=0 !!! APPLICANT
+						String identifierUser="";
+							if(execId==0) {
+								identifierUser=data.getExecs().getRows().get(0).getRow().get(2).getValue();
+							}else {
 						Concept userConc = closureServ.loadConceptById(execId);
-						activityCreate(null,actConf, curHis, userConc.getIdentifier(), data.getNotes().getValue());
+						identifierUser=userConc.getIdentifier();
+							}
+						activityCreate(null,actConf, curHis, identifierUser, data.getNotes().getValue());
 					}
 				}
 			}else {
@@ -2332,11 +2395,11 @@ public class ApplicationService {
 				data.setPrefLabel("");
 			}
 			//dates
-			LocalDate come = boilerServ.convertToLocalDateViaMilisecond(his.getCome());
+			LocalDate come = boilerServ.localDateFromDate(his.getCome());
 			data.getGlobal_startdate().setValue(come);
 			LocalDate go=null;
 			if(his.getGo() != null) {
-				go=boilerServ.convertToLocalDateViaMilisecond(his.getGo());
+				go=boilerServ.localDateFromDate(his.getGo());
 				data.getCompleteddate().setValue(go);
 				data.setCompleted(true);
 			}else {

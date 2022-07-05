@@ -43,6 +43,7 @@ class Thing extends Component{
         this.autoFillKey=undefined              //prefLabel strings, literals none of above
         this.comparator=undefined               //for auto fill too
         this.state={
+            repaint:this.props.data.repaint,
             identifier:Date.now().toString(),  //my address for messages
             data:this.props.data,             //ThingDTO         
             labels:{},
@@ -102,7 +103,7 @@ class Thing extends Component{
      * savedByAction means saved by Save button
      */
          saveGuest(savedByAction){
-            Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName()+"/thing/save/application",this.state.data,(query,result)=>{
+            Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/thing/save/application",this.state.data,(query,result)=>{
                 this.state.data=result
                 if(this.state.data.valid){
                     this.storeLocal()
@@ -121,7 +122,7 @@ class Thing extends Component{
      * savedByAction means saved by Save button
      */
     save(savedByAction){
-        Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName()+"/thing/save",this.state.data,(query,result)=>{
+        Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/thing/save",this.state.data,(query,result)=>{
             this.state.data=result
             if(this.state.data.valid){
                 this.storeLocal()
@@ -154,6 +155,14 @@ class Thing extends Component{
                     this.setState(this.state)
                     Navigator.message(this.state.identifier, this.props.recipient, "thingValidated", result)
                 })
+            }
+            if(data.subject=='thingReload'){
+                if(this.props.noload){
+                    this.state.data=data.data
+                    this.setState(this.state)
+                }else{
+                    this.load()
+                }
             }
             if(data.subject=='saveResource'){
                 Fetchers.postJSON("/api/admin/resource/save", this.state.data, (query,result)=>{
@@ -208,10 +217,10 @@ class Thing extends Component{
            if(data.subject=='auxPath'){
             this.state.data.auxPathVar=data.data.varName
             this.state.data.strict=false
-            Fetchers.postJSONNoSpinner("/api/guest/thing/save/application",this.state.data,(query,result)=>{
+            Fetchers.postJSON("/api/guest/thing/save/application",this.state.data,(query,result)=>{
                 this.state.data=result
                 if(result.valid){
-                    Fetchers.postJSONNoSpinner("/api/guest/activity/auxpath", this.state.data, (query,result)=>{
+                    Fetchers.postJSON("/api/guest/activity/auxpath", this.state.data, (query,result)=>{
                         this.state.data=result
                         if(result.valid){
                             Navigator.message(this.state.identifier, this.props.recipient, "auxPath", this.state.data)
@@ -230,6 +239,7 @@ class Thing extends Component{
 
     componentDidMount(){
         window.addEventListener("message",this.eventProcessor)
+        this.state.data.repaint=false
         this.load()
     }
     /**
@@ -324,9 +334,10 @@ class Thing extends Component{
             }
         }
         Navigator.message(this.state.identifier, this.props.recipient, "thingUpdated", this.state.data)
-        if(this.props.data.repaint){
+        this.state.data.repaint=this.state.data.nodeId != this.props.data.nodeId
+        if(this.state.data.repaint){
             this.state.data=this.props.data
-            this.props.data.repaint=false
+            this.state.data.repaint=false
             this.load()
         }
     }
