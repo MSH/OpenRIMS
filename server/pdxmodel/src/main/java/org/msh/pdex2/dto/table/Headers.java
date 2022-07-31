@@ -241,6 +241,17 @@ public class Headers {
 		}
 		return ret;
 	}
+	/**
+	 * Create common headers
+	 * @param headers1
+	 * @return
+	 */
+	public static Headers of(List<TableHeader> listHeaders) {
+		Headers headers = new Headers();
+		headers.setPageSize(Integer.MAX_VALUE);
+		headers.getHeaders().addAll(listHeaders);
+		return headers;
+	}
 
 	
 	

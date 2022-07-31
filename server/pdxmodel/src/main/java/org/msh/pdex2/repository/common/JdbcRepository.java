@@ -7,8 +7,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.msh.pdex2.dto.table.HasRow;
 import org.msh.pdex2.dto.table.Headers;
@@ -16,6 +19,7 @@ import org.msh.pdex2.dto.table.TableCell;
 import org.msh.pdex2.dto.table.TableHeader;
 import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
+import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.model.r2.Concept;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +30,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -386,7 +391,7 @@ public class JdbcRepository {
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 	}
-	
+
 	public void userByOrganization(long orgID) {
 		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
 		proc.withProcedureName("users_org");
@@ -1002,7 +1007,7 @@ public class JdbcRepository {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("sessionId", newSessionID);
 		proc.execute(params);
-		
+
 	}
 	/**
 	 * Read resource to upload
@@ -1015,7 +1020,131 @@ public class JdbcRepository {
 		params.addValue("dictRootId", dictRootId);
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
-		
+
 	}
+	/**
+	 * Get list of headers based on the resultset columns
+	 * @param select - select statement, typically where=false
+	 * @param except - which columns should be excluded - case sensitive!
+	 * @return
+	 */
+	public List<TableHeader> headersFromSelect(String select, List<String> except) {
+		List<TableHeader> ret = new ArrayList<TableHeader>();
+		final SqlRowSet rs = this.jdbcTemplate.queryForRowSet(select);
+		for(int i=0;i<rs.getMetaData().getColumnCount();i++) {
+			String key=rs.getMetaData().getColumnNames()[i];
+			if(!except.contains(key) && !key.equalsIgnoreCase("ID")) {
+				String cType=rs.getMetaData().getColumnTypeName(i+1);
+				int columnType=TableHeader.COLUMN_STRING;
+				switch(cType) {
+				case "BIGINT":
+				case "INT":
+					columnType=TableHeader.COLUMN_LONG;
+					break;
+				case "DATE":
+					columnType=TableHeader.COLUMN_LOCALDATE;
+					break;
+				case "DATETIME":
+					columnType=TableHeader.COLUMN_LOCALDATETIME;
+					break;
+				case "DECIMAL":
+					columnType=TableHeader.COLUMN_DECIMAL;
+					break;
+				case "TINYINT":
+				case "BIT":
+					columnType=TableHeader.COLUMN_BOOLEAN_CHECKBOX;
+					break;
+				}
+				ret.add(TableHeader.instanceOf(
+						key,
+						key,
+						true,
+						true,
+						true,
+						columnType,
+						0));
+			}
+		}
+		return ret;
+	}
+
+	public void data_config_vars(String url) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("data_config_vars");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("url", url);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+
+	}
+
+	public void dict_level_ext(long nodeID) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("dict_level_ext");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("nodeID", nodeID);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+	}
+	/**
+	 * Query two column table, and, then, pivot it
+	 * @param select - select phrase
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public TableQtb queryAndPivot(String select) throws ObjectNotFoundException {
+		List<TableHeader> headers= headersFromSelect(select + " LIMIT 1", new ArrayList<String>());
+		if(headers.size()==2) {
+			List<TableRow> rows = qtbGroupReport(select, "", "", Headers.of(headers));
+			if(rows.size()>0) {
+				long id=0;
+				List<TableHeader> pHeaders= new ArrayList<TableHeader>();
+				TableRow pRow = TableRow.instanceOf(id);
+				List<TableRow> pRows= new ArrayList<TableRow>();
+				//determine headers from the first column
+				Set<String> keys = new LinkedHashSet<String>();
+				for(TableRow row: rows) {
+					keys.add(row.getRow().get(0).getValue());
+				}
+				for(String key : keys) {
+					pHeaders.add(TableHeader.instanceOf(key, headers.get(1).getColumnType()));
+				}
+				//pivot rows
+				for(TableRow row: rows) {
+					if(row.getDbID()!=id) {
+						//create a new row with all columns
+						id=row.getDbID();
+						if(pRow.getDbID()>0) {
+							pRows.add(pRow);
+						}
+						pRow = TableRow.instanceOf(id);
+						for(TableHeader ph : pHeaders) {
+							pRow.getRow().add(TableCell.instanceOf(ph.getKey()));
+						}
+					}
+					//fill-out cells in the row
+					String key = row.getRow().get(0).getValue();
+					TableHeader h = TableHeader.instanceOf(key, headers.get(1).getColumnType());
+					int index= pHeaders.indexOf(h);
+					if(index>-1) {
+						pRow.getRow().get(index).setOriginalValue(row.getRow().get(1).getOriginalValue());
+						pRow.getRow().get(index).setValue(row.getRow().get(1).getValue());
+					}
+				}
+				//success
+				TableQtb ret = new TableQtb();
+				ret.getHeaders().setPageSize(Integer.MAX_VALUE);
+				ret.getHeaders().getHeaders().addAll(pHeaders);
+				ret.getRows().addAll(pRows);
+				return ret;
+			}else {
+				//pivoting is impossible
+				return new TableQtb();
+			}
+		}else {
+			throw new ObjectNotFoundException("The source table should contain two columns for pivoting. Select is "+select,logger);
+		}
+	}
+
 
 }

@@ -41,6 +41,7 @@ import org.msh.pharmadex2.service.r2.SupervisorService;
 import org.msh.pharmadex2.service.r2.SystemService;
 import org.msh.pharmadex2.service.r2.ThingService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -88,6 +89,9 @@ public class AdminAPI {
 	private MetricService metricServ;
 	@Autowired
 	private DWHService dwhServ;
+	
+	
+	
 	/**
 	 * Tiles for landing page
 	 * 
@@ -900,17 +904,9 @@ public class AdminAPI {
 		return data;
 	}
 	
-	/**
-	 * Intermediate save mainly for debug
-	 * @param auth
-	 * @param data
-	 * @return
-	 * @throws DataNotFoundException
-	 */
-	@PostMapping("/api/admin/metrics/save")
-	public ActuatorAdmDTO metricsSave(Authentication auth, @RequestBody ActuatorAdmDTO data) throws DataNotFoundException {
-		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-		metricServ.collectMetrics();
+	@PostMapping("/api/admin/metric/test")
+	public ActuatorAdmDTO metricTest(Authentication auth, @RequestBody ActuatorAdmDTO data) throws DataNotFoundException {
+		metricServ.collectMetricTTR();
 		return data;
 	}
 	
@@ -920,4 +916,5 @@ public class AdminAPI {
 		dwhServ.upload();
 		return data;
 	}
+	
 }

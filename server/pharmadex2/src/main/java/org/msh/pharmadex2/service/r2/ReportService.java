@@ -2,8 +2,10 @@ package org.msh.pharmadex2.service.r2;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.msh.pdex2.dto.table.Headers;
+import org.msh.pdex2.dto.table.TableCell;
 import org.msh.pdex2.dto.table.TableHeader;
 import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
@@ -11,12 +13,12 @@ import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
-import org.msh.pdex2.model.r2.Thing;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.ApplicationEventsDTO;
 import org.msh.pharmadex2.dto.ApplicationHistoryDTO;
 import org.msh.pharmadex2.dto.CheckListDTO;
+import org.msh.pharmadex2.dto.DataCollectionDTO;
 import org.msh.pharmadex2.dto.ReportConfigDTO;
 import org.msh.pharmadex2.dto.ReportDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
@@ -25,6 +27,8 @@ import org.msh.pharmadex2.service.common.BoilerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 /**
@@ -60,6 +64,11 @@ public class ReportService {
 	private RegisterService registerServ;
 	@Autowired
 	private DWHService dwhServ;
+	@Autowired
+	private DictService dictServ;
+	
+	@Value( "${link.report.datastudio.pharms:\"\"}" )
+	public String linkReport;
 
 	/**
 	 * Load a report
@@ -221,7 +230,7 @@ public class ReportService {
 		table.setSelectable(false);
 		return data;
 	}
-	
+
 	/**
 	 * Headers for de-registered sites
 	 * @param headers
@@ -421,7 +430,7 @@ public class ReportService {
 	@Transactional
 	public ReportConfigDTO reportConfigurationLoad(ReportConfigDTO data) throws ObjectNotFoundException {
 		data=reportConfiguratuonTable(data);
-		
+
 		data.setEnabledrenewext(dwhServ.enablesBtn());
 		return data;
 	}
@@ -626,10 +635,10 @@ public class ReportService {
 		String prefLabel="";
 		data.getLeftThing().setNodeId(data.getOldDataId());
 		data.getRightThing().setNodeId(data.getCurrDataId());
-			
-			/*
-			
-			
+
+		/*
+
+
 			List<History> hisl = boilerServ.historyAll(amendmentAppRoot);
 			if(hisl.size()>0) {
 				//amended
@@ -738,7 +747,7 @@ public class ReportService {
 		//to be continue..
 		return data;
 	}
-	
+
 	/**
 	 * Load application history by node ID
 	 * @param data
@@ -778,5 +787,134 @@ public class ReportService {
 		}
 		return dto;
 	}
+	/**
+	 * Recursive load data configurations in form of <varname, dto> for export to Excel and other joys
+	 * @param varName - variable name
+	 * @param mainUrl url of the data configuration
+	 * @param ret - result map - variable name, DTO
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public Map<String, DataCollectionDTO> dataConfigurations(String varName, String mainUrl, Map<String, DataCollectionDTO> ret) throws ObjectNotFoundException {
+		//get root by mainUrl
+		logger.trace(varName+"---->"+mainUrl);
+		Concept root=closureServ.loadRoot("configuration.data");
+		Concept node=closureServ.findConceptInBranchByIdentifier(root, mainUrl);
+		DataCollectionDTO dto = new DataCollectionDTO();
+		dto.setNodeId(node.getID());
+		dto.getDescription().setValue(literalServ.readPrefLabel(node));
+		dto.getUrl().setValue(mainUrl);
+		dto.setVarName(varName);
+		//variables
+		List<String> excl = new ArrayList<String>();
+		excl.add("ID");
+		excl.add("conceptID");
+		excl.add("Discriminator");
+		jdbcRepo.data_config_vars(mainUrl);
+		List<TableHeader> uiHeaders=jdbcRepo.headersFromSelect("select * from data_config_vars where false", excl);
+		dto.getTable().getHeaders().getHeaders().clear();
+		dto.getTable().getHeaders().getHeaders().addAll(uiHeaders);
+		dto.getTable().getHeaders().setPageSize(Integer.MAX_VALUE);
+		List<TableRow> rows=jdbcRepo.qtbGroupReport("select * from data_config_vars", "", "", dto.getTable().getHeaders());
+		dto.getTable().getRows().clear();
+		dto.getTable().getRows().addAll(rows);
+		//add to the result
+		ret.put(mainUrl, dto);
+		//things inside
+		for(TableRow row :rows) {
+			String clazz=row.getCellByKey("clazz").getValue();
+			String vn=row.getCellByKey("varname").getValue();
+			//Things and persons
+			if(clazz.equalsIgnoreCase("things")) {
+				String url=row.getCellByKey("url").getValue();
+				String auxUrl=row.getCellByKey("AuxDataUrl").getValue();
+				ret=dataConfigurations(vn, url, ret);
+				if(auxUrl!=null) {	//persons
+					if(auxUrl.length()>0) {
+						ret=dataConfigurations(auxUrl, auxUrl, ret);
+					}
+				}
+			}
+			//check dictionaries
+			if(clazz.equalsIgnoreCase("dictionaries") || clazz.equalsIgnoreCase("documents")) {
+				String url = row.getCellByKey("Url").getValue();
+				if(clazz.equalsIgnoreCase("documents")) {
+					url=row.getCellByKey("dictUrl").getValue();
+				}
+				ret=dictConfigurations(vn, url,ret);
+			}
+			//check resources
+			if(clazz.equalsIgnoreCase("resources")) {
+				String rUrl=row.getCellByKey("Url").getValue();
+				Concept rRoot = closureServ.loadRoot("configuration.resources");
+				Concept rLang=closureServ.findConceptInBranchByIdentifier(rRoot, LocaleContextHolder.getLocale().toString().toUpperCase());
+				Concept rNode=closureServ.findConceptInBranchByIdentifier(rLang, rUrl);
+				String dataConfigUrl=rNode.getLabel();
+				ret=dataConfigurations(rUrl, dataConfigUrl, ret);
+			}
+		}
 
+		return ret;
+	}
+	/**
+	 * Upload a dictionary by URL
+	 * @param vn
+	 * @param dictUrl
+	 * @param ret
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public Map<String, DataCollectionDTO> dictConfigurations(String vn, String dictUrl,
+			Map<String, DataCollectionDTO> ret) throws ObjectNotFoundException {
+		if(!ret.keySet().contains(dictUrl)) {
+			logger.trace("dict ---->"+vn+"---->"+dictUrl);
+			//get a dictionary by url
+			Concept root = closureServ.loadRoot(dictUrl);
+			boolean system=dictServ.checkSystem(root);
+			boolean addresses=dictServ.isAdminUnits(root);
+			if(!system && !addresses) {
+				TableQtb table = new TableQtb();
+				table=dictLevel(1, root.getID(), table);
+				DataCollectionDTO dto = new DataCollectionDTO();
+				dto.setTable(table);
+				dto.getUrl().setValue(dictUrl);
+				dto.setVarName(vn);
+				ret.put(dictUrl,dto);
+			}
+		}
+		return ret;
+	}
+	/**
+	 * Recursive add rows to the table from the next level of a dictionary
+	 * @param level
+	 * @param table
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private TableQtb dictLevel(int level, long parentID, TableQtb table) throws ObjectNotFoundException {
+		//create a table from dictionary literals and the first level
+		jdbcRepo.dict_level_ext(parentID);
+		TableQtb table1 = jdbcRepo.queryAndPivot("select * from dict_level_ext");
+		if(table.getHeaders().getHeaders().size()==0) {
+			table.getHeaders().getHeaders().add(0, TableHeader.instanceOf("level", TableHeader.COLUMN_LONG));
+			table.getHeaders().getHeaders().addAll(table1.getHeaders().getHeaders());
+		}
+		for(TableRow row1 : table1.getRows()) {
+			TableCell cell = TableCell.instanceOf("level");
+			TableRow row = TableRow.instanceOf(row1.getDbID());
+			cell.setOriginalValue(level);
+			cell.setValue(level+"");
+			row.getRow().add(0, cell);
+			row.getRow().addAll(row1.getRow());
+			table.getRows().add(row);
+			//recursive call for the next level
+			table=dictLevel(level+1,row.getDbID(), table);
+		}
+		return table;
+	}
+	public String getLinkReport() {
+		return linkReport;
+	}
 }

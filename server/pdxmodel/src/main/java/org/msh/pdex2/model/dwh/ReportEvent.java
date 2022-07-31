@@ -28,8 +28,8 @@ public class ReportEvent implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC222274181AB73CE670B14E")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC222274181AB73CE670B14E", strategy="native")	
+	@GeneratedValue(generator="VAC2222741823EA5BF1808ACA")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222741823EA5BF1808ACA", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	
@@ -52,9 +52,6 @@ public class ReportEvent implements Serializable {
 	
 	@Column(name="EventNumber", nullable=true, length=255)	
 	private String eventNumber;
-	
-	@Column(name="ReportPageId", nullable=false, length=20)	
-	private long reportPageId;
 	
 	@Column(name="Event", nullable=true, length=255)	
 	private String event;
@@ -170,20 +167,6 @@ public class ReportEvent implements Serializable {
 	 */
 	public long getEventId() {
 		return eventId;
-	}
-	
-	/**
-	 * ID of activity configuration
-	 */
-	public void setReportPageId(long value) {
-		this.reportPageId = value;
-	}
-	
-	/**
-	 * ID of activity configuration
-	 */
-	public long getReportPageId() {
-		return reportPageId;
 	}
 	
 	public void setReportSession(org.msh.pdex2.model.dwh.ReportSession value) {

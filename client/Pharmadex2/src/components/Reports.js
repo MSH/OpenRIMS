@@ -20,13 +20,16 @@ class Reports extends Component{
                 global_exit:'',
                 reports:'',
                 global_home:'',
-            }
+                externalreport:""
+            },
+            reportLink: ""
         }
         this.eventProcessor=this.eventProcessor.bind(this)
         this.content=this.content.bind(this)
         this.exitNav=this.exitNav.bind(this)
         this.reportReady=this.reportReady.bind(this)
         this.createBreadCrumb=this.createBreadCrumb.bind(this)
+        this.loadLink=this.loadLink.bind(this)
     }
 
     /**
@@ -51,10 +54,18 @@ class Reports extends Component{
     componentDidMount(){
         window.addEventListener("message",this.eventProcessor)
         Locales.resolveLabels(this)
+        this.loadLink()
     }
 
     componentWillUnmount(){
         window.removeEventListener("message",this.eventProcessor)
+    }
+
+    loadLink(){
+        Fetchers.postJSON("/api/public/report/loadlink", this.state.reportLink, (query,result)=>{
+            this.state.reportLink=result
+            this.setState(this.state)
+        })
     }
     /**
      * Report is ready
@@ -93,8 +104,8 @@ class Reports extends Component{
     exitNav(){
         if(Navigator.componentName().toLowerCase()=='printpreview'){
             return(
-            <Nav className="me-auto" navbar>
-                <Nav>     
+            /*<Nav className="me-auto" navbar>
+                <Nav>     */
                     <NavItem>
                         <Button color="link"
                             onClick={()=>{
@@ -104,18 +115,18 @@ class Reports extends Component{
                             {this.state.labels.global_exit}
                         </Button>
                     </NavItem>
-                </Nav>
-            </Nav>
+               /* </Nav>
+            </Nav> */
             )
         }else{
             return(
-                <Nav className="me-auto" navbar>
-                    <Nav>     
+               /* <Nav className="me-auto" navbar>
+                    <Nav>      */
                         <NavItem>
                             <NavLink href={"/"+Navigator.tabSetName()+"#"}>{this.state.labels.global_exit}</NavLink>
                         </NavItem>
-                    </Nav>
-                </Nav>
+                   /* </Nav>
+                </Nav> */
             )
         }
     }
@@ -184,9 +195,22 @@ class Reports extends Component{
                     <Col>
                     <Navbar light expand="md">
                             <NavbarBrand>{this.state.labels.reports}</NavbarBrand>
+
                             <NavbarToggler onClick={()=>{this.state.isOpen=!this.state.isOpen; this.setState(this.state)}} className="me-2" />
                                 <Collapse isOpen={this.state.isOpen} navbar>
-                                   {this.exitNav()}
+                                    <Nav className="me-auto" navbar>
+                                        {(this.state.reportLink == "")?
+                                            []
+                                        :
+                                            <NavItem>
+                                                <NavLink href="#" onClick={()=>{window.open(this.state.reportLink,'_blank');}}>
+                                                    {this.state.labels.externalreport}
+                                                </NavLink>
+                                            </NavItem>
+                                        }
+                                        
+                                        {this.exitNav()}
+                                    </Nav>
                                 </Collapse>
                         </Navbar>
 

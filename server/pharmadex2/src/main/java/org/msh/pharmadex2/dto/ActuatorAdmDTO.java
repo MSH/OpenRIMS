@@ -14,7 +14,10 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class ActuatorAdmDTO extends AllowValidation {
 
 	private List<String> keys = new ArrayList<String>();
+	private List<String> keysSLA = new ArrayList<String>();
+	private Map<String, FormFieldDTO<Integer>> sla = new LinkedHashMap<String, FormFieldDTO<Integer>>();
 	private Map<String, FormFieldDTO<String>> literals = new LinkedHashMap<String, FormFieldDTO<String>>();
+	private String linkReport = "";
 
 	public List<String> getKeys() {
 		return keys;
@@ -31,4 +34,30 @@ public class ActuatorAdmDTO extends AllowValidation {
 	public void setLiterals(Map<String, FormFieldDTO<String>> literals) {
 		this.literals = literals;
 	}
+
+	public List<String> getKeysSLA() {
+		return keysSLA;
+	}
+
+	public void setKeysSLA(List<String> keysSLA) {
+		this.keysSLA = keysSLA;
+	}
+
+	public Map<String, FormFieldDTO<Integer>> getSla() {
+		return sla;
+	}
+
+	public void setSla(Map<String, FormFieldDTO<Integer>> sla) {
+		this.sla = sla;
+	}
+
+	public String getLinkReport() {
+		return linkReport;
+	}
+
+	public void setLinkReport(String linkReport) {
+		this.linkReport = linkReport;
+	}
+	
+	
 }

@@ -308,7 +308,7 @@ public class SupervisorService {
 	}
 
 	/**
-	 * Laod a definition of data colelction
+	 * Load a definition of data collection
 	 * 
 	 * @param data
 	 * @return

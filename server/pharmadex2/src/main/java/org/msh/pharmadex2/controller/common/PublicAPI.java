@@ -18,6 +18,7 @@ import org.msh.pharmadex2.exception.DataNotFoundException;
 import org.msh.pharmadex2.service.common.ContextServices;
 import org.msh.pharmadex2.service.common.UserService;
 import org.msh.pharmadex2.service.r2.ContentService;
+import org.msh.pharmadex2.service.r2.ReportService;
 import org.msh.pharmadex2.service.r2.ResourceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,6 +58,8 @@ public class PublicAPI{
 	private ContentService contentService;
 	@Autowired
 	private ResourceService resourceServ;
+	@Autowired
+	private ReportService reportServ;
 	
 	@Value("${app.buildTime}")
 	private String buildTime;
@@ -237,6 +240,11 @@ public class PublicAPI{
 			throw new DataNotFoundException(e);
 		}
 		return data;
+	}
+	
+	@PostMapping("/api/public/report/loadlink")
+	public String reportLoadlink(Authentication auth, @RequestBody String data) {
+		return reportServ.getLinkReport();
 	}
 	
 }

@@ -821,7 +821,7 @@ public class DictService {
 		return data;
 	}
 
-	private DictionariesDTO loadTableAllDictionaries(DictionariesDTO data) {
+	public DictionariesDTO loadTableAllDictionaries(DictionariesDTO data) {
 		data.getTable().setSelectable(true);
 		if(data.getTable().getHeaders().getHeaders().size()==0) {
 			data.getTable().setHeaders(createHeadersAllDict(data.getTable().getHeaders()));
@@ -1164,6 +1164,10 @@ public class DictService {
 		 List<String> retList = literalServ.loadAllParentPrefLabels(dictNode, locale);
 		 ret=String.join(",", retList);
 		return ret;
+	}
+	
+	public boolean isAdminUnits(Concept root) {
+		return root.getIdentifier().equalsIgnoreCase("dictionary.admin.units");
 	}
 	
 
