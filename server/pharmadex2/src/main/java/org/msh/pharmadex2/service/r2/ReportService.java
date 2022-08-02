@@ -1,9 +1,13 @@
 package org.msh.pharmadex2.service.r2;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.msh.pdex2.dto.table.Headers;
 import org.msh.pdex2.dto.table.TableCell;
 import org.msh.pdex2.dto.table.TableHeader;
@@ -15,10 +19,12 @@ import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.services.r2.ClosureService;
+import org.msh.pharmadex2.controller.r2.ExcelViewMult;
 import org.msh.pharmadex2.dto.ApplicationEventsDTO;
 import org.msh.pharmadex2.dto.ApplicationHistoryDTO;
 import org.msh.pharmadex2.dto.CheckListDTO;
 import org.msh.pharmadex2.dto.DataCollectionDTO;
+import org.msh.pharmadex2.dto.DataConfigDTO;
 import org.msh.pharmadex2.dto.ReportConfigDTO;
 import org.msh.pharmadex2.dto.ReportDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
@@ -29,6 +35,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 /**
@@ -787,6 +795,27 @@ public class ReportService {
 		}
 		return dto;
 	}
+	
+	public Resource excelReport(DataConfigDTO dto) throws ObjectNotFoundException, IOException {
+		Map<String, DataCollectionDTO> data = new LinkedHashMap<String, DataCollectionDTO>();
+		Concept node = closureServ.loadConceptById(dto.getNodeId());
+		
+		data = dataConfigurations("root", node.getIdentifier(), data);
+		
+		Map<String,Map<String,DataCollectionDTO>> model = new LinkedHashMap<String, Map<String,DataCollectionDTO>>();
+		model.put("data", data);
+		XSSFWorkbook workbook = new XSSFWorkbook();
+		ExcelViewMult excel = new ExcelViewMult();
+		excel.buildWorkbook(model, workbook);
+		
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		workbook.write(out);
+		byte[] arr = out.toByteArray();
+		workbook.close();
+		out.close();
+		return new ByteArrayResource(arr);
+	}
+	
 	/**
 	 * Recursive load data configurations in form of <varname, dto> for export to Excel and other joys
 	 * @param varName - variable name
@@ -875,7 +904,9 @@ public class ReportService {
 			boolean addresses=dictServ.isAdminUnits(root);
 			if(!system && !addresses) {
 				TableQtb table = new TableQtb();
+				createHeadersDict(table.getHeaders());
 				table=dictLevel(1, root.getID(), table);
+
 				DataCollectionDTO dto = new DataCollectionDTO();
 				dto.setTable(table);
 				dto.getUrl().setValue(dictUrl);
@@ -914,7 +945,54 @@ public class ReportService {
 		}
 		return table;
 	}
+	
 	public String getLinkReport() {
 		return linkReport;
 	}
+	
+	/**
+	 * Create dictionary table headers
+	 * @param ret 
+	 * @param readOnly 
+	 * @return
+	 */
+	public Headers createHeadersDict(Headers ret) {
+		ret.getHeaders().clear();
+
+		ret.getHeaders().add(TableHeader.instanceOf(
+				"level", 
+				"level",
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_LONG,
+				0));
+		ret.getHeaders().add(TableHeader.instanceOf(
+				"prefLabel", 
+				"prefLabel",
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_STRING,
+				0));
+		ret.getHeaders().add(TableHeader.instanceOf(
+				"description", 
+				"description",
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_STRING,
+				0));
+		ret.getHeaders().add(TableHeader.instanceOf(
+				"URL", 
+				"URL",
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_STRING,
+				0));
+		ret= boilerServ.translateHeaders(ret);
+		return ret;
+	}
+
 }

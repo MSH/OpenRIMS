@@ -75,15 +75,19 @@ public class ResolverService {
 		Map<String, Object> errors = new LinkedHashMap<String, Object>();
 		Map<String, List<AssemblyDTO>> assemblies = new HashMap<String, List<AssemblyDTO>>();
 		for(String key :model.keySet()) {
-			String[] expr = key.split("@");
-			if(expr.length==2) {
-				Map<String, Object> value = resolve(expr[0],fres, assemblies);	//first change here in READVARIABLE
-				model.put(key, valueToString(value, expr[1]));				//second there
-				errors = resolveError(value, errors);
-			}else {
-				if(!key.equalsIgnoreCase(ResolverServiceRender.ERROR_TAG)) {
-					model=renderServ.error("resolveModel. Wrong expression "+key, key, model);
+			if(model.get(key).getClass().getName().contains("Object")) {
+				String[] expr = key.split("@");
+				if(expr.length==2) {
+					Map<String, Object> value = resolve(expr[0],fres, assemblies);	//first change here in READVARIABLE
+					model.put(key, valueToString(value, expr[1]));				//second there
+					errors = resolveError(value, errors);
+				}else {
+					if(!key.equalsIgnoreCase(ResolverServiceRender.ERROR_TAG)) {
+						model=renderServ.error("resolveModel. Wrong expression "+key, key, model);
+					}
 				}
+			}else {
+				logger.trace("model hint!");
 			}
 		}
 		if(errors.keySet().size()>0) {		//actually one

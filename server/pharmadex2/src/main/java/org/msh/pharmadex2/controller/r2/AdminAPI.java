@@ -41,7 +41,9 @@ import org.msh.pharmadex2.service.r2.SupervisorService;
 import org.msh.pharmadex2.service.r2.SystemService;
 import org.msh.pharmadex2.service.r2.ThingService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -89,7 +91,6 @@ public class AdminAPI {
 	private MetricService metricServ;
 	@Autowired
 	private DWHService dwhServ;
-	
 	
 	
 	/**
@@ -563,6 +564,21 @@ public class AdminAPI {
 			throw new DataNotFoundException(e);
 		}
 		return data;
+	}
+	
+	@PostMapping("/api/admin/data/collection/variables/export")
+	public ResponseEntity<Resource> dataCollectionVariablesExport(@RequestBody DataConfigDTO data)
+			throws DataNotFoundException {
+		try {
+			String mediaType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+			String fileName = "reportDataStructure.xlsx";
+			Resource res = reportServ.excelReport(data);
+			return ResponseEntity.ok().contentType(MediaType.parseMediaType(mediaType))
+					//.header(HttpHeaders.CONTENT_DISPOSITION, fres.getContentDisp() + "; filename=\"" + fres.getFileName() + "\"")
+					.header("filename", fileName).body(res);
+		} catch (ObjectNotFoundException | IOException e) {
+			throw new DataNotFoundException(e);
+		}
 	}
 
 	/**

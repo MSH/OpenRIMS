@@ -506,7 +506,7 @@ public class SystemService {
 		List<Concept> level = literalServ.loadOnlyChilds(root);
 		for(Concept conc : level) {
 			String aurl = literalServ.readValue("applicationurl", conc);
-			if(aurl.equalsIgnoreCase(processUrl)) {
+			if(aurl.equalsIgnoreCase(processUrl) && conc.getActive()) {
 				return conc;
 			}
 		}

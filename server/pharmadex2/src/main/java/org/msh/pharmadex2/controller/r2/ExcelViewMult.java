@@ -130,44 +130,57 @@ public class ExcelViewMult extends AbstractXlsxView{
 	 */
 	private void placeRow(List<TableHeader> sHeaders, TableRow row, int rowNo) {
 		int i=0;
+		boolean paint = false;
 		for(TableCell cell : row.getRow()){
+			paint = false;
 			if(cell.getOriginalValue() != null){
 				String clazz = cell.getOriginalValue().getClass().getSimpleName();
 				if(clazz.contains("String")){
 					getProcessor().addLabel(i, rowNo, cell.getValue());
+					paint = true;
 				}
 				if(clazz.contains("Integer") ){
 					if(cell.getOriginalValue() != null){
 						getProcessor().addInteger(i, rowNo, (Integer) cell.getOriginalValue());
+						paint = true;
 					}
 				}
 				if(clazz.contains("Long") ){
 					if(cell.getOriginalValue() != null){
 						getProcessor().addLong(i, rowNo, (Long)cell.getOriginalValue());
+						paint = true;
 					}
 				}
 				if(clazz.contains("Boolean")){
 					if((Boolean) cell.getOriginalValue()){
 						getProcessor().addLabel(i, rowNo, "+");
+						paint = true;
 					}
 				}
 				if(clazz.contains("LocalDate")){
 					if(cell.getOriginalValue() != null){
 						LocalDate ld = (LocalDate) cell.getOriginalValue();
 						getProcessor().addDate(i, rowNo, ld);
+						paint = true;
 					}
 				}
 				if(clazz.contains("LocalDateTime")){
 					if(cell.getOriginalValue() != null){
 						LocalDateTime ldt = (LocalDateTime) cell.getOriginalValue();
 						getProcessor().addDateTime(i, rowNo, ldt);
+						paint = true;
 					}
 				}
 				if(clazz.contains("BigDecimal")){
 					if(cell.getOriginalValue() != null){
 						getProcessor().addDecimal(i, rowNo, ((BigDecimal)cell.getOriginalValue()));
+						paint = true;
 					}
 				}
+			}
+			if(!paint) {
+				//создаем пустую ячейку чтоб получились бордеры
+				getProcessor().addLabel(i, rowNo, " ");
 			}
 			i++;
 		}
@@ -182,7 +195,10 @@ public class ExcelViewMult extends AbstractXlsxView{
 		if(sHeaders != null && sHeaders.size()>0){
 			int i=0;
 			for(TableHeader head : sHeaders){
-				getProcessor().addCaption(i, row, head.getDisplayValue(), head.getExcelWidth());
+				if(head.getKey().toUpperCase().equals("URL")) {
+					getProcessor().addCaption(i, row, head.getDisplayValue(), 32);
+				}else
+					getProcessor().addCaption(i, row, head.getDisplayValue(), head.getExcelWidth());
 				i++;
 			}
 			return ++row;
