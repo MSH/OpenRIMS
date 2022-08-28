@@ -33,6 +33,7 @@ import org.msh.pharmadex2.service.r2.ContentService;
 import org.msh.pharmadex2.service.r2.DWHService;
 import org.msh.pharmadex2.service.r2.DictService;
 import org.msh.pharmadex2.service.r2.ImportAService;
+import org.msh.pharmadex2.service.r2.ImportAdmUnitsService;
 import org.msh.pharmadex2.service.r2.ImportBService;
 import org.msh.pharmadex2.service.r2.MetricService;
 import org.msh.pharmadex2.service.r2.PubOrgService;
@@ -91,7 +92,8 @@ public class AdminAPI {
 	private MetricService metricServ;
 	@Autowired
 	private DWHService dwhServ;
-	
+	@Autowired
+	private ImportAdmUnitsService importAdmUnitsService;
 	
 	/**
 	 * Tiles for landing page
@@ -105,7 +107,7 @@ public class AdminAPI {
 		try {
 			data = contentService.loadContent(data, "admin");
 			if (data.getTiles().size() == 0) {
-				data = contentService.adminTile(data);
+				data = contentService.adminStartTile(data);
 			}
 			return data;
 		} catch (ObjectNotFoundException e) {
@@ -827,7 +829,7 @@ public class AdminAPI {
 	public ThingDTO importAdminunitsLoad(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 		try {
-			data=importAService.importAdminunitsLoad(data,user);
+			data = importAdmUnitsService.importAdminunitsLoad(data, user);//importAService.importAdminunitsLoad(data,user);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -837,7 +839,7 @@ public class AdminAPI {
 	@PostMapping("/api/admin/importa/verif")
 	public ThingDTO importAVerif(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
 		try {
-			data = importAService.importAdminunitsVerify(data);
+			data = importAdmUnitsService.importAdminunitsVerify(data);//importAService.importAdminunitsVerify(data);
 		} catch (ObjectNotFoundException | IOException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -848,7 +850,8 @@ public class AdminAPI {
 	public ThingDTO importARun(Authentication auth, @RequestBody ThingDTO data ) throws DataNotFoundException {
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 		try {
-			importAService.importAdminunitsRun(data); 
+			//importAService.importAdminunitsRun(data);
+			importAdmUnitsService.importAdminunitsRun(data, user);
 			data=thingServ.loadThing(data, user);
 			return data;
 		} catch (ObjectNotFoundException | IOException e) {
@@ -860,7 +863,7 @@ public class AdminAPI {
 	public ThingDTO importAdminunitsReLoad(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 		try {
-			data=importAService.importAdminunitsReload(data,user); 
+			data = importAdmUnitsService.importAdminunitsReload(data, user);//importAService.importAdminunitsReload(data,user); 
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}

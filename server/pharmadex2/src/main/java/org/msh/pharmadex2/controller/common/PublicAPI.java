@@ -1,5 +1,6 @@
 package org.msh.pharmadex2.controller.common;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -242,6 +243,26 @@ public class PublicAPI{
 		return data;
 	}
 	
+	@RequestMapping(value="api/public/tileicon", method = RequestMethod.GET)
+	public ResponseEntity<Resource> loadTileIcon(@RequestParam String iconurl) throws DataNotFoundException, IOException {
+		ResponseEntity<Resource> res;
+		try {
+			if(iconurl != null && iconurl.length() > 0) {
+				if(iconurl.startsWith("img/") || iconurl.startsWith("/img/")) {
+					res = resourceServ.createImageResource(iconurl);
+				}else {
+					res = resourceServ.loadTileIconByUrl(iconurl);
+				}
+			}else {
+				res = resourceServ.createEmptyResource();
+			}
+			
+			
+			return res;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
 	@PostMapping("/api/public/report/loadlink")
 	public String reportLoadlink(Authentication auth, @RequestBody String data) {
 		return reportServ.getLinkReport();

@@ -28,9 +28,15 @@ public class ReportLiteral implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC2222741823EA5BF1708AC9")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC2222741823EA5BF1708AC9", strategy="native")	
+	@GeneratedValue(generator="VAC222274182C63978250B654")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC222274182C63978250B654", strategy="native")	
 	private long ID;
+	
+	@ManyToOne(targetEntity=org.msh.pdex2.model.dwh.ReportPage.class)	
+	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.LOCK})	
+	@JoinColumns({ @JoinColumn(name="reportPageID", referencedColumnName="ID") })	
+	@Basic(fetch=FetchType.LAZY)	
+	private org.msh.pdex2.model.dwh.ReportPage reportPage;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	
 	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.SAVE_UPDATE, org.hibernate.annotations.CascadeType.LOCK})	
@@ -38,8 +44,8 @@ public class ReportLiteral implements Serializable {
 	@Basic(fetch=FetchType.LAZY)	
 	private org.msh.pdex2.model.dwh.ReportSession reportSession;
 	
-	@Column(name="ConceptID", nullable=false, length=20)	
-	private long conceptID;
+	@Column(name="DataModuleID", nullable=false, length=20)	
+	private long dataModuleID;
 	
 	@Column(name="Variable", nullable=true, length=255)	
 	private String variable;
@@ -50,8 +56,8 @@ public class ReportLiteral implements Serializable {
 	@Column(name="ValueStr", nullable=true, length=2048)	
 	private String valueStr;
 	
-	@Column(name="ValueDate", nullable=true)	
-	private java.util.Date valueDate;
+	@Column(name="PageUrl", nullable=true, length=255)	
+	private String pageUrl;
 	
 	private void setID(long value) {
 		this.ID = value;
@@ -65,18 +71,26 @@ public class ReportLiteral implements Serializable {
 		return getID();
 	}
 	
-	/**
-	 * Identifier of the concept in the main database
-	 */
-	public void setConceptID(long value) {
-		this.conceptID = value;
+	public void setDataModuleID(long value) {
+		this.dataModuleID = value;
+	}
+	
+	public long getDataModuleID() {
+		return dataModuleID;
 	}
 	
 	/**
-	 * Identifier of the concept in the main database
+	 * URL of a page, URL of root for a root page
 	 */
-	public long getConceptID() {
-		return conceptID;
+	public void setPageUrl(String value) {
+		this.pageUrl = value;
+	}
+	
+	/**
+	 * URL of a page, URL of root for a root page
+	 */
+	public String getPageUrl() {
+		return pageUrl;
 	}
 	
 	/**
@@ -121,26 +135,20 @@ public class ReportLiteral implements Serializable {
 		return valueStr;
 	}
 	
-	/**
-	 * In case the value can be represented as Date
-	 */
-	public void setValueDate(java.util.Date value) {
-		this.valueDate = value;
-	}
-	
-	/**
-	 * In case the value can be represented as Date
-	 */
-	public java.util.Date getValueDate() {
-		return valueDate;
-	}
-	
 	public void setReportSession(org.msh.pdex2.model.dwh.ReportSession value) {
 		this.reportSession = value;
 	}
 	
 	public org.msh.pdex2.model.dwh.ReportSession getReportSession() {
 		return reportSession;
+	}
+	
+	public void setReportPage(org.msh.pdex2.model.dwh.ReportPage value) {
+		this.reportPage = value;
+	}
+	
+	public org.msh.pdex2.model.dwh.ReportPage getReportPage() {
+		return reportPage;
 	}
 	
 	public String toString() {

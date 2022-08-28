@@ -204,6 +204,19 @@ class Persons extends Component{
                                             })
                                             this.setState(this.state)
                                         }}
+                                        linkProcessor={(rowNo)=>{
+                                            if(readOnly){
+                                                return
+                                            }
+                                            this.state.data.rtable.rows.forEach((row,index)=>{
+                                                if(index==rowNo){
+                                                    row.selected=!row.selected
+                                                }else{
+                                                    row.selected=false
+                                                }
+                                            })
+                                            this.setState(this.state)
+                                        }}
                                         headBackground={Pharmadex.settings.tableHeaderBackground}
                                     />  
                                 </Col>

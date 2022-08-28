@@ -30,8 +30,8 @@ public class Assembly implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC2222741823EA5BEFC08AB3")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC2222741823EA5BEFC08AB3", strategy="native")	
+	@GeneratedValue(generator="VAC222274182C63978090B63E")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC222274182C63978090B63E", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	

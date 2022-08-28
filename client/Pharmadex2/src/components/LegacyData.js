@@ -73,10 +73,10 @@ class LegacyData extends Component{
      * Listen messages from other components
      * @param {Window Event} event 
      */
-        eventProcessor(event){
-            let data=event.data
+    eventProcessor(event){
+        let data=event.data
            
-        }
+    }
 
     componentDidMount(){
         window.addEventListener("message",this.eventProcessor)
@@ -96,6 +96,9 @@ class LegacyData extends Component{
         })
     }
     render(){
+        if(this.props.readOnly){
+            return []
+        }
         return(
             <Container fluid>
                 <Row>
@@ -108,7 +111,7 @@ class LegacyData extends Component{
                 </Row>
                 <Row>
                     <Col>
-                    <CollectorTable
+                        <CollectorTable
                             tableData={this.state.data.table}
                             loader={this.loadTable}
                             headBackground={Pharmadex.settings.tableHeaderBackground}

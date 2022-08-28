@@ -306,16 +306,16 @@ public class ThingService {
 		for(AssemblyDTO assm : legacy) {
 			data.getLegacy().put(assm.getPropertyName(),legacyServ.create(assm));
 		}
-		if(data.getLegacy().size()>0) {
-			if(data.getNodeId()>0) {
-				Concept node = closureServ.loadConceptById(data.getNodeId());
-				Thing thing = boilerServ.thingByNode(node);
-				for(ThingLegacyData tdl : thing.getLegacyData()) {
-					LegacyDataDTO dto = data.getLegacy().get(tdl.getVarName());
-					dto=legacyServ.load(tdl.getConcept(), dto);
-				}
-			}
-		}
+		/*		if(data.getLegacy().size()>0) {
+					if(data.getNodeId()>0) {
+						Concept node = closureServ.loadConceptById(data.getNodeId());
+						Thing thing = boilerServ.thingByNode(node);
+						for(ThingLegacyData tdl : thing.getLegacyData()) {
+							LegacyDataDTO dto = data.getLegacy().get(tdl.getVarName());
+							dto=legacyServ.load(tdl.getConcept(), dto);
+						}
+					}
+				}*/
 		return data;
 	}
 	/**
@@ -776,7 +776,7 @@ public class ThingService {
 			fdto.setVarName(asm.getPropertyName());
 			fdto.setThingUrl(data.getUrl());
 			fdto.setThingNodeId(data.getNodeId());
-			fdto = removeOrphans(fdto);
+			fdto = removeOrphans(fdto, user);
 			fdto = createDocTable(fdto,user);
 			fdto=createDocUploaded(fdto,user);
 			data.getDocuments().put(asm.getPropertyName(),fdto);
@@ -786,21 +786,28 @@ public class ThingService {
 	/**
 	 * Remove files, concepts and ThingDocs for files uploaded for this url, variable, but with null thing
 	 * @param fdto
+	 * @param user 
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	private FileDTO removeOrphans(FileDTO fdto) throws ObjectNotFoundException {
-		List<ThingDoc> tds = boilerServ.thingDocsByUrl(fdto.getUrl());
-		for(ThingDoc td : tds) {
-			if(td.getVarName().equalsIgnoreCase(fdto.getVarName())) {
-				Thing thing = boilerServ.thingByThingDoc(td,false);
-				if(thing.getID()==0) {
-					closureServ.removeNode(td.getConcept());
-					break;
+	private FileDTO removeOrphans(FileDTO fdto, UserDetailsDTO user) throws ObjectNotFoundException {
+		/*	List<ThingDoc> tds = boilerServ.thingDocsByUrl(fdto.getUrl());
+			for(ThingDoc td : tds) {
+				if(td.getVarName().equalsIgnoreCase(fdto.getVarName())) {
+					Thing thing = boilerServ.thingByThingDoc(td,false);
+					if(thing.getID()==0) {
+						closureServ.removeNode(td.getConcept());
+						break;
+					}
 				}
+			} INEFFICIENT !!!!!*/
+		jdbcRepo.orphan_files(fdto.getUrl(), user.getEmail());
+		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from orphan_files", "", "", new Headers());
+			for(TableRow row : rows) {
+				Concept node = closureServ.loadConceptById(row.getDbID());
+				closureServ.removeNode(node);
 			}
-		}
 		return fdto;
 	}
 	/**

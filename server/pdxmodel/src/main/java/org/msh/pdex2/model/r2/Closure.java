@@ -28,8 +28,8 @@ public class Closure implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC2222741823EA5BEFB08AB2")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC2222741823EA5BEFB08AB2", strategy="native")	
+	@GeneratedValue(generator="VAC222274182C63978080B63D")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC222274182C63978080B63D", strategy="native")	
 	private long ID;
 	
 	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	

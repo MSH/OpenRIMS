@@ -29,8 +29,8 @@ public class PublicOrganization implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC2222741823EA5BEF808AAF")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC2222741823EA5BEF808AAF", strategy="native")	
+	@GeneratedValue(generator="VAC222274182C63978040B63A")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC222274182C63978040B63A", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	

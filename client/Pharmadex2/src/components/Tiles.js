@@ -4,9 +4,11 @@ import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
 import ButtonUni from './form/ButtonUni'
 import Dictionary from './Dictionary'
+import RootNode from './RootNode'
 import DictNode from './DictNode'
 import Pharmadex from './Pharmadex'
 import TileImage from './TileImage'
+import Navigator from './utils/Navigator'
 
 /**
  * The form to join to community
@@ -22,22 +24,27 @@ class Tiles extends Component{
             help:false,
             data:{},
             labels:{
-                global_cancel:'',
+                cancel:'',
                 global_submit:'',
-                label_save:'',
+                save:'',
                 global_help:'',
                 saved:'',
+                titleTiles:''
             }
         }
         this.load=this.load.bind(this)
         this.dictionary=this.dictionary.bind(this)
         this.update=this.update.bind(this)
+        this.reloadpage=this.reloadpage.bind(this)
         this.createContent=this.createContent.bind(this)
         this.createFreeTiles=this.createFreeTiles.bind(this)
         this.changeCol=this.changeCol.bind(this)
         this.eventProcessor=this.eventProcessor.bind(this)
     }
 
+     /**
+     * listen for askData broadcast and getData only to own address
+     */
     eventProcessor(event){
         let data=event.data
         if(data.to=="*" ){
@@ -54,7 +61,22 @@ class Tiles extends Component{
                     this.setState(this.state)
                 }
             }
+            if(data.subject=="onSaveData"){
+                this.state.buffer=data.data
+                this.state.data.dictionary = this.state.buffer
+
+                //let id = data.data.pathSelected.id
+                if(data.data.path.length==1 ){
+                    this.state.data.editForm = true
+                    this.load()
+                }else{
+                    this.state.data.editForm = false
+                    this.setState(this.state)
+                }
+            }
         }
+        
+        
     }
 
     componentDidMount(){
@@ -219,7 +241,7 @@ class Tiles extends Component{
     }
 
     load(){
-        Fetchers.postJSONNoSpinner("/api/admin/tiles", this.state.data, (query,responce)=>{
+        Fetchers.postJSON("/api/admin/tiles", this.state.data, (query,responce)=>{
             this.state.data=responce
             delete this.state.data.tiles.justloaded
             this.setState(this.state.data)
@@ -227,11 +249,23 @@ class Tiles extends Component{
         })
     }
 
-    update(){
-        Fetchers.postJSONNoSpinner("/api/admin/tiles/update", this.state.data,(query,result)=>{
+    update(reloadDict){
+        if(reloadDict == undefined)
+            reloadDict = true
+        Fetchers.postJSON("/api/admin/tiles/update", this.state.data,(query,result)=>{
             this.state.data=result
+            if(reloadDict){
+                this.state.data.dictionary.reload = true
+            }
             this.setState(this.state)
         } )
+    }
+
+    reloadpage(){
+        this.state.data.editForm = false
+        this.state.buffer.path = []
+        this.state.data.dictionary = this.state.buffer
+        this.update(true)
     }
     
     render(){
@@ -245,7 +279,6 @@ class Tiles extends Component{
             <Container fluid>
                 <Row>
                     <Col xs='12' sm='12' lg='4' xl='4'>
-                        
                         <Row>
                             {this.dictionary()}
                         </Row>
@@ -258,37 +291,41 @@ class Tiles extends Component{
                     <Col xs='12' sm='12' lg='8' xl='8'>
                         <Container fluid className={Pharmadex.settings.activeBorder} hidden={!showForm}>
                             <Row>
-                                <Col xs='12' sm='12' lg='6' xl='6'>
+                                <Col xs='12' sm='12' lg='6' xl='4'>
                                     <h4>
-                                        {this.state.data.title}
+                                        {this.state.labels.titleTiles}
                                     </h4>
                                 </Col>
-                                <Col xs='12' sm='12' lg='2' xl='2'>
+                                <Col xs='12' sm='12' lg='4' xl='4'>
                                     <ButtonUni 
-                                        label={this.state.labels.global_cancel}
-                                        onClick={()=>{
-                                            window.location="/admin#administrate"
-                                        }}
-                                        color="info"
-                                    />
-                                </Col>
-                                <Col xs='12' sm='12' lg='2' xl='2'>
-                                    <ButtonUni 
-                                        label={this.state.labels.label_save}
+                                        label={this.state.labels.save}
                                         onClick={()=>{
                                             Fetchers.postJSONNoSpinner("/api/admin/tiles/save", this.state.data, (query,result)=>{
-                                                window.location="/admin#administrate"
+                                                Navigator.message('*', '*', 'show.alert.pharmadex.2', this.state.labels.saved)
+                                                this.reloadpage()
                                             })
                                         }}
                                         color="primary"
                                     />
                                 </Col>
-                                <Col xs='12' sm='12' lg='2' xl='2'>
+                                <Col xs='12' sm='12' lg='4' xl='4'>
+                                    <ButtonUni
+                                        label={this.state.labels.cancel}
+                                        color='secondary'
+                                        onClick={()=>{
+                                            this.reloadpage()
+                                        }}
+                                    />
+                                </Col>
+                            </Row>
+                            <Row>
+                                <Col xs='12' sm='12' lg='12' xl='12'>
                                     <Alert hidden={!this.state.saved} color={this.state.alertColor} className="p-0 m-0">
                                         <small>{this.state.labels.saved}</small>
                                     </Alert>
                                 </Col>
                             </Row>
+                            <br/>
                             {this.createContent()}
                         </Container>
                     </Col>

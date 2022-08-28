@@ -28,8 +28,8 @@ public class Query implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC2222741823EA5BEF108AAB")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC2222741823EA5BEF108AAB", strategy="native")	
+	@GeneratedValue(generator="VAC222274182C63977FD0B636")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC222274182C63977FD0B636", strategy="native")	
 	private long ID;
 	
 	@Column(name="`Key`", nullable=true, length=255)	

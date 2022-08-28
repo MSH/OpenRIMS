@@ -59,20 +59,13 @@ public class ResolverServiceTest {
 			System.out.println(key+"=>"+model.get(key));
 		}
 	}
-	//@Test
-	public void character() throws ObjectNotFoundException {
-		ResourceDTO fres = new ResourceDTO();
-		fres.setHistoryId(1868);
-		Map<String, List<AssemblyDTO>> assemblies = new HashMap<String, List<AssemblyDTO>>();
-		Map<String, Object> ret = resolverServ.resolve("character/pharmacist/prefLabel", fres,assemblies);
-		System.out.println(ret);
-	}
+
 	//@Test
 	public void persons() throws ObjectNotFoundException {
 		ResourceDTO fres = new ResourceDTO();
 		fres.setHistoryId(2058);
 		Map<String, List<AssemblyDTO>> assemblies = new HashMap<String, List<AssemblyDTO>>();
-		Map<String, Object> ret = resolverServ.resolve("/pharmacists/pharmacists/0/pharmacist_qualification/person_academic", fres,assemblies);
+		Map<String, Object> ret = resolverServ.resolve("/pharmacists/pharmacists/0/pharmacist_qualification/person_academic", fres,assemblies, true);
 		System.out.println(ret);
 	}
 	

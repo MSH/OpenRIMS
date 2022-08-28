@@ -182,7 +182,7 @@ public class WebApp {
 	public ModelAndView landing() {
 		return createWithBundles("application");
 	}
-
+	
 	/**
 	 * Crerate a context cookie
 	 * @param contextId

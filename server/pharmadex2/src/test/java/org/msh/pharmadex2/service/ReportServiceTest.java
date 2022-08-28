@@ -43,7 +43,7 @@ public class ReportServiceTest {
 	@Test
 	public void excelReport() throws ObjectNotFoundException, IOException {
 		Map<String, DataCollectionDTO> data =new LinkedHashMap<String, DataCollectionDTO>();
-		data = reportServ.dataConfigurations("root","retail.site.owned.persons", data);
+		data = reportServ.dataConfigurations("root","pharmacy.site", data);
 		Map<String,Map<String,DataCollectionDTO>> model= new LinkedHashMap<String, Map<String,DataCollectionDTO>>();
 		model.put("data",data);
 		XSSFWorkbook workbook = new XSSFWorkbook();

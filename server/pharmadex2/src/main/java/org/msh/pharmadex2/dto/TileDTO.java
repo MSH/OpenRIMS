@@ -12,6 +12,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties(ignoreUnknown=true)
 public class TileDTO extends AllowValidation {
 	private String image = "/img/emptybox.jpg";	//the photo in the tile
+	private String imageUrl = "resources.system.tiles.empty";	//the photo in the tile
 	private String title="";										//the string is under the photo
 	private int color=0;												//the attention mark
 	private String download="";								//url to download (POST)
@@ -33,6 +34,15 @@ public class TileDTO extends AllowValidation {
 	public void setImage(String image) {
 		this.image = image;
 	}
+	
+	public String getImageUrl() {
+		return imageUrl;
+	}
+
+	public void setImageUrl(String imageUrl) {
+		this.imageUrl = imageUrl;
+	}
+
 	public String getTitle() {
 		return title;
 	}

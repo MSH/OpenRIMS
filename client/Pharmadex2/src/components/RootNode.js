@@ -79,32 +79,32 @@ class RootNode extends Component{
     buildButtons(){
         return (
             <Row>
-                        <Col xs='12' sm='12' lg='8' xl='8'>
-                        </Col>
-                        <Col xs='12' sm='12' lg='2' xl='2'>
-                            <ButtonUni
-                                label={this.state.labels.save}
-                                color='primary'
-                                onClick={()=>{
-                                    Fetchers.postJSONNoSpinner("/api/admin/root/node/save", this.state.data,(query,result)=>{
-                                        this.state.data=result
-                                        if(this.state.data.valid){
-                                            this.props.onCancel()
-                                        }else{
-                                            this.setState(this.state)
-                                        }
-                                    })
-                                }}
-                            />
-                        </Col>
-                    <Col xs='12' sm='12' lg='8' xl='2'>
+                <Col xs='12' sm='12' lg='4' xl='4'>
+                </Col>
+                <Col xs='12' sm='12' lg='4' xl='4'>
                     <ButtonUni
-                            label={this.state.labels.cancel}
-                            color='secondary'
-                            onClick={this.props.onCancel}
-                        />
-                    </Col>
-                </Row>
+                        label={this.state.labels.save}
+                        color='primary'
+                        onClick={()=>{
+                            Fetchers.postJSONNoSpinner("/api/admin/root/node/save", this.state.data,(query,result)=>{
+                                this.state.data=result
+                                if(this.state.data.valid){
+                                    this.props.onCancel()
+                                }else{
+                                    this.setState(this.state)
+                                }
+                            })
+                        }}
+                    />
+                </Col>
+                <Col xs='12' sm='12' lg='4' xl='4'>
+                    <ButtonUni
+                        label={this.state.labels.cancel}
+                        color='secondary'
+                        onClick={this.props.onCancel}
+                    />
+                </Col>
+            </Row>
         )
     }
 

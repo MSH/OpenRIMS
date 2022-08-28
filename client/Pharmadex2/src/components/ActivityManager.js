@@ -53,7 +53,8 @@ class ActivityManager extends Component{
             data:{  //breadcrumb and data ActivityDTO.java
                 historyId:this.props.historyId
             },
-            color:"success"             
+            color:"success",
+            fullcollapse:[]
         }
         this.eventProcessor=this.eventProcessor.bind(this)
         this.loadHistory=this.loadHistory.bind(this)
@@ -66,6 +67,8 @@ class ActivityManager extends Component{
         this.headerFooter=this.headerFooter.bind(this)
         this.hasCancelled=this.hasCancelled.bind(this)
         this.activityHistory=this.activityHistory.bind(this)
+        this.toggle=this.toggle.bind(this)
+        this.thingComp=this.thingComp.bind(this)
     }
 
     /**
@@ -150,6 +153,16 @@ class ActivityManager extends Component{
         Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName()+"/application/manager/history", this.state.history, (query,result)=>{
             this.state.history=result
             this.state.color = "success"
+            this.state.fullcollapse = []
+            if(Fetchers.isGoodArray(this.state.data.application)){
+                this.state.data.application.forEach((thing, index)=>{
+                    this.state.fullcollapse.push({
+                        ind:index,
+                        collapse:false
+                    })
+                })
+            }
+            
             this.setState(this.state)
         })
     }
@@ -215,24 +228,61 @@ class ActivityManager extends Component{
             this.state.data.application.forEach((thing, index)=>{
                 //thing.readOnly=true
                 ret.push(
-                    <h4 key={index+1000}>
-                        {thing.title}
-                    </h4>
+                    <h4 className='btn-link' key={index+1000} style={{cursor:"pointer"}} 
+                        onClick={()=>{this.toggle(index)}}>{thing.title}</h4>
                 )
-               ret.push(
-                   <Thing key={index}
-                   data={thing}
-                   recipient={this.state.identifier}
-                   readOnly={true}
-                   narrow
-                   reload
-                />
+                ret.push(
+                    <Collapse key={index+500} isOpen={this.state.fullcollapse[index].collapse} >
+                        {this.thingComp(index, thing)}
+                    </Collapse>
                 )
             })
         }
         return ret
     }
+
+     /**
+     * добавляем на экран нужный thing 
+     */
+    thingComp(index, thing){
+        let flag = false
+        if(Fetchers.isGoodArray(this.state.fullcollapse)){
+            this.state.fullcollapse.forEach((el, i)=>{
+                if(index == el.ind && el.collapse){
+                    flag = true
+                }
+            })
+        }
+        if(flag){
+            return (
+                <Thing key={index}
+                            data={thing}
+                            recipient={this.state.identifier}
+                            readOnly={true}
+                            narrow
+                            reload
+                            />
+            )
+        }else{
+            return []
+        }
+    }
  
+    /**
+     * Ставим отметку какой именно thing нужно открыть
+     */
+    toggle(ind) {
+        if(this.state.data != undefined && this.state.data.application != undefined){
+            if(Fetchers.isGoodArray(this.state.fullcollapse)){
+                this.state.fullcollapse.forEach((el, i)=>{
+                    if(ind == el.ind){
+                        el.collapse = !el.collapse
+                    }
+                })
+            }
+            this.setState(this.state.fullcollapse);
+        }
+    }
 
     componentDidMount(){
         window.addEventListener("message",this.eventProcessor)

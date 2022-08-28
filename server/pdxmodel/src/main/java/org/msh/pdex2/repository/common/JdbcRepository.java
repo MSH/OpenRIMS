@@ -20,7 +20,9 @@ import org.msh.pdex2.dto.table.TableHeader;
 import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
+import org.msh.pdex2.model.dwh.ReportSession;
 import org.msh.pdex2.model.r2.Concept;
+import org.msh.pdex2.repository.dwh.ReportSessionRepo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -999,14 +1001,20 @@ public class JdbcRepository {
 	/**
 	 * Update all DWH tables
 	 * @param newSessionID
+	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public void dwh_update(long newSessionID) {
+	public void dwh_update(long newSessionID) throws ObjectNotFoundException {
 		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
 		proc.withProcedureName("dwh_update");
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("sessionId", newSessionID);
-		proc.execute(params);
+		try {
+			proc.execute(params);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new ObjectNotFoundException(e, logger); 
+		}
 
 	}
 	/**
@@ -1144,6 +1152,22 @@ public class JdbcRepository {
 		}else {
 			throw new ObjectNotFoundException("The source table should contain two columns for pivoting. Select is "+select,logger);
 		}
+	}
+	/**
+	 * select files uploaded by user that do not link to any thing
+	* it is possible when a user upload files, however did not save a thing
+	* known usage ThingService.removeOrphans
+	 * @param url
+	 * @param email
+	 */
+	public void orphan_files(String fileUrl, String email) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("orphan_files");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("fileUrl", fileUrl);
+		params.addValue("email", email);
+		proc.execute(params);
+
 	}
 
 

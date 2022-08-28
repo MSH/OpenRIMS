@@ -10,6 +10,7 @@ import Pharmadex from './Pharmadex'
 import ButtonUni from './form/ButtonUni'
 import DataCollForm from './dataconfig/DataCollForm'
 import DataVarForm from './dataconfig/DataVarForm'
+import Downloader from './utils/Downloader'
 
 /**
  * Configure workflow data
@@ -32,6 +33,7 @@ class DataConfigurator extends Component{
                 global_cancel:'',
                 variables:'',
                 preview:'',
+                global_export:'',
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -104,9 +106,17 @@ class DataConfigurator extends Component{
                         <Col xs='12' sm='12' lg='6' xl='6'>
                             <SearchControl label={this.state.labels.search} table={this.state.data.varTable} loader={this.loader}/>
                         </Col>
-                        <Col xs='12' sm='12' lg='4' xl='2'>
+                        <Col xs='12' sm='12' lg='6' xl='2'>
+                            <ButtonUni
+                                label={this.state.labels.global_export}
+                                onClick={()=>{
+                                    let dl = new Downloader()
+                                    dl.postDownload('/api/admin/data/collection/variables/export', this.state.data, "file.bin")
+                                }}
+                                color="info"
+                            />
                         </Col>
-                        <Col xs='12' sm='12' lg='4' xl='2'>
+                        <Col xs='12' sm='12' lg='6' xl='2'>
                             <ButtonUni
                                 label={this.state.labels.global_add}
                                 onClick={()=>{
@@ -118,7 +128,7 @@ class DataConfigurator extends Component{
                                 color="primary"
                             />
                         </Col>
-                        <Col xs='12' sm='12' lg='2' xl='2'>
+                        <Col xs='12' sm='12' lg='6' xl='2'>
                             <ButtonUni
                             label={this.state.labels.preview}
                             onClick={()=>{

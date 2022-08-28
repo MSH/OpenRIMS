@@ -1032,6 +1032,9 @@ public class DictService {
 			Concept adm = closureServ.loadConceptById(data.getId());
 			if(adm != null) {
 				String loc = literalServ.readValue(LiteralService.GIS_LOCATION, adm);
+				if(loc.contains("0.0")) {
+					loc = loadCenterContry();
+				}
 				data.setCenter(dtoServ.createLocationDTO(loc));
 				String z = literalServ.readValue(LiteralService.ZOMM, adm);
 				Integer zoom = SystemService.DEFAULT_ZOOM;
@@ -1044,6 +1047,14 @@ public class DictService {
 		return data;
 	}
 
+	private String loadCenterContry() throws ObjectNotFoundException {
+		String loc = "";
+		Concept country = closureServ.loadRoot(SystemService.DICTIONARY_ADMIN_UNITS);
+		if(country != null) {
+			loc = literalServ.readValue(LiteralService.GIS_LOCATION, country);
+		}
+		return loc;
+	}
 	/**
 	 * Load all dictionary as a plain list. Sort order is natural
 	 * @param dictUrl
@@ -1127,7 +1138,7 @@ public class DictService {
 			literalServ.createUpdatePrefLabel(messages.get("aminunits"), root);
 		}
 		String description=literalServ.readDescription(root);
-		if(description.length()==0) {
+		if(description == null || description.length()==0) {
 			literalServ.createUpdateDescription("", root);
 		}
 

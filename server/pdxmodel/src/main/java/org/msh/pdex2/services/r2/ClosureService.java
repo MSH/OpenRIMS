@@ -293,7 +293,7 @@ public class ClosureService {
 	public Concept loadRoot(String identifier) throws ObjectNotFoundException {
 		Concept root = new Concept();
 		root.setIdentifier(identifier);
-		root = saveToTree(null, root);
+		root = saveToTreeFast(null, root);
 		return root;
 	}
 

@@ -5,6 +5,7 @@ import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
 import FieldInput from './form/FieldInput'
 import ButtonUni from './form/ButtonUni'
+import Navigator from './utils/Navigator'
 
 /**
  * A component responsible for edit/display a concept's node and all literals defined for it

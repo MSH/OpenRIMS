@@ -91,7 +91,17 @@ public class AssemblyService {
 	 */
 	public List<AssemblyDTO> auxHeadings(String url, List<Assembly> assms) throws ObjectNotFoundException {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
-		//TODO defined for the system
+		// irka
+		if(url.equalsIgnoreCase(SYSTEM_IMPORT_ADMINUNITS)) { 
+			AssemblyDTO doc1 = new AssemblyDTO(); 
+			doc1.setPropertyName("templateupload");
+			doc1.setUrl("/shablon/TemplateExample.xlsx"); 
+			ret.add(doc1); 
+			AssemblyDTO doc2 = new AssemblyDTO(); 
+			doc2.setPropertyName("readmefirst");
+			doc2.setUrl("/shablon/AdminUnitsImportGuide.pdf"); 
+			ret.add(doc2); 
+		}
 		//*********************************** read from configuration ***************************************************
 		if(ret.size()==0) {
 			//List<Assembly> assms =loadDataConfiguration(url);
@@ -303,7 +313,7 @@ public class AssemblyService {
 			fld.setPropertyName(LiteralService.ZOMM); 
 			ret.add(fld);
 		}
-		
+
 		if(url.equalsIgnoreCase(SYSTEM_IMPORT_ADMINUNITS) || url.equalsIgnoreCase(SYSTEM_IMPORT_ADMINUNITS_RELOAD)) {
 			AssemblyDTO fld = new AssemblyDTO();
 			fld.setPropertyName(DATAIMPORT_RESULT);
@@ -311,7 +321,7 @@ public class AssemblyService {
 			fld.setMult(true);
 			ret.add(fld);
 		}
-		
+
 		if(url.equalsIgnoreCase(SYSTEM_IMPORT_LEGACY_DATA)) {
 			AssemblyDTO fld = new AssemblyDTO();
 			fld.setPropertyName(DATAIMPORT_RESULT);
@@ -640,11 +650,13 @@ public class AssemblyService {
 			row_2.getCells().add(cell_23);
 			ret.add(row_2);
 		}
-		
+
 		if(url.equalsIgnoreCase(SYSTEM_IMPORT_ADMINUNITS)) {
 			//file uploader and r/o field for messages output
 			LayoutRowDTO row= new LayoutRowDTO();
 			LayoutCellDTO cell1 = new LayoutCellDTO();
+			cell1.getVariables().add("readmefirst");
+			cell1.getVariables().add("templateupload");
 			cell1.getVariables().add(DATAIMPORT_DATA);
 			cell1.getVariables().add(DATAIMPORT_RESULT);
 			row.getCells().add(cell1);
@@ -1242,9 +1254,39 @@ public class AssemblyService {
 		List<Concept> datas = literalServ.loadOnlyChilds(root);
 		return datas;
 	}
-
-
-
-
+	/**
+	 * All auxs by URL
+	 * @param url
+	 * @param assemblies 
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public Map<String, List<AssemblyDTO>> auxAll(String url, Map<String, List<AssemblyDTO>> assemblies) throws ObjectNotFoundException {
+		boolean found=false;
+		for(String key : assemblies.keySet()) {
+			found=key.startsWith(url+".");
+			if(found) {
+				break;
+			}
+		}
+		if(!found) {
+			logger.trace("aus for url "+url);
+			List<Assembly> assms = loadDataConfiguration(url);
+			for(Assembly assm : assms) {
+				String key=url+"."+assm.getClazz();
+				List<AssemblyDTO> alist= assemblies.get(key);
+				if(alist==null) {
+					alist=new ArrayList<AssemblyDTO>();
+					assemblies.put(key,alist);
+				}
+				alist.add(dtoServ.assemblyDto(assm));
+			}
+		}else {
+			logger.trace("aux for url hit");
+		}
+		return assemblies;
+	}
 
 }
+

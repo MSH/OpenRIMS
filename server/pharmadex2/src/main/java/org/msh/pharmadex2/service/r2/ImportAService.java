@@ -71,6 +71,9 @@ public class ImportAService {
 	private LegacyDataService legacyDataService;
 	@Autowired
 	private SystemService systemService;
+	
+	@Autowired
+	private ImportAdmUnitsService importAdmUnits;
 
 	private static String SHEET_NAME_COUNTRY = "country";
 	private static String NAME_COUNTRY = "name_country_eng";
@@ -348,7 +351,8 @@ public class ImportAService {
 				writeProtocol("Start import sheet - count  " + book.getNumberOfSheets());
 				while(!errors.isErrorOrNullSheet(sheet)) {
 					if(!sheet.getSheetName().toLowerCase().equals(SHEET_NAME_COUNTRY)) {
-						importAdminunitsSheet(sheet, errors, rootCountry, sheetIndex);
+						//importAdminunitsSheet(sheet, errors, rootCountry, sheetIndex);
+						importAdmUnits.importAdminunitsSheet(sheet, errors, rootCountry, sheetIndex);
 					}
 					sheetIndex++;
 					sheet = boilerServ.getSheetAt(book,sheetIndex);
@@ -403,12 +407,13 @@ public class ImportAService {
 	}
 
 	@Transactional
-	private void importAdminunitsSheet(XSSFSheet sheet, LegacyDataErrorsDTO errors, Concept rootCountry, int sheetIndex) throws ObjectNotFoundException {
+	public void importAdminunitsSheet(XSSFSheet sheet, LegacyDataErrorsDTO errors, Concept rootCountry, int sheetIndex) throws ObjectNotFoundException {
 		String url = legacyDataService.sheetName(sheet);
 		int rownum = 1;
 		XSSFRow row = boilerServ.getSheetRow(sheet, rownum);
 		writeProtocol("Start import sheet " + url);
-
+		langs[0] = "en_US";
+		langs[1] = "ne_NP";
 		Concept province = null;
 		String prevDistrict = "";
 		Concept district = null;
@@ -473,6 +478,7 @@ public class ImportAService {
 			XSSFRow rowh = boilerServ.getSheetRow(sheet, 0);
 			errors.add(rowh, rowh.getLastCellNum(), url);
 		}
+		writeProtocol("End import sheet " + url);
 	}
 
 	/**

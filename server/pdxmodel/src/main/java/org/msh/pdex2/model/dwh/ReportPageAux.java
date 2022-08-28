@@ -25,9 +25,15 @@ public class ReportPageAux implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC2222741823EA5BF1C08ACD")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC2222741823EA5BF1C08ACD", strategy="native")	
+	@GeneratedValue(generator="VAC222274182C639782A0B658")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC222274182C639782A0B658", strategy="native")	
 	private long ID;
+	
+	@ManyToOne(targetEntity=org.msh.pdex2.model.dwh.ReportPage.class)	
+	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.LOCK})	
+	@JoinColumns({ @JoinColumn(name="reportPageID", referencedColumnName="ID") })	
+	@Basic(fetch=FetchType.LAZY)	
+	private org.msh.pdex2.model.dwh.ReportPage reportPage;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	
 	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.SAVE_UPDATE, org.hibernate.annotations.CascadeType.LOCK})	
@@ -58,9 +64,6 @@ public class ReportPageAux implements Serializable {
 	
 	@Column(name="AuxPageId", nullable=false, length=20)	
 	private long auxPageId;
-	
-	@Column(name="ReportPageID", nullable=false, length=20)	
-	private long reportPageID;
 	
 	private void setID(long value) {
 		this.ID = value;
@@ -174,20 +177,20 @@ public class ReportPageAux implements Serializable {
 		return auxPageId;
 	}
 	
-	public void setReportPageID(long value) {
-		this.reportPageID = value;
-	}
-	
-	public long getReportPageID() {
-		return reportPageID;
-	}
-	
 	public void setReportSession(org.msh.pdex2.model.dwh.ReportSession value) {
 		this.reportSession = value;
 	}
 	
 	public org.msh.pdex2.model.dwh.ReportSession getReportSession() {
 		return reportSession;
+	}
+	
+	public void setReportPage(org.msh.pdex2.model.dwh.ReportPage value) {
+		this.reportPage = value;
+	}
+	
+	public org.msh.pdex2.model.dwh.ReportPage getReportPage() {
+		return reportPage;
 	}
 	
 	public String toString() {

@@ -27,7 +27,7 @@ public class DWHServiceTest {
 		dwhServ.upload();
 	}
 	
-	@Test
+	//@Test
 	public void downloadMetricttr() {
 		mttrRepo.deleteAll();
 		TimeToReplyDTO rec = new TimeToReplyDTO();

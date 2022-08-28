@@ -25,9 +25,15 @@ public class ReportClassifier implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC2222741823EA5BF1608AC8")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC2222741823EA5BF1608AC8", strategy="native")	
+	@GeneratedValue(generator="VAC222274182C63978230B653")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC222274182C63978230B653", strategy="native")	
 	private long ID;
+	
+	@ManyToOne(targetEntity=org.msh.pdex2.model.dwh.ReportPage.class)	
+	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.LOCK})	
+	@JoinColumns({ @JoinColumn(name="reportPageID", referencedColumnName="ID") })	
+	@Basic(fetch=FetchType.LAZY)	
+	private org.msh.pdex2.model.dwh.ReportPage reportPage;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	
 	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.SAVE_UPDATE, org.hibernate.annotations.CascadeType.LOCK})	
@@ -62,11 +68,11 @@ public class ReportClassifier implements Serializable {
 	@Column(name="ItemPrefLabel", nullable=true, length=255)	
 	private String itemPrefLabel;
 	
+	@Column(name="ItemAltLabel", nullable=true, length=255)	
+	private String itemAltLabel;
+	
 	@Column(name="PathToItem", nullable=true, length=1024)	
 	private String pathToItem;
-	
-	@Column(name="ReportPageID", nullable=false, length=20)	
-	private long reportPageID;
 	
 	private void setID(long value) {
 		this.ID = value;
@@ -207,6 +213,20 @@ public class ReportClassifier implements Serializable {
 	}
 	
 	/**
+	 * Alternative label for an item. Depends on a particular dictionary. For dictionary.admin.unit it is GIS coordinates - latitude;longitude
+	 */
+	public void setItemAltLabel(String value) {
+		this.itemAltLabel = value;
+	}
+	
+	/**
+	 * Alternative label for an item. Depends on a particular dictionary. For dictionary.admin.unit it is GIS coordinates - latitude;longitude
+	 */
+	public String getItemAltLabel() {
+		return itemAltLabel;
+	}
+	
+	/**
 	 * The path to this choice
 	 */
 	public void setPathToItem(String value) {
@@ -220,26 +240,20 @@ public class ReportClassifier implements Serializable {
 		return pathToItem;
 	}
 	
-	/**
-	 * ID of the corresponded record in the report page
-	 */
-	public void setReportPageID(long value) {
-		this.reportPageID = value;
-	}
-	
-	/**
-	 * ID of the corresponded record in the report page
-	 */
-	public long getReportPageID() {
-		return reportPageID;
-	}
-	
 	public void setReportSession(org.msh.pdex2.model.dwh.ReportSession value) {
 		this.reportSession = value;
 	}
 	
 	public org.msh.pdex2.model.dwh.ReportSession getReportSession() {
 		return reportSession;
+	}
+	
+	public void setReportPage(org.msh.pdex2.model.dwh.ReportPage value) {
+		this.reportPage = value;
+	}
+	
+	public org.msh.pdex2.model.dwh.ReportPage getReportPage() {
+		return reportPage;
 	}
 	
 	public String toString() {

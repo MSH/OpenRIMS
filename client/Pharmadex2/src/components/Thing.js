@@ -425,7 +425,12 @@ class Thing extends Component{
                 return (
                     <Button key={index} color="link" size='sm'
                     onClick={()=>{
-                        window.open(head.url,'_blank').focus()
+                        if(head.url.includes('shablon')){
+                            window.open(head.url)
+                        }else{
+                            window.open(head.url,'_blank').focus()
+                        }
+                        
                     }}>
                         {head.value}
                     </Button>
