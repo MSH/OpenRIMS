@@ -54,7 +54,7 @@ public class ExportFromXLSX {
 					conc.setActive(true);
 					conc.setIdentifier(identifier);
 					conc.setLabel(label);
-					closureServ.saveToTree(root, conc);
+					closureServ.saveToTreeFast(root, conc);
 					System.out.println(i);
 				}
 			}

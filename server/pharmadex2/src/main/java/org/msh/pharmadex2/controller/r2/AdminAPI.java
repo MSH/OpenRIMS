@@ -27,12 +27,14 @@ import org.msh.pharmadex2.dto.WorkflowDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.exception.DataNotFoundException;
 import org.msh.pharmadex2.service.common.UserService;
+import org.msh.pharmadex2.service.r2.AccessControlService;
 import org.msh.pharmadex2.service.r2.ActuatorService;
 import org.msh.pharmadex2.service.r2.ApplicationService;
 import org.msh.pharmadex2.service.r2.ContentService;
 import org.msh.pharmadex2.service.r2.DWHService;
 import org.msh.pharmadex2.service.r2.DictService;
 import org.msh.pharmadex2.service.r2.ImportAService;
+import org.msh.pharmadex2.service.r2.ImportATCcodesService;
 import org.msh.pharmadex2.service.r2.ImportAdmUnitsService;
 import org.msh.pharmadex2.service.r2.ImportBService;
 import org.msh.pharmadex2.service.r2.MetricService;
@@ -94,6 +96,10 @@ public class AdminAPI {
 	private DWHService dwhServ;
 	@Autowired
 	private ImportAdmUnitsService importAdmUnitsService;
+	@Autowired
+	private AccessControlService accessControlService;
+	@Autowired
+	private ImportATCcodesService importATCcodesService;
 	
 	/**
 	 * Tiles for landing page
@@ -936,4 +942,78 @@ public class AdminAPI {
 		return data;
 	}
 	
+	/**
+	 * Load data by change password from admin
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/changepass/load")
+	public ThingDTO changePassAdminLoad(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		try {
+			data = accessControlService.changePassAdminLoad(data, user);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
+	/**
+	 * Save data by change password from admin
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/changepass/save")
+	public ThingDTO changePassAdminSave(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		try {
+			data = accessControlService.changePassAdminSave(data, user);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
+	/**
+	 * Load import admin units feature
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/import/atccodes/load")
+	public ThingDTO importATCcodesLoad(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		try {
+			data = importATCcodesService.importLoad(data, user);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
+	@PostMapping("/api/admin/import/atccodes/run")
+	public ThingDTO importATCcodesRun(Authentication auth, @RequestBody ThingDTO data ) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		try {
+			data = importATCcodesService.importStart(data, user);
+			importATCcodesService.importRun(data, user);
+			//data = thingServ.loadThing(data, user);
+			return data;
+		} catch (ObjectNotFoundException | IOException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+	
+	@PostMapping("/api/admin/import/atccodes/reload")
+	public ThingDTO importATCcodesReLoad(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		try {
+			data = importATCcodesService.importReLoad(data, user);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
 }

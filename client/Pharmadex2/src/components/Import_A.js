@@ -20,7 +20,8 @@ class Import_A extends Component{
                 global_cancel:'',
                 global_save:'',
                 askforimportrun:'',
-                reload:""
+                reload:"",
+                startImport:""
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -79,7 +80,7 @@ class Import_A extends Component{
         Fetchers.postJSON("/api/admin/importa/run", this.state.data, (query, result)=>{
             this.state.data=result
             this.setState(this.state)
-            Navigator.message('*', '*', 'show.alert.pharmadex.2', "Start import data")
+            Navigator.message('*', '*', 'show.alert.pharmadex.2', this.state.labels.startImport)
         })
     }
 

@@ -440,7 +440,7 @@ public class TableHeader {
 	/**
 	 * fetch a page by number
 	 * @param rows all rows
-	 * @param page
+	 * @param page from 1
 	 * @param pageSize 
 	 * @return
 	 */

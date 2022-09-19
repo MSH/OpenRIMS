@@ -28,8 +28,8 @@ public class Thing implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC222274182C63978100B643")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC222274182C63978100B643", strategy="native")	
+	@GeneratedValue(generator="VAC222274183363D224A0E2C7")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC222274183363D224A0E2C7", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.r2.ThingOld.class)	
@@ -112,6 +112,12 @@ public class Thing implements Serializable {
 	@JoinColumn(name="thingID", nullable=true)	
 	@org.hibernate.annotations.LazyCollection(org.hibernate.annotations.LazyCollectionOption.TRUE)	
 	private java.util.Set<org.msh.pdex2.model.r2.ThingLegacyData> legacyData = new java.util.HashSet<org.msh.pdex2.model.r2.ThingLegacyData>();
+	
+	@OneToMany(targetEntity=org.msh.pdex2.model.r2.ThingLink.class)	
+	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.ALL, org.hibernate.annotations.CascadeType.DELETE_ORPHAN})	
+	@JoinColumn(name="thingID", nullable=true)	
+	@org.hibernate.annotations.LazyCollection(org.hibernate.annotations.LazyCollectionOption.TRUE)	
+	private java.util.Set<org.msh.pdex2.model.r2.ThingLink> thingLinks = new java.util.HashSet<org.msh.pdex2.model.r2.ThingLink>();
 	
 	private void setID(long value) {
 		this.ID = value;
@@ -258,6 +264,15 @@ public class Thing implements Serializable {
 	
 	public java.util.Set<org.msh.pdex2.model.r2.ThingLegacyData> getLegacyData() {
 		return legacyData;
+	}
+	
+	
+	public void setThingLinks(java.util.Set<org.msh.pdex2.model.r2.ThingLink> value) {
+		this.thingLinks = value;
+	}
+	
+	public java.util.Set<org.msh.pdex2.model.r2.ThingLink> getThingLinks() {
+		return thingLinks;
 	}
 	
 	

@@ -50,6 +50,7 @@ import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.FileDTO;
 import org.msh.pharmadex2.dto.IntervalDTO;
 import org.msh.pharmadex2.dto.LegacyDataDTO;
+import org.msh.pharmadex2.dto.LinksDTO;
 import org.msh.pharmadex2.dto.MessageDTO;
 import org.msh.pharmadex2.dto.PersonDTO;
 import org.msh.pharmadex2.dto.PersonSpecialDTO;
@@ -390,12 +391,6 @@ public class ValidationService {
 			}
 		}
 
-		/*List<AssemblyDTO> personSpec = assemblyServ.auxPersonSpecials(data.getUrl());
-		for(AssemblyDTO per : personSpec) {
-			if(per.isRequired()) {
-				mandatoryPersonSpec(data, per.getPropertyName(),per,strict);
-			}
-		}*/
 		List<AssemblyDTO> atc = assemblyServ.auxAtc(data.getUrl(),allAssms);
 		for(AssemblyDTO a : atc) {
 			if(a.isRequired()) {
@@ -405,6 +400,10 @@ public class ValidationService {
 		List<AssemblyDTO> intervals = assemblyServ.auxIntervals(data, "intervals");
 		for(AssemblyDTO interval : intervals) {
 			mandatoryInterval(data, interval,strict);
+		}
+		List<AssemblyDTO> links=assemblyServ.auxLinks(data.getUrl(), allAssms);
+		for(AssemblyDTO link :links) {
+			mandatoryLinks(data, links, strict);
 		}
 
 		List<AssemblyDTO> things = assemblyServ.auxThings(data.getUrl(),allAssms);
@@ -417,6 +416,21 @@ public class ValidationService {
 		return data;
 	}
 
+
+	private void mandatoryLinks(ThingDTO data, List<AssemblyDTO> links, boolean strict) {
+		for(AssemblyDTO aDto : links) {
+			if(aDto.isRequired()) {
+				LinksDTO dto = data.getLinks().get(aDto.getPropertyName());
+				if(dto != null) {
+					if(dto.getLinks().size()==0) {
+						dto.setValid(false);
+						dto.setIdentifier(messages.get("link_selection is empty"));
+					}
+				}
+			}
+		}
+		
+	}
 
 	/**
 	 * Check an interval of dates

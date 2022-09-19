@@ -28,8 +28,8 @@ public class Checklistr2 implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC222274182C63978130B646")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC222274182C63978130B646", strategy="native")	
+	@GeneratedValue(generator="VAC222274183363D224D0E2CA")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC222274183363D224D0E2CA", strategy="native")	
 	private long ID;
 	
 	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	

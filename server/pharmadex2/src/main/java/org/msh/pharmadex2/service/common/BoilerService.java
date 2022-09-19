@@ -43,6 +43,7 @@ import org.msh.pdex2.model.r2.Scheduler;
 import org.msh.pdex2.model.r2.Thing;
 import org.msh.pdex2.model.r2.ThingDict;
 import org.msh.pdex2.model.r2.ThingDoc;
+import org.msh.pdex2.model.r2.ThingLink;
 import org.msh.pdex2.model.r2.ThingPerson;
 import org.msh.pdex2.model.r2.ThingRegister;
 import org.msh.pdex2.model.r2.ThingScheduler;
@@ -57,6 +58,7 @@ import org.msh.pdex2.repository.r2.HistoryRepo;
 import org.msh.pdex2.repository.r2.RegisterRepo;
 import org.msh.pdex2.repository.r2.SchedulerRepo;
 import org.msh.pdex2.repository.r2.ThingDocRepo;
+import org.msh.pdex2.repository.r2.ThingLinkRepo;
 import org.msh.pdex2.repository.r2.ThingPersonRepo;
 import org.msh.pdex2.repository.r2.ThingRegisterRepo;
 import org.msh.pdex2.repository.r2.ThingRepo;
@@ -124,6 +126,8 @@ public class BoilerService {
 	private ThingThingRepo thingThingRepo;
 	@Autowired
 	private ThingPersonRepo thingPersonRepo;
+	@Autowired
+	private ThingLinkRepo thingLinkRepo;
 	/**
 	 * Convert resource bundle to DTO
 	 * @param bundle
@@ -1256,6 +1260,30 @@ public class BoilerService {
 		return Instant.ofEpochMilli(dateToConvert.getTime())
 			      .atZone(ZoneId.systemDefault())
 			      .toLocalDateTime();
+	}
+	/**
+	 * Load thingLink
+	 * @param id
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public ThingLink thingLink(long id) throws ObjectNotFoundException {
+		Optional<ThingLink> reto = thingLinkRepo.findById(id);
+		if(reto.isPresent()) {
+			return reto.get();
+		}
+		throw new ObjectNotFoundException("ThingLink by ID not found. ID is "+id);
+	}
+	/**
+	 * Remove a link
+	 * @param id
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public void removeLink(long id) throws ObjectNotFoundException {
+		ThingLink tl=thingLink(id);
+		thingLinkRepo.delete(tl);
 	}
 
 }

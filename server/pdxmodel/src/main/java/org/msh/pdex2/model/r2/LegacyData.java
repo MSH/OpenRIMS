@@ -28,8 +28,8 @@ public class LegacyData implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC222274182C63978210B651")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC222274182C63978210B651", strategy="native")	
+	@GeneratedValue(generator="VAC222274183363D22590E2D5")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC222274183363D22590E2D5", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	

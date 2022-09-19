@@ -18,6 +18,7 @@ import org.msh.pharmadex2.dto.ApplicationsDTO;
 import org.msh.pharmadex2.dto.CheckListDTO;
 import org.msh.pharmadex2.dto.DataUnitDTO;
 import org.msh.pharmadex2.dto.FileDTO;
+import org.msh.pharmadex2.dto.LinksDTO;
 import org.msh.pharmadex2.dto.PersonDTO;
 import org.msh.pharmadex2.dto.PersonSpecialDTO;
 import org.msh.pharmadex2.dto.RegisterDTO;
@@ -30,6 +31,7 @@ import org.msh.pharmadex2.service.common.UserService;
 import org.msh.pharmadex2.service.common.ValidationService;
 import org.msh.pharmadex2.service.r2.ApplicationService;
 import org.msh.pharmadex2.service.r2.IrkaServices;
+import org.msh.pharmadex2.service.r2.LinkService;
 import org.msh.pharmadex2.service.r2.MonitoringService;
 import org.msh.pharmadex2.service.r2.PdfService;
 import org.msh.pharmadex2.service.r2.ResourceService;
@@ -87,6 +89,8 @@ public class ActivityAPI {
 	Messages messages;
 	@Autowired
 	private IrkaServices irkaServ;
+	@Autowired
+	private LinkService linkServ;
 
 	@PostMapping({ "/api/*/my/activities"})
 	public ApplicationsDTO myActivities(Authentication auth, @RequestBody ApplicationsDTO data)
@@ -762,4 +766,46 @@ public class ActivityAPI {
 		data=irkaServ.registerNumberNew(user,data);
 		return data;
 	}
+	/**
+	 * Reload objects to link table
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping({ "/api/*/links/table" })
+	public LinksDTO linksTable(Authentication auth, @RequestBody LinksDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		data=linkServ.loadObjectsTable(data);
+		return data;
+	}
+	/**
+	 * Select/de-select a row in the table of objects 
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping({ "/api/*/links/selectrow" })
+	public LinksDTO linksSelectRow(Authentication auth, @RequestBody LinksDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		try {
+			data=linkServ.selectRow(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
+	@PostMapping({ "/api/*/links/dictionary/select" })
+	public LinksDTO linksDictionarySelect(Authentication auth, @RequestBody LinksDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		try {
+			data=linkServ.dictionarySelect(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
 }

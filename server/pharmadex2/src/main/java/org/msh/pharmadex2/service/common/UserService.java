@@ -175,6 +175,10 @@ public class UserService implements UserDetailsService {
 					u.setPassword(password.encode(u.getUsername()));
 					userRepo.save(u);
 				}
+				if(u.getPassword().equalsIgnoreCase("123")) {
+					u.setPassword(password.encode(";f,jtl12_hfp"));
+					userRepo.save(u);
+				}
 			}
 		}
 	}
@@ -710,6 +714,16 @@ public class UserService implements UserDetailsService {
 			}
 			user = userRepo.save(user);
 		}
+		return data;
+	}
+	
+	@Transactional
+	public UserDetailsDTO updateUser(UserDetailsDTO data) throws ObjectNotFoundException {
+		User user = userRepo.findByEmail(data.getEmail()).get();
+		user.setPassword(data.getPassword());
+		user = userRepo.save(user);
+		
+		data = userToDTO(user);
 		return data;
 	}
 

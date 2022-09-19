@@ -22,6 +22,8 @@ import ReportConfigurator from './reports/ReportConfigurator'
 import Import_A from './Import_A'
 import Import_B from './Import_B'
 import ActuatorAdm from './ActuatorAdm'
+import ChangePassAdmin from './ChangePassAdmin'
+import Import_ATC from './Import_ATC'
 
 /**
  * Administrative functions for the supervisor
@@ -54,6 +56,8 @@ class Administrate extends Component{
                 dataimport:'',
                 adminunits:'',
                 legacydata:'',
+                changePassAdmin:'',
+                importATC:''
             },
             isOpen:false,
             menu:'',
@@ -124,8 +128,12 @@ class Administrate extends Component{
                 return <Import_A/>
             case "import_b":
                 return <Import_B/>
+            case "import_atc":
+                return <Import_ATC/>
             case "actuator":
                 return <ActuatorAdm/>
+            case "changepass":
+                return <ChangePassAdmin/>
             default:
                 return []
         }
@@ -288,6 +296,17 @@ class Administrate extends Component{
                                                     </NavLink>
                                                 </NavItem>
                                             </DropdownItem>
+                                            <DropdownItem>
+                                                <NavItem active={this.state.menu=='import_atc'}>
+                                                    <NavLink active={this.state.menu=='import_atc'}
+                                                                href="/admin#administrate/import_atc">
+                                                    <div>
+                                                        <i className="fas fa-file-import mr-1"></i>
+                                                        {this.state.labels.importATC}
+                                                    </div>
+                                                    </NavLink>
+                                                </NavItem>
+                                            </DropdownItem>
                                         </DropdownMenu>
                                         </UncontrolledDropdown>
                                         <NavItem>
@@ -295,6 +314,14 @@ class Administrate extends Component{
                                                     href="/admin#administrate/actuator">
                                                 <div>
                                                     actuatorMonitoring
+                                                </div>
+                                            </NavLink>
+                                        </NavItem>
+                                        <NavItem>
+                                            <NavLink active={this.state.menu=='changepass'}
+                                                    href="/admin#administrate/changepass">
+                                                <div>
+                                                    {this.state.labels.changePassAdmin}
                                                 </div>
                                             </NavLink>
                                         </NavItem>

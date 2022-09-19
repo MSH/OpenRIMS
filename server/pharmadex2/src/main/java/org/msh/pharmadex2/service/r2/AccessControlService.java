@@ -1,6 +1,5 @@
 package org.msh.pharmadex2.service.r2;
 
-import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -10,24 +9,25 @@ import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 
 import org.msh.pdex2.exception.ObjectNotFoundException;
+import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.old.User;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.model.r2.PublicOrganization;
 import org.msh.pdex2.model.r2.Thing;
-import org.msh.pdex2.model.r2.ThingDict;
 import org.msh.pdex2.model.r2.ThingThing;
 import org.msh.pdex2.model.r2.UserDict;
 import org.msh.pdex2.services.r2.ClosureService;
-import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.auth.UserRoleDto;
+import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.common.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 /**
@@ -48,7 +48,12 @@ public class AccessControlService {
 	private BoilerService boilerServ;
 	@Autowired
 	private PubOrgService publicOrgServ;
-
+	@Autowired
+	private ThingService thingServ;
+	@Autowired
+	private PasswordEncoder passwordEncoder;
+	@Autowired
+	private Messages messages;
 
 	/**
 	 * Can this user create the thing
@@ -458,4 +463,70 @@ public class AccessControlService {
 		return role.getIdentifier().equalsIgnoreCase(SystemService.ROLE_APPLICANT);
 	}
 
+	/**
+	 * change Password by Admin Load
+	 * @param data
+	 * @param user
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	public ThingDTO changePassAdminLoad(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		//load and save only one and only under the root of the tree
+		data.setUrl(AssemblyService.SYSTEM_CHANGEPASS_ADMIN);
+		Concept root = closureServ.loadRoot(data.getUrl());
+		data.setParentId(root.getID());
+		List<Concept> nodes = closureServ.loadLevel(root);
+		if(nodes.size()>0) {
+			data.setNodeId(nodes.get(0).getID());
+		}
+		if(data.getNodeId()==0) {
+			data = thingServ.createThing(data, user);
+		}else {
+			data = thingServ.loadThing(data, user);
+			data.setValid(true);
+			data.setUrl(AssemblyService.SYSTEM_CHANGEPASS_ADMIN);
+		}
+		return data;
+	}
+	
+	/**
+	 * change Password by Admin Load
+	 * @param data
+	 * @param user
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	public ThingDTO changePassAdminSave(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		data.setValid(false);
+		String err = "";
+
+		Map<String, FormFieldDTO<String>> fields = data.getLiterals();
+		if(fields != null && fields.keySet().size() == 2) {
+			String p1 = fields.get(AssemblyService.CHANGEPASS_NEWPASS).getValue();
+			String p2 = fields.get(AssemblyService.CHANGEPASS_NEWPASS_REPEAT).getValue();
+			if(verifyPassword(p1, p2)) {
+				// save
+				user.setPassword(passwordEncoder.encode(p1));
+				userServ.updateUser(user);
+				if(thingServ.removeThing(data, user)) {
+					data.setNodeId(0);
+					data.setValid(true);
+				}
+			}else err = messages.get("password8andsame");
+		}else err = messages.get("password8andsame");
+		data.setIdentifier(err);
+		return data;
+	}
+	
+	private boolean verifyPassword(String str1, String str2) {
+		str1 = str1.trim();
+		str2 = str2.trim();
+		if(str1 != null && str2 != null && 
+				!str1.isEmpty() && !str2.isEmpty() &&
+				str1.length() >= 7 && str2.length() >= 7 &&
+				str1.equals(str2)) {
+			return true;
+		}
+		return false;
+	}
 }

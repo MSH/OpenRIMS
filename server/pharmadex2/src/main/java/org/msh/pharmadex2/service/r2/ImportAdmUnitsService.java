@@ -428,7 +428,7 @@ public class ImportAdmUnitsService {
 	public void importAdminunitsRun(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException, IOException{
 		setDefaultValues();
 
-		writeProtocol("Start import");
+		writeProtocol(messages.get("startImport"));
 
 		Concept rootCountry = archiveDictionary();
 		if(book != null){
@@ -454,7 +454,6 @@ public class ImportAdmUnitsService {
 				sheet = boilerServ.getSheetAt(book, sheetIndex);
 				setNumbersRow(sheet);
 				
-				writeProtocol("Start import sheet - count  " + book.getNumberOfSheets());
 				while(!errors.isErrorOrNullSheet(sheet)) {
 					if(!sheet.getSheetName().toLowerCase().equals(SHEET_NAME_COUNTRY)) {
 						importAdminunitsSheet(sheet, errors, rootCountry, sheetIndex);
@@ -463,7 +462,7 @@ public class ImportAdmUnitsService {
 					sheet = boilerServ.getSheetAt(book, sheetIndex);
 				}
 			}else {
-				writeProtocol("Not find sheet " + SHEET_NAME_COUNTRY);
+				writeProtocol(messages.get("notFindSheet") + " " + SHEET_NAME_COUNTRY);
 			}
 			
 			String fnameErr = "Error.xlsx";
@@ -491,7 +490,7 @@ public class ImportAdmUnitsService {
 			fdto.setMediaType(fr.getMediatype());
 			thingServ.fileSave(fdto, user, Files.readAllBytes(fError.toPath()));
 		}
-		writeProtocol("End import");
+		writeProtocol(messages.get("endImport"));
 	}
 
 	@Transactional
@@ -522,7 +521,7 @@ public class ImportAdmUnitsService {
 		String url = legacyDataService.sheetName(sheet);
 		int rownum = 1;
 		XSSFRow row = boilerServ.getSheetRow(sheet, rownum);
-		writeProtocol("Start import sheet " + url);
+		writeProtocol(messages.get("startImportSheet") + " " + url);
 
 		Map<Integer, List<ItemConcept>> levelMap = new HashMap<Integer, List<ItemConcept>>();
 		for(int i = 0; i < column_names.length - 1; i++) {// для последнего уровня не добавляем (могут быть повторы в полном обьеме)
@@ -601,7 +600,6 @@ public class ImportAdmUnitsService {
 				createRecursionComcept(children, concept);
 			}
 		}
-		writeProtocol("End import sheet " + url);
 	}
 
 	private void createRecursionComcept(List<ItemConcept> children, Concept parConcept) throws ObjectNotFoundException {

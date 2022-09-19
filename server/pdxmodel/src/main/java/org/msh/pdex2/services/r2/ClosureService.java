@@ -505,6 +505,22 @@ public class ClosureService {
 		ret=conceptRepo.findAllByIdentifierAndLabel(identifier, label);
 		return ret;
 	}
+	
+	/**
+	 * Load concept by Identifier
+	 * @param identifier
+	 * @param label
+	 * @return
+	 */
+	public Concept loadConceptByIdentifier(String identifier) {
+		List<Concept> ret = new ArrayList<Concept>();
+		ret = conceptRepo.findAllByIdentifier(identifier);
+		if(ret != null && ret.size() > 0) {
+			return ret.get(0);
+		}
+		return null;
+	}
+	
 
 	/**
 	 * Find concept in a branch by the identifier.

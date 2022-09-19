@@ -69,6 +69,7 @@ public class ThingDTO extends AllowValidation {
 	private Map<String,AtcDTO> atc = new LinkedHashMap<String, AtcDTO>();																		//atc codes
 	private Map<String, LegacyDataDTO> legacy = new LinkedHashMap<String, LegacyDataDTO>();										//list of legacy applications to import
 	private Map<String, IntervalDTO> intervals = new LinkedHashMap<String, IntervalDTO>();
+	private Map<String, LinksDTO> links = new LinkedHashMap<String, LinksDTO>();																// links to other objects
 	private ActionBarDTO actionBar= new ActionBarDTO();																										//action bar for it @depricated
 	
 	//The main static path - things that should be filled
@@ -341,6 +342,13 @@ public class ThingDTO extends AllowValidation {
 	}
 	public void setIntervals(Map<String, IntervalDTO> intervals) {
 		this.intervals = intervals;
+	}
+	
+	public Map<String, LinksDTO> getLinks() {
+		return links;
+	}
+	public void setLinks(Map<String, LinksDTO> links) {
+		this.links = links;
 	}
 	public List<ThingDTO> getPath() {
 		return path;

@@ -132,6 +132,8 @@ public class ThingService {
 	private AtcInnExcService atcInnExcServ;
 	@Autowired
 	private RegisterService registerServ;
+	@Autowired
+	private LinkService linkServ;
 	@PersistenceContext
 	EntityManager entityManager;
 
@@ -230,11 +232,6 @@ public class ThingService {
 		//persons
 		List<AssemblyDTO> persons =assemblyServ.auxPersons(data.getUrl(),assemblies);
 		data=createPersons(persons, data);
-		//person selectors
-		//List<AssemblyDTO> personselectors = assemblyServ.auxPersonSelector(data.getUrl());
-		//data=createPersonSelectors(personselectors,data);
-		//List<AssemblyDTO> personspecial = assemblyServ.auxPersonSpecials(data.getUrl());
-		//data = createPersonSpecial(personspecial, data);
 		//Schedulers
 		List<AssemblyDTO> schedulers = assemblyServ.auxSchedulers(data.getUrl(),assemblies);
 		data=createSchedulers(schedulers, data);
@@ -255,7 +252,9 @@ public class ThingService {
 		//Intervals
 		List<AssemblyDTO> intervals = assemblyServ.auxIntervals(data,"intervals");
 		data=createIntervals(intervals, data);
-		//logger.info("CONTENT done intervals");
+		//links
+		List<AssemblyDTO> links = assemblyServ.auxLinks(data.getUrl(),assemblies);
+		data=linkServ.createLinks(links,data);
 		//layout
 		data=createLayout(data);
 		//main labels rewrite
@@ -306,16 +305,6 @@ public class ThingService {
 		for(AssemblyDTO assm : legacy) {
 			data.getLegacy().put(assm.getPropertyName(),legacyServ.create(assm));
 		}
-		/*		if(data.getLegacy().size()>0) {
-					if(data.getNodeId()>0) {
-						Concept node = closureServ.loadConceptById(data.getNodeId());
-						Thing thing = boilerServ.thingByNode(node);
-						for(ThingLegacyData tdl : thing.getLegacyData()) {
-							LegacyDataDTO dto = data.getLegacy().get(tdl.getVarName());
-							dto=legacyServ.load(tdl.getConcept(), dto);
-						}
-					}
-				}*/
 		return data;
 	}
 	/**
@@ -338,97 +327,8 @@ public class ThingService {
 
 		return data;
 	}
-	/**
-	 * Create data for amendment component, i.e. a pointer to concept (thing) amended by this
-	 * @deprecated
-	 * @param amendments
-	 * @param data
-	 * @param user 
-	 * @return
-	 * @throws ObjectNotFoundException
-	 *  
-	 */
-	@Transactional
-	private ThingDTO createAmendments(List<AssemblyDTO> amendments, ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
-		//read a configuration
-		data.getAmendments().clear();
-		AmendmentDTO dto = new AmendmentDTO();	//only one is possible
-		for(AssemblyDTO asm : amendments) {
-			dto.setUrl(asm.getUrl());
-			dto.setVarName(asm.getPropertyName());
-			dto.setPattern(asm.getFileTypes());
-			data.getAmendments().put(dto.getVarName(),dto);
-			break;		//only one is allowed
-		}
-		//load a concept if one
-		if(data.getNodeId()>0) {
-			Concept node = closureServ.loadConceptById(data.getNodeId());
-			Thing thing = new Thing();
-			thing = boilerServ.thingByNode(node, thing);
-			for(ThingAmendment ta :thing.getAmendments()) {
-				if(dto.getUrl().equalsIgnoreCase(ta.getUrl())) {
-					dto.setDataNodeId(ta.getConcept().getID());
-				}
-				break;										//only one is possible
-			}
-		}
-		return data;
-	}
-	/**
-	 * Create special person
-	 * @param personspecial
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	@Transactional
-	private ThingDTO createPersonSpecial(List<AssemblyDTO> personspecial, ThingDTO data) throws ObjectNotFoundException {
-		//it is possible only one Special Person for a thing
-		if(personspecial.size()==1) {
-			AssemblyDTO adto = personspecial.get(0);
-			PersonSpecialDTO ps = new PersonSpecialDTO();
-			if(data.getPersonspec().size()==1) {
-				ps=data.getPersonspec().get(adto.getPropertyName());
-			}
-			if(ps!=null) {
-				ps.setVarName(adto.getPropertyName());				//variable for it
-				//object's data
-				ps.setParentId(data.getParentId());
-				//person data
-				ps.setPersonDataId(data.getNodeId());
-				//url of the unit of person's data. The root unit are allowed
-				ps.setPresonDataUrl(data.getUrl());
-				//restrict person's selection to this root person url, empty means all!
-				ps.setRestrictByURl(adto.getDictUrl());
-				//this component data 						
-				ps.setNodeUrl(adto.getAuxDataUrl());
-				data.getPersonspec().put(adto.getPropertyName(), ps);
-				//load it
-				ps=personList(ps);
-				//mark it
-				if(data.getNodeId()>0) {
-					Concept pconc= closureServ.loadConceptById(data.getNodeId());
-					if(pconc.getLabel() != null) {
-						String persIdStr= pconc.getLabel();
-						try {
-							Long persId= new Long(persIdStr);
-							Concept pers = closureServ.loadConceptById(persId);
-							ps.setSelectedName(literalServ.readPrefLabel(pers));
-						} catch (NumberFormatException e) {
-							//nothing to do
-						}
-					}
-					for(TableRow row : ps.getTable().getRows()) {
-						Concept node = closureServ.loadConceptById(row.getDbID());
-						if(conceptBelongToNode(node, pconc)) {
-							row.setSelected(true);
-						}
-					}
-				}
-			}
-		}
-		return data;
-	}
+
+
 	/**
 	 * Concept is belong to node if this concept is node itself or related thing 
 	 * @param node
@@ -537,34 +437,7 @@ public class ThingService {
 		return data;
 	}
 
-	/**
-	 * Load person lists using main data node and person data url 
-	 * @param personselectors 
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	@Transactional
-	private ThingDTO createPersonSelectors(List<AssemblyDTO> personselectors, ThingDTO data) throws ObjectNotFoundException {
-		data.getPersonselector().clear();
-		for(AssemblyDTO ad : personselectors) {
-			PersonSelectorDTO dto = new PersonSelectorDTO();
-			dto.setHistoryId(data.getHistoryId());
-			dto.setPersonUrl(ad.getUrl());
-			dto=amendServ.personSelectorTable(dto);										//the amended data has precedence
-			if(dto.getTable().getRows().size()==0) {
-				dto=resourceServ.personSelectorTable(dto);								//not found in amended data
-			}
-			List<Long> selected = boilerServ.saveSelectedRows(dto.getTable());
-			if(selected.size()==0) {
-				if(dto.getTable().getRows().size()>0) {
-					dto.getTable().getRows().get(0).setSelected(true);			//for lazy testers
-				}
-			}
-			data.getPersonselector().put(ad.getPropertyName(),dto);
-		}
-		return data;
-	}
+
 	/**
 	 * Create resources table
 	 * Headers are the same as for documents table
@@ -1800,6 +1673,18 @@ public class ThingService {
 			throw new ObjectNotFoundException("loadThing. Node  is not defined",logger);
 		}
 		return data;
+	}
+	
+	@Transactional
+	public boolean removeThing(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		if(data.getNodeId() > 0) {
+			Concept node = closureServ.loadConceptById(data.getNodeId());
+			if(node != null) {
+				closureServ.removeNode(node);
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**

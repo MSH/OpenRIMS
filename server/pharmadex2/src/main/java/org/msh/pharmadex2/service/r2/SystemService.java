@@ -56,10 +56,10 @@ public class SystemService {
 	public static final String ROOT_SYSTEM_TILES = "dictionary.system.tiles";
 	public static final String DICTIONARY_ADMIN_UNITS = "dictionary.admin.units";
 	public static final String DICTIONARY_SYSTEM_ROLES = "dictionary.system.roles";
-	
+	public static final String CONFIGURATION_ADMIN_UNITS = "configuration.admin.units";
 	public static final Integer DEFAULT_ZOOM = 7;
 
-
+	public static final String PRODUCTCLASSIFICATION_ATC_HUMAN = "medicinalproductdefinition.productclassification.atc.human";
 	
 	/**
 	 * Tree for persons, not dictionary

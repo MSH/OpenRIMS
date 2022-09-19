@@ -28,8 +28,8 @@ public class User_role implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC222274182C63977F90B633")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC222274182C63977F90B633", strategy="identity")	
+	@GeneratedValue(generator="VAC222274183363D22330E2B7")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC222274183363D22330E2B7", strategy="identity")	
 	private int ID;
 	
 	@ManyToOne(targetEntity=org.msh.pdex2.model.old.Role.class)	

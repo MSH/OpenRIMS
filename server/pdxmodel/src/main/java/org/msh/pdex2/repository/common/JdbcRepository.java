@@ -1169,6 +1169,38 @@ public class JdbcRepository {
 		proc.execute(params);
 
 	}
+	/**
+	 * Links for a node and varName on it
+	 * @param nodeID
+	 * @param varName
+	 */
+	public void links(long nodeID, String varName) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("links");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("nodeID", nodeID);
+		params.addValue("varName", varName);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+	}
+	/**
+	 * Get objects from reportpage table in form of a dictionary
+	 * @param objectUrl
+	 * @param state - ACTIVE
+								NOTSUBMITTED
+								ONAPPROVAL
+								DEREGISTERED
+	 */
+	public void reporting_objects(String objectUrl, String state) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("reporting_objects");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("url", objectUrl);
+		params.addValue("state", state);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+		
+	}
 
 
 }

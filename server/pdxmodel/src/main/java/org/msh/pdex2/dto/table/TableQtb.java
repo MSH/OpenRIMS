@@ -149,6 +149,5 @@ public class TableQtb {
 	public boolean hasHeaders() {
 		return getHeaders().getHeaders().size()>0;
 	}
-
 	
 }
