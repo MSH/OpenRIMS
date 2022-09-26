@@ -54,6 +54,7 @@ import org.msh.pharmadex2.dto.FileDTO;
 import org.msh.pharmadex2.dto.HeadingDTO;
 import org.msh.pharmadex2.dto.IntervalDTO;
 import org.msh.pharmadex2.dto.LegacyDataDTO;
+import org.msh.pharmadex2.dto.LinksDTO;
 import org.msh.pharmadex2.dto.PersonDTO;
 import org.msh.pharmadex2.dto.PersonSelectorDTO;
 import org.msh.pharmadex2.dto.PersonSpecialDTO;
@@ -995,11 +996,26 @@ public class ThingService {
 		data = storeRegister(user, thing, data);
 		data = storeAtc(thing, data);
 		data = storeIntervals(node, data);
+		data = storeLinks(thing, data);
 		data=amendServ.storePersonToRemove(data, thing);
 
 		return data;
 	}
-
+	/**
+	 * Store links to other objects
+	 * @param thing
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private ThingDTO storeLinks(Thing thing, ThingDTO data) throws ObjectNotFoundException {
+		for(String key : data.getLinks().keySet()) {
+			LinksDTO links = data.getLinks().get(key);
+			links=linkServ.save(links);
+		}
+		return data;
+	}
 	/**
 	 * Store data for all intervals defined
 	 * @param node
@@ -1110,6 +1126,7 @@ public class ThingService {
 	}
 	/**
 	 * Component Person Special may change the parent ID
+	 * @deprecated
 	 * @param data
 	 * @param thing 
 	 * @return

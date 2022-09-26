@@ -64,6 +64,7 @@ public class LinkService {
 				value.setRequired(aDto.isRequired());
 				value.setObjectUrl(aDto.getAuxDataUrl());
 				value.setVarName(aDto.getPropertyName());
+				value.setDescription(aDto.getDescription());
 				data.getLinks().put(key, value);
 			}
 		}
@@ -142,6 +143,7 @@ public class LinkService {
 		jdbcRepo.reporting_objects(dto.getObjectUrl(), "ACTIVE");
 		if(dto.getTable().getHeaders().getHeaders().size()==0) {
 			dictServ.createHeaders(dto.getTable().getHeaders(), false);
+			dto.getTable().getHeaders().setPageSize(10);
 		}
 		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from reporting_objects", "","", dto.getTable().getHeaders());
 		if(dto.getSelectedObj()>0) {
@@ -231,36 +233,37 @@ public class LinkService {
 		return ret;
 	}
 	/**
-	 * Store a link with zero ID
+	 * Store all links in the link
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	private LinksDTO storeLink(LinksDTO data) throws ObjectNotFoundException {
-		for(LinkDTO link : data.getLinks()) {
-			if(link.getID()==0l && link.getObjectID()>0 && data.getNodeID()>0) {
-				ThingLink tl =new ThingLink();
-				//general fields
-				tl.setVarName(data.getVarName());
-				tl.setLinkUrl(data.getLinkUrl());
-				if(link.getDictDto().getUrl().length()>0) {
-					tl.setDictUrl(link.getDictDto().getUrl());
-					if(link.getDictITemID()>0) {
-						Concept dictItem = closureServ.loadConceptById(link.getDictITemID());
-						tl.setDictItem(dictItem);
+	public LinksDTO save(LinksDTO data) throws ObjectNotFoundException {
+		if(data.getNodeID()>0) {
+			Concept node=closureServ.loadConceptById(data.getNodeID());
+			Thing thing = boilerServ.thingByNode(node);
+			thing.getThingLinks().clear();
+			for(LinkDTO link : data.getLinks()) {
+				if(link.getObjectID()>0) {
+					ThingLink tl =new ThingLink();
+					//general fields
+					tl.setVarName(data.getVarName());
+					tl.setLinkUrl(data.getLinkUrl());
+					if(data.getDictUrl().length()>0) {
+						tl.setDictUrl(data.getDictUrl());
+						if(link.getDictITemID()>0) {
+							Concept dictItem = closureServ.loadConceptById(link.getDictITemID());
+							tl.setDictItem(dictItem);
+						}
 					}
+					Concept objConc = closureServ.loadConceptById(link.getObjectID());
+					tl.setLinkedObject(objConc);
+					//store to thing
+					thing.getThingLinks().add(tl);
 				}
-				Concept objConc = closureServ.loadConceptById(link.getObjectID());
-				tl.setLinkedObject(objConc);
-				//store to thing
-				Concept node=closureServ.loadConceptById(data.getNodeID());
-				Thing thing = boilerServ.thingByNode(node);
-				thing.getThingLinks().add(tl);
-				thing=boilerServ.saveThing(thing);
-				data=loadSelectedLinks(data, data.getVarName());
-				break;
 			}
+			thing=boilerServ.saveThing(thing);
 		}
 		return data;
 	}
@@ -294,6 +297,5 @@ public class LinkService {
 		data=selectObjects(data);
 		return data;
 	}
-
 
 }

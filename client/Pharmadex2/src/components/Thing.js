@@ -49,6 +49,8 @@ class Thing extends Component{
             data:this.props.data,             //ThingDTO         
             labels:{},
         }
+        this.state.data.readOnly=this.props.readOnly
+        
         this.eventProcessor=this.eventProcessor.bind(this)
         this.paintRows=this.paintRows.bind(this)
         this.paintCells=this.paintCells.bind(this)

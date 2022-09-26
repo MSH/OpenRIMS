@@ -27,6 +27,7 @@ public class LinksDTO extends AllowValidation{
 	private List<LinkDTO> links = new ArrayList<LinkDTO>();	//already linked
 	private long selectedObj=0;					//the currently selected object (concept ID) 
 	private LinkDTO selectedLink= new LinkDTO();				//the currently selected link
+	private String description="";										//help string
 	public long getNodeID() {
 		return nodeID;
 	}
@@ -101,6 +102,12 @@ public class LinksDTO extends AllowValidation{
 	}
 	public void setSelectedLink(LinkDTO selectedLink) {
 		this.selectedLink = selectedLink;
+	}
+	public String getDescription() {
+		return description;
+	}
+	public void setDescription(String description) {
+		this.description = description;
 	}
 	
 }

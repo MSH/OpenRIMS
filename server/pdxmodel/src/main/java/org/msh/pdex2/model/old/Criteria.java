@@ -28,8 +28,8 @@ public class Criteria implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC222274183363D22350E2B9")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC222274183363D22350E2B9", strategy="native")	
+	@GeneratedValue(generator="VAC2222741836B156F6E0E388")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222741836B156F6E0E388", strategy="native")	
 	private long ID;
 	
 	@Column(name="Name", nullable=true, length=255)	

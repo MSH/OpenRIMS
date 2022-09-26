@@ -1,5 +1,5 @@
 import React , {Component} from 'react'
-import {Container, Row, Col, Alert, Breadcrumb, BreadcrumbItem} from 'reactstrap'
+import {Container, Row, Col, Alert, Breadcrumb, BreadcrumbItem, FormText} from 'reactstrap'
 import PropTypes from 'prop-types'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
@@ -31,6 +31,7 @@ class Links extends Component{
         this.currentSelected=this.currentSelected.bind(this)
         this.loadObjects=this.loadObjects.bind(this)
         this.selectRow=this.selectRow.bind(this)
+        this.readOnly=this.readOnly.bind(this)
     }
     /**
      * Place Links to a thing
@@ -167,7 +168,7 @@ class Links extends Component{
      */
     paintClassifiers(){
         return (
-            <Dictionary identifier='links_dict' recipient={this.state.identifier} data={this.state.data.selectedLink.dictDto} display/>
+            <Dictionary identifier='links_dict' recipient={this.state.identifier} data={this.state.data.selectedLink.dictDto} display noborder/>
         )
     }
     /**
@@ -208,33 +209,78 @@ class Links extends Component{
     currentSelected(){
         return []
     }
+    /**
+     * read only data rows
+     */
+    readOnlyRows(){
+        let ret=[]
+        if(Fetchers.isGoodArray(this.state.data.links)){
+            this.state.data.links.forEach((link,index) => {
+                ret.push(
+                    <Breadcrumb key={index}>
+                        <BreadcrumbItem key={index*100}>
+                            {link.objectLabel}
+                        </BreadcrumbItem>
+                        <BreadcrumbItem key={index*100+1}>
+                            {link.dictLabel}
+                        </BreadcrumbItem>
+                    </Breadcrumb>
+                )
+            })
+        }
+        return ret;
+    }
+    /**
+     * Read only representation
+     */
+    readOnly(){
+        return(
+            <Container fluid >
+                {this.readOnlyRows()}
+            </Container>
+        )
+    }
 
     render(){
         if(this.state.labels.locale==undefined){
             return []
         }
-        return(
-            <Container fluid>
-                <Row hidden={!this.state.objects}>
-                    <Col>
-                        <SearchControl label={this.state.labels.search} table={this.state.data.table} loader={this.loadObjects}/>
-                    </Col>
-                    <Col>
-                        {this.allSelected()}
-                    </Col>
-                </Row>
-                <Row>
-                    <Col>
-                        <h6 className='ml-3'>{this.state.data.selectedLink.objectLabel}</h6>
-                    </Col>
-                </Row>
-                <Row>
-                    <Col>
-                        {this.paintTable()}
-                    </Col>
-                </Row>
-            </Container>
-        )
+        if(this.props.readOnly){
+            return(
+                this.readOnly()
+            )
+
+        }else{
+            return(
+                <Container fluid className={Pharmadex.settings.activeBorder}>
+                    <Row hidden={!this.state.objects} className='m-2'>
+                        <Col>
+                            <SearchControl label={this.state.labels.search} table={this.state.data.table} loader={this.loadObjects}/>
+                        </Col>
+                        <Col>
+                            {this.allSelected()}
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col>
+                            <FormText color="muted">
+                                {this.state.data.description}
+                            </FormText>
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col>
+                            <h4 className='ml-3'>{this.state.data.selectedLink.objectLabel}</h4>
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col>
+                            {this.paintTable()}
+                        </Col>
+                    </Row>
+                </Container>
+            )
+        }
     }
 
 

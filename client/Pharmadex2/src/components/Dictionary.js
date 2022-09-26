@@ -376,6 +376,10 @@ class Dictionary extends Component{
     }
 
     render(){
+       let myStyle=Pharmadex.settings.activeBorder
+       if(this.props.noborder){
+        myStyle=''
+       }
        if(this.state.data.table==undefined){
            return []
        }
@@ -384,7 +388,7 @@ class Dictionary extends Component{
        }
        if(this.state.edit){
            return(
-            <Container fluid className={Pharmadex.settings.activeBorder}>
+            <Container fluid className={myStyle}>
                 <Row>
                     <Col>
                         <Breadcrumb>
@@ -413,7 +417,7 @@ class Dictionary extends Component{
 		   let hideControls = (this.state.data.table.rows==0 || this.state.data.table.headers.pages<2) && 
                             !this.state.data.selectedOnly && !this.state.data.table.headers.filtered
         return(
-            <Container fluid className={Pharmadex.settings.activeBorder}>
+            <Container fluid className={myStyle}>
                 <Row>
                     <Col>
                         <Breadcrumb xs='12' sm='12' lg='10' xl='10'>
@@ -514,4 +518,5 @@ Dictionary.propTypes={
     data:PropTypes.object.isRequired,           //DictionaryDTO
     recipient:PropTypes.string,                 //recipient of messages
     display:PropTypes.bool,                     //display only
+    noborder:PropTypes.bool,                    //will not display a border
 }

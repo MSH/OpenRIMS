@@ -30,8 +30,8 @@ public class Assembly implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC222274183363D22420E2C2")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC222274183363D22420E2C2", strategy="native")	
+	@GeneratedValue(generator="VAC2222741836B156F7A0E391")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222741836B156F7A0E391", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
@@ -81,6 +81,9 @@ public class Assembly implements Serializable {
 	
 	@Column(name="`Unique`", nullable=false, length=1)	
 	private boolean unique = false;
+	
+	@Column(name="PrefLabel", nullable=false, length=1)	
+	private boolean prefLabel = false;
 	
 	private void setID(long value) {
 		this.ID = value;
@@ -270,6 +273,20 @@ public class Assembly implements Serializable {
 	
 	public boolean getUnique() {
 		return unique;
+	}
+	
+	/**
+	 * Text value of it should be copied to prefLabel literal
+	 */
+	public void setPrefLabel(boolean value) {
+		this.prefLabel = value;
+	}
+	
+	/**
+	 * Text value of it should be copied to prefLabel literal
+	 */
+	public boolean getPrefLabel() {
+		return prefLabel;
 	}
 	
 	public void setPropertyName(org.msh.pdex2.model.r2.Concept value) {

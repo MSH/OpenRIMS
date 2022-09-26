@@ -62,7 +62,6 @@ class ThingsManager extends Component{
         this.onNextClick=this.onNextClick.bind(this)
         this.onConcludeClick=this.onConcludeClick.bind(this)
         this.toggle=this.toggle.bind(this)
-        this.thingComp=this.thingComp.bind(this)
     } 
     /**
      * Propagate values from the master thing to the rest of path
@@ -187,7 +186,7 @@ class ThingsManager extends Component{
                 if(data.subject=="register_loaded"){
                     this.state.register=data.data
                 }
-                if(data.subject=="thingLoaded"){
+                if(data.subject=="thingLoaded" && !data.data.readOnly){
                     this.state.thingIdentifier=data.data.identifier
                     if(this.state.data.auxPath.length>0){
                         this.state.data.auxPath[this.state.data.auxPathIndex]=data.data
@@ -287,11 +286,21 @@ class ThingsManager extends Component{
                         <h4 className='btn-link' key={index+1000} style={{cursor:"pointer"}} 
                             onClick={()=>{this.toggle(index)}}>{thing.title}</h4>
                     )
-                    ret.push(
+                    /* ret.push(
                         <Collapse key={index+500} isOpen={this.state.fullcollapse[index].collapse} >
                             {this.thingComp(index, thing)}
                         </Collapse>
-                    )
+                    ) */
+                    if(this.state.fullcollapse[index].collapse){
+                        ret.push(
+                            <Thing key={index+"_thing"}
+                            data={thing}
+                            recipient={this.state.identifier}
+                            readOnly={true}
+                            narrow={this.props.narrow}
+                            />
+                        )
+                    }
                 })
             }
             return ret
@@ -300,31 +309,6 @@ class ThingsManager extends Component{
         }
     }
 
-     /**
-     * добавляем на экран нужный thing 
-     */
-      thingComp(index, thing){
-        let flag = false
-        if(Fetchers.isGoodArray(this.state.fullcollapse)){
-            this.state.fullcollapse.forEach((el, i)=>{
-                if(index == el.ind && el.collapse){
-                    flag = true
-                }
-            })
-        }
-        if(flag){
-            return (
-                <Thing key={index}
-                            data={thing}
-                            recipient={this.state.identifier}
-                            readOnly={true}
-                            narrow={this.props.narrow}
-                            />
-            )
-        }else{
-            return []
-        }
-    }
  
     /**
      * Ставим отметку какой именно thing нужно открыть
@@ -333,12 +317,12 @@ class ThingsManager extends Component{
         if(this.state.data != undefined && this.state.data.path != undefined){
             if(Fetchers.isGoodArray(this.state.fullcollapse)){
                 this.state.fullcollapse.forEach((el, i)=>{
-                    if(ind == el.ind){
-                        el.collapse = el.collapse = !el.collapse
+                    if(ind == i){
+                        el.collapse = !el.collapse
                     }
                 })
             }
-            this.setState(this.state.fullcollapse);
+            this.setState(this.state);
         }
     }
 

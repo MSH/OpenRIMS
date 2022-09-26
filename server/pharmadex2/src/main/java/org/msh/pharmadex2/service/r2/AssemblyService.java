@@ -1172,7 +1172,7 @@ public class AssemblyService {
 		}else {
 			//configuration is in a variable configuration
 			if(data.getParentId()==0) {
-				throw new ObjectNotFoundException("auxPathConfig. Parent ID is ZERO", logger);
+				data.setParentId(data.getNodeId());
 			}
 			Concept parent = closureServ.loadConceptById(data.getParentId());
 			Thing parentThing = boilerServ.thingByNode(parent);

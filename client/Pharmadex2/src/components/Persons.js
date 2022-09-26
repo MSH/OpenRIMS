@@ -96,11 +96,12 @@ class Persons extends Component{
     componentDidMount(){
         window.addEventListener("message",this.eventProcessor)
         Locales.resolveLabels(this)
+        this.loader()
     }
 
     componentDidUpdate(){
         if(this.props.data.thingNodeId != this.state.data.thingNodeId
-            || this.props.data.valid != this.state.data.valid){
+            || this.props.data.valid != this.state.data.valid || this.state.auxPath){
             this.state.data=this.props.data
             this.setState(this.state)
         }

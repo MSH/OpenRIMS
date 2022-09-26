@@ -28,8 +28,8 @@ public class ReportPageLinks implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC222274183363D22630E2DD")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC222274183363D22630E2DD", strategy="native")	
+	@GeneratedValue(generator="VAC2222741836B156F980E3AC")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222741836B156F980E3AC", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	
@@ -40,36 +40,30 @@ public class ReportPageLinks implements Serializable {
 	
 	@ManyToOne(targetEntity=org.msh.pdex2.model.dwh.ReportPage.class)	
 	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.LOCK})	
-	@JoinColumns({ @JoinColumn(name="reportpageAuxID", referencedColumnName="ID") })	
+	@JoinColumns({ @JoinColumn(name="dataPageID", referencedColumnName="ID") })	
 	@Basic(fetch=FetchType.LAZY)	
-	private org.msh.pdex2.model.dwh.ReportPage reportPageAux;
+	private org.msh.pdex2.model.dwh.ReportPage dataPage;
 	
 	@ManyToOne(targetEntity=org.msh.pdex2.model.dwh.ReportPage.class)	
 	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.LOCK})	
-	@JoinColumns({ @JoinColumn(name="reportpageID", referencedColumnName="ID") })	
+	@JoinColumns({ @JoinColumn(name="linkedPageID", referencedColumnName="ID") })	
 	@Basic(fetch=FetchType.LAZY)	
-	private org.msh.pdex2.model.dwh.ReportPage reportPage;
+	private org.msh.pdex2.model.dwh.ReportPage linkedPage;
 	
-	@Column(name="DataModuleId", nullable=false, length=20)	
-	private long dataModuleId;
+	@Column(name="DictUrl", nullable=true, length=255)	
+	private String dictUrl;
 	
-	@Column(name="DataModuleUrl", nullable=true, length=255)	
-	private String dataModuleUrl;
+	@Column(name="DictPrefLabel", nullable=true, length=255)	
+	private String dictPrefLabel;
 	
-	@Column(name="ReportPageUrl", nullable=true, length=255)	
-	private String reportPageUrl;
+	@Column(name="DictLevel", nullable=false, length=11)	
+	private int dictLevel = 0;
 	
-	@Column(name="Lang", nullable=true, length=255)	
-	private String Lang;
+	@Column(name="DictItem", nullable=true, length=255)	
+	private String dictItem;
 	
-	@Column(name="AuxModuleUrl", nullable=true, length=255)	
-	private String auxModuleUrl;
-	
-	@Column(name="AuxPageUrl", nullable=true, length=255)	
-	private String auxPageUrl;
-	
-	@Column(name="PrefLabel", nullable=true, length=255)	
-	private String prefLabel;
+	@Column(name="DictPath", nullable=true, length=255)	
+	private String dictPath;
 	
 	private void setID(long value) {
 		this.ID = value;
@@ -83,76 +77,60 @@ public class ReportPageLinks implements Serializable {
 		return getID();
 	}
 	
-	public void setDataModuleId(long value) {
-		this.dataModuleId = value;
+	public void setDictUrl(String value) {
+		this.dictUrl = value;
 	}
 	
-	public long getDataModuleId() {
-		return dataModuleId;
+	public String getDictUrl() {
+		return dictUrl;
 	}
 	
-	public void setDataModuleUrl(String value) {
-		this.dataModuleUrl = value;
+	public void setDictPrefLabel(String value) {
+		this.dictPrefLabel = value;
 	}
 	
-	public String getDataModuleUrl() {
-		return dataModuleUrl;
+	public String getDictPrefLabel() {
+		return dictPrefLabel;
 	}
 	
-	public void setReportPageUrl(String value) {
-		this.reportPageUrl = value;
+	public void setDictLevel(int value) {
+		this.dictLevel = value;
 	}
 	
-	public String getReportPageUrl() {
-		return reportPageUrl;
+	public int getDictLevel() {
+		return dictLevel;
 	}
 	
-	public void setLang(String value) {
-		this.Lang = value;
+	public void setDictItem(String value) {
+		this.dictItem = value;
 	}
 	
-	public String getLang() {
-		return Lang;
+	public String getDictItem() {
+		return dictItem;
 	}
 	
-	public void setAuxModuleUrl(String value) {
-		this.auxModuleUrl = value;
+	public void setDictPath(String value) {
+		this.dictPath = value;
 	}
 	
-	public String getAuxModuleUrl() {
-		return auxModuleUrl;
+	public String getDictPath() {
+		return dictPath;
 	}
 	
-	public void setAuxPageUrl(String value) {
-		this.auxPageUrl = value;
+	public void setDataPage(org.msh.pdex2.model.dwh.ReportPage value) {
+		this.dataPage = value;
 	}
 	
-	public String getAuxPageUrl() {
-		return auxPageUrl;
+	public org.msh.pdex2.model.dwh.ReportPage getDataPage() {
+		return dataPage;
 	}
 	
-	public void setPrefLabel(String value) {
-		this.prefLabel = value;
+	public void setLinkedPage(org.msh.pdex2.model.dwh.ReportPage value) {
+		this.linkedPage = value;
 	}
 	
-	public String getPrefLabel() {
-		return prefLabel;
-	}
-	
-	public void setReportPage(org.msh.pdex2.model.dwh.ReportPage value) {
-		this.reportPage = value;
-	}
-	
-	public org.msh.pdex2.model.dwh.ReportPage getReportPage() {
-		return reportPage;
-	}
-	
-	public void setReportPageAux(org.msh.pdex2.model.dwh.ReportPage value) {
-		this.reportPageAux = value;
-	}
-	
-	public org.msh.pdex2.model.dwh.ReportPage getReportPageAux() {
-		return reportPageAux;
+	public org.msh.pdex2.model.dwh.ReportPage getLinkedPage() {
+		return linkedPage;
 	}
 	
 	public void setReportSession(org.msh.pdex2.model.dwh.ReportSession value) {
