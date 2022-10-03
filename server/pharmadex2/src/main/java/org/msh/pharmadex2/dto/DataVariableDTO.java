@@ -36,6 +36,7 @@ public class DataVariableDTO extends AllowValidation {
 	private FormFieldDTO<OptionDTO> required = FormFieldDTO.of(new OptionDTO());
 	private FormFieldDTO<OptionDTO> mult = FormFieldDTO.of(new OptionDTO());
 	private FormFieldDTO<OptionDTO> unique = FormFieldDTO.of(new OptionDTO());
+	private FormFieldDTO<OptionDTO> prefLabel = FormFieldDTO.of(new OptionDTO());
 	//screen position
 	private FormFieldDTO<Long> row = FormFieldDTO.of(0l);
 	private FormFieldDTO<Long> col = FormFieldDTO.of(0l);
@@ -107,6 +108,14 @@ public class DataVariableDTO extends AllowValidation {
 	}
 	public void setUnique(FormFieldDTO<OptionDTO> unique) {
 		this.unique = unique;
+	}
+	
+	
+	public FormFieldDTO<OptionDTO> getPrefLabel() {
+		return prefLabel;
+	}
+	public void setPrefLabel(FormFieldDTO<OptionDTO> prefLabel) {
+		this.prefLabel = prefLabel;
 	}
 	public FormFieldDTO<Long> getRow() {
 		return row;

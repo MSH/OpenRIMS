@@ -498,6 +498,7 @@ public class DtoService {
 		data.getMinLen().setValue(new Long(assm.getMin()));
 		data.getMult().setValue(logicalOpt(assm.getMult(),data.getMult().getValue()));
 		data.getUnique().setValue(logicalOpt(assm.getUnique(), data.getUnique().getValue()));
+		data.getPrefLabel().setValue(logicalOpt(assm.getPrefLabel(), data.getPrefLabel().getValue()));
 		data.setNodeId(node.getID());
 		data.getOrd().setValue(new Long(assm.getOrd()));
 		data.getReadOnly().setValue(logicalOpt(assm.getReadOnly(),data.getReadOnly().getValue()));

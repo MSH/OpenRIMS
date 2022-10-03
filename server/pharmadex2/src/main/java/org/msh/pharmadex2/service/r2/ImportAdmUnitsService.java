@@ -47,7 +47,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 @Service
 public class ImportAdmUnitsService {
 
-	private static final Logger logger = LoggerFactory.getLogger(ImportAService.class);
+	private static final Logger logger = LoggerFactory.getLogger(ImportAdmUnitsService.class);
 	@Autowired
 	ClosureService closureServ;
 	@Autowired
@@ -142,9 +142,13 @@ public class ImportAdmUnitsService {
 		if(data.getNodeId()==0) {
 			data=thingServ.createThing(data, user);
 		}else {
-			root = closureServ.loadConceptById(data.getNodeId());
+			/*root = closureServ.loadConceptById(data.getNodeId());
 			String result = literalServ.readValue(AssemblyService.DATAIMPORT_RESULT, root);
 			if(!(result.isEmpty() || result.startsWith("End"))) {
+				data.setUrl(AssemblyService.SYSTEM_IMPORT_ADMINUNITS_RELOAD);
+			}*/
+			String sstm = getSystemProtocol();
+			if(!(sstm.equals("") || sstm.equals("END"))) {
 				data.setUrl(AssemblyService.SYSTEM_IMPORT_ADMINUNITS_RELOAD);
 			}
 			data=thingServ.loadThing(data, user);
@@ -153,12 +157,17 @@ public class ImportAdmUnitsService {
 		}
 		return data;
 	}
-
+	
+	@Transactional
 	public ThingDTO importAdminunitsReload(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		if(data.getNodeId() > 0) {
-			Concept root = closureServ.loadConceptById(data.getNodeId());
+			/*Concept root = closureServ.loadConceptById(data.getNodeId());
 			String result = literalServ.readValue(AssemblyService.DATAIMPORT_RESULT, root);
 			if(!(result.isEmpty() || result.startsWith("End"))) {
+				data.setUrl(AssemblyService.SYSTEM_IMPORT_ADMINUNITS_RELOAD);
+			}*/
+			String sstm = getSystemProtocol();
+			if(!(sstm.equals("") || sstm.equals("END"))) {
 				data.setUrl(AssemblyService.SYSTEM_IMPORT_ADMINUNITS_RELOAD);
 			}
 
@@ -178,6 +187,7 @@ public class ImportAdmUnitsService {
 		// проверяем файл на наличие обязательных листов, колонок и т.д.
 		data.setValid(false);
 
+		setDefaultValues();
 		writeProtocol("Start verify file");
 
 		FileDTO dto = data.getDocuments().get(AssemblyService.DATAIMPORT_DATA);
@@ -429,7 +439,8 @@ public class ImportAdmUnitsService {
 		setDefaultValues();
 
 		writeProtocol(messages.get("startImport"));
-
+		writeSystemProtocol("START");
+		
 		Concept rootCountry = archiveDictionary();
 		if(book != null){
 			LegacyDataErrorsDTO errors= new LegacyDataErrorsDTO(book);
@@ -491,6 +502,7 @@ public class ImportAdmUnitsService {
 			thingServ.fileSave(fdto, user, Files.readAllBytes(fError.toPath()));
 		}
 		writeProtocol(messages.get("endImport"));
+		writeSystemProtocol("END");
 	}
 
 	@Transactional
@@ -780,7 +792,10 @@ public class ImportAdmUnitsService {
 	public void writeProtocol(String val) throws ObjectNotFoundException {
 		val += ". Date " + getCurrentDate();
 		Concept protocol=protocolConcept(AssemblyService.SYSTEM_IMPORT_ADMINUNITS);
-		protocol = literalServ.createUpdateLiteral(AssemblyService.DATAIMPORT_RESULT, val, protocol);
+		Map<String, String> values = new HashMap<String, String>();
+		values.put(langs[0], val);
+		values.put(langs[1], val);
+		protocol = literalServ.createUpdateLiteral(AssemblyService.DATAIMPORT_RESULT, protocol, values);
 		logger.info(val);
 	}
 
@@ -900,8 +915,27 @@ public class ImportAdmUnitsService {
 			}
 			return false;
 		}
-
-
+	}
+	
+	/**
+	 * System Literal 
+	 * monitors import status
+	 * START, END, ERROR
+	 */
+	@Transactional
+	public void writeSystemProtocol(String val) throws ObjectNotFoundException {
+		Concept protocol = protocolConcept(AssemblyService.SYSTEM_IMPORT_ADMINUNITS);
+		// write protocol text on two language
+		Map<String, String> values = new HashMap<String, String>();
+		values.put(langs[0], val);
+		values.put(langs[1], val);
+		protocol = literalServ.createUpdateLiteral(AssemblyService.DATAIMPORT_SYSTEM_RESULT, protocol, values);
+	}
+	
+	private String getSystemProtocol() throws ObjectNotFoundException {
+		Concept protocol = protocolConcept(AssemblyService.SYSTEM_IMPORT_ADMINUNITS);
+		String result = literalServ.readValue(AssemblyService.DATAIMPORT_SYSTEM_RESULT, protocol);
+		return result;
 	}
 
 }

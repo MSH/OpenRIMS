@@ -57,7 +57,8 @@ class Administrate extends Component{
                 adminunits:'',
                 legacydata:'',
                 changePassAdmin:'',
-                importATC:''
+                importATC:'',
+                actuatorMonitoring:'',
             },
             isOpen:false,
             menu:'',
@@ -313,7 +314,7 @@ class Administrate extends Component{
                                             <NavLink active={this.state.menu=='actuator'}
                                                     href="/admin#administrate/actuator">
                                                 <div>
-                                                    actuatorMonitoring
+                                                    {this.state.labels.actuatorMonitoring}
                                                 </div>
                                             </NavLink>
                                         </NavItem>

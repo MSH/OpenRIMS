@@ -28,8 +28,8 @@ public class ReportPageLinks implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC2222741836B156F980E3AC")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC2222741836B156F980E3AC", strategy="native")	
+	@GeneratedValue(generator="VAC222274183844892740737B")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC222274183844892740737B", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	
@@ -40,9 +40,32 @@ public class ReportPageLinks implements Serializable {
 	
 	@ManyToOne(targetEntity=org.msh.pdex2.model.dwh.ReportPage.class)	
 	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.LOCK})	
-	@JoinColumns({ @JoinColumn(name="dataPageID", referencedColumnName="ID") })	
+	@JoinColumns({ @JoinColumn(name="reportpageID", referencedColumnName="ID") })	
 	@Basic(fetch=FetchType.LAZY)	
 	private org.msh.pdex2.model.dwh.ReportPage dataPage;
+	
+	@Column(name="DataModuleUrl", nullable=true, length=255)	
+	@org.hibernate.annotations.Index(name="byDataModuleUrl")	
+	private String dataModuleUrl;
+	
+	@Column(name="DataModuleID", nullable=false, length=20)	
+	@org.hibernate.annotations.Index(name="byDatamoduleID")	
+	private long dataModuleID;
+	
+	@Column(name="DataPrefLabel", nullable=true, length=255)	
+	private String dataPrefLabel;
+	
+	@Column(name="Varname", nullable=true, length=255)	
+	@org.hibernate.annotations.Index(name="byVarName")	
+	private String varname;
+	
+	@Column(name="LinkedDataModuleUrl", nullable=true, length=255)	
+	@org.hibernate.annotations.Index(name="byLinkedDataModuleUrl")	
+	private String linkedDataModuleUrl;
+	
+	@Column(name="LinkedDataModuleID", nullable=false, length=20)	
+	@org.hibernate.annotations.Index(name="byLinkedDataModuleID")	
+	private long linkedDataModuleID;
 	
 	@ManyToOne(targetEntity=org.msh.pdex2.model.dwh.ReportPage.class)	
 	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.LOCK})	
@@ -50,20 +73,29 @@ public class ReportPageLinks implements Serializable {
 	@Basic(fetch=FetchType.LAZY)	
 	private org.msh.pdex2.model.dwh.ReportPage linkedPage;
 	
+	@Column(name="LinkedPrefLabel", nullable=true, length=255)	
+	private String linkedPrefLabel;
+	
 	@Column(name="DictUrl", nullable=true, length=255)	
+	@org.hibernate.annotations.Index(name="byDictUrl")	
 	private String dictUrl;
 	
 	@Column(name="DictPrefLabel", nullable=true, length=255)	
 	private String dictPrefLabel;
-	
-	@Column(name="DictLevel", nullable=false, length=11)	
-	private int dictLevel = 0;
 	
 	@Column(name="DictItem", nullable=true, length=255)	
 	private String dictItem;
 	
 	@Column(name="DictPath", nullable=true, length=255)	
 	private String dictPath;
+	
+	@Column(name="Lang", nullable=true, length=255)	
+	@org.hibernate.annotations.Index(name="byLang")	
+	private String lang;
+	
+	@Column(name="State", nullable=true, length=255)	
+	@org.hibernate.annotations.Index(name="byState")	
+	private String state;
 	
 	private void setID(long value) {
 		this.ID = value;
@@ -75,6 +107,62 @@ public class ReportPageLinks implements Serializable {
 	
 	public long getORMID() {
 		return getID();
+	}
+	
+	public void setDataModuleUrl(String value) {
+		this.dataModuleUrl = value;
+	}
+	
+	public String getDataModuleUrl() {
+		return dataModuleUrl;
+	}
+	
+	public void setDataModuleID(long value) {
+		this.dataModuleID = value;
+	}
+	
+	public long getDataModuleID() {
+		return dataModuleID;
+	}
+	
+	public void setDataPrefLabel(String value) {
+		this.dataPrefLabel = value;
+	}
+	
+	public String getDataPrefLabel() {
+		return dataPrefLabel;
+	}
+	
+	public void setVarname(String value) {
+		this.varname = value;
+	}
+	
+	public String getVarname() {
+		return varname;
+	}
+	
+	public void setLinkedDataModuleUrl(String value) {
+		this.linkedDataModuleUrl = value;
+	}
+	
+	public String getLinkedDataModuleUrl() {
+		return linkedDataModuleUrl;
+	}
+	
+	public void setLinkedDataModuleID(long value) {
+		this.linkedDataModuleID = value;
+	}
+	
+	public long getLinkedDataModuleID() {
+		return linkedDataModuleID;
+	}
+	
+	public void setLinkedPrefLabel(String value) {
+		this.linkedPrefLabel = value;
+	}
+	
+	public String getLinkedPrefLabel() {
+		return linkedPrefLabel;
 	}
 	
 	public void setDictUrl(String value) {
@@ -93,14 +181,6 @@ public class ReportPageLinks implements Serializable {
 		return dictPrefLabel;
 	}
 	
-	public void setDictLevel(int value) {
-		this.dictLevel = value;
-	}
-	
-	public int getDictLevel() {
-		return dictLevel;
-	}
-	
 	public void setDictItem(String value) {
 		this.dictItem = value;
 	}
@@ -115,6 +195,22 @@ public class ReportPageLinks implements Serializable {
 	
 	public String getDictPath() {
 		return dictPath;
+	}
+	
+	public void setLang(String value) {
+		this.lang = value;
+	}
+	
+	public String getLang() {
+		return lang;
+	}
+	
+	public void setState(String value) {
+		this.state = value;
+	}
+	
+	public String getState() {
+		return state;
 	}
 	
 	public void setDataPage(org.msh.pdex2.model.dwh.ReportPage value) {

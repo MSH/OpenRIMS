@@ -1,6 +1,8 @@
 package org.msh.pharmadex2.service.r2;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
@@ -33,8 +35,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class LinkService {
 	@Autowired
-	private AssemblyService assemblyServ;
-	@Autowired
 	private DictService dictServ;
 	@Autowired
 	private JdbcRepository jdbcRepo;
@@ -44,6 +44,7 @@ public class LinkService {
 	private ClosureService closureServ;
 	@Autowired
 	private LiteralService literalServ;
+
 	/**
 	 * Create/load links for a thing
 	 * @param links 
@@ -102,6 +103,10 @@ public class LinkService {
 		List<TableHeader> headlist= jdbcRepo.headersFromSelect("select * from _links",new ArrayList<String>());
 		Headers headers = new Headers();
 		headers.getHeaders().addAll(headlist);
+		for(TableHeader th : headers.getHeaders()) {
+			th.setSort(true);
+			th.setSortValue(TableHeader.SORT_ASC);
+		}
 		List<TableRow> rows=jdbcRepo.qtbGroupReport("select * from _links", "", "", headers);
 		dto.getLinks().clear();
 		for(TableRow row : rows) {
@@ -296,6 +301,24 @@ public class LinkService {
 		}
 		data=selectObjects(data);
 		return data;
+	}
+	/**
+	 * Get list of main concepts of linked objects
+	 * @param var concept of the page on which "links" components is placed
+	 * @param varName 
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public List<ThingLink> list(Concept var, String varName) throws ObjectNotFoundException {
+		List<ThingLink> ret = new ArrayList<ThingLink>();
+		LinksDTO dto = new LinksDTO();
+		dto.setNodeID(var.getID());
+		dto=loadLinks(dto, varName);
+		for(LinkDTO ld :dto.getLinks()) {
+			ret.add(boilerServ.thingLink(ld.getID()));
+		}
+		return ret;
 	}
 
 }

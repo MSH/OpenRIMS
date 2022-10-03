@@ -42,7 +42,7 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 
 @Service
-//@Transactional
+@Deprecated
 public class ImportAService {
 	private static final Logger logger = LoggerFactory.getLogger(ImportAService.class);
 	@Autowired
@@ -141,11 +141,16 @@ public class ImportAService {
 		if(data.getNodeId()==0) {
 			data=thingServ.createThing(data, user);
 		}else {
-			root = closureServ.loadConceptById(data.getNodeId());
+			String sstm = getSystemProtocol();
+			if(!(sstm.equals("") || sstm.equals("END"))) {
+				data.setUrl(AssemblyService.SYSTEM_IMPORT_ADMINUNITS_RELOAD);
+			}
+			
+			/*root = closureServ.loadConceptById(data.getNodeId());
 			String result = literalServ.readValue(AssemblyService.DATAIMPORT_RESULT, root);
 			if(!(result.isEmpty() || result.startsWith("End"))) {
 				data.setUrl(AssemblyService.SYSTEM_IMPORT_ADMINUNITS_RELOAD);
-			}
+			}*/
 			data=thingServ.loadThing(data, user);
 			data.setValid(true);
 			data.setUrl(AssemblyService.SYSTEM_IMPORT_ADMINUNITS);
@@ -155,12 +160,15 @@ public class ImportAService {
 	
 	public ThingDTO importAdminunitsReload(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		if(data.getNodeId() > 0) {
-			Concept root = closureServ.loadConceptById(data.getNodeId());
+			/*Concept root = closureServ.loadConceptById(data.getNodeId());
 			String result = literalServ.readValue(AssemblyService.DATAIMPORT_RESULT, root);
 			if(!(result.isEmpty() || result.startsWith("End"))) {
 				data.setUrl(AssemblyService.SYSTEM_IMPORT_ADMINUNITS_RELOAD);
+			}*/
+			String sstm = getSystemProtocol();
+			if(!(sstm.equals("") || sstm.equals("END"))) {
+				data.setUrl(AssemblyService.SYSTEM_IMPORT_ADMINUNITS_RELOAD);
 			}
-			
 			data=thingServ.loadThing(data, user);
 			data.setValid(true);
 		}
@@ -320,11 +328,9 @@ public class ImportAService {
 			LocaleContextHolder.setDefaultLocale(messages.getCurrentLocale());
 		}
 
+		writeProtocol(messages.get("startImport"));
+		writeSystemProtocol("START");
 		
-		
-		//Concept protocol=protocolConcept(AssemblyService.SYSTEM_IMPORT_ADMINUNITS);
-		writeProtocol("Start import");
-
 		Concept rootCountry = archiveDictionary();
 		if(book != null){
 			LegacyDataErrorsDTO errors= new LegacyDataErrorsDTO(book);
@@ -348,7 +354,7 @@ public class ImportAService {
 				sheetIndex = 0;
 				sheet = boilerServ.getSheetAt(book, sheetIndex);
 
-				writeProtocol("Start import sheet - count  " + book.getNumberOfSheets());
+				writeProtocol(messages.get("startImportSheet") + " - " + book.getNumberOfSheets());
 				while(!errors.isErrorOrNullSheet(sheet)) {
 					if(!sheet.getSheetName().toLowerCase().equals(SHEET_NAME_COUNTRY)) {
 						//importAdminunitsSheet(sheet, errors, rootCountry, sheetIndex);
@@ -361,7 +367,8 @@ public class ImportAService {
 				writeProtocol("Not find sheet " + SHEET_NAME_COUNTRY);
 			}
 		}
-		writeProtocol("End import");
+		writeProtocol(messages.get("endImport"));
+		writeSystemProtocol("END");
 	}
 
 	/**public ThingDTO verifstatusImportA(ThingDTO data) throws ObjectNotFoundException {
@@ -411,7 +418,7 @@ public class ImportAService {
 		String url = legacyDataService.sheetName(sheet);
 		int rownum = 1;
 		XSSFRow row = boilerServ.getSheetRow(sheet, rownum);
-		writeProtocol("Start import sheet " + url);
+		writeProtocol(messages.get("startImportSheet") + " " + url);
 		langs[0] = "en_US";
 		langs[1] = "ne_NP";
 		Concept province = null;
@@ -478,7 +485,7 @@ public class ImportAService {
 			XSSFRow rowh = boilerServ.getSheetRow(sheet, 0);
 			errors.add(rowh, rowh.getLastCellNum(), url);
 		}
-		writeProtocol("End import sheet " + url);
+		writeProtocol(messages.get("endImport") + " " + url);
 	}
 
 	/**
@@ -751,4 +758,20 @@ public class ImportAService {
 		return d;
 	}
 	
+	/**
+	 * System Literal 
+	 * monitors import status
+	 * START, END, ERROR
+	 */
+	@Transactional
+	public void writeSystemProtocol(String val) throws ObjectNotFoundException {
+		Concept protocol = protocolConcept(AssemblyService.SYSTEM_IMPORT_ADMINUNITS);
+		protocol = literalServ.createUpdateLiteral(AssemblyService.DATAIMPORT_SYSTEM_RESULT, val, protocol);
+	}
+	
+	private String getSystemProtocol() throws ObjectNotFoundException {
+		Concept protocol = protocolConcept(AssemblyService.SYSTEM_IMPORT_ADMINUNITS);
+		String result = literalServ.readValue(AssemblyService.DATAIMPORT_SYSTEM_RESULT, protocol);
+		return result;
+	}
 }

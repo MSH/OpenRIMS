@@ -452,6 +452,7 @@ public class SupervisorService {
 	private DataVariableDTO initializeLogical(DataVariableDTO data) {
 		data.getMult().setValue(dtoServ.enumToOptionDTO(YesNoNA.NA, YesNoNA.values()));
 		data.getUnique().setValue(dtoServ.enumToOptionDTO(YesNoNA.NA, YesNoNA.values()));
+		data.getPrefLabel().setValue(dtoServ.enumToOptionDTO(YesNoNA.NA, YesNoNA.values()));
 		data.getRequired().setValue(dtoServ.enumToOptionDTO(YesNoNA.NA, YesNoNA.values()));
 		data.getReadOnly().setValue(dtoServ.enumToOptionDTO(YesNoNA.NA, YesNoNA.values()));
 		return data;

@@ -284,7 +284,9 @@ public class DocxView extends AbstractView{
 					ret++;
 				}
 				match.appendTail(sb);
-				run.setText(sb.toString(),0); //test resolve
+				if(sb!=null) {
+					run.setText(sb.toString().replace("null", ""),0); //test resolve
+				}
 			}
 		}
 

@@ -24,6 +24,7 @@ import org.msh.pdex2.model.r2.Scheduler;
 import org.msh.pdex2.model.r2.Thing;
 import org.msh.pdex2.model.r2.ThingDict;
 import org.msh.pdex2.model.r2.ThingDoc;
+import org.msh.pdex2.model.r2.ThingLink;
 import org.msh.pdex2.model.r2.ThingRegister;
 import org.msh.pdex2.model.r2.ThingScheduler;
 import org.msh.pdex2.model.r2.ThingThing;
@@ -63,6 +64,7 @@ public class ResolverService {
 	private AssemblyService assemblyServ;
 	@Autowired
 	private ResolverServiceRender renderServ;
+
 
 	/**
 	 * Resolve model to values map for using in DocxView
@@ -333,10 +335,14 @@ public class ResolverService {
 			Map<String, List<AssemblyDTO>> assemblies, boolean hasTable)
 					throws ObjectNotFoundException {
 		Concept var=topConcept;
+		long topID=var.getID();					//store ID for future compare
 		List<String> varNameList=urls.subList(1, urls.size());
 		if(urls.size()>2) {
 			var=nextConcept(urls.get(1),var,ret);
 			varNameList=urls.subList(2, urls.size());
+		}
+		if(var.getID()==topID) {					//the variable is on the first (main) page
+			varNameList=urls.subList(1, urls.size());
 		}
 		Thing varThing = boilerServ.thingByNode(var);
 		assemblies=assemblyServ.auxAll(varThing.getUrl(),assemblies);
@@ -492,15 +498,11 @@ public class ResolverService {
 		//dictionaries
 		DictValuesDTO valDict = data.getDictionaries().get(varName.toUpperCase());
 		if(valDict != null) {
-			List<Assembly> assemblies =assemblyServ.loadDataConfiguration(data.getUrl());
-			List<AssemblyDTO> adList = assemblyServ.auxDictionaries(data.getUrl(),assemblies);
-			for(AssemblyDTO ad : adList) {
-				List<Concept> selected = new ArrayList<Concept>();
-				for(Long id : valDict.getSelected()) {
-					selected.add(closureServ.loadConceptById(id));
-				}
-				value=renderServ.dictionaryValues(value, selected);
+			List<Concept> selected = new ArrayList<Concept>();
+			for(Long id : valDict.getSelected()) {
+				selected.add(closureServ.loadConceptById(id));
 			}
+			value=renderServ.dictionaryValues(value, selected);
 			return value;
 		}
 		//addresses
@@ -572,7 +574,10 @@ public class ResolverService {
 		//List<AssemblyDTO> registers = assemblyServ.auxRegisters(varThing.getUrl());
 		List<AssemblyDTO> registers = assembly(varThing.getUrl(), "registers", assemblies);
 		List<AssemblyDTO> intervals = assembly(varThing.getUrl(), "intervals", assemblies);
+		List<AssemblyDTO> links = assembly(varThing.getUrl(), "links", assemblies);
 		List<AssemblyDTO> things = assembly(varThing.getUrl(), "things", assemblies);
+
+
 		for(AssemblyDTO ad : strings) {											//strings are literals
 			if(ad.getPropertyName().equalsIgnoreCase(varName)) {
 				String valStr = literalServ.readValue(varName, var);
@@ -670,6 +675,12 @@ public class ResolverService {
 				value=persons(ad,varName,var,value, assemblies, hasTable);
 			}
 		}
+		// links are very similar to persons
+		for(AssemblyDTO ad :links) {
+			if(varName.toUpperCase().startsWith(ad.getPropertyName().toUpperCase())) {	//following path will be after variable
+				value=links(ad,varName,var,value, assemblies, hasTable);
+			}
+		}
 
 		for(AssemblyDTO ad :registers) {
 			if(ad.getPropertyName().equalsIgnoreCase(varName)) {
@@ -678,7 +689,9 @@ public class ResolverService {
 		}
 
 		for(AssemblyDTO ival : intervals) {
-			value=renderServ.interval(varName, var, value);
+			if(ival.getPropertyName().equalsIgnoreCase(varName)) {
+				value=renderServ.interval(varName, var, value);
+			}
 		}
 
 		for(AssemblyDTO ad : things) {
@@ -712,9 +725,6 @@ public class ResolverService {
 		String key=url+"."+clazz;
 		List<AssemblyDTO> assms = assemblies.get(key);
 		if(assms == null) {
-			/*assms = assemblyServ.aux(url, clazz);
-			assemblies.put(key, assms);
-			logger.trace("load assembly "+ key);*/
 			assms= new ArrayList<AssemblyDTO>();
 		}
 		return assms;
@@ -789,6 +799,79 @@ public class ResolverService {
 		//logger.trace("resolved persons "+varName);
 		return value;
 	}
+
+	/**
+	 * Create a variable from links
+	 * @param ad
+	 * @param varName
+	 * @param var
+	 * @param value
+	 * @param hasTable do we need to render a link as a table?
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private Map<String, Object> links(AssemblyDTO ad, String varName, Concept var, Map<String, Object> value, Map<String, 
+			List<AssemblyDTO>> assemblies, boolean hasTable) throws ObjectNotFoundException {
+		//logger.trace("resolve persons "+varName);
+		String[] vars= varName.split("/");
+		if(vars.length>0) {
+			List<ThingLink> links = renderServ.linkList(var, vars[0]);
+			//varName should has following structure varName/index/path_to_value
+			//example is pharmacies/1/prefLabel means prefLabel of the first person in the list of owners
+			//thus, parse it and make a recursive call
+			List<String> urls = Arrays.asList(varName.split("/"));
+			if(urls.size()>2) {
+				try {
+					Integer index=Integer.valueOf(urls.get(1));
+					if(links.size()>index) {
+						List<String> path=urls.subList(1, urls.size());
+						value = plainVariable(value,path,links.get(index).getLinkedObject(),assemblies, false);
+						String linkRole = "";
+						if(links.get(index).getDictItem() != null) {
+							linkRole=literalServ.readPrefLabel(links.get(index).getDictItem());
+						}
+						value.put("link_role",linkRole);
+					}else {
+						value.put(urls.get(urls.size()-1), "");
+						value=renderServ.error(varName, " Index to a linked data is wrong " +index +" allowed up to "+(links.size()-1),value);
+					}
+				} catch (NumberFormatException e) {
+					value.put(urls.get(urls.size()-1), "");
+					value = renderServ.error(varName, "Path to a linked data is wrong ",value);
+				}
+			}else
+				if(urls.size()==2){						//the most probably it is something like 0@form or 0@link_role
+					//take a link by index
+					Integer index=0;
+					try {
+						index = Integer.valueOf(urls.get(1));
+					} catch (NumberFormatException e) {
+						value=renderServ.error(varName, "Index to a linked data should be number", value);
+					}
+					if(links.size()>index) {
+						String linkRole = "";
+						if(links.get(index).getDictItem() != null) {
+							linkRole=literalServ.readPrefLabel(links.get(index).getDictItem());
+						}
+						value.put("link_role",linkRole);
+						String head=literalServ.readPrefLabel(links.get(index).getLinkedObject());
+						value=renderObject(links.get(index).getLinkedObject(), urls, head, assemblies, value);
+					}else {
+						value.put(urls.get(urls.size()-1), "");
+						value=renderServ.error(varName, " Index to a linked data is wrong " +index +" allowed up to "+(links.size()-1),value);
+					}
+				}else {
+					value.put(urls.get(urls.size()-1), "");
+					value = renderServ.error(varName, "Path to a linked data is wrong ",value);
+				}
+		}else {
+			value.put(varName, "");
+			value = renderServ.error(varName, "Path to a linked data is empty or wrong ",value);
+		}
+		return value;
+	}
+
 
 
 	/**

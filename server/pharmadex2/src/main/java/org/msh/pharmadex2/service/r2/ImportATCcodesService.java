@@ -2,7 +2,6 @@ package org.msh.pharmadex2.service.r2;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -43,7 +42,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 @Service
 public class ImportATCcodesService {
 
-	private static final Logger logger = LoggerFactory.getLogger(ImportAService.class);
+	private static final Logger logger = LoggerFactory.getLogger(ImportATCcodesService.class);
 	@Autowired
 	ClosureService closureServ;
 	@Autowired
