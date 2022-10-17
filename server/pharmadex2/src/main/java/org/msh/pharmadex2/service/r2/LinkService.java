@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.msh.pdex2.dto.table.Headers;
@@ -12,9 +13,11 @@ import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.model.r2.Concept;
+import org.msh.pdex2.model.r2.LegacyData;
 import org.msh.pdex2.model.r2.Thing;
 import org.msh.pdex2.model.r2.ThingLink;
 import org.msh.pdex2.repository.common.JdbcRepository;
+import org.msh.pdex2.repository.r2.LegacyDataRepo;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
@@ -63,6 +66,7 @@ public class LinkService {
 				value.setMult(aDto.isMult());
 				value.setReadOnly(aDto.isReadOnly());
 				value.setRequired(aDto.isRequired());
+				value.setCopyLiterals(aDto.isPrefLabel());
 				value.setObjectUrl(aDto.getAuxDataUrl());
 				value.setVarName(aDto.getPropertyName());
 				value.setDescription(aDto.getDescription());
@@ -111,20 +115,37 @@ public class LinkService {
 		dto.getLinks().clear();
 		for(TableRow row : rows) {
 			dto.getLinks().add(loadLink(row.getDbID(), row.getCellByKey("preflabel").getValue(),
-					row.getCellByKey("dictpreflabel").getValue()));
+					row.getCellByKey("dictpreflabel").getValue(), description(row.getDbID(),dto.getTable())));
 		}
 		return dto;
+	}
+	/**
+	 * Description from the table
+	 * @param dbID
+	 * @param table
+	 * @return
+	 */
+	private String description(long dbID, TableQtb table) {
+		String ret="";
+		for(TableRow row : table.getRows()) {
+			if(row.getDbID()==dbID) {
+				ret=row.getRow().get(1).getValue();
+				break;
+			}
+		}
+		return ret;
 	}
 	/**
 	 * Create a link selected by a user
 	 * @param tlID ID of thinglinks
 	 * @param prefLabel
 	 * @param dictPrefLabel
+	 * @param description TODO
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	private LinkDTO loadLink(long tlID, String prefLabel, String dictPrefLabel) throws ObjectNotFoundException {
+	private LinkDTO loadLink(long tlID, String prefLabel, String dictPrefLabel, String description) throws ObjectNotFoundException {
 		LinkDTO ret = new LinkDTO();
 		ThingLink tl = boilerServ.thingLink(tlID);
 		if(tl.getDictItem()!=null) {
@@ -134,6 +155,7 @@ public class LinkService {
 		ret.setID(tlID);
 		ret.setObjectID(tl.getLinkedObject().getID());
 		ret.setObjectLabel(prefLabel);
+		ret.setObjectDescription(description);
 		return ret;
 	}
 
@@ -196,6 +218,9 @@ public class LinkService {
 	 * @throws ObjectNotFoundException 
 	 */
 	public LinksDTO selectRow(LinksDTO data) throws ObjectNotFoundException {
+		if(!data.isMult()) {
+			data.getLinks().clear();
+		}
 		//select or de-select
 		boolean deselect=false;
 		for(LinkDTO link : data.getLinks()) {
@@ -206,17 +231,19 @@ public class LinkService {
 			}
 		}
 		if(!deselect) {								//select
-			LinkDTO link = new LinkDTO();
-			link.setObjectID(data.getSelectedObj());
-			link.setObjectLabel(selectedObjectLabel(data));
-			// the pnext ste
-			if(data.getDictUrl().length()>0) {
-				DictionaryDTO dict = new DictionaryDTO();
-				dict.setUrl(data.getDictUrl());
-				link.setDictDto(dictServ.createDictionary(dict));
-				data.setSelectedLink(link);
-			}else {
-				data.getLinks().add(link);
+			if(data.isMult() || (data.getLinks().size()==0 && !data.isMult())) {
+				LinkDTO link = new LinkDTO();
+				link.setObjectID(data.getSelectedObj());
+				link.setObjectLabel(selectedObjectLabel(data));
+				// the pnext ste
+				if(data.getDictUrl().length()>0) {
+					DictionaryDTO dict = new DictionaryDTO();
+					dict.setUrl(data.getDictUrl());
+					link.setDictDto(dictServ.createDictionary(dict));
+					data.setSelectedLink(link);
+				}else {
+					data.getLinks().add(link);
+				}
 			}
 		}
 		data=selectObjects(data);
@@ -239,37 +266,34 @@ public class LinkService {
 	}
 	/**
 	 * Store all links in the link
+	 * @param thing 
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public LinksDTO save(LinksDTO data) throws ObjectNotFoundException {
-		if(data.getNodeID()>0) {
-			Concept node=closureServ.loadConceptById(data.getNodeID());
-			Thing thing = boilerServ.thingByNode(node);
-			thing.getThingLinks().clear();
-			for(LinkDTO link : data.getLinks()) {
-				if(link.getObjectID()>0) {
-					ThingLink tl =new ThingLink();
-					//general fields
-					tl.setVarName(data.getVarName());
-					tl.setLinkUrl(data.getLinkUrl());
-					if(data.getDictUrl().length()>0) {
-						tl.setDictUrl(data.getDictUrl());
-						if(link.getDictITemID()>0) {
-							Concept dictItem = closureServ.loadConceptById(link.getDictITemID());
-							tl.setDictItem(dictItem);
-						}
+	public LinksDTO save(Thing thing, LinksDTO data) throws ObjectNotFoundException {
+		thing.getThingLinks().clear();
+		for(LinkDTO link : data.getLinks()) {
+			if(link.getObjectID()>0) {
+				ThingLink tl =new ThingLink();
+				//general fields
+				tl.setVarName(data.getVarName());
+				tl.setLinkUrl(data.getLinkUrl());
+				if(data.getDictUrl().length()>0) {
+					tl.setDictUrl(data.getDictUrl());
+					if(link.getDictITemID()>0) {
+						Concept dictItem = closureServ.loadConceptById(link.getDictITemID());
+						tl.setDictItem(dictItem);
 					}
-					Concept objConc = closureServ.loadConceptById(link.getObjectID());
-					tl.setLinkedObject(objConc);
-					//store to thing
-					thing.getThingLinks().add(tl);
 				}
+				Concept objConc = closureServ.loadConceptById(link.getObjectID());
+				tl.setLinkedObject(objConc);
+				//store to thing
+				thing.getThingLinks().add(tl);
 			}
-			thing=boilerServ.saveThing(thing);
 		}
+		thing=boilerServ.saveThing(thing);
 		return data;
 	}
 
@@ -317,6 +341,58 @@ public class LinkService {
 		dto=loadLinks(dto, varName);
 		for(LinkDTO ld :dto.getLinks()) {
 			ret.add(boilerServ.thingLink(ld.getID()));
+		}
+		return ret;
+	}
+	/**
+	 * Copy literals prefLabel, altLabel and description to ThingDTO
+	 * Should be called after save!
+	 * It is possible if only one link is selected and allowed by configuration and multi choice is not enabled
+	 * @param links all links selected
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public ThingDTO copyLiterals(LinksDTO links, ThingDTO data) throws ObjectNotFoundException {
+		if(!links.isMult() && links.isCopyLiterals()) {
+			if(links.getLinks().size()==1) {
+				LinkDTO lDto = links.getLinks().get(0);
+				//mandatory
+				if(lDto.getObjectID()>0) {
+					Concept conc = closureServ.loadConceptById(lDto.getObjectID());
+					String prefLabel = literalServ.readPrefLabel(conc);
+					data.copyLiteral("prefLabel", prefLabel);
+					String description=literalServ.readDescription(conc);
+					data.copyLiteral("description", description);
+					//auxiliary
+					String atc = literalServ.readValue("atc", conc);	//ATC code if one
+					data.copyLiteral("atc", atc);
+				}
+			}
+		}else {
+			//de-select
+			if(links.getLinks().size()==0) {
+				data.copyLiteral("prefLabel", "");
+				data.copyLiteral("description", "");
+				data.copyLiteral("atc", "");
+			}
+
+		}
+		return data;
+	}
+	/**
+	 * Know altLabel is in links
+	 * @param linkDTO
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private String auxVariable(LinkDTO linkDTO, String varName) throws ObjectNotFoundException {
+		String ret="";
+		if(linkDTO.getObjectID()!=0) {
+			Concept conc = closureServ.loadConceptById(linkDTO.getObjectID());
+			ret=literalServ.readValue(varName, conc);
 		}
 		return ret;
 	}

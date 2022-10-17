@@ -19,7 +19,7 @@ class Import_ATC extends Component{
             labels:{
                 global_cancel:'',
                 global_save:'',
-                askforimportrun:'',
+                continue:'',
                 reload:"",
                 startImport :""
             }
@@ -43,10 +43,11 @@ class Import_ATC extends Component{
             }
             if(data.subject=="savedByAction"){
                 this.state.data=data.data
-                Alerts.warning(this.state.labels.askforimportrun,
+                Alerts.warning(this.state.labels.continue,
                     ()=>{   //yes
                         //run import
                         this.runImport()
+                        this.reload()
                     },
                     ()=>{   //no
 
@@ -81,11 +82,7 @@ class Import_ATC extends Component{
     }
 
     reload(){
-        Fetchers.postJSON("/api/admin/import/atccodes/reload", this.state.data, (query,result)=>{
-            this.state.data=result
-            this.setState(this.state)
-            Navigator.message(this.state.identifier, "*", "thingReload", this.state.data)
-        })
+        window.location.reload()
     }
 
     componentWillUnmount(){
@@ -97,6 +94,7 @@ class Import_ATC extends Component{
             <div className="mb-1 d-flex justify-content-end">
                 <Button size="sm"
                 className="mr-1" color="success"
+                hidden={this.state.data.readOnly}
                 onClick={()=>{
                     Spinner.show()
                     Navigator.message(this.state.identifier, "*", "saveAll", {})
@@ -133,7 +131,7 @@ class Import_ATC extends Component{
                 </Row>
                 <Row>
                     <Col>
-                        <Thing data={this.state.data} recipient={this.state.identifier} noload/>
+                        <Thing data={this.state.data} recipient={this.state.identifier} readOnly={this.state.data.readOnly} noload/>
                     </Col>
                 </Row>
                 <Row>

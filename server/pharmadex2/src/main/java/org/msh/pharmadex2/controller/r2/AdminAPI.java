@@ -100,7 +100,7 @@ public class AdminAPI {
 	private AccessControlService accessControlService;
 	@Autowired
 	private ImportATCcodesService importATCcodesService;
-	
+
 	/**
 	 * Tiles for landing page
 	 * 
@@ -150,7 +150,7 @@ public class AdminAPI {
 		data = orgServ.loadResponsibility(data);
 		return data;
 	}
-	
+
 	/**
 	 * Load the administrative units responsibility of the organization 
 	 * 
@@ -573,7 +573,7 @@ public class AdminAPI {
 		}
 		return data;
 	}
-	
+
 	@PostMapping("/api/admin/data/collection/variables/export")
 	public ResponseEntity<Resource> dataCollectionVariablesExport(@RequestBody DataConfigDTO data)
 			throws DataNotFoundException {
@@ -808,7 +808,7 @@ public class AdminAPI {
 		}
 		return data;
 	}
-	
+
 	/**
 	 * Keep actual addresses cache etc
 	 * @param data
@@ -824,7 +824,7 @@ public class AdminAPI {
 		}
 		return data;
 	}
-	
+
 	/**
 	 * Load import admin units feature
 	 * @param data
@@ -841,7 +841,7 @@ public class AdminAPI {
 		}
 		return data;
 	}
-	
+
 	@PostMapping("/api/admin/importa/verif")
 	public ThingDTO importAVerif(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
 		try {
@@ -851,7 +851,7 @@ public class AdminAPI {
 		}
 		return data;
 	}
-	
+
 	@PostMapping("/api/admin/importa/run")
 	public ThingDTO importARun(Authentication auth, @RequestBody ThingDTO data ) throws DataNotFoundException {
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
@@ -864,7 +864,7 @@ public class AdminAPI {
 			throw new DataNotFoundException(e);
 		}
 	}
-	
+
 	@PostMapping("/api/admin/import/adminunits/reload")
 	public ThingDTO importAdminunitsReLoad(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
@@ -875,7 +875,7 @@ public class AdminAPI {
 		}
 		return data;
 	}
-	
+
 	/**
 	 * Load import admin units feature
 	 * @param data
@@ -892,13 +892,13 @@ public class AdminAPI {
 		}
 		return data;
 	}
-	
+
 	@PostMapping("/api/admin/import/legacydata/verif")
 	public ThingDTO importLegacyDataVerif(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException{
-			data = importBServ.importLegacyDataVerify(data);
+		data = importBServ.importLegacyDataVerify(data);
 		return data;
 	}
-	
+
 	@PostMapping("/api/admin/import/legacydata/run")
 	public ThingDTO importLegacyDataRun(Authentication auth, @RequestBody ThingDTO data ) throws DataNotFoundException {
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
@@ -910,7 +910,7 @@ public class AdminAPI {
 			throw new DataNotFoundException(e);
 		}
 	}
-	
+
 	@PostMapping("/api/admin/import/legacydata/reload")
 	public ThingDTO importLegacyDataReLoad(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
@@ -921,27 +921,27 @@ public class AdminAPI {
 		}
 		return data;
 	}
-	
+
 	@PostMapping("/api/admin/actuator/load")
 	public ActuatorAdmDTO actuatorLoad(Authentication auth, @RequestBody ActuatorAdmDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 		data=actuatorService.loadData(data);
 		return data;
 	}
-	
+
 	@PostMapping("/api/admin/metric/test")
 	public ActuatorAdmDTO metricTest(Authentication auth, @RequestBody ActuatorAdmDTO data) throws DataNotFoundException {
 		metricServ.collectMetricTTR();
 		return data;
 	}
-	
+
 	@PostMapping("/api/admin/report/renewexternal")
 	public ReportConfigDTO reportsRenewExternal(Authentication auth, @RequestBody ReportConfigDTO data) throws DataNotFoundException, SQLException {
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 		dwhServ.upload();
 		return data;
 	}
-	
+
 	/**
 	 * Load data by change password from admin
 	 * @param data
@@ -958,7 +958,7 @@ public class AdminAPI {
 		}
 		return data;
 	}
-	
+
 	/**
 	 * Save data by change password from admin
 	 * @param data
@@ -975,7 +975,7 @@ public class AdminAPI {
 		}
 		return data;
 	}
-	
+
 	/**
 	 * Load import admin units feature
 	 * @param data
@@ -992,28 +992,12 @@ public class AdminAPI {
 		}
 		return data;
 	}
-	
+
 	@PostMapping("/api/admin/import/atccodes/run")
 	public ThingDTO importATCcodesRun(Authentication auth, @RequestBody ThingDTO data ) throws DataNotFoundException {
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-		try {
-			data = importATCcodesService.importStart(data, user);
-			importATCcodesService.importRun(data, user);
-			//data = thingServ.loadThing(data, user);
-			return data;
-		} catch (ObjectNotFoundException | IOException e) {
-			throw new DataNotFoundException(e);
-		}
-	}
-	
-	@PostMapping("/api/admin/import/atccodes/reload")
-	public ThingDTO importATCcodesReLoad(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
-		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-		try {
-			data = importATCcodesService.importReLoad(data, user);
-		} catch (ObjectNotFoundException e) {
-			throw new DataNotFoundException(e);
-		}
+		importATCcodesService.importRunAsync(data, user);
 		return data;
 	}
+
 }

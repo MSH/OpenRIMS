@@ -568,6 +568,7 @@ public class DtoService {
 		ret.setMin(new BigDecimal(assm.getMin()));
 		ret.setMult(assm.getMult());
 		ret.setUnique(assm.getUnique());
+		ret.setPrefLabel(assm.getPrefLabel());
 		ret.setPropertyName(assm.getPropertyName().getIdentifier());
 		String description = literalServ.readDescription(assm.getPropertyName());
 		ret.setDescription(description);

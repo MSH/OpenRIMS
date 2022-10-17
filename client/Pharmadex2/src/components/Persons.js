@@ -296,6 +296,7 @@ class Persons extends Component{
                                     })
                                 }else{
                                     Spinner.show()
+                                    Navigator.message(this.state.identifier, this.props.recipient, "onSelectionChange", this.state.data)
                                     Navigator.message(this.state.identifier, this.props.recipient, "auxPath", this.state.data)
                                 }
                             }}

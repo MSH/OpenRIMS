@@ -85,7 +85,7 @@ public class DWHService {
 	 * @param newSessionID 
 	 */
 	@Transactional
-	private void sessionClose(long newSessionID) {
+	public void sessionClose(long newSessionID) {
 		Optional<ReportSession> currento = sessionRepo.findById(newSessionID);
 		if(currento.isPresent()) {
 			ReportSession current = currento.get();

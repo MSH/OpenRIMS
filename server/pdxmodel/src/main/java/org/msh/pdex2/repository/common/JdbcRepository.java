@@ -94,6 +94,7 @@ public class JdbcRepository {
 	 * @param headers for additional where filters and 
 	 * @return
 	 */
+	@Transactional
 	public List<TableRow> qtbGroupReport(String select, String groupByHaving, String mainWhere, Headers headers){
 		String sql=createFullSelect(select, groupByHaving, mainWhere, headers);
 		return selectQuery(sql, headers);
@@ -117,6 +118,7 @@ public class JdbcRepository {
 	 * @param headers
 	 * @return
 	 */
+	@Transactional
 	public List<TableRow> selectQuery(String select, Headers headers){
 		List<TableRow> ret = new ArrayList<TableRow>();
 		ret = jdbcTemplate.query(select, new QtbRowMapper(headers));
@@ -1200,6 +1202,14 @@ public class JdbcRepository {
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 		
+	}
+	public void atc_codes(String url) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("atc_codes");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("url", url);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
 	}
 
 

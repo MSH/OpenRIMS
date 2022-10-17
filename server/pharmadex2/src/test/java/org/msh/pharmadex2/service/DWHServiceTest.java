@@ -2,9 +2,14 @@ package org.msh.pharmadex2.service;
 
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.util.Date;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.Test;
+import org.msh.pdex2.model.dwh.ReportSession;
+import org.msh.pdex2.repository.common.JdbcRepository;
+import org.msh.pdex2.repository.dwh.ReportSessionRepo;
 import org.msh.pdex2.repository.metric.MetricTTRRepo;
 import org.msh.pharmadex2.Pharmadex2Application;
 import org.msh.pharmadex2.dto.metric.TimeToReplyDTO;
@@ -12,6 +17,7 @@ import org.msh.pharmadex2.service.r2.DWHService;
 import org.msh.pharmadex2.service.r2.MetricService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest(classes=Pharmadex2Application.class)
 public class DWHServiceTest {
@@ -21,6 +27,8 @@ public class DWHServiceTest {
 	MetricService metServ;
 	@Autowired
 	private MetricTTRRepo mttrRepo;
+	@Autowired
+	private JdbcRepository jdbcRepo;
 	
 	//@Test
 	public void update() throws SQLException {
@@ -76,6 +84,14 @@ public class DWHServiceTest {
 			metServ.storeMetricTTR(rec);
 		}
 		
+	}
+	
+	/**
+	 * Read actual reportpages in enless loop. It should not allow DWH session close 
+	 */
+	//@Test
+	public void deadLock() {
+		while (true)	jdbcRepo.reporting_objects("who.atc.human", "ACTIVE");
 	}
 	
 }

@@ -24,6 +24,7 @@ public class LinksDTO extends AllowValidation{
 	private boolean mult=false;						//do we allow multiply links?
 	private boolean readOnly=false;				//is this links read only?
 	private boolean required=true;				//should the user link at least one object?
+	private boolean copyLiterals=false;			//should prefLabel, altLabel and description be copied to ThingDTO				
 	private List<LinkDTO> links = new ArrayList<LinkDTO>();	//already linked
 	private long selectedObj=0;					//the currently selected object (concept ID) 
 	private LinkDTO selectedLink= new LinkDTO();				//the currently selected link
@@ -66,6 +67,12 @@ public class LinksDTO extends AllowValidation{
 	}
 	public void setMult(boolean mult) {
 		this.mult = mult;
+	}
+	public boolean isCopyLiterals() {
+		return copyLiterals;
+	}
+	public void setCopyLiterals(boolean copyLiterals) {
+		this.copyLiterals = copyLiterals;
 	}
 	public TableQtb getTable() {
 		return table;

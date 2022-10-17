@@ -17,6 +17,7 @@ import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
+import org.msh.pdex2.model.enums.YesNoNA;
 import org.msh.pdex2.model.r2.Assembly;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
@@ -32,6 +33,8 @@ import org.msh.pharmadex2.dto.LinkDTO;
 import org.msh.pharmadex2.dto.LinksDTO;
 import org.msh.pharmadex2.dto.RegisterDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
+import org.msh.pharmadex2.dto.form.FormFieldDTO;
+import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.common.DtoService;
 import org.msh.pharmadex2.service.common.ValidationService;
@@ -237,6 +240,14 @@ public class ResolverServiceRender {
 				}
 			}
 		}
+		
+		if(clazz.equalsIgnoreCase("logical")) {
+			String valStr = literalServ.readValue(varName, var);
+			if(valStr.length() > 0) {
+				YesNoNA ch = logicalChoice(varName, var);
+				table=tableRow(asm.getID(), varName, mess.get(ch.getKey()), false, table);
+			}
+		}
 		return table;
 	}
 
@@ -263,7 +274,7 @@ public class ResolverServiceRender {
 					if(tp.getPersonUrl()!=null && tp.getPersonUrl().length()>0) {
 						List<Assembly> assms = assemblyServ.loadDataConfiguration(tp.getPersonUrl()); 
 						for(Assembly assm : assms ) {
-							table=renderClazz(assm, tp.getConcept(), table,false);
+							table=renderClazz(assm, tp.getConcept(), table, true);
 						}
 					}
 					num++;
@@ -392,7 +403,21 @@ public class ResolverServiceRender {
 		return value;
 	}
 
-
+	public YesNoNA logicalChoice(String varName, Concept var) throws ObjectNotFoundException {
+		String valStr = literalServ.readValue(varName, var);
+		Integer index=2;
+		try {
+			index = Integer.valueOf(valStr);
+		} catch (NumberFormatException e) {
+			//nothing to do
+		}
+		YesNoNA val = YesNoNA.NA;
+		if(valStr.length()>0) {
+			val = YesNoNA.values()[index-1];
+		}
+		//value.put("choice", val);
+		return val;
+	}
 	/**
 	 * Local Date to String using TableCell
 	 * @param ld

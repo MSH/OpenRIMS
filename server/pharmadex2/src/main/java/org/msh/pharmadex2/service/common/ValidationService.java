@@ -4,10 +4,8 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.time.LocalDate;
-import java.time.Period;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -314,7 +312,7 @@ public class ValidationService {
 		data.clearErrors();
 		List<Assembly> allAssms = assemblyServ.loadDataConfiguration(data.getUrl());
 		List<String> exts=boilerServ.variablesExtensions(data);
-		
+
 		//validate all components
 		List<AssemblyDTO> legs = assemblyServ.auxLiterals(data.getUrl(), allAssms);
 		for(AssemblyDTO l : legs) {
@@ -402,9 +400,7 @@ public class ValidationService {
 			mandatoryInterval(data, interval,strict);
 		}
 		List<AssemblyDTO> links=assemblyServ.auxLinks(data.getUrl(), allAssms);
-		for(AssemblyDTO link :links) {
-			mandatoryLinks(data, links, strict);
-		}
+		mandatoryLinks(data, links, strict);
 
 		List<AssemblyDTO> things = assemblyServ.auxThings(data.getUrl(),allAssms);
 		for(AssemblyDTO thing :things) {
@@ -429,7 +425,7 @@ public class ValidationService {
 				}
 			}
 		}
-		
+
 	}
 
 	/**
@@ -608,7 +604,7 @@ public class ValidationService {
 			dto.getRegistration_date().invalidate(errorMess);
 			dto.setStrict(strict);
 		}
-			//register number should be not empty, not duplicated for url given
+		//register number should be not empty, not duplicated for url given
 		if(!dto.isReadOnly()){
 			if(regNum.length()>=1 && regNum.length()<=255) {
 				List<Register> rr = boilerServ.registerByUrlAndNumber(regNum, dto.getUrl());

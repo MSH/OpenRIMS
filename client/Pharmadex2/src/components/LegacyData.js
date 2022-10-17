@@ -93,6 +93,7 @@ class LegacyData extends Component{
         Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/legacy/data", this.state.data, (query,result)=>{
             this.state.data=result
             this.setState(this.state)
+            Navigator.message(this.state.identifier, this.props.recipient, "onSelectionChange", this.state.data)
         })
     }
     render(){
@@ -125,7 +126,6 @@ class LegacyData extends Component{
                                 }else{
                                     this.state.data.selectedNode=id 
                                 }
-                                Navigator.message(this.state.identifier, this.props.recipient, "onSelectionChange", this.state.data)
                                 this.loadTable()
                             }}
                             

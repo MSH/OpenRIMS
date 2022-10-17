@@ -114,7 +114,7 @@ public class AssemblyService {
 		if(url.equalsIgnoreCase(SYSTEM_IMPORT_ATCCODES)) { 
 			AssemblyDTO doc1 = new AssemblyDTO(); 
 			doc1.setPropertyName("templateupload");
-			doc1.setUrl("/shablon/atc.xlsx"); 
+			doc1.setUrl("/shablon/ATC_DDD_2021_WHO.xlsx"); 
 			ret.add(doc1); 
 		}
 		//*********************************** read from configuration ***************************************************
@@ -979,7 +979,7 @@ public class AssemblyService {
 		if(url.equalsIgnoreCase(SYSTEM_IMPORT_ATCCODES)){ 
 			AssemblyDTO addr = new AssemblyDTO(); 
 			addr.setPropertyName(DATAIMPORT_CODES);
-			addr.setUrl(SystemService.PRODUCTCLASSIFICATION_ATC_HUMAN); 
+			addr.setDictUrl(SystemService.PRODUCTCLASSIFICATION_ATC_HUMAN); 
 			ret.add(addr); 
 		}
 		
@@ -1415,6 +1415,36 @@ public class AssemblyService {
 		return assemblies;
 	}
 
+	public List<AssemblyDTO> auxByClazz(String url, String clazz) throws ObjectNotFoundException {
+		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
 
+		List<Assembly> assemblies = loadDataConfiguration(url);
+		switch (clazz) {
+			case "legacy":{
+				ret = auxLegacyData(url, assemblies);
+				break;
+			}
+			case "dictionaries":{
+				ret = auxDictionaries(url, assemblies);
+				break;
+			}
+		}
+
+		return ret;
+	}
+	
+	public AssemblyDTO auxAssemblyDTOByClazz(List<AssemblyDTO> ret, String key) throws ObjectNotFoundException {
+		AssemblyDTO dto = null;
+		
+		if(ret != null && ret.size() > 0) {
+			for(AssemblyDTO ass:ret) {
+				if(key.equals(ass.getPropertyName())) {
+					dto = ass;
+					break;
+				}
+			}
+		}
+		return dto;
+	}
 }
 

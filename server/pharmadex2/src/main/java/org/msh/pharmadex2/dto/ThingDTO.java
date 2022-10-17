@@ -405,4 +405,20 @@ public class ThingDTO extends AllowValidation {
 				+ activityName + ", url=" + url + ", nodeId=" + nodeId + ", title=" + title +  "]";
 	}
 	
+	/**
+	 * Copy to literal or string value if one exists in ThingDTO
+	 * @param varName
+	 */
+	public void copyLiteral(String varName, String value) {
+		FormFieldDTO<String> lit = getLiterals().get(varName);
+		if(lit==null) {
+			lit=getStrings().get(varName);
+		}
+		if(lit!=null) {
+			lit.setValue(value);
+		}
+		
+	}
+
+	
 }

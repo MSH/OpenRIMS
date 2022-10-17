@@ -2320,57 +2320,7 @@ public class ApplicationService {
 		}
 		return true;
 	}
-	/**
-	 * Save a thing
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	@Transactional
-	public ThingDTO thingSaveUnderParent(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
-		data = validServ.thing(data,true);
-		if(data.isValid() || !data.isStrict() && accServ.writeAllowed(data, user)) {
-			data.setStrict(true);									//to ensure the next
-			Concept node = new Concept();
-			if(data.getNodeId()==0) {
-				//save as a branch under the declared parent node
-				if(data.getParentId()>0) {
-					Concept parent = closureServ.loadConceptById(data.getParentId());
-					node = closureServ.save(node);
-					node.setIdentifier(node.getID()+"");
-					node=closureServ.saveToTree(parent, node);
-				}else {
-					throw new ObjectNotFoundException("thingSaveUnderParent. Parent node is ZERO",logger);
-				}
-			}else {
-				//the same as a plain save
-				node=closureServ.loadConceptById(data.getNodeId());
-			}
-			data.setNodeId(node.getID());
-			//get or create a thing
-			Thing thing = new Thing();
-			thing = boilerServ.thingByNode(node, thing);
-			thing.setConcept(node);
-			thing.setUrl(data.getUrl());
 
-			//store data under the node and thing
-			data = thingServ.storeDataUnderThing(data, user, node, thing);
-			//title
-			String title = literalServ.readPrefLabel(node);
-			if(title.length()>3) {
-				data.setTitle(title);
-			}
-			//store a thing
-			thing=boilerServ.saveThing(thing);
-			if(data.getHistoryId()>0) {
-				History his = boilerServ.historyById(data.getHistoryId());
-				his.setActivityData(node);
-				his=boilerServ.saveHistory(his);
-			}
-		}
-
-		return data;
-	}
 	/**
 	 * load application data related to the activity
 	 * @param data

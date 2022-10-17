@@ -280,9 +280,9 @@ public class ActivityAPI {
 		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
 		try {
 			if(data.getParentId()>0) {
-				data = applServ.thingSaveUnderParent(data,user);
+				data = thingServ.thingSaveUnderParent(data,user);
 			}else {
-				data=thingServ.save(data, user);
+				data=thingServ.saveUnderOwner(data, user);
 			}
 		} catch (ObjectNotFoundException | JsonProcessingException e) {
 			throw new DataNotFoundException(e);
@@ -738,7 +738,7 @@ public class ActivityAPI {
 	public ThingDTO thingSaveGuest(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
-			data = thingServ.save(data, user);
+			data = thingServ.saveUnderOwner(data, user);
 		} catch (ObjectNotFoundException | JsonProcessingException e) {
 			throw new DataNotFoundException(e);
 		}

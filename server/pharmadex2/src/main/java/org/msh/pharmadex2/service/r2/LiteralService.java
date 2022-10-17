@@ -88,6 +88,21 @@ public class LiteralService {
 		return parent;
 	}
 	/**
+	 * Create or update literal only if value is real string
+	 * @param variableName
+	 * @param value
+	 * @param parent
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public Concept createUpdateLiteralRealString(String variableName, String value, Concept parent) throws ObjectNotFoundException {
+		if(value!=null && value.length()>0) {
+			parent= createUpdateLiteral(variableName,value,parent);
+		}
+		return parent;
+	}
+	/**
 	 * Create and update string value
 	 * @param variableName
 	 * @param value
@@ -175,7 +190,7 @@ public class LiteralService {
 			value.setIdentifier(locale);
 			value.setLabel(valueStr);
 			value.setActive(true);
-			value=closureServ.saveToTree(variable, value);
+			value=closureServ.saveToTreeFast(variable, value);
 			//load all existing values
 			List<Concept> level = closureServ.loadLevel(variable);
 			if(level.size()==1) {
@@ -511,6 +526,7 @@ public class LiteralService {
 		}
 		return ret;
 	}
+
 	
 
 

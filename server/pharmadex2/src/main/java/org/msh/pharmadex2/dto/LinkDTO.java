@@ -14,6 +14,7 @@ public class LinkDTO extends AllowValidation {
 	private long objectID=0;
 	private long dictITemID=0;
 	private String objectLabel="";
+	private String objectDescription="";
 	private DictionaryDTO dictDto = new DictionaryDTO();
 	private String dictLabel="";
 	public long getID() {
@@ -27,6 +28,13 @@ public class LinkDTO extends AllowValidation {
 	}
 	public void setObjectLabel(String objectLabel) {
 		this.objectLabel = objectLabel;
+	}
+	
+	public String getObjectDescription() {
+		return objectDescription;
+	}
+	public void setObjectDescription(String objectDescription) {
+		this.objectDescription = objectDescription;
 	}
 	public String getDictLabel() {
 		return dictLabel;

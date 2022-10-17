@@ -120,6 +120,7 @@ class Links extends Component{
             this.state.data=result
             this.state.data.selectedObj=0
             this.setState(this.state)
+            //Navigator.message(this.state.identifier, this.props.recipient, 'onSelectionChange', this.state.data)
         })
     }
     selectRow(rowNo){
@@ -127,7 +128,7 @@ class Links extends Component{
         Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/links/selectrow", this.state.data, (query, result)=>{
             this.state.data=result
             this.state.data.selectedObj=0
-            this.state.objects=this.state.data.selectedLink.objectID==0   //display list of objects or a dictionary
+            this.state.objects=this.state.data.selectedLink.objectID==0   //the dictionary item, if one
             this.setState(this.state)
             Navigator.message(this.state.identifier, this.props.recipient, 'onSelectionChange', this.state.data)
         })

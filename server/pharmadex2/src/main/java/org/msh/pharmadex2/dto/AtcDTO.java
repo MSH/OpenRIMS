@@ -6,6 +6,7 @@ import org.msh.pharmadex2.dto.form.AllowValidation;
 public class AtcDTO extends AllowValidation{
 
 	private String url = "";
+	private String dictUrl="";
 	private String varName="";
 	private TableQtb table = new TableQtb();
 	private TableQtb selectedtable = new TableQtb();
@@ -19,6 +20,14 @@ public class AtcDTO extends AllowValidation{
 
 	public void setUrl(String url) {
 		this.url = url;
+	}
+
+	public String getDictUrl() {
+		return dictUrl;
+	}
+
+	public void setDictUrl(String dictUrl) {
+		this.dictUrl = dictUrl;
 	}
 
 	public String getVarName() {

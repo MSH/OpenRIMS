@@ -16,7 +16,7 @@ import java.util.Set;
 import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
-import org.msh.pdex2.model.r2.Assembly;
+import org.msh.pdex2.model.enums.YesNoNA;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.model.r2.Register;
@@ -37,7 +37,6 @@ import org.msh.pharmadex2.dto.ResourceDTO;
 import org.msh.pharmadex2.dto.SchedulerDTO;
 import org.msh.pharmadex2.dto.ThingValuesDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
-import org.msh.pharmadex2.service.common.DtoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,7 +63,8 @@ public class ResolverService {
 	private AssemblyService assemblyServ;
 	@Autowired
 	private ResolverServiceRender renderServ;
-
+	@Autowired
+	Messages messages;
 
 	/**
 	 * Resolve model to values map for using in DocxView
@@ -234,10 +234,16 @@ public class ResolverService {
 				}
 			}
 
+			if(data instanceof YesNoNA) {
+				YesNoNA v = (YesNoNA)data;
+				ret = messages.get(v.getKey());
+			}
+			
 			//the rest are always strings
 			if(data instanceof String) {
 				ret=(String) data;
 			}
+			
 			return ret;
 		}else {
 			if(value.size()>0) {
@@ -576,7 +582,7 @@ public class ResolverService {
 		List<AssemblyDTO> intervals = assembly(varThing.getUrl(), "intervals", assemblies);
 		List<AssemblyDTO> links = assembly(varThing.getUrl(), "links", assemblies);
 		List<AssemblyDTO> things = assembly(varThing.getUrl(), "things", assemblies);
-
+		List<AssemblyDTO> logical = assembly(varThing.getUrl(), "logical", assemblies);
 
 		for(AssemblyDTO ad : strings) {											//strings are literals
 			if(ad.getPropertyName().equalsIgnoreCase(varName)) {
@@ -700,6 +706,13 @@ public class ResolverService {
 			}
 		}
 
+		for(AssemblyDTO ad : logical) {
+			if(ad.getPropertyName().equalsIgnoreCase(varName)) {
+				YesNoNA ch = renderServ.logicalChoice(varName, var);
+				value.put("choice", ch);
+				return value;
+			}
+		}
 
 		if(value == null) {
 			value=renderServ.error(varName,"readVariable. Value not found",value);
