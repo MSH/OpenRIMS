@@ -117,8 +117,8 @@ public class ValidationService {
 		data.clearErrors();
 		FormFieldDTO<String> prefLabel =  data.getLiterals().get("prefLabel");
 		if(prefLabel != null) {
-			if(prefLabel.getValue().length()<2 || prefLabel.getValue().length()>100) {
-				suggest(prefLabel, 2,100,strict);
+			if(prefLabel.getValue().length()<2 || prefLabel.getValue().length()>Integer.MAX_VALUE) {
+				suggest(prefLabel, 2,Integer.MAX_VALUE,strict);
 				data.setValid(false);
 			}
 		}else {
