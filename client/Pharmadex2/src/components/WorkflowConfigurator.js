@@ -8,6 +8,7 @@ import ButtonUni from './form/ButtonUni'
 import Thing from './Thing'
 import SpinnerMain from './utils/SpinnerMain'
 import Pharmadex from './Pharmadex'
+import Downloader from './utils/Downloader'
 
 /**
  * Responsible for workflow configuration process
@@ -29,6 +30,7 @@ class WorkflowConfigurator extends Component{
                 workflows:'',
                 next:'',
                 insertbefore:'',
+                exportExcel:'',
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -217,7 +219,7 @@ class WorkflowConfigurator extends Component{
         return(
             <Container fluid>
                  <Row>
-                    <Col xs='12' sm='12' lg='8' xl='8'>
+                    <Col xs='12' sm='12' lg='6' xl='6'>
                        <h4>{this.state.data.title}</h4>
                     </Col>
                     <Col xs='12' sm='12' lg='1' xl='1'>
@@ -235,7 +237,7 @@ class WorkflowConfigurator extends Component{
                             onClick={()=>{
                                 window.location="/"+Navigator.tabSetName()+"#"+Navigator.tabName()+"/workflows"
                             }}
-                            color="info"
+                            color="secondary"
                         />
                     </Col>
                     <Col xs='12' sm='12' lg='1' xl='1'>
@@ -270,6 +272,18 @@ class WorkflowConfigurator extends Component{
                                 color="warning"
                             />
                         </div>
+                    </Col>
+                    <Col xs='12' sm='12' lg='2' xl='2'>
+                        <ButtonUni
+                            label={this.state.labels.exportExcel}
+                            onClick={()=>{
+                                let downloader = new Downloader();
+                                        Fetchers.setJustLoaded(this.state.data,false)
+                                        downloader.postDownload("/api/admin/workflow/export/excel",
+                                        this.state.data, "workflow.xlsx");
+                            }}
+                            color="info"
+                        />
                     </Col>
                 </Row>
               {this.content()}

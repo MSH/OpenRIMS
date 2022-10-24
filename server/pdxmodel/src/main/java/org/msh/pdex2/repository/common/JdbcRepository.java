@@ -1116,6 +1116,7 @@ public class JdbcRepository {
 				for(TableRow row: rows) {
 					keys.add(row.getRow().get(0).getValue());
 				}
+				// in the two column table the type of headers is a type of the second column
 				for(String key : keys) {
 					pHeaders.add(TableHeader.instanceOf(key, headers.get(1).getColumnType()));
 				}
@@ -1123,11 +1124,10 @@ public class JdbcRepository {
 				for(TableRow row: rows) {
 					if(row.getDbID()!=id) {
 						//create a new row with all columns
+						
 						id=row.getDbID();
-						if(pRow.getDbID()>0) {
-							pRows.add(pRow);
-						}
 						pRow = TableRow.instanceOf(id);
+						pRows.add(pRow);
 						for(TableHeader ph : pHeaders) {
 							pRow.getRow().add(TableCell.instanceOf(ph.getKey()));
 						}

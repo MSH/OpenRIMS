@@ -50,9 +50,6 @@ public class PublicService {
 	DictService dictServ;
 	@Autowired
 	PubOrgService pubOrgServ;
-
-	@Autowired
-	private PublicService publicServ;
 	@Autowired
 	AssemblyService assemblyServ;
 
@@ -73,7 +70,7 @@ public class PublicService {
 						for(Concept c:children) {
 							if(c.getActive()) {
 								node = dictServ.createNode(c);
-								TileDTO tile = publicServ.createTile(dictServ.literalsLoad(node));
+								TileDTO tile = createTile(dictServ.literalsLoad(node));
 								tile.setIdentifier(node.getIdentifier());
 								tile.setNodeID(node.getNodeId());
 

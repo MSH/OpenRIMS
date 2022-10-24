@@ -76,10 +76,6 @@ public class UserService implements UserDetailsService {
 
 	@Autowired
 	Messages messages;
-
-	@Autowired
-	ContextServices contextServ;
-
 	@Autowired
 	BoilerService boilerServ;
 	@Autowired
@@ -324,12 +320,7 @@ public class UserService implements UserDetailsService {
 	 */
 	@Transactional
 	public User findByEmail(String email) {
-		Optional<User> usero = userRepo.findByEmail(email);
-		if (usero.isPresent()) {
-			return usero.get();
-		}else {
-			return null;
-		}
+		return boilerServ.findByEmail(email);
 	}
 
 

@@ -11,12 +11,17 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.msh.pdex2.dto.table.TableCell;
 import org.msh.pdex2.dto.table.TableHeader;
 import org.msh.pdex2.dto.table.TableRow;
+import org.msh.pdex2.i18n.Messages;
 import org.msh.pharmadex2.controller.common.POIProcessor;
 import org.msh.pharmadex2.dto.DataCollectionDTO;
-import org.msh.pharmadex2.exception.DataNotFoundException;
+import org.msh.pharmadex2.dto.LayoutCellDTO;
+import org.msh.pharmadex2.dto.LayoutRowDTO;
+import org.msh.pharmadex2.dto.ThingDTO;
+import org.msh.pharmadex2.dto.WorkflowDTO;
 import org.springframework.web.servlet.view.document.AbstractXlsxView;
 
 
@@ -49,16 +54,16 @@ public class ExcelViewMult extends AbstractXlsxView{
 			Workbook workbook,
 			HttpServletRequest request,
 			HttpServletResponse response)	{
-		
-		buildWorkbook(model, workbook);
+
+		workbookForDataConfiguration(model, workbook);
 	}
-	
+
 	/**
 	 * Really build the workbook 
 	 * @param model
 	 * @param workbook
 	 */
-	public void buildWorkbook(@SuppressWarnings("rawtypes") Map model, Workbook workbook) {
+	public void workbookForDataConfiguration(@SuppressWarnings("rawtypes") Map model, Workbook workbook) {
 		//VARIABLES REQUIRED IN MODEL
 		getProcessor().initWorkbook(workbook);
 		Object dato = model.get("data");
@@ -67,7 +72,7 @@ public class ExcelViewMult extends AbstractXlsxView{
 				@SuppressWarnings("unchecked")
 				Map<String,DataCollectionDTO> data = (Map<String, DataCollectionDTO>) dato;
 				for(String key : data.keySet()) {
-					placeSheet(key, data.get(key));
+					placeDataConfigurationSheet(key, data.get(key));
 				}
 			}
 		}else {
@@ -91,15 +96,11 @@ public class ExcelViewMult extends AbstractXlsxView{
 	 * @param data - data to place
 	 * @return
 	 */
-	public void placeSheet(String key, DataCollectionDTO data) {
+	public void placeDataConfigurationSheet(String key, DataCollectionDTO data) {
 		getProcessor().createSheet(key,1000);
 		int row=0;
 		placeTitle(data.getDescription().getValue(), 10, row);
 		row++;
-		if(data.getUrl().getValue().length()>0) {
-			placeTitle(data.getDescription().getValue(), 10, row);
-			row++;
-		}
 		row = placeHeaders(data.getTable().getHeaders().getHeaders(),row);
 		row = placeRows(data.getTable().getHeaders().getHeaders(),data.getTable().getRows(),row);
 	}
@@ -220,6 +221,48 @@ public class ExcelViewMult extends AbstractXlsxView{
 			return 1;
 		}else{
 			return 0;
+		}
+	}
+	/**
+	 * Create workbook contains workflow description
+	 * @param dto
+	 * @param mess 
+	 * @return
+	 */
+	public XSSFWorkbook workbookForWorkflowConfiguration(WorkflowDTO dto, Messages mess) {
+		getProcessor().initWorkbook(new XSSFWorkbook());
+		for(ThingDTO td : dto.getPath()) {
+			placeThingSheet(td,dto.getTitle(),mess);
+		}
+		return getProcessor().getWorkbook();
+	}
+	/**
+	 * Place a sheet with thing data.
+	 * Title is a name of the sheet
+	 * Currently only primitives and dictionaries 
+	 * @param td
+	 * @param title 
+	 * @param mess 
+	 */
+	private void placeThingSheet(ThingDTO td, String title, Messages mess) {
+		getProcessor().createSheet(td.getTitle(),1000);
+		getProcessor().addCaption(0, 0, title, 40);
+		int rowNo=2;
+		int colNo=0;
+		for(LayoutRowDTO row : td.getLayout()) {
+			for(LayoutCellDTO cell : row.getCells()) {
+				for(String varName :cell.getVariables()) {
+					//TODO other types
+					getProcessor().addSubChapter(colNo, rowNo, mess.get(varName), 40);
+					getProcessor().addLabel(colNo+1, rowNo, td.variableByName(varName).toString(), 60);
+					rowNo++;				//order
+				}
+				colNo++;				//columns for label and value
+				colNo++;			
+				rowNo=2;
+			}
+			rowNo++;					//rows
+			colNo=0;
 		}
 	}
 

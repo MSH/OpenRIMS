@@ -128,11 +128,15 @@ class Downloader{
             promise = this.callGetFetch(url)
         }
         promise.then(response => {
-            this.filename=response.headers.get('filename');
-            if(typeof this.filename === "undefined" ){
-                this.filename=defaultFileName;
+            if(response.ok){
+                this.filename=response.headers.get('filename');
+                if(typeof this.filename === "undefined" ){
+                    this.filename=defaultFileName;
+                }
+                return response.body;
+            }else{
+                throw new Error(url+" "+response.status + " " + response.statusText);
             }
-           return response.body;
         })
         .then(body => {
         if(typeof body != "undefined"){

@@ -26,6 +26,7 @@ import org.msh.pharmadex2.dto.DictionariesDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.GisLocationDTO;
 import org.msh.pharmadex2.dto.RootNodeDTO;
+import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.dto.mock.ChoiceDTO;
@@ -933,7 +934,28 @@ public class DictService {
 		}
 		return data;
 	}
-
+	/**
+	 * Fill out list of the current selections.
+	 * Known usage 
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public DictionaryDTO createCurrentSelections(DictionaryDTO data) throws ObjectNotFoundException {
+		data.getCurrentSelections().clear();
+		for(Long itemId :data.getPrevSelected()) {
+			Concept item = closureServ.loadConceptById(itemId);
+			String prefLabel=literalServ.readPrefLabel(item);
+			String description=literalServ.readDescription(item);
+			OptionDTO opt= new OptionDTO();
+			opt.setId(item.getID());
+			opt.setCode(prefLabel);
+			opt.setDescription(description);
+			data.getCurrentSelections().add(opt);
+		}
+		return data;
+	}
 	@Transactional
 	public String getGISlocation(String url) throws ObjectNotFoundException {
 		Concept root=closureServ.loadRoot(url);
@@ -1180,6 +1202,5 @@ public class DictService {
 	public boolean isAdminUnits(Concept root) {
 		return root.getIdentifier().equalsIgnoreCase("dictionary.admin.units");
 	}
-	
 
 }

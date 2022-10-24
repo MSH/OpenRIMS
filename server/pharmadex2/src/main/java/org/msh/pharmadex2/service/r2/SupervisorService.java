@@ -465,7 +465,7 @@ public class SupervisorService {
 	 * @return
 	 */
 	private DataVariableDTO initializeClazz(DataVariableDTO data) {
-		List<String> possible = variablesThing();
+		List<String> possible = ThingDTO.thingClazzesNames();
 		if (possible.size() > 0) {
 			OptionDTO optVal = data.getClazz().getValue();
 			optVal.getOptions().clear();
@@ -482,24 +482,6 @@ public class SupervisorService {
 			data.getClazz().setValue(optVal);
 		}
 		return data;
-	}
-
-	/**
-	 * Get variable classes as variable names in ThingDTO Reflection!
-	 * 
-	 * @return
-	 */
-	public List<String> variablesThing() {
-		List<String> ret = new ArrayList<String>();
-		List<Field> all = FieldUtils.getAllFieldsList(ThingDTO.class);
-		for (Field fld : all) {
-			Type typ = fld.getGenericType();
-			if (typ.getTypeName().startsWith("java.util.Map<java.lang.String, org.msh.pharmadex2.dto.")
-					|| fld.getName().equalsIgnoreCase("heading")) {
-				ret.add(fld.getName());
-			}
-		}
-		return ret;
 	}
 
 	/**

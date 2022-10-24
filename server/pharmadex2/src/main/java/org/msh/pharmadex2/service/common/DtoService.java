@@ -48,10 +48,6 @@ public class DtoService {
 	BoilerService boilerServ;
 	@Autowired
 	Messages messages;
-	@Autowired
-	AssemblyService assemblyServ;
-	@Autowired
-	DictService dictServ;
 
 	/**
 	 * Create optionDTO in the current language from the list of dictionary nodes

@@ -45,6 +45,8 @@ public class WebSecurity {
 
 	@Autowired
 	UserService userService;
+	@Autowired
+	PasswordEncoder encoder;
 
 	/**
 	 * Configure form based authentication
@@ -172,21 +174,7 @@ public class WebSecurity {
 		}
 	}
 
-	/**
-	 * new and modern password encoder
-	 * 
-	 * @return
-	 */
-	@Bean
-	public PasswordEncoder encoder() {
-		return new BCryptPasswordEncoder() {
-			@Override
-			public boolean matches(CharSequence rawPassword, String encodedPassword) {
-				boolean ret = super.matches(rawPassword, encodedPassword);
-				return ret;
-			}
-		};
-	}
+
 
 	/**
 	 * Add user roles from the database. We can't find ones in Google or Facebook,
@@ -226,7 +214,7 @@ public class WebSecurity {
 	public DaoAuthenticationProvider authenticationProvider() {
 		DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
 		authProvider.setUserDetailsService(userService);
-		authProvider.setPasswordEncoder(encoder());
+		authProvider.setPasswordEncoder(encoder);
 		return authProvider;
 	}
 

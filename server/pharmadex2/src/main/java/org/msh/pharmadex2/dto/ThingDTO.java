@@ -1,5 +1,7 @@
 package org.msh.pharmadex2.dto;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Type;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -7,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pharmadex2.dto.form.AllowValidation;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
@@ -417,8 +420,49 @@ public class ThingDTO extends AllowValidation {
 		if(lit!=null) {
 			lit.setValue(value);
 		}
-		
 	}
-
+	/**
+	 * Get list of all possible variables classes in ThingDTO. Reflection!
+	 * 
+	 * @return
+	 */
+	public static List<String> thingClazzesNames() {
+		List<String> ret = new ArrayList<String>();
+		List<Field> all = FieldUtils.getAllFieldsList(ThingDTO.class);
+		for (Field fld : all) {
+			Type typ = fld.getGenericType();
+			if (typ.getTypeName().startsWith("java.util.Map<java.lang.String, org.msh.pharmadex2.dto.")
+					|| fld.getName().equalsIgnoreCase("heading")) {
+				ret.add(fld.getName());
+			}
+		}
+		return ret;
+	}
+	/**
+	 * Get variable by name.
+	 * Variables ar inside maps <Map<String, Object> where String is variable name
+	 * @param varName
+	 * @return object of component's value from Map<String, Object> or empty string if not found
+	 */
+	public Object variableByName(String varName) {
+		String ret="";
+		List<Field> all = FieldUtils.getAllFieldsList(ThingDTO.class);
+		for (Field fld : all) {
+			Type typ = fld.getGenericType();
+			if (typ.getTypeName().startsWith("java.util.Map<java.lang.String, org.msh.pharmadex2.dto.")
+					|| fld.getName().equalsIgnoreCase("heading")) {
+				try {
+					Object fldo = fld.get(this);
+					Map<String, Object> fldom = (Map<String, Object>) fldo;
+					if(fldom.get(varName)!=null) {
+						return fldom.get(varName);
+					}
+				} catch (IllegalArgumentException | IllegalAccessException e) {
+				}
+			}
+		}
+		// the last resort
+		return ret;
+	}
 	
 }

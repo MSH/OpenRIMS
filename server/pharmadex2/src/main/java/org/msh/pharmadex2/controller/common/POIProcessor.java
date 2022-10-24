@@ -442,6 +442,24 @@ public class POIProcessor {
 		sCell.setCellStyle(getSubChapterStyle());
 		sCell.setCellValue(message);
 	}
+	
+	/**
+	 * add a sub chapter styled message to the cell given, set cell width, zero means default
+	 * @param col
+	 * @param row
+	 * @param message
+	 * @param colWidth - cell width in characters
+	 */
+	public void addSubChapter(int col, int row, String message, int colWidth) {
+		XSSFRow sRow = getRow(row);
+		XSSFCell sCell = getCell(sRow, col);
+		sCell.setCellType(CellType.STRING);
+		sCell.setCellStyle(getSubChapterStyle());
+		sCell.setCellValue(message);
+		if(colWidth>0) {
+			setColumnView(col, colWidth);
+		}
+	}
 
 	/**
 	 * Add a label styled message to row and col given
@@ -455,6 +473,22 @@ public class POIProcessor {
 		sCell.setCellStyle(getLabelStyle());
 		sCell.setCellValue(message);
 
+	}
+	/**
+	 * Add a label styled message to row and col given
+	 * @param col
+	 * @param row
+	 * @param message
+	 * @param colWidth - width in chars, 0 means deafult
+	 */
+	public void addLabel(int col, int row, String message, int colWidth) {
+		XSSFRow sRow = getRow(row);
+		XSSFCell sCell = getCell(sRow, col);
+		sCell.setCellStyle(getLabelStyle());
+		sCell.setCellValue(message);
+		if(colWidth>0) {
+			setColumnView(col, colWidth);
+		}
 	}
 	/**
 	 * Add a date to row and column given

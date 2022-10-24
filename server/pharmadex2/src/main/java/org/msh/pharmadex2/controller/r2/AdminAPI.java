@@ -139,7 +139,7 @@ public class AdminAPI {
 	}
 
 	/**
-	 * Load the administrative units responsibility of the organization 
+	 * Load the administrative units responsibility of the organization
 	 * 
 	 * @param data
 	 * @return
@@ -152,14 +152,15 @@ public class AdminAPI {
 	}
 
 	/**
-	 * Load the administrative units responsibility of the organization 
+	 * Load the administrative units responsibility of the organization
 	 * 
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/admin/organization/load/responsibility/select")
-	public PublicOrgDTO organizationLoadResponsibilitySelect(@RequestBody PublicOrgDTO data) throws DataNotFoundException {
+	public PublicOrgDTO organizationLoadResponsibilitySelect(@RequestBody PublicOrgDTO data)
+			throws DataNotFoundException {
 		data = orgServ.loadResponsibilitySelect(data);
 		return data;
 	}
@@ -391,25 +392,25 @@ public class AdminAPI {
 		return data;
 	}
 
-	/*	*//** 2011-11-11 DEPRECATED and useless!!!
-	 * Load activity or user data configuration
-	 * 
-	 * @param data
-	 * @return
-	 * @throws DataNotFoundException
-	 *//*
-				@PostMapping("/api/admin/thing/load")
-				public ThingDTO thingLoad(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
-				if(data.getNodeId()>0) {
-					try {
-						UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-						data=superVisServ.thingLoad(data,user);
-					} catch (ObjectNotFoundException e) {
-						throw new DataNotFoundException(e);
-					}
-				}
-				return data;
-				}*/
+	/*	*//**
+			 * 2011-11-11 DEPRECATED and useless!!! Load activity or user data configuration
+			 * 
+			 * @param data
+			 * @return
+			 * @throws DataNotFoundException
+			 *//*
+						@PostMapping("/api/admin/thing/load")
+						public ThingDTO thingLoad(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
+						if(data.getNodeId()>0) {
+							try {
+								UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+								data=superVisServ.thingLoad(data,user);
+							} catch (ObjectNotFoundException e) {
+								throw new DataNotFoundException(e);
+							}
+						}
+						return data;
+						}*/
 
 	/**
 	 * Append an new created activity to workflow to the end of path
@@ -580,9 +581,10 @@ public class AdminAPI {
 		try {
 			String mediaType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 			String fileName = "reportDataStructure.xlsx";
-			Resource res = reportServ.excelReport(data);
+			Resource res = reportServ.dataCollectionVariablesExport(data);
 			return ResponseEntity.ok().contentType(MediaType.parseMediaType(mediaType))
-					//.header(HttpHeaders.CONTENT_DISPOSITION, fres.getContentDisp() + "; filename=\"" + fres.getFileName() + "\"")
+					// .header(HttpHeaders.CONTENT_DISPOSITION, fres.getContentDisp() + ";
+					// filename=\"" + fres.getFileName() + "\"")
 					.header("filename", fileName).body(res);
 		} catch (ObjectNotFoundException | IOException e) {
 			throw new DataNotFoundException(e);
@@ -809,33 +811,38 @@ public class AdminAPI {
 		return data;
 	}
 
-	/**
-	 * Keep actual addresses cache etc
-	 * @param data
-	 * @return
-	 * @throws DataNotFoundException
-	 */
-	@PostMapping("/api/admin/report/parameters/renew")
-	public ReportConfigDTO reportParametersRenew(@RequestBody ReportConfigDTO data) throws DataNotFoundException {
-		try {
-			data = reportServ.reportParametersRenew(data);
-		} catch (ObjectNotFoundException e) {
-			throw new DataNotFoundException(e);
-		}
-		return data;
-	}
+	/*
+	 * We don't need it anymore
+	 * 	*//**
+			 * Keep actual addresses cache etc
+			 * 
+			 * @param data
+			 * @return
+			 * @throws DataNotFoundException
+			 *//*
+				@PostMapping("/api/admin/report/parameters/renew")
+				@Deprecated
+				public ReportConfigDTO reportParametersRenew(@RequestBody ReportConfigDTO data) throws DataNotFoundException {
+				try {
+					data = reportServ.reportParametersRenew(data);
+				} catch (ObjectNotFoundException e) {
+					throw new DataNotFoundException(e);
+				}
+				return data;
+				}*/
 
 	/**
 	 * Load import admin units feature
+	 * 
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/admin/import/adminunits/load")
-	public ThingDTO importAdminunitsLoad(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
+	public ThingDTO importAdminunitsLoad(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 		try {
-			data = importAdmUnitsService.importAdminunitsLoad(data, user);//importAService.importAdminunitsLoad(data,user);
+			data = importAdmUnitsService.importAdminunitsLoad(data, user);// importAService.importAdminunitsLoad(data,user);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -845,7 +852,7 @@ public class AdminAPI {
 	@PostMapping("/api/admin/importa/verif")
 	public ThingDTO importAVerif(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
 		try {
-			data = importAdmUnitsService.importAdminunitsVerify(data);//importAService.importAdminunitsVerify(data);
+			data = importAdmUnitsService.importAdminunitsVerify(data);// importAService.importAdminunitsVerify(data);
 		} catch (ObjectNotFoundException | IOException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -853,12 +860,12 @@ public class AdminAPI {
 	}
 
 	@PostMapping("/api/admin/importa/run")
-	public ThingDTO importARun(Authentication auth, @RequestBody ThingDTO data ) throws DataNotFoundException {
+	public ThingDTO importARun(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 		try {
-			//importAService.importAdminunitsRun(data);
+			// importAService.importAdminunitsRun(data);
 			importAdmUnitsService.importAdminunitsRun(data, user);
-			data=thingServ.loadThing(data, user);
+			data = thingServ.loadThing(data, user);
 			return data;
 		} catch (ObjectNotFoundException | IOException e) {
 			throw new DataNotFoundException(e);
@@ -866,10 +873,11 @@ public class AdminAPI {
 	}
 
 	@PostMapping("/api/admin/import/adminunits/reload")
-	public ThingDTO importAdminunitsReLoad(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
+	public ThingDTO importAdminunitsReLoad(Authentication auth, @RequestBody ThingDTO data)
+			throws DataNotFoundException {
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 		try {
-			data = importAdmUnitsService.importAdminunitsReload(data, user);//importAService.importAdminunitsReload(data,user); 
+			data = importAdmUnitsService.importAdminunitsReload(data, user);// importAService.importAdminunitsReload(data,user);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -878,15 +886,16 @@ public class AdminAPI {
 
 	/**
 	 * Load import admin units feature
+	 * 
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/admin/import/legacydata/load")
-	public ThingDTO importLegacyDataLoad(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
+	public ThingDTO importLegacyDataLoad(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 		try {
-			data=importBServ.importLegacyDataLoad(data,user);
+			data = importBServ.importLegacyDataLoad(data, user);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -894,17 +903,18 @@ public class AdminAPI {
 	}
 
 	@PostMapping("/api/admin/import/legacydata/verif")
-	public ThingDTO importLegacyDataVerif(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException{
+	public ThingDTO importLegacyDataVerif(Authentication auth, @RequestBody ThingDTO data)
+			throws DataNotFoundException {
 		data = importBServ.importLegacyDataVerify(data);
 		return data;
 	}
 
 	@PostMapping("/api/admin/import/legacydata/run")
-	public ThingDTO importLegacyDataRun(Authentication auth, @RequestBody ThingDTO data ) throws DataNotFoundException {
+	public ThingDTO importLegacyDataRun(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 		try {
-			importBServ.importLegacyDataRun(data, user); 
-			data=thingServ.loadThing(data, user);
+			importBServ.importLegacyDataRun(data, user);
+			data = thingServ.loadThing(data, user);
 			return data;
 		} catch (ObjectNotFoundException | IOException e) {
 			throw new DataNotFoundException(e);
@@ -912,10 +922,11 @@ public class AdminAPI {
 	}
 
 	@PostMapping("/api/admin/import/legacydata/reload")
-	public ThingDTO importLegacyDataReLoad(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
+	public ThingDTO importLegacyDataReLoad(Authentication auth, @RequestBody ThingDTO data)
+			throws DataNotFoundException {
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 		try {
-			data=importBServ.importLegacyDataReload(data,user); 
+			data = importBServ.importLegacyDataReload(data, user);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -923,20 +934,23 @@ public class AdminAPI {
 	}
 
 	@PostMapping("/api/admin/actuator/load")
-	public ActuatorAdmDTO actuatorLoad(Authentication auth, @RequestBody ActuatorAdmDTO data) throws DataNotFoundException {
+	public ActuatorAdmDTO actuatorLoad(Authentication auth, @RequestBody ActuatorAdmDTO data)
+			throws DataNotFoundException {
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-		data=actuatorService.loadData(data);
+		data = actuatorService.loadData(data);
 		return data;
 	}
 
 	@PostMapping("/api/admin/metric/test")
-	public ActuatorAdmDTO metricTest(Authentication auth, @RequestBody ActuatorAdmDTO data) throws DataNotFoundException {
+	public ActuatorAdmDTO metricTest(Authentication auth, @RequestBody ActuatorAdmDTO data)
+			throws DataNotFoundException {
 		metricServ.collectMetricTTR();
 		return data;
 	}
 
 	@PostMapping("/api/admin/report/renewexternal")
-	public ReportConfigDTO reportsRenewExternal(Authentication auth, @RequestBody ReportConfigDTO data) throws DataNotFoundException, SQLException {
+	public ReportConfigDTO reportsRenewExternal(Authentication auth, @RequestBody ReportConfigDTO data)
+			throws DataNotFoundException, SQLException {
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 		dwhServ.upload();
 		return data;
@@ -944,15 +958,16 @@ public class AdminAPI {
 
 	/**
 	 * Load data by change password from admin
+	 * 
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/admin/changepass/load")
-	public ThingDTO changePassAdminLoad(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
+	public ThingDTO changePassAdminLoad(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 		try {
-			data = accessControlService.changePassAdminLoad(data, user);
+			data = thingServ.changePassAdminLoad(data, user);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -961,15 +976,16 @@ public class AdminAPI {
 
 	/**
 	 * Save data by change password from admin
+	 * 
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/admin/changepass/save")
-	public ThingDTO changePassAdminSave(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
+	public ThingDTO changePassAdminSave(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 		try {
-			data = accessControlService.changePassAdminSave(data, user);
+			data = thingServ.changePassAdminSave(data, user);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -978,12 +994,13 @@ public class AdminAPI {
 
 	/**
 	 * Load import admin units feature
+	 * 
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/admin/import/atccodes/load")
-	public ThingDTO importATCcodesLoad(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
+	public ThingDTO importATCcodesLoad(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 		try {
 			data = importATCcodesService.importLoad(data, user);
@@ -994,10 +1011,26 @@ public class AdminAPI {
 	}
 
 	@PostMapping("/api/admin/import/atccodes/run")
-	public ThingDTO importATCcodesRun(Authentication auth, @RequestBody ThingDTO data ) throws DataNotFoundException {
+	public ThingDTO importATCcodesRun(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 		importATCcodesService.importRunAsync(data, user);
 		return data;
+	}
+	
+	@PostMapping("/api/admin/workflow/export/excel")
+	public ResponseEntity<Resource> workflowExportExcel(@RequestBody WorkflowDTO data)
+			throws DataNotFoundException {
+		try {
+			String mediaType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+			String fileName = "reportDataStructure.xlsx";
+			Resource res = reportServ.workflowExportExcel(data);
+			return ResponseEntity.ok().contentType(MediaType.parseMediaType(mediaType))
+					// .header(HttpHeaders.CONTENT_DISPOSITION, fres.getContentDisp() + ";
+					// filename=\"" + fres.getFileName() + "\"")
+					.header("filename", fileName).body(res);
+		} catch (IOException | ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
 	}
 
 }

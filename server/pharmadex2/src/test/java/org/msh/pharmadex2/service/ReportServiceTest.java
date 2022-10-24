@@ -48,7 +48,7 @@ public class ReportServiceTest {
 		model.put("data",data);
 		XSSFWorkbook workbook = new XSSFWorkbook();
 		ExcelViewMult excel = new ExcelViewMult();
-		excel.buildWorkbook(model, workbook);
+		excel.workbookForDataConfiguration(model, workbook);
 		Path pathFileout = Paths.get("src","test","resources", "reportDataStructure.xlsx");
 		File fileout = pathFileout.toFile();
 		FileOutputStream fos = new FileOutputStream(fileout);

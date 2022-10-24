@@ -49,11 +49,14 @@ class ReportConfigurator extends Component{
             }
             if(data.subject=="saved" || data.subject=="savedByAction"){
                 this.state.data.report=data.data
+                /*
+                * 2022-10-20 We don't need it anymore
                 Fetchers.postJSON("/api/admin/report/parameters/renew", this.state.data, (query,result)=>{
                     Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.success, color:'success'})
                     this.state.data.form=false
                     this.load()
-                })
+                }) */
+                this.load()
             }
         }
         

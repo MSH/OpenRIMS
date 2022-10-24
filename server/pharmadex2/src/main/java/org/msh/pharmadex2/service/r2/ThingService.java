@@ -1,5 +1,7 @@
 package org.msh.pharmadex2.service.r2;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Type;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
@@ -9,12 +11,14 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.msh.pdex2.dto.table.Headers;
 import org.msh.pdex2.dto.table.TableCell;
 import org.msh.pdex2.dto.table.TableHeader;
@@ -69,6 +73,7 @@ import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.common.DtoService;
+import org.msh.pharmadex2.service.common.UserService;
 import org.msh.pharmadex2.service.common.ValidationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,6 +83,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -135,6 +141,10 @@ public class ThingService {
 	private RegisterService registerServ;
 	@Autowired
 	private LinkService linkServ;
+	@Autowired
+	private PasswordEncoder passwordEncoder;
+	@Autowired
+	private UserService userServ;
 	@PersistenceContext
 	EntityManager entityManager;
 
@@ -2432,5 +2442,73 @@ public class ThingService {
 		}
 		return data;
 	}
+	
+	/**
+	 * change Password by Admin Load
+	 * @param data
+	 * @param user
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	public ThingDTO changePassAdminLoad(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		//load and save only one and only under the root of the tree
+		data.setUrl(AssemblyService.SYSTEM_CHANGEPASS_ADMIN);
+		Concept root = closureServ.loadRoot(data.getUrl());
+		data.setParentId(root.getID());
+		List<Concept> nodes = closureServ.loadLevel(root);
+		if(nodes.size()>0) {
+			data.setNodeId(nodes.get(0).getID());
+		}
+		if(data.getNodeId()==0) {
+			data = createThing(data, user);
+		}else {
+			data = loadThing(data, user);
+			data.setValid(true);
+			data.setUrl(AssemblyService.SYSTEM_CHANGEPASS_ADMIN);
+		}
+		return data;
+	}
+	
+	/**
+	 * change Password by Admin Load
+	 * @param data
+	 * @param user
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	public ThingDTO changePassAdminSave(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		data.setValid(false);
+		String err = "";
+
+		Map<String, FormFieldDTO<String>> fields = data.getLiterals();
+		if(fields != null && fields.keySet().size() == 2) {
+			String p1 = fields.get(AssemblyService.CHANGEPASS_NEWPASS).getValue();
+			String p2 = fields.get(AssemblyService.CHANGEPASS_NEWPASS_REPEAT).getValue();
+			if(verifyPassword(p1, p2)) {
+				// save
+				user.setPassword(passwordEncoder.encode(p1));
+				userServ.updateUser(user);
+				if(removeThing(data, user)) {
+					data.setNodeId(0);
+					data.setValid(true);
+				}
+			}else err = messages.get("password8andsame");
+		}else err = messages.get("password8andsame");
+		data.setIdentifier(err);
+		return data;
+	}
+	public boolean verifyPassword(String str1, String str2) {
+		str1 = str1.trim();
+		str2 = str2.trim();
+		if(str1 != null && str2 != null && 
+				!str1.isEmpty() && !str2.isEmpty() &&
+				str1.length() >= 7 && str2.length() >= 7 &&
+				str1.equals(str2)) {
+			return true;
+		}
+		return false;
+	}
+	
+
 }
 

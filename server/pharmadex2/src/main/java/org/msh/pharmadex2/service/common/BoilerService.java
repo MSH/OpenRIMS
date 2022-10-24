@@ -38,6 +38,7 @@ import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.EventLog;
 import org.msh.pdex2.model.r2.FileResource;
 import org.msh.pdex2.model.r2.History;
+import org.msh.pdex2.model.r2.PublicOrganization;
 import org.msh.pdex2.model.r2.Register;
 import org.msh.pdex2.model.r2.Scheduler;
 import org.msh.pdex2.model.r2.Thing;
@@ -50,11 +51,13 @@ import org.msh.pdex2.model.r2.ThingScheduler;
 import org.msh.pdex2.model.r2.ThingThing;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.common.QueryRepository;
+import org.msh.pdex2.repository.common.UserRepo;
 import org.msh.pdex2.repository.r2.AssemblyRepo;
 import org.msh.pdex2.repository.r2.ConceptRepo;
 import org.msh.pdex2.repository.r2.EventLogRepo;
 import org.msh.pdex2.repository.r2.FileResourceRepo;
 import org.msh.pdex2.repository.r2.HistoryRepo;
+import org.msh.pdex2.repository.r2.PubOrgRepo;
 import org.msh.pdex2.repository.r2.RegisterRepo;
 import org.msh.pdex2.repository.r2.SchedulerRepo;
 import org.msh.pdex2.repository.r2.ThingDocRepo;
@@ -128,6 +131,10 @@ public class BoilerService {
 	private ThingPersonRepo thingPersonRepo;
 	@Autowired
 	private ThingLinkRepo thingLinkRepo;
+	@Autowired
+	private UserRepo userRepo;
+	@Autowired
+	private PubOrgRepo pubOrgRepo;
 	/**
 	 * Convert resource bundle to DTO
 	 * @param bundle
@@ -1285,5 +1292,36 @@ public class BoilerService {
 		ThingLink tl=thingLink(id);
 		thingLinkRepo.delete(tl);
 	}
-
+	/**
+	 * Find user model by eMail
+	 * Unlike the most of such methods, doesn't rise an exception if user not found.
+	 * A typical applicant user hasn't an account in the user table
+	 * @param eMail
+	 * @return null, if user not found
+	 */
+	@Transactional
+	public User findByEmail(String email) {
+		Optional<User> usero = userRepo.findByEmail(email);
+		if (usero.isPresent()) {
+			return usero.get();
+		}else {
+			return null;
+		}
+	}
+	/**
+	 * Find an organization by the concept
+	 * @param concept
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public PublicOrganization findPubOrgByConcept(Concept concept) throws ObjectNotFoundException {
+		Optional<PublicOrganization> porgo = pubOrgRepo.findByConcept(concept);
+		if(porgo.isPresent()) {
+			return porgo.get();
+		}else {
+			throw new ObjectNotFoundException("findByConcept. Public organization by concept  not found. The Concept Id is "+concept.getID(),logger);
+		}
+	}
+	
 }

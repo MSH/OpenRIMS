@@ -21,9 +21,7 @@ import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.auth.UserRoleDto;
-import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
-import org.msh.pharmadex2.service.common.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,17 +41,7 @@ public class AccessControlService {
 	@Autowired
 	private LiteralService literalServ;
 	@Autowired
-	private UserService userServ;
-	@Autowired
 	private BoilerService boilerServ;
-	@Autowired
-	private PubOrgService publicOrgServ;
-	@Autowired
-	private ThingService thingServ;
-	@Autowired
-	private PasswordEncoder passwordEncoder;
-	@Autowired
-	private Messages messages;
 
 	/**
 	 * Can this user create the thing
@@ -149,7 +137,7 @@ public class AccessControlService {
 	 */
 	@Transactional
 	public boolean isModerator(String url, UserDetailsDTO user) throws ObjectNotFoundException {
-		User umodel = userServ.findByEmail(user.getEmail());
+		User umodel = boilerServ.findByEmail(user.getEmail());
 		if(umodel!=null) {
 			List<UserRoleDto> roles=user.getGranted();
 			if(roles.size()==0) {
@@ -436,12 +424,12 @@ public class AccessControlService {
 	 */
 	@Transactional
 	public boolean isTerritoryUser(UserDetailsDTO user) throws ObjectNotFoundException {
-		User u = userServ.findByEmail(user.getEmail());
+		User u = boilerServ.findByEmail(user.getEmail());
 		if(u!= null) {
 			if(u.getConcept() != null) {
 				if(u.getConcept().getActive()) {
 					if(u.getOrganization() != null) {
-						PublicOrganization porg=publicOrgServ.findByConcept(u.getOrganization());
+						PublicOrganization porg=boilerServ.findPubOrgByConcept(u.getOrganization());
 						if(porg.getAdminUnits().size()>0) {
 							return true;
 						}else {
@@ -463,70 +451,5 @@ public class AccessControlService {
 		return role.getIdentifier().equalsIgnoreCase(SystemService.ROLE_APPLICANT);
 	}
 
-	/**
-	 * change Password by Admin Load
-	 * @param data
-	 * @param user
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	public ThingDTO changePassAdminLoad(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
-		//load and save only one and only under the root of the tree
-		data.setUrl(AssemblyService.SYSTEM_CHANGEPASS_ADMIN);
-		Concept root = closureServ.loadRoot(data.getUrl());
-		data.setParentId(root.getID());
-		List<Concept> nodes = closureServ.loadLevel(root);
-		if(nodes.size()>0) {
-			data.setNodeId(nodes.get(0).getID());
-		}
-		if(data.getNodeId()==0) {
-			data = thingServ.createThing(data, user);
-		}else {
-			data = thingServ.loadThing(data, user);
-			data.setValid(true);
-			data.setUrl(AssemblyService.SYSTEM_CHANGEPASS_ADMIN);
-		}
-		return data;
-	}
-	
-	/**
-	 * change Password by Admin Load
-	 * @param data
-	 * @param user
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	public ThingDTO changePassAdminSave(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
-		data.setValid(false);
-		String err = "";
 
-		Map<String, FormFieldDTO<String>> fields = data.getLiterals();
-		if(fields != null && fields.keySet().size() == 2) {
-			String p1 = fields.get(AssemblyService.CHANGEPASS_NEWPASS).getValue();
-			String p2 = fields.get(AssemblyService.CHANGEPASS_NEWPASS_REPEAT).getValue();
-			if(verifyPassword(p1, p2)) {
-				// save
-				user.setPassword(passwordEncoder.encode(p1));
-				userServ.updateUser(user);
-				if(thingServ.removeThing(data, user)) {
-					data.setNodeId(0);
-					data.setValid(true);
-				}
-			}else err = messages.get("password8andsame");
-		}else err = messages.get("password8andsame");
-		data.setIdentifier(err);
-		return data;
-	}
-	
-	private boolean verifyPassword(String str1, String str2) {
-		str1 = str1.trim();
-		str2 = str2.trim();
-		if(str1 != null && str2 != null && 
-				!str1.isEmpty() && !str2.isEmpty() &&
-				str1.length() >= 7 && str2.length() >= 7 &&
-				str1.equals(str2)) {
-			return true;
-		}
-		return false;
-	}
 }
