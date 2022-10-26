@@ -46,91 +46,92 @@ public class ClosureService {
 	 */
 	@Transactional
 	public Concept saveToTree(Concept parent, Concept node) throws ObjectNotFoundException {
-		if(node != null && node.getIdentifier()==null) {
-			throw new ObjectNotFoundException("saveToTree. Identifier is null",logger);
-		}
-		if(node != null && node.getIdentifier().length()>0) {
-			if(parent==null) { 									//search for tree root with the same identifier
-				List<Concept> concepts = conceptRepo.findByIdentifierIgnoreCase(node.getIdentifier());
-				for(Concept conc: concepts) {
-					List<Closure> list = closureRepo.findByChild(conc);
-					//if(conc.getParents().size()==1) {
-					if(list.size() == 1) {
-						if(node.getLabel()!=null) {
-							conc.setLabel(node.getLabel().trim());
-						}else {
-							if(conc.getLabel()==null) {
-								conc.setLabel("");
+		return saveToTreeFast(parent,node);
+		/*		if(node != null && node.getIdentifier()==null) {
+					throw new ObjectNotFoundException("saveToTree. Identifier is null",logger);
+				}
+				if(node != null && node.getIdentifier().length()>0) {
+					if(parent==null) { 									//search for tree root with the same identifier
+						List<Concept> concepts = conceptRepo.findByIdentifierIgnoreCase(node.getIdentifier());
+						for(Concept conc: concepts) {
+							List<Closure> list = closureRepo.findByChild(conc);
+							//if(conc.getParents().size()==1) {
+							if(list.size() == 1) {
+								if(node.getLabel()!=null) {
+									conc.setLabel(node.getLabel().trim());
+								}else {
+									if(conc.getLabel()==null) {
+										conc.setLabel("");
+									}
+								}
+								conc= conceptRepo.save(conc);
+								try {
+									entityManager.flush();
+								} catch (Exception e) {
+									// nothing to do
+								}
+								if(parent != null) {
+									entityManager.refresh(parent);	//to ensure new children
+								}
+								return conc;								//we will return the root of the tree with the same identifier
 							}
 						}
-						conc= conceptRepo.save(conc);
-						try {
-							entityManager.flush();
-						} catch (Exception e) {
-							// nothing to do
-						}
-						if(parent != null) {
-							entityManager.refresh(parent);	//to ensure new children
-						}
-						return conc;								//we will return the root of the tree with the same identifier
 					}
-				}
-			}
-			List<Closure> toInsert=new ArrayList<Closure>();
-			//closure to itself
-			Closure closure = new Closure();
-			closure.setChild(node);
-			closure.setParent(node);
-			closure.setLevel(0);
-			toInsert.add(closure);
-			if(parent != null) {
-				parent = loadConceptById(parent.getID());
-
-				List<Closure> childs = closureRepo.findByParentAndLevel(parent, 1);
-				//for(Closure child :parent.getChilds()) {			//check unique identifier on a level 
-				for(Closure child :childs) {
-					//if(child.getLevel()==1) {								// right below the parent
-					Concept oldNode = child.getChild();
-					if(oldNode.getIdentifier().equalsIgnoreCase(node.getIdentifier())) {
-						if(node.getLabel()!=null) {
-							oldNode.setLabel(node.getLabel().trim());
+					List<Closure> toInsert=new ArrayList<Closure>();
+					//closure to itself
+					Closure closure = new Closure();
+					closure.setChild(node);
+					closure.setParent(node);
+					closure.setLevel(0);
+					toInsert.add(closure);
+					if(parent != null) {
+						parent = loadConceptById(parent.getID());
+		
+						List<Closure> childs = closureRepo.findByParentAndLevel(parent, 1);
+						//for(Closure child :parent.getChilds()) {			//check unique identifier on a level 
+						for(Closure child :childs) {
+							//if(child.getLevel()==1) {								// right below the parent
+							Concept oldNode = child.getChild();
+							if(oldNode.getIdentifier().equalsIgnoreCase(node.getIdentifier())) {
+								if(node.getLabel()!=null) {
+									oldNode.setLabel(node.getLabel().trim());
+								}
+								oldNode.setActive(node.getActive());
+								oldNode = conceptRepo.save(oldNode);
+								try {
+									entityManager.flush();
+								} catch (Exception e) {
+									// nothing to do
+								}
+								if(parent != null) {
+									entityManager.refresh(parent);	//to ensure new children
+								}
+								return oldNode;									//we will return the node with the same identifier
+							}
+							//}
 						}
-						oldNode.setActive(node.getActive());
-						oldNode = conceptRepo.save(oldNode);
-						try {
-							entityManager.flush();
-						} catch (Exception e) {
-							// nothing to do
+		
+						//closures to all parents of the parent and parent itself ONLY FOR NEW CONCEPT!!!!
+						List<Closure> allParents = closureRepo.findByChild(parent);
+						for(Closure clos : allParents) {
+							Closure closure1 = new Closure();
+							closure1.setChild(node);
+							closure1.setParent(clos.getParent());
+							closure1.setLevel(clos.getLevel()+1);
+							toInsert.add(closure1);
 						}
-						if(parent != null) {
-							entityManager.refresh(parent);	//to ensure new children
-						}
-						return oldNode;									//we will return the node with the same identifier
 					}
-					//}
-				}
-
-				//closures to all parents of the parent and parent itself ONLY FOR NEW CONCEPT!!!!
-				List<Closure> allParents = closureRepo.findByChild(parent);
-				for(Closure clos : allParents) {
-					Closure closure1 = new Closure();
-					closure1.setChild(node);
-					closure1.setParent(clos.getParent());
-					closure1.setLevel(clos.getLevel()+1);
-					toInsert.add(closure1);
-				}
-			}
-			closureRepo.saveAll(toInsert);
-			node = conceptRepo.save(node);
-			entityManager.flush();
-			if(parent != null) {
-				entityManager.refresh(parent);	//to ensure new children
-			}
-			entityManager.refresh(node);
-			return node;
-		}else {
-			throw new ObjectNotFoundException("Node is null or node identifier not defined. Cannot save to the tree!",logger);
-		}
+					closureRepo.saveAll(toInsert);
+					node = conceptRepo.save(node);
+					entityManager.flush();
+					if(parent != null) {
+						entityManager.refresh(parent);	//to ensure new children
+					}
+					entityManager.refresh(node);
+					return node;
+				}else {
+					throw new ObjectNotFoundException("Node is null or node identifier not defined. Cannot save to the tree!",logger);
+				}*/
 	}
 
 	/**
@@ -293,7 +294,7 @@ public class ClosureService {
 	public Concept loadRoot(String identifier) throws ObjectNotFoundException {
 		Concept root = new Concept();
 		root.setIdentifier(identifier);
-		root = saveToTree(null, root);
+		root = saveToTreeFast(null, root);
 		return root;
 	}
 
@@ -505,6 +506,22 @@ public class ClosureService {
 		ret=conceptRepo.findAllByIdentifierAndLabel(identifier, label);
 		return ret;
 	}
+	
+	/**
+	 * Load concept by Identifier
+	 * @param identifier
+	 * @param label
+	 * @return
+	 */
+	public Concept loadConceptByIdentifier(String identifier) {
+		List<Concept> ret = new ArrayList<Concept>();
+		ret = conceptRepo.findAllByIdentifier(identifier);
+		if(ret != null && ret.size() > 0) {
+			return ret.get(0);
+		}
+		return null;
+	}
+	
 
 	/**
 	 * Find concept in a branch by the identifier.

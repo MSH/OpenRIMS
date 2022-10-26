@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.msh.pdex2.exception.ObjectNotFoundException;
+import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.ContentDTO;
@@ -40,6 +41,8 @@ public class ContentService {
 	ClosureService closureServ;
 	@Autowired
 	LiteralService literalServ;
+	@Autowired
+	Messages messages;
 
 	/**
 	 * load tiles data for user page
@@ -129,6 +132,17 @@ public class ContentService {
 		if(data.getTiles().size() > 0) {
 			updateLayoutFree(data);
 			updateLayout(data);
+			
+			String urlDict = "dictionary.system.tiles";
+			DictionaryDTO dict = data.getDictionary();
+			dict.setUrl(urlDict);
+			
+			Concept root = closureServ.loadRoot(urlDict);
+			dict.setUrlId(root.getID());
+			dict.getPrevSelected().clear();
+			dict.setSystem(dictServ.checkSystem(root));//ika
+			dict = dictServ.createDictionaryFromRoot(dict, root);
+			data.setDictionary(dict);
 		}
 		return data;
 	}
@@ -220,9 +234,9 @@ public class ContentService {
 	 * @param data
 	 * @return
 	 */
-	public ContentDTO adminTile(ContentDTO data) {
+	public ContentDTO adminStartTile(ContentDTO data) {
 		//admin tile
-		TileDTO tile = publicServ.createAdminTile();
+		TileDTO tile = createStartAdminTile();
 		data.getTiles().put("administrate", tile);
 		LayoutRowDTO row = new LayoutRowDTO();
 		LayoutCellDTO cell = new LayoutCellDTO();
@@ -235,8 +249,22 @@ public class ContentService {
 		return data;
 	}
 
-	public ContentDTO accountantTile(ContentDTO data) {
-		// TODO Auto-generated method stub
-		return null;
+	/**
+	 * Create a administrate tab to start job
+	 * @return
+	 */
+	private TileDTO createStartAdminTile() {
+		TileDTO ret = new TileDTO();
+		ret.setEmpty(false);
+		ret.setFree(false);
+		ret.setImageUrl("");
+		ret.setTitle(messages.get("specialfeatures"));
+		ret.setDescription("");
+		ret.setMoreLbl(messages.get("start"));
+		ret.setMore("/admin#administrate");
+		ret.setDownload("");
+		ret.setNumRow(0);
+		ret.setNumCol(0);
+		return ret;
 	}
 }

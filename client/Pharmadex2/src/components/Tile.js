@@ -40,6 +40,11 @@ class Tile extends Component{
         if(this.props.content.more.length > 0){
             hasMore = true
         }
+        let imageUrl=this.props.content.imageUrl
+        let srclink = "api/public/tileicon?iconurl=" + this.props.content.imageUrl
+        if(imageUrl.toUpperCase().startsWith("HTTP") || imageUrl.toUpperCase().startsWith("/") || imageUrl.toUpperCase().startsWith("IMG/TILES")){
+            srclink=imageUrl;
+        }
         return(
         <Container fluid className="tile w-100 h-100 p-0 m-0"
             onMouseEnter={()=>{
@@ -57,7 +62,7 @@ class Tile extends Component{
                     <Col className='pr-5 pl-5 pt-1 pb-1'>
                     <a href="#" key="1">
                     <figure>
-                        <img src={this.props.content.image}/>
+                        <img src={srclink}/>
                         <figcaption className={"bg-dark"}>
                             <Row>
                                 <Col xs='1' sm='1' lg='1' xl='1'>

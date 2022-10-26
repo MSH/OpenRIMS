@@ -73,10 +73,10 @@ class LegacyData extends Component{
      * Listen messages from other components
      * @param {Window Event} event 
      */
-        eventProcessor(event){
-            let data=event.data
+    eventProcessor(event){
+        let data=event.data
            
-        }
+    }
 
     componentDidMount(){
         window.addEventListener("message",this.eventProcessor)
@@ -93,9 +93,13 @@ class LegacyData extends Component{
         Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/legacy/data", this.state.data, (query,result)=>{
             this.state.data=result
             this.setState(this.state)
+            Navigator.message(this.state.identifier, this.props.recipient, "onSelectionChange", this.state.data)
         })
     }
     render(){
+        if(this.props.readOnly){
+            return []
+        }
         return(
             <Container fluid>
                 <Row>
@@ -108,7 +112,7 @@ class LegacyData extends Component{
                 </Row>
                 <Row>
                     <Col>
-                    <CollectorTable
+                        <CollectorTable
                             tableData={this.state.data.table}
                             loader={this.loadTable}
                             headBackground={Pharmadex.settings.tableHeaderBackground}
@@ -122,7 +126,6 @@ class LegacyData extends Component{
                                 }else{
                                     this.state.data.selectedNode=id 
                                 }
-                                Navigator.message(this.state.identifier, this.props.recipient, "onSelectionChange", this.state.data)
                                 this.loadTable()
                             }}
                             

@@ -1,5 +1,7 @@
 package org.msh.pharmadex2.service.r2;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Type;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
@@ -9,12 +11,14 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.msh.pdex2.dto.table.Headers;
 import org.msh.pdex2.dto.table.TableCell;
 import org.msh.pdex2.dto.table.TableHeader;
@@ -54,6 +58,7 @@ import org.msh.pharmadex2.dto.FileDTO;
 import org.msh.pharmadex2.dto.HeadingDTO;
 import org.msh.pharmadex2.dto.IntervalDTO;
 import org.msh.pharmadex2.dto.LegacyDataDTO;
+import org.msh.pharmadex2.dto.LinksDTO;
 import org.msh.pharmadex2.dto.PersonDTO;
 import org.msh.pharmadex2.dto.PersonSelectorDTO;
 import org.msh.pharmadex2.dto.PersonSpecialDTO;
@@ -68,6 +73,7 @@ import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.common.DtoService;
+import org.msh.pharmadex2.service.common.UserService;
 import org.msh.pharmadex2.service.common.ValidationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,6 +83,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -132,6 +139,12 @@ public class ThingService {
 	private AtcInnExcService atcInnExcServ;
 	@Autowired
 	private RegisterService registerServ;
+	@Autowired
+	private LinkService linkServ;
+	@Autowired
+	private PasswordEncoder passwordEncoder;
+	@Autowired
+	private UserService userServ;
 	@PersistenceContext
 	EntityManager entityManager;
 
@@ -230,11 +243,6 @@ public class ThingService {
 		//persons
 		List<AssemblyDTO> persons =assemblyServ.auxPersons(data.getUrl(),assemblies);
 		data=createPersons(persons, data);
-		//person selectors
-		//List<AssemblyDTO> personselectors = assemblyServ.auxPersonSelector(data.getUrl());
-		//data=createPersonSelectors(personselectors,data);
-		//List<AssemblyDTO> personspecial = assemblyServ.auxPersonSpecials(data.getUrl());
-		//data = createPersonSpecial(personspecial, data);
 		//Schedulers
 		List<AssemblyDTO> schedulers = assemblyServ.auxSchedulers(data.getUrl(),assemblies);
 		data=createSchedulers(schedulers, data);
@@ -255,7 +263,9 @@ public class ThingService {
 		//Intervals
 		List<AssemblyDTO> intervals = assemblyServ.auxIntervals(data,"intervals");
 		data=createIntervals(intervals, data);
-		//logger.info("CONTENT done intervals");
+		//links
+		List<AssemblyDTO> links = assemblyServ.auxLinks(data.getUrl(),assemblies);
+		data=linkServ.createLinks(links,data);
 		//layout
 		data=createLayout(data);
 		//main labels rewrite
@@ -306,16 +316,6 @@ public class ThingService {
 		for(AssemblyDTO assm : legacy) {
 			data.getLegacy().put(assm.getPropertyName(),legacyServ.create(assm));
 		}
-		if(data.getLegacy().size()>0) {
-			if(data.getNodeId()>0) {
-				Concept node = closureServ.loadConceptById(data.getNodeId());
-				Thing thing = boilerServ.thingByNode(node);
-				for(ThingLegacyData tdl : thing.getLegacyData()) {
-					LegacyDataDTO dto = data.getLegacy().get(tdl.getVarName());
-					dto=legacyServ.load(tdl.getConcept(), dto);
-				}
-			}
-		}
 		return data;
 	}
 	/**
@@ -328,107 +328,19 @@ public class ThingService {
 	private ThingDTO createAtc(List<AssemblyDTO> atcs, ThingDTO data) throws ObjectNotFoundException {
 		data.getAtc().clear();
 		for(AssemblyDTO atc : atcs) {
-			AtcDTO dto = new AtcDTO();				//only one is possibl
+			AtcDTO dto = new AtcDTO();
 			dto.setUrl(atc.getUrl());
 			dto.setVarName(atc.getPropertyName());
 			dto.setReadOnly(atc.isReadOnly());
+			dto.setDictUrl(atc.getDictUrl());
 			dto=atcInnExcServ.createAtc(dto, data);
 			data.getAtc().put(dto.getVarName(),dto);
 		}
 
 		return data;
 	}
-	/**
-	 * Create data for amendment component, i.e. a pointer to concept (thing) amended by this
-	 * @deprecated
-	 * @param amendments
-	 * @param data
-	 * @param user 
-	 * @return
-	 * @throws ObjectNotFoundException
-	 *  
-	 */
-	@Transactional
-	private ThingDTO createAmendments(List<AssemblyDTO> amendments, ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
-		//read a configuration
-		data.getAmendments().clear();
-		AmendmentDTO dto = new AmendmentDTO();	//only one is possible
-		for(AssemblyDTO asm : amendments) {
-			dto.setUrl(asm.getUrl());
-			dto.setVarName(asm.getPropertyName());
-			dto.setPattern(asm.getFileTypes());
-			data.getAmendments().put(dto.getVarName(),dto);
-			break;		//only one is allowed
-		}
-		//load a concept if one
-		if(data.getNodeId()>0) {
-			Concept node = closureServ.loadConceptById(data.getNodeId());
-			Thing thing = new Thing();
-			thing = boilerServ.thingByNode(node, thing);
-			for(ThingAmendment ta :thing.getAmendments()) {
-				if(dto.getUrl().equalsIgnoreCase(ta.getUrl())) {
-					dto.setDataNodeId(ta.getConcept().getID());
-				}
-				break;										//only one is possible
-			}
-		}
-		return data;
-	}
-	/**
-	 * Create special person
-	 * @param personspecial
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	@Transactional
-	private ThingDTO createPersonSpecial(List<AssemblyDTO> personspecial, ThingDTO data) throws ObjectNotFoundException {
-		//it is possible only one Special Person for a thing
-		if(personspecial.size()==1) {
-			AssemblyDTO adto = personspecial.get(0);
-			PersonSpecialDTO ps = new PersonSpecialDTO();
-			if(data.getPersonspec().size()==1) {
-				ps=data.getPersonspec().get(adto.getPropertyName());
-			}
-			if(ps!=null) {
-				ps.setVarName(adto.getPropertyName());				//variable for it
-				//object's data
-				ps.setParentId(data.getParentId());
-				//person data
-				ps.setPersonDataId(data.getNodeId());
-				//url of the unit of person's data. The root unit are allowed
-				ps.setPresonDataUrl(data.getUrl());
-				//restrict person's selection to this root person url, empty means all!
-				ps.setRestrictByURl(adto.getDictUrl());
-				//this component data 						
-				ps.setNodeUrl(adto.getAuxDataUrl());
-				data.getPersonspec().put(adto.getPropertyName(), ps);
-				//load it
-				ps=personList(ps);
-				//mark it
-				if(data.getNodeId()>0) {
-					Concept pconc= closureServ.loadConceptById(data.getNodeId());
-					if(pconc.getLabel() != null) {
-						String persIdStr= pconc.getLabel();
-						try {
-							Long persId= new Long(persIdStr);
-							Concept pers = closureServ.loadConceptById(persId);
-							ps.setSelectedName(literalServ.readPrefLabel(pers));
-						} catch (NumberFormatException e) {
-							//nothing to do
-						}
-					}
-					for(TableRow row : ps.getTable().getRows()) {
-						Concept node = closureServ.loadConceptById(row.getDbID());
-						if(conceptBelongToNode(node, pconc)) {
-							row.setSelected(true);
-						}
-					}
-				}
-			}
-		}
-		return data;
-	}
+
+
 	/**
 	 * Concept is belong to node if this concept is node itself or related thing 
 	 * @param node
@@ -537,34 +449,7 @@ public class ThingService {
 		return data;
 	}
 
-	/**
-	 * Load person lists using main data node and person data url 
-	 * @param personselectors 
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	@Transactional
-	private ThingDTO createPersonSelectors(List<AssemblyDTO> personselectors, ThingDTO data) throws ObjectNotFoundException {
-		data.getPersonselector().clear();
-		for(AssemblyDTO ad : personselectors) {
-			PersonSelectorDTO dto = new PersonSelectorDTO();
-			dto.setHistoryId(data.getHistoryId());
-			dto.setPersonUrl(ad.getUrl());
-			dto=amendServ.personSelectorTable(dto);										//the amended data has precedence
-			if(dto.getTable().getRows().size()==0) {
-				dto=resourceServ.personSelectorTable(dto);								//not found in amended data
-			}
-			List<Long> selected = boilerServ.saveSelectedRows(dto.getTable());
-			if(selected.size()==0) {
-				if(dto.getTable().getRows().size()>0) {
-					dto.getTable().getRows().get(0).setSelected(true);			//for lazy testers
-				}
-			}
-			data.getPersonselector().put(ad.getPropertyName(),dto);
-		}
-		return data;
-	}
+
 	/**
 	 * Create resources table
 	 * Headers are the same as for documents table
@@ -776,7 +661,7 @@ public class ThingService {
 			fdto.setVarName(asm.getPropertyName());
 			fdto.setThingUrl(data.getUrl());
 			fdto.setThingNodeId(data.getNodeId());
-			fdto = removeOrphans(fdto);
+			fdto = removeOrphans(fdto, user);
 			fdto = createDocTable(fdto,user);
 			fdto=createDocUploaded(fdto,user);
 			data.getDocuments().put(asm.getPropertyName(),fdto);
@@ -786,20 +671,27 @@ public class ThingService {
 	/**
 	 * Remove files, concepts and ThingDocs for files uploaded for this url, variable, but with null thing
 	 * @param fdto
+	 * @param user 
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	private FileDTO removeOrphans(FileDTO fdto) throws ObjectNotFoundException {
-		List<ThingDoc> tds = boilerServ.thingDocsByUrl(fdto.getUrl());
-		for(ThingDoc td : tds) {
-			if(td.getVarName().equalsIgnoreCase(fdto.getVarName())) {
-				Thing thing = boilerServ.thingByThingDoc(td,false);
-				if(thing.getID()==0) {
-					closureServ.removeNode(td.getConcept());
-					break;
+	private FileDTO removeOrphans(FileDTO fdto, UserDetailsDTO user) throws ObjectNotFoundException {
+		/*	List<ThingDoc> tds = boilerServ.thingDocsByUrl(fdto.getUrl());
+			for(ThingDoc td : tds) {
+				if(td.getVarName().equalsIgnoreCase(fdto.getVarName())) {
+					Thing thing = boilerServ.thingByThingDoc(td,false);
+					if(thing.getID()==0) {
+						closureServ.removeNode(td.getConcept());
+						break;
+					}
 				}
-			}
+			} INEFFICIENT !!!!!*/
+		jdbcRepo.orphan_files(fdto.getUrl(), user.getEmail());
+		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from orphan_files", "", "", new Headers());
+		for(TableRow row : rows) {
+			Concept node = closureServ.loadConceptById(row.getDbID());
+			closureServ.removeNode(node);
 		}
 		return fdto;
 	}
@@ -971,10 +863,59 @@ public class ThingService {
 		}
 		return data;
 	}
-
 	/**
-	 * Save a thing
-	 * @TODO should be reconsidered and compared with ApplServer.thingSaveUnderPArent
+	 * Save a thing under a parent node defined. Not under the owner's email
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public ThingDTO thingSaveUnderParent(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		data = validServ.thing(data,true);
+		if(data.isValid() || !data.isStrict() && accessControlServ.writeAllowed(data, user)) {
+			data.setStrict(true);									//to ensure the next
+			Concept node = new Concept();
+			if(data.getNodeId()==0) {
+				//save as a branch under the declared parent node
+				if(data.getParentId()>0) {
+					Concept parent = closureServ.loadConceptById(data.getParentId());
+					node = closureServ.save(node);
+					node.setIdentifier(node.getID()+"");
+					node=closureServ.saveToTree(parent, node);
+				}else {
+					throw new ObjectNotFoundException("thingSaveUnderParent. Parent node is ZERO",logger);
+				}
+			}else {
+				//the same as a plain save
+				node=closureServ.loadConceptById(data.getNodeId());
+			}
+			data.setNodeId(node.getID());
+			//get or create a thing
+			Thing thing = new Thing();
+			thing = boilerServ.thingByNode(node, thing);
+			thing.setConcept(node);
+			thing.setUrl(data.getUrl());
+
+			//store data under the node and thing
+			data = storeDataUnderThing(data, user, node, thing);
+			//title
+			String title = literalServ.readPrefLabel(node);
+			if(title.length()>3) {
+				data.setTitle(title);
+			}
+			//store a thing
+			thing=boilerServ.saveThing(thing);
+			if(data.getHistoryId()>0) {
+				History his = boilerServ.historyById(data.getHistoryId());
+				his.setActivityData(node);
+				his=boilerServ.saveHistory(his);
+			}
+		}
+
+		return data;
+	}
+	/**
+	 * Save a thing under the owner's email record
 	 * @param data
 	 * @param user
 	 * @return
@@ -982,7 +923,7 @@ public class ThingService {
 	 * @throws JsonProcessingException 
 	 */
 	@Transactional
-	public ThingDTO save(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException, JsonProcessingException {
+	public ThingDTO saveUnderOwner(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException, JsonProcessingException {
 		data = validServ.thing(data,true);
 		if(data.isValid() || !data.isStrict()) {
 			data.setStrict(true);									//to ensure the next
@@ -1101,13 +1042,15 @@ public class ThingService {
 	@Transactional
 	public ThingDTO storeDataUnderThing(ThingDTO data, UserDetailsDTO user, Concept node, Thing thing)
 			throws ObjectNotFoundException {
+		data = storeLinks(thing, data);					//should be first, because may change literals
 		data = storeLegacy(thing, data);				//should be first, because may change literals
+		data = storeDictionaries(thing,data, user);	    //should be first, because may change literals
 		data = storeStrings(node,data);
 		data = storeLiterals(node, data);
 		data = storeDates(node,data);
 		data = storeNumbers(node, data);
 		data = storeLogical(node,data);
-		data = storeDictionaries(thing,data);
+
 		data = storeDocuments(thing, data,user);
 		data = storeAddresses(user, node, thing,data);
 		data = storeAmended(user, node, thing, data);
@@ -1115,11 +1058,27 @@ public class ThingService {
 		data = storeRegister(user, thing, data);
 		data = storeAtc(thing, data);
 		data = storeIntervals(node, data);
+		
 		data=amendServ.storePersonToRemove(data, thing);
 
 		return data;
 	}
-
+	/**
+	 * Store links to other objects
+	 * @param thing
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private ThingDTO storeLinks(Thing thing, ThingDTO data) throws ObjectNotFoundException {
+		for(String key : data.getLinks().keySet()) {
+			LinksDTO links = data.getLinks().get(key);
+			links=linkServ.save(thing,links);
+			data=linkServ.copyLiterals(links, data);
+		}
+		return data;
+	}
 	/**
 	 * Store data for all intervals defined
 	 * @param node
@@ -1150,6 +1109,8 @@ public class ThingService {
 	 */
 	private ThingDTO storeLegacy(Thing thing, ThingDTO data) throws ObjectNotFoundException {
 		thing.getLegacyData().clear();
+		/*22.09.2022 new version */
+		List<AssemblyDTO> assemblie = assemblyServ.auxByClazz(data.getUrl(), "legacy");
 		for(String key :data.getLegacy().keySet()) {
 			ThingLegacyData tld = new ThingLegacyData();
 			LegacyDataDTO dto = data.getLegacy().get(key);
@@ -1160,6 +1121,7 @@ public class ThingService {
 				tld.setVarName(dto.getVarName());
 				thing.getLegacyData().add(tld);
 				//tune variables, we understand that legacy data component is only one :)
+				/* 22.09.2022 old version
 				FormFieldDTO<String> prefLabelDTO = data.getLiterals().get("prefLabel");
 				if(prefLabelDTO==null) {
 					prefLabelDTO = data.getStrings().get("prefLabel");
@@ -1176,6 +1138,41 @@ public class ThingService {
 				if(altLabelDTO != null) {
 					String altLabel=literalServ.readValue("altLabel", node);		//here altLabel is right
 					altLabelDTO.setValue(altLabel);
+				}*/
+
+				/*22.09.2022 new version */
+				FormFieldDTO<String> prefLabelDTO = data.getLiterals().get(LiteralService.PREF_NAME);
+				if(prefLabelDTO==null) {
+					prefLabelDTO = data.getStrings().get(LiteralService.PREF_NAME);
+				}
+				FormFieldDTO<String> altLabelDTO = data.getLiterals().get(dto.getAltLabel());
+				if(altLabelDTO==null) {
+					altLabelDTO=data.getStrings().get(dto.getAltLabel());
+				}
+
+				boolean isPrefLblAssembly = false;
+				if(assemblie != null && assemblie.size() > 0) {
+					for(AssemblyDTO ass:assemblie) {
+						if(key.equals(ass.getPropertyName())) {
+							if(ass.isPrefLabel()) {
+								String prefLabel=literalServ.readPrefLabel(node);
+								prefLabelDTO.setValue(prefLabel);
+								isPrefLblAssembly = true;
+							}
+							break;
+						}
+					}
+				}
+
+				if(isPrefLblAssembly) {
+					if(prefLabelDTO != null) {
+						String prefLabel=literalServ.readPrefLabel(node);
+						prefLabelDTO.setValue(prefLabel);
+					}
+					if(altLabelDTO != null) {
+						String altLabel=literalServ.readValue("altLabel", node);		//here altLabel is right
+						altLabelDTO.setValue(altLabel);
+					}
 				}
 			}
 		}
@@ -1230,6 +1227,7 @@ public class ThingService {
 	}
 	/**
 	 * Component Person Special may change the parent ID
+	 * @deprecated
 	 * @param data
 	 * @param thing 
 	 * @return
@@ -1538,13 +1536,83 @@ public class ThingService {
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	public ThingDTO storeDictionaries(Thing thing, ThingDTO data) throws ObjectNotFoundException {
+	public ThingDTO storeDictionaries(Thing thing, ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		if(thing.getID()>0) {
 			entityManager.refresh(thing);
 			thing.getDictionaries().clear();
 			boilerServ.saveThing(thing);
 			//entityManager.flush();
 		}
+		/*22.09.2022 new version */
+		List<AssemblyDTO> assemblies = assemblyServ.auxByClazz(data.getUrl(), "dictionaries");
+		Set<Long> selected = new HashSet<Long>();
+		for(String key : data.getDictionaries().keySet()) {
+			DictionaryDTO dict = data.getDictionaries().get(key);
+			AssemblyDTO keyAssDTO = assemblyServ.auxAssemblyDTOByClazz(assemblies, key);
+			selected.clear();
+			selected.addAll(dict.getPrevSelected());
+			if(selected.size()==0 && dict.getSelection().getValue().getId()>0) {
+				selected.add(dict.getSelection().getValue().getId());
+			}
+
+			for(Long id : selected) {
+				if(id != 0) {
+					Concept dictItem = closureServ.loadConceptById(id);
+					ThingDict thingDict = new ThingDict();
+					thingDict.setUrl(dict.getUrl());
+					thingDict.setConcept(dictItem);
+					thingDict.setVarname(dict.getVarName());
+					thing.getDictionaries().add(thingDict);
+
+					if(keyAssDTO != null && keyAssDTO.isPrefLabel() && !keyAssDTO.isMult()) {
+						FormFieldDTO<String> prefLabelDTO = data.getLiterals().get(LiteralService.PREF_NAME);
+						if(prefLabelDTO == null) {
+							prefLabelDTO = data.getStrings().get(LiteralService.PREF_NAME);
+						}
+						if(prefLabelDTO == null) {
+							prefLabelDTO = new FormFieldDTO<String>("");
+							data.getLiterals().put("prefLabel", prefLabelDTO);
+							prefLabelDTO = data.getLiterals().get(LiteralService.PREF_NAME);
+						}
+						if(prefLabelDTO != null) {
+							String prefLabel = literalServ.readPrefLabel(dictItem);
+							prefLabelDTO.setValue(prefLabel);
+						}
+						//alt label may be configured as altLabel or another name
+						FormFieldDTO<String> descriptionDTO = data.getLiterals().get(LiteralService.DESCRIPTION);
+						if(descriptionDTO==null) {
+							descriptionDTO=data.getStrings().get(LiteralService.DESCRIPTION);
+						}
+						if(descriptionDTO == null) {
+							descriptionDTO = new FormFieldDTO<String>("");
+							data.getLiterals().put("description", descriptionDTO);
+							descriptionDTO = data.getLiterals().get(LiteralService.DESCRIPTION);
+						}
+						if(descriptionDTO != null) {
+							String descr=literalServ.readDescription(dictItem);		//here altLabel is right
+							descriptionDTO.setValue(descr);
+						}
+					}
+				}
+			}			
+		}
+
+		/*boolean isPrefLblAssembly = false;
+
+		if(assemblie != null && assemblie.size() > 0) {
+			for(AssemblyDTO ass:assemblie) {
+				if(key.equals(ass.getPropertyName())) {
+					if(ass.isPrefLabel()) {
+						String prefLabel=literalServ.readPrefLabel(node);
+						prefLabelDTO.setValue(prefLabel);
+						isPrefLblAssembly = true;
+					}
+					break;
+				}
+			}
+		}*/
+
+		/*22.09.2022 old version
 		Set<Long> selected = new HashSet<Long>();
 		for(String key : data.getDictionaries().keySet()) {
 			DictionaryDTO dict = data.getDictionaries().get(key);
@@ -1564,6 +1632,7 @@ public class ThingService {
 				}
 			}
 		}
+		 */
 		return data;
 	}
 
@@ -1793,6 +1862,18 @@ public class ThingService {
 			throw new ObjectNotFoundException("loadThing. Node  is not defined",logger);
 		}
 		return data;
+	}
+
+	@Transactional
+	public boolean removeThing(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		if(data.getNodeId() > 0) {
+			Concept node = closureServ.loadConceptById(data.getNodeId());
+			if(node != null) {
+				closureServ.removeNode(node);
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -2361,5 +2442,73 @@ public class ThingService {
 		}
 		return data;
 	}
+	
+	/**
+	 * change Password by Admin Load
+	 * @param data
+	 * @param user
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	public ThingDTO changePassAdminLoad(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		//load and save only one and only under the root of the tree
+		data.setUrl(AssemblyService.SYSTEM_CHANGEPASS_ADMIN);
+		Concept root = closureServ.loadRoot(data.getUrl());
+		data.setParentId(root.getID());
+		List<Concept> nodes = closureServ.loadLevel(root);
+		if(nodes.size()>0) {
+			data.setNodeId(nodes.get(0).getID());
+		}
+		if(data.getNodeId()==0) {
+			data = createThing(data, user);
+		}else {
+			data = loadThing(data, user);
+			data.setValid(true);
+			data.setUrl(AssemblyService.SYSTEM_CHANGEPASS_ADMIN);
+		}
+		return data;
+	}
+	
+	/**
+	 * change Password by Admin Load
+	 * @param data
+	 * @param user
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	public ThingDTO changePassAdminSave(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		data.setValid(false);
+		String err = "";
+
+		Map<String, FormFieldDTO<String>> fields = data.getLiterals();
+		if(fields != null && fields.keySet().size() == 2) {
+			String p1 = fields.get(AssemblyService.CHANGEPASS_NEWPASS).getValue();
+			String p2 = fields.get(AssemblyService.CHANGEPASS_NEWPASS_REPEAT).getValue();
+			if(verifyPassword(p1, p2)) {
+				// save
+				user.setPassword(passwordEncoder.encode(p1));
+				userServ.updateUser(user);
+				if(removeThing(data, user)) {
+					data.setNodeId(0);
+					data.setValid(true);
+				}
+			}else err = messages.get("password8andsame");
+		}else err = messages.get("password8andsame");
+		data.setIdentifier(err);
+		return data;
+	}
+	public boolean verifyPassword(String str1, String str2) {
+		str1 = str1.trim();
+		str2 = str2.trim();
+		if(str1 != null && str2 != null && 
+				!str1.isEmpty() && !str2.isEmpty() &&
+				str1.length() >= 7 && str2.length() >= 7 &&
+				str1.equals(str2)) {
+			return true;
+		}
+		return false;
+	}
+	
+
 }
 

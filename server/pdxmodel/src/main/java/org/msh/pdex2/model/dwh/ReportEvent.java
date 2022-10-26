@@ -28,8 +28,8 @@ public class ReportEvent implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC222274181AB73CE670B14E")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC222274181AB73CE670B14E", strategy="native")	
+	@GeneratedValue(generator="VAC2222741838448926C07378")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222741838448926C07378", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	
@@ -52,15 +52,6 @@ public class ReportEvent implements Serializable {
 	
 	@Column(name="EventNumber", nullable=true, length=255)	
 	private String eventNumber;
-	
-	@Column(name="ReportPageId", nullable=false, length=20)	
-	private long reportPageId;
-	
-	@Column(name="Event", nullable=true, length=255)	
-	private String event;
-	
-	@Column(name="EventId", nullable=false, length=20)	
-	private long eventId;
 	
 	private void setID(long value) {
 		this.ID = value;
@@ -142,48 +133,6 @@ public class ReportEvent implements Serializable {
 	 */
 	public String getEventNumber() {
 		return eventNumber;
-	}
-	
-	/**
-	 * Type of the event
-	 */
-	public void setEvent(String value) {
-		this.event = value;
-	}
-	
-	/**
-	 * Type of the event
-	 */
-	public String getEvent() {
-		return event;
-	}
-	
-	/**
-	 * Register ID or history id for follow up events
-	 */
-	public void setEventId(long value) {
-		this.eventId = value;
-	}
-	
-	/**
-	 * Register ID or history id for follow up events
-	 */
-	public long getEventId() {
-		return eventId;
-	}
-	
-	/**
-	 * ID of activity configuration
-	 */
-	public void setReportPageId(long value) {
-		this.reportPageId = value;
-	}
-	
-	/**
-	 * ID of activity configuration
-	 */
-	public long getReportPageId() {
-		return reportPageId;
 	}
 	
 	public void setReportSession(org.msh.pdex2.model.dwh.ReportSession value) {

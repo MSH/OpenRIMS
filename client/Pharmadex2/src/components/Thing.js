@@ -21,6 +21,7 @@ import Amended from './Amended'
 import ATCCodes from './ATCCodes'
 import LegacyData from './LegacyData'
 import Interval from './Interval'
+import Links from './Links'
 import Pharmadex from './Pharmadex'
 
 
@@ -48,6 +49,8 @@ class Thing extends Component{
             data:this.props.data,             //ThingDTO         
             labels:{},
         }
+        this.state.data.readOnly=this.props.readOnly
+        
         this.eventProcessor=this.eventProcessor.bind(this)
         this.paintRows=this.paintRows.bind(this)
         this.paintCells=this.paintCells.bind(this)
@@ -381,6 +384,7 @@ class Thing extends Component{
         Locales.createLabels(this,'atc')
         Locales.createLabels(this, 'legacy');
         Locales.createLabels(this, 'intervals');
+        Locales.createLabels(this,"links")
         if(this.state.data.activityName != undefined){
             this.state.labels[this.state.data.activityName]=''     //for activity names
         }
@@ -425,7 +429,12 @@ class Thing extends Component{
                 return (
                     <Button key={index} color="link" size='sm'
                     onClick={()=>{
-                        window.open(head.url,'_blank').focus()
+                        if(head.url.includes('shablon')){
+                            window.open(head.url)
+                        }else{
+                            window.open(head.url,'_blank').focus()
+                        }
+                        
                     }}>
                         {head.value}
                     </Button>
@@ -862,6 +871,17 @@ class Thing extends Component{
                 interval.reload=true
                 return(
                     Interval.place(interval, this.state.identifier, this.props.readOnly, index, this.state.labels[name])
+                )
+            }
+        }
+        if(this.state.data.links.hasOwnProperty(name)){
+            if(data != undefined){
+                this.state.data.links[name]=data
+            }else{
+                let links= this.state.data.links[name]
+                links.reload=true
+                return(
+                    Links.place(links, this.state.identifier, this.props.readOnly, index, this.state.labels[name])
                 )
             }
         }

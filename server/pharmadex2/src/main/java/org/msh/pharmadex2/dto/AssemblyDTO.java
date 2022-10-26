@@ -23,6 +23,7 @@ public class AssemblyDTO extends AllowValidation {
 	private boolean textArea=false;
 	private boolean mult=false;
 	private boolean unique=false;
+	private boolean prefLabel = false;
 	private LocalDate minDate=LocalDate.now().minusYears(3);	//default
 	private LocalDate maxDate=LocalDate.now().plusYears(3);
 	//borders for numbers
@@ -40,6 +41,12 @@ public class AssemblyDTO extends AllowValidation {
 		this.url = url;
 	}
 	
+	public boolean isPrefLabel() {
+		return prefLabel;
+	}
+	public void setPrefLabel(boolean prefLabel) {
+		this.prefLabel = prefLabel;
+	}
 	public String getDictUrl() {
 		return dictUrl;
 	}

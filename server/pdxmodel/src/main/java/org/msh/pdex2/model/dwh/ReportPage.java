@@ -28,8 +28,8 @@ public class ReportPage implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC222274181AB73CE6A0B150")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC222274181AB73CE6A0B150", strategy="native")	
+	@GeneratedValue(generator="VAC222274183844892720737A")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC222274183844892720737A", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	
@@ -49,15 +49,6 @@ public class ReportPage implements Serializable {
 	
 	@Column(name="PrefLabel", nullable=true, length=255)	
 	private String prefLabel;
-	
-	@Column(name="PageId", nullable=false, length=20)	
-	private long pageId;
-	
-	@Column(name="PageUrl", nullable=true, length=255)	
-	private String pageUrl;
-	
-	@Column(name="PageVar", nullable=true, length=255)	
-	private String pageVar;
 	
 	@Column(name="Owner", nullable=true, length=255)	
 	private String owner;
@@ -131,48 +122,6 @@ public class ReportPage implements Serializable {
 	 */
 	public String getPrefLabel() {
 		return prefLabel;
-	}
-	
-	/**
-	 * ID of a page on the form
-	 */
-	public void setPageId(long value) {
-		this.pageId = value;
-	}
-	
-	/**
-	 * ID of a page on the form
-	 */
-	public long getPageId() {
-		return pageId;
-	}
-	
-	/**
-	 * URL of a page on the form
-	 */
-	public void setPageUrl(String value) {
-		this.pageUrl = value;
-	}
-	
-	/**
-	 * URL of a page on the form
-	 */
-	public String getPageUrl() {
-		return pageUrl;
-	}
-	
-	/**
-	 * Variable name for a page on the form
-	 */
-	public void setPageVar(String value) {
-		this.pageVar = value;
-	}
-	
-	/**
-	 * Variable name for a page on the form
-	 */
-	public String getPageVar() {
-		return pageVar;
 	}
 	
 	/**

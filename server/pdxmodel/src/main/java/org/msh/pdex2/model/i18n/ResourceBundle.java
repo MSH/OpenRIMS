@@ -25,8 +25,8 @@ public class ResourceBundle implements Serializable {
 	
 	@Column(name="Id", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC222274181AB73CE3F0B131")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC222274181AB73CE3F0B131", strategy="native")	
+	@GeneratedValue(generator="VAC2222741838448923F0735A")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222741838448923F0735A", strategy="native")	
 	private long id;
 	
 	@Column(name="SortOrder", nullable=true, length=1)	
@@ -44,10 +44,10 @@ public class ResourceBundle implements Serializable {
 	@Column(name="SvgFlag", nullable=true)	
 	private String svgFlag;
 	
-	@Column(name="UsaidLogo", nullable=false)	
+	@Column(name="UsaidLogo", nullable=true)	
 	private String usaidLogo;
 	
-	@Column(name="NmraLogo", nullable=false)	
+	@Column(name="NmraLogo", nullable=true)	
 	private String nmraLogo;
 	
 	@OneToMany(targetEntity=org.msh.pdex2.model.i18n.ResourceMessage.class)	

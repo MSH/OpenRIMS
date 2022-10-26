@@ -1,6 +1,5 @@
 package org.msh.pharmadex2.service.r2;
 
-import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -10,24 +9,23 @@ import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 
 import org.msh.pdex2.exception.ObjectNotFoundException;
+import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.old.User;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.model.r2.PublicOrganization;
 import org.msh.pdex2.model.r2.Thing;
-import org.msh.pdex2.model.r2.ThingDict;
 import org.msh.pdex2.model.r2.ThingThing;
 import org.msh.pdex2.model.r2.UserDict;
 import org.msh.pdex2.services.r2.ClosureService;
-import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.auth.UserRoleDto;
 import org.msh.pharmadex2.service.common.BoilerService;
-import org.msh.pharmadex2.service.common.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 /**
@@ -43,12 +41,7 @@ public class AccessControlService {
 	@Autowired
 	private LiteralService literalServ;
 	@Autowired
-	private UserService userServ;
-	@Autowired
 	private BoilerService boilerServ;
-	@Autowired
-	private PubOrgService publicOrgServ;
-
 
 	/**
 	 * Can this user create the thing
@@ -144,7 +137,7 @@ public class AccessControlService {
 	 */
 	@Transactional
 	public boolean isModerator(String url, UserDetailsDTO user) throws ObjectNotFoundException {
-		User umodel = userServ.findByEmail(user.getEmail());
+		User umodel = boilerServ.findByEmail(user.getEmail());
 		if(umodel!=null) {
 			List<UserRoleDto> roles=user.getGranted();
 			if(roles.size()==0) {
@@ -431,12 +424,12 @@ public class AccessControlService {
 	 */
 	@Transactional
 	public boolean isTerritoryUser(UserDetailsDTO user) throws ObjectNotFoundException {
-		User u = userServ.findByEmail(user.getEmail());
+		User u = boilerServ.findByEmail(user.getEmail());
 		if(u!= null) {
 			if(u.getConcept() != null) {
 				if(u.getConcept().getActive()) {
 					if(u.getOrganization() != null) {
-						PublicOrganization porg=publicOrgServ.findByConcept(u.getOrganization());
+						PublicOrganization porg=boilerServ.findPubOrgByConcept(u.getOrganization());
 						if(porg.getAdminUnits().size()>0) {
 							return true;
 						}else {
@@ -457,5 +450,6 @@ public class AccessControlService {
 	public boolean isApplicantRole(Concept role) {
 		return role.getIdentifier().equalsIgnoreCase(SystemService.ROLE_APPLICANT);
 	}
+
 
 }

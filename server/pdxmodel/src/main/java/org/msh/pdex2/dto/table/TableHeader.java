@@ -440,7 +440,7 @@ public class TableHeader {
 	/**
 	 * fetch a page by number
 	 * @param rows all rows
-	 * @param page
+	 * @param page from 1
 	 * @param pageSize 
 	 * @return
 	 */
@@ -459,6 +459,29 @@ public class TableHeader {
 
 	public String toString() {
 		return(getKey() + "[type=" + getColumnType()+"]");
+	}
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((key == null) ? 0 : key.hashCode());
+		return result;
+	}
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		TableHeader other = (TableHeader) obj;
+		if (key == null) {
+			if (other.key != null)
+				return false;
+		} else if (!key.equals(other.key))
+			return false;
+		return true;
 	}
 
 	

@@ -27,6 +27,8 @@ class ActuatorAdm extends Component{
         this.eventProcessor=this.eventProcessor.bind(this)
         this.headerFooter=this.headerFooter.bind(this)
         this.load=this.load.bind(this)
+        this.postLoaded=this.postLoaded.bind(this)
+        this.buildDataSla=this.buildDataSla.bind(this)
         this.buildData=this.buildData.bind(this)
         this.buildDataTwo=this.buildDataTwo.bind(this)
         this.buildDataThree=this.buildDataThree.bind(this)
@@ -50,6 +52,12 @@ class ActuatorAdm extends Component{
         this.load()
     }
 
+    postLoaded(){
+        Locales.createLabels(this, "sla")
+        Locales.createLabels(this, "literals")
+        Locales.resolveLabels(this)
+    }
+
     /**
      * Load data
      */
@@ -58,13 +66,44 @@ class ActuatorAdm extends Component{
             this.state.data=result
             this.setState(this.state)
 
-            Locales.createLabels(this, "literals")
-            Locales.resolveLabels(this)
+            this.postLoaded();
         })
     }
 
     componentWillUnmount(){
         window.removeEventListener("message",this.eventProcessor)
+    }
+
+    buildDataSla(){
+        let ret=[]
+        if(Fetchers.isGoodArray(this.state.data.keysSLA)){
+            let sla = []
+            this.state.data.keysSLA.forEach((k, index)=>{
+                let fieldDTO = this.state.data.sla[k]
+                if(fieldDTO != undefined){
+                    sla.push(
+                        <Col>
+                            <ViewEdit mode='number' attribute={k}
+                                    component={this} 
+                                    data={this.state.data.sla}
+                                    rows="6"
+                                    hideEmpty
+                                    />
+                        </Col>
+                    )
+                }
+            });
+            ret.push(
+                <Row>
+                    {sla}
+                    <Col>
+                        <a href="/admin#administrate/actuator" onClick={()=>{window.open(this.state.data.linkReport,'_blank');}} 
+                            hidden={this.state.data.linkReport == ""}>Open in DataStudio</a>
+                    </Col>
+                </Row>
+            )
+        }
+        return ret;
     }
 
     buildData(){
@@ -206,6 +245,7 @@ class ActuatorAdm extends Component{
                         {this.headerFooter()}
                     </Col>
                 </Row>
+                {this.buildDataSla()}
                 <Row>
                     <Col>
                         {this.buildData()}

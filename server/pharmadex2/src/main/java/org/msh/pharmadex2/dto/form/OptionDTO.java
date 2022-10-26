@@ -89,8 +89,7 @@ public class OptionDTO {
 
 	@Override
 	public String toString() {
-		return "OptionDTO [options=" + options + ", id=" + id + ", code=" + code + ", description=" + description
-				+ ", originalCode=" + originalCode + ", originalDescription=" + originalDescription + "]";
+		return (getCode()+". " + getDescription()).trim();
 	}
 
 

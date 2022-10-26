@@ -45,6 +45,8 @@ public class WebSecurity {
 
 	@Autowired
 	UserService userService;
+	@Autowired
+	PasswordEncoder encoder;
 
 	/**
 	 * Configure form based authentication
@@ -81,6 +83,7 @@ public class WebSecurity {
 			.antMatchers("/api/guest/**").hasAuthority("ROLE_GUEST")
 			.antMatchers("/guest/**").hasAuthority("ROLE_GUEST")
 			.antMatchers("/admin/**").hasAuthority("ROLE_ADMIN")
+			.antMatchers("/shablon/**").hasAuthority("ROLE_ADMIN")
 			.antMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
 			.antMatchers("/moderator/**").hasAuthority("ROLE_MODERATOR")
 			.antMatchers("/api/moderator/**").hasAuthority("ROLE_MODERATOR")
@@ -142,6 +145,7 @@ public class WebSecurity {
 			.antMatchers("/api/guest/**").hasAuthority("ROLE_GUEST")
 			.antMatchers("/guest/**").hasAuthority("ROLE_GUEST")
 			.antMatchers("/admin/**").hasAuthority("ROLE_ADMIN")
+			.antMatchers("/shablon/**").hasAuthority("ROLE_ADMIN")
 			.antMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
 			.antMatchers("/moderator/**").hasAuthority("ROLE_MODERATOR")
 			.antMatchers("/api/moderator/**").hasAuthority("ROLE_MODERATOR")
@@ -170,21 +174,7 @@ public class WebSecurity {
 		}
 	}
 
-	/**
-	 * new and modern password encoder
-	 * 
-	 * @return
-	 */
-	@Bean
-	public PasswordEncoder encoder() {
-		return new BCryptPasswordEncoder() {
-			@Override
-			public boolean matches(CharSequence rawPassword, String encodedPassword) {
-				boolean ret = super.matches(rawPassword, encodedPassword);
-				return ret;
-			}
-		};
-	}
+
 
 	/**
 	 * Add user roles from the database. We can't find ones in Google or Facebook,
@@ -224,7 +214,7 @@ public class WebSecurity {
 	public DaoAuthenticationProvider authenticationProvider() {
 		DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
 		authProvider.setUserDetailsService(userService);
-		authProvider.setPasswordEncoder(encoder());
+		authProvider.setPasswordEncoder(encoder);
 		return authProvider;
 	}
 

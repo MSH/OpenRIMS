@@ -30,12 +30,15 @@ import SearchControl from './utils/SearchControl'
  * <Dictionary identifier={this.state.data.dictionaries[i].url} recipien={this.state.identifier} data={this.state.data.dictionaries[i]} display />
  *  />
  *      
+ * 23.08.2022 khomenska
+ * Add sendMessSave:false - используем, когда по клику на Save нужно еще где то что-то сделать, вне словаря
  */
 class Dictionary extends Component{
     constructor(props){
         super(props)
         this.state={
             sendMess:false,
+            sendMessSave:false,
             activeNode:0,
             isChecked:false,
             level:-1,
@@ -176,6 +179,14 @@ class Dictionary extends Component{
             }
             Navigator.message(this.props.identifier,to,"onSelectionChange",this.state.data)
             this.state.sendMess=false
+        }
+        if(this.state.sendMessSave){
+            let to="*"
+            if(this.props.recipient != undefined){
+                to=this.props.recipient
+            }
+            Navigator.message(this.props.identifier,to,"onSaveData",this.state.data)
+            this.state.sendMessSave=false
         }
         if(this.props.data.url != this.state.data.url){
             this.state.data=this.props.data
@@ -365,6 +376,10 @@ class Dictionary extends Component{
     }
 
     render(){
+       let myStyle=Pharmadex.settings.activeBorder
+       if(this.props.noborder){
+        myStyle=''
+       }
        if(this.state.data.table==undefined){
            return []
        }
@@ -373,7 +388,7 @@ class Dictionary extends Component{
        }
        if(this.state.edit){
            return(
-            <Container fluid className={Pharmadex.settings.activeBorder}>
+            <Container fluid className={myStyle}>
                 <Row>
                     <Col>
                         <Breadcrumb>
@@ -389,6 +404,7 @@ class Dictionary extends Component{
                                     parentId={this.state.data.selection.value.id}
                                     url={this.state.data.url}          
                                     onCancel={()=>{this.state.edit=false
+                                                    this.state.sendMessSave = true
                                                    this.setState(this.state)
                                                    this.tableLoader()}
                                     }
@@ -401,7 +417,7 @@ class Dictionary extends Component{
 		   let hideControls = (this.state.data.table.rows==0 || this.state.data.table.headers.pages<2) && 
                             !this.state.data.selectedOnly && !this.state.data.table.headers.filtered
         return(
-            <Container fluid className={Pharmadex.settings.activeBorder}>
+            <Container fluid className={myStyle}>
                 <Row>
                     <Col>
                         <Breadcrumb xs='12' sm='12' lg='10' xl='10'>
@@ -502,4 +518,5 @@ Dictionary.propTypes={
     data:PropTypes.object.isRequired,           //DictionaryDTO
     recipient:PropTypes.string,                 //recipient of messages
     display:PropTypes.bool,                     //display only
+    noborder:PropTypes.bool,                    //will not display a border
 }

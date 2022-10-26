@@ -47,6 +47,8 @@ public class DictionaryDTO extends AllowValidation{
 	private boolean selectedOnly=false;
 	//this dictionary should be in read-only mode
 	private boolean readOnly=false;
+	// currently selected item
+	private List<OptionDTO> currentSelections = new ArrayList<OptionDTO>();
 
 	public boolean isChanged() {
 		return changed;
@@ -162,6 +164,13 @@ public class DictionaryDTO extends AllowValidation{
 	public void setReadOnly(boolean readOnly) {
 		this.readOnly = readOnly;
 	}
+	
+	public List<OptionDTO> getCurrentSelections() {
+		return currentSelections;
+	}
+	public void setCurrentSelections(List<OptionDTO> currentSelections) {
+		this.currentSelections = currentSelections;
+	}
 	/**
 	 * Create a new dictionary based on data provided
 	 * Except calculated parameters
@@ -189,5 +198,15 @@ public class DictionaryDTO extends AllowValidation{
 		this.getPrevSelected().clear();
 		this.getSelection().setValue(new OptionDTO());
 	}
+	@Override
+	public String toString() {
+		List<String> ret = new ArrayList<String>();
+		for(OptionDTO opt :getCurrentSelections()) {
+			ret.add(opt.toString());
+		}
+		return String.join(";",ret);
+	}
+	
+	
 
 }

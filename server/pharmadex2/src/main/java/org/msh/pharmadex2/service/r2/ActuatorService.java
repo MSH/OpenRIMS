@@ -6,9 +6,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.msh.pdex2.model.old.Workspace;
+import org.msh.pdex2.repository.common.WorkspaceRepo;
 import org.msh.pharmadex2.dto.ActuatorAdmDTO;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthEndpoint;
 import org.springframework.boot.actuate.info.InfoEndpoint;
@@ -38,6 +41,12 @@ public class ActuatorService {
 	private InfoEndpoint infoEndpoint;
 	@Autowired
 	private MetricsEndpoint metricsEndpoint;
+	
+	@Autowired
+	private WorkspaceRepo workspaceRepo;
+	
+	@Value( "${link.report.datastudio.average:}" )
+	private String linkReportAverage;
 
 	//@Autowired
 	//private SessionsEndpoint sessionsEndpoint;
@@ -49,6 +58,8 @@ public class ActuatorService {
 		data.getKeys().clear();
 		data.getLiterals().clear();
 
+		loadSlaParams(data);
+		
 		Map<String, Object> map = infoEndpoint.info();
 		Iterator<String> it = map.keySet().iterator();
 		while(it.hasNext()) {
@@ -277,5 +288,35 @@ public class ActuatorService {
 			res = String.valueOf(Math.round(l)) + " Mb";
 		}
 		return res;
+	}
+	
+	private void loadSlaParams(ActuatorAdmDTO data) {
+		data.getKeysSLA().clear();
+		data.getSla().clear();
+		
+		String link = linkReportAverage.replaceAll("\"", "");
+		data.setLinkReport(link);
+		
+		Iterable<Workspace> collection = workspaceRepo.findAll();
+		if(collection != null) {
+			Workspace w = null;
+			if(collection.iterator().hasNext()) {
+				w = collection.iterator().next();
+			}
+			
+			if(w != null) {
+				String k = "slaquantity";
+				data.getKeysSLA().add(k);
+				data.getSla().put(k, new FormFieldDTO<Integer>(w.getSlaQuantity()));
+				
+				k = "sladuration";
+				data.getKeysSLA().add(k);
+				data.getSla().put(k, new FormFieldDTO<Integer>(w.getSlaDuration()));
+				
+				k = "slamax";
+				data.getKeysSLA().add(k);
+				data.getSla().put(k, new FormFieldDTO<Integer>(w.getSlaMax()));
+			}
+		}
 	}
 }

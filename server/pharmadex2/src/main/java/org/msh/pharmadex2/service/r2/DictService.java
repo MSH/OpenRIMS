@@ -26,6 +26,7 @@ import org.msh.pharmadex2.dto.DictionariesDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.GisLocationDTO;
 import org.msh.pharmadex2.dto.RootNodeDTO;
+import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.dto.mock.ChoiceDTO;
@@ -821,7 +822,7 @@ public class DictService {
 		return data;
 	}
 
-	private DictionariesDTO loadTableAllDictionaries(DictionariesDTO data) {
+	public DictionariesDTO loadTableAllDictionaries(DictionariesDTO data) {
 		data.getTable().setSelectable(true);
 		if(data.getTable().getHeaders().getHeaders().size()==0) {
 			data.getTable().setHeaders(createHeadersAllDict(data.getTable().getHeaders()));
@@ -933,7 +934,28 @@ public class DictService {
 		}
 		return data;
 	}
-
+	/**
+	 * Fill out list of the current selections.
+	 * Known usage 
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public DictionaryDTO createCurrentSelections(DictionaryDTO data) throws ObjectNotFoundException {
+		data.getCurrentSelections().clear();
+		for(Long itemId :data.getPrevSelected()) {
+			Concept item = closureServ.loadConceptById(itemId);
+			String prefLabel=literalServ.readPrefLabel(item);
+			String description=literalServ.readDescription(item);
+			OptionDTO opt= new OptionDTO();
+			opt.setId(item.getID());
+			opt.setCode(prefLabel);
+			opt.setDescription(description);
+			data.getCurrentSelections().add(opt);
+		}
+		return data;
+	}
 	@Transactional
 	public String getGISlocation(String url) throws ObjectNotFoundException {
 		Concept root=closureServ.loadRoot(url);
@@ -1032,6 +1054,9 @@ public class DictService {
 			Concept adm = closureServ.loadConceptById(data.getId());
 			if(adm != null) {
 				String loc = literalServ.readValue(LiteralService.GIS_LOCATION, adm);
+				if(loc.contains("0.0")) {
+					loc = loadCenterContry();
+				}
 				data.setCenter(dtoServ.createLocationDTO(loc));
 				String z = literalServ.readValue(LiteralService.ZOMM, adm);
 				Integer zoom = SystemService.DEFAULT_ZOOM;
@@ -1044,6 +1069,14 @@ public class DictService {
 		return data;
 	}
 
+	private String loadCenterContry() throws ObjectNotFoundException {
+		String loc = "";
+		Concept country = closureServ.loadRoot(SystemService.DICTIONARY_ADMIN_UNITS);
+		if(country != null) {
+			loc = literalServ.readValue(LiteralService.GIS_LOCATION, country);
+		}
+		return loc;
+	}
 	/**
 	 * Load all dictionary as a plain list. Sort order is natural
 	 * @param dictUrl
@@ -1127,7 +1160,7 @@ public class DictService {
 			literalServ.createUpdatePrefLabel(messages.get("aminunits"), root);
 		}
 		String description=literalServ.readDescription(root);
-		if(description.length()==0) {
+		if(description == null || description.length()==0) {
 			literalServ.createUpdateDescription("", root);
 		}
 
@@ -1166,5 +1199,8 @@ public class DictService {
 		return ret;
 	}
 	
+	public boolean isAdminUnits(Concept root) {
+		return root.getIdentifier().equalsIgnoreCase("dictionary.admin.units");
+	}
 
 }

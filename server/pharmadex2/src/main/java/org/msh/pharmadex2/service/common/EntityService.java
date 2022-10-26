@@ -93,6 +93,7 @@ public class EntityService {
 		assm.setMin(data.getMinLen().getValue().intValue());
 		assm.setMult(data.getMult().getValue().getId()==1);
 		assm.setUnique(data.getUnique().getValue().getId()==1);
+		assm.setPrefLabel(data.getPrefLabel().getValue().getId()==1);
 		assm.setOrd(data.getOrd().getValue().intValue());
 		assm.setPropertyName(node);
 		assm.setReadOnly(data.getReadOnly().getValue().getId()==1);

@@ -50,9 +50,6 @@ public class PublicService {
 	DictService dictServ;
 	@Autowired
 	PubOrgService pubOrgServ;
-
-	@Autowired
-	private PublicService publicServ;
 	@Autowired
 	AssemblyService assemblyServ;
 
@@ -73,7 +70,7 @@ public class PublicService {
 						for(Concept c:children) {
 							if(c.getActive()) {
 								node = dictServ.createNode(c);
-								TileDTO tile = publicServ.createTile(dictServ.literalsLoad(node));
+								TileDTO tile = createTile(dictServ.literalsLoad(node));
 								tile.setIdentifier(node.getIdentifier());
 								tile.setNodeID(node.getNodeId());
 
@@ -145,6 +142,7 @@ public class PublicService {
 		ret.setEmpty(false);
 		Map<String, FormFieldDTO<String>> literals = node.getLiterals();
 		ret.setImage(literals.get(LiteralService.ICON_URL).getValue());
+		ret.setImageUrl(literals.get(LiteralService.ICON_URL).getValue());
 		ret.setTitle(node.fetchPrefLabel().getValue());
 		ret.setDescription(node.fetchDescription().getValue());
 		ret.setMoreLbl(literals.get(LiteralService.MORE_LBL).getValue());
@@ -168,7 +166,8 @@ public class PublicService {
 		TileDTO ret = new TileDTO();
 		ret.setEmpty(true);
 		ret.setFree(false);
-		ret.setImage("/img/empty.jpg");
+		//ret.setImage("/img/empty.jpg");
+		ret.setImageUrl("");
 		ret.setTitle(title);
 		ret.setDescription("");
 		ret.setMoreLbl("");
@@ -179,23 +178,6 @@ public class PublicService {
 		return ret;
 	}
 
-	/**
-	 * Create a administrate tab to start job
-	 * @return
-	 */
-	public TileDTO createAdminTile() {
-		TileDTO ret = new TileDTO();
-		ret.setEmpty(false);
-		ret.setFree(false);
-		ret.setImage("/img/tiles/specialfeatures.jpg");
-		ret.setTitle(messages.get("specialfeatures"));
-		ret.setDescription("");
-		ret.setMoreLbl(messages.get("start"));
-		ret.setMore("/admin#administrate");
-		ret.setDownload("");
-		ret.setNumRow(0);
-		ret.setNumCol(0);
-		return ret;
-	}
+	
 
 }

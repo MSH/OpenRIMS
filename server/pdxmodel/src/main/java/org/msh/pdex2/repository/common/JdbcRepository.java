@@ -7,8 +7,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.msh.pdex2.dto.table.HasRow;
 import org.msh.pdex2.dto.table.Headers;
@@ -16,7 +19,10 @@ import org.msh.pdex2.dto.table.TableCell;
 import org.msh.pdex2.dto.table.TableHeader;
 import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
+import org.msh.pdex2.exception.ObjectNotFoundException;
+import org.msh.pdex2.model.dwh.ReportSession;
 import org.msh.pdex2.model.r2.Concept;
+import org.msh.pdex2.repository.dwh.ReportSessionRepo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +32,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -87,6 +94,7 @@ public class JdbcRepository {
 	 * @param headers for additional where filters and 
 	 * @return
 	 */
+	@Transactional
 	public List<TableRow> qtbGroupReport(String select, String groupByHaving, String mainWhere, Headers headers){
 		String sql=createFullSelect(select, groupByHaving, mainWhere, headers);
 		return selectQuery(sql, headers);
@@ -110,6 +118,7 @@ public class JdbcRepository {
 	 * @param headers
 	 * @return
 	 */
+	@Transactional
 	public List<TableRow> selectQuery(String select, Headers headers){
 		List<TableRow> ret = new ArrayList<TableRow>();
 		ret = jdbcTemplate.query(select, new QtbRowMapper(headers));
@@ -386,7 +395,7 @@ public class JdbcRepository {
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 	}
-	
+
 	public void userByOrganization(long orgID) {
 		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
 		proc.withProcedureName("users_org");
@@ -994,15 +1003,21 @@ public class JdbcRepository {
 	/**
 	 * Update all DWH tables
 	 * @param newSessionID
+	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public void dwh_update(long newSessionID) {
+	public void dwh_update(long newSessionID) throws ObjectNotFoundException {
 		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
 		proc.withProcedureName("dwh_update");
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("sessionId", newSessionID);
-		proc.execute(params);
-		
+		try {
+			proc.execute(params);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new ObjectNotFoundException(e, logger); 
+		}
+
 	}
 	/**
 	 * Read resource to upload
@@ -1015,7 +1030,187 @@ public class JdbcRepository {
 		params.addValue("dictRootId", dictRootId);
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
+
+	}
+	/**
+	 * Get list of headers based on the resultset columns
+	 * @param select - select statement, typically where=false
+	 * @param except - which columns should be excluded - case sensitive!
+	 * @return
+	 */
+	public List<TableHeader> headersFromSelect(String select, List<String> except) {
+		List<TableHeader> ret = new ArrayList<TableHeader>();
+		final SqlRowSet rs = this.jdbcTemplate.queryForRowSet(select);
+		for(int i=0;i<rs.getMetaData().getColumnCount();i++) {
+			String key=rs.getMetaData().getColumnNames()[i];
+			if(!except.contains(key) && !key.equalsIgnoreCase("ID")) {
+				String cType=rs.getMetaData().getColumnTypeName(i+1);
+				int columnType=TableHeader.COLUMN_STRING;
+				switch(cType) {
+				case "BIGINT":
+				case "INT":
+					columnType=TableHeader.COLUMN_LONG;
+					break;
+				case "DATE":
+					columnType=TableHeader.COLUMN_LOCALDATE;
+					break;
+				case "DATETIME":
+					columnType=TableHeader.COLUMN_LOCALDATETIME;
+					break;
+				case "DECIMAL":
+					columnType=TableHeader.COLUMN_DECIMAL;
+					break;
+				case "TINYINT":
+				case "BIT":
+					columnType=TableHeader.COLUMN_BOOLEAN_CHECKBOX;
+					break;
+				}
+				ret.add(TableHeader.instanceOf(
+						key,
+						key,
+						true,
+						true,
+						true,
+						columnType,
+						0));
+			}
+		}
+		return ret;
+	}
+
+	public void data_config_vars(String url) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("data_config_vars");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("url", url);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+
+	}
+
+	public void dict_level_ext(long nodeID) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("dict_level_ext");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("nodeID", nodeID);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+	}
+	/**
+	 * Query two column table, and, then, pivot it
+	 * @param select - select phrase
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public TableQtb queryAndPivot(String select) throws ObjectNotFoundException {
+		List<TableHeader> headers= headersFromSelect(select + " LIMIT 1", new ArrayList<String>());
+		if(headers.size()==2) {
+			List<TableRow> rows = qtbGroupReport(select, "", "", Headers.of(headers));
+			if(rows.size()>0) {
+				long id=0;
+				List<TableHeader> pHeaders= new ArrayList<TableHeader>();
+				TableRow pRow = TableRow.instanceOf(id);
+				List<TableRow> pRows= new ArrayList<TableRow>();
+				//determine headers from the first column
+				Set<String> keys = new LinkedHashSet<String>();
+				for(TableRow row: rows) {
+					keys.add(row.getRow().get(0).getValue());
+				}
+				// in the two column table the type of headers is a type of the second column
+				for(String key : keys) {
+					pHeaders.add(TableHeader.instanceOf(key, headers.get(1).getColumnType()));
+				}
+				//pivot rows
+				for(TableRow row: rows) {
+					if(row.getDbID()!=id) {
+						//create a new row with all columns
+						
+						id=row.getDbID();
+						pRow = TableRow.instanceOf(id);
+						pRows.add(pRow);
+						for(TableHeader ph : pHeaders) {
+							pRow.getRow().add(TableCell.instanceOf(ph.getKey()));
+						}
+					}
+					//fill-out cells in the row
+					String key = row.getRow().get(0).getValue();
+					TableHeader h = TableHeader.instanceOf(key, headers.get(1).getColumnType());
+					int index= pHeaders.indexOf(h);
+					if(index>-1) {
+						pRow.getRow().get(index).setOriginalValue(row.getRow().get(1).getOriginalValue());
+						pRow.getRow().get(index).setValue(row.getRow().get(1).getValue());
+					}
+				}
+				//success
+				TableQtb ret = new TableQtb();
+				ret.getHeaders().setPageSize(Integer.MAX_VALUE);
+				ret.getHeaders().getHeaders().addAll(pHeaders);
+				ret.getRows().addAll(pRows);
+				return ret;
+			}else {
+				//pivoting is impossible
+				return new TableQtb();
+			}
+		}else {
+			throw new ObjectNotFoundException("The source table should contain two columns for pivoting. Select is "+select,logger);
+		}
+	}
+	/**
+	 * select files uploaded by user that do not link to any thing
+	* it is possible when a user upload files, however did not save a thing
+	* known usage ThingService.removeOrphans
+	 * @param url
+	 * @param email
+	 */
+	public void orphan_files(String fileUrl, String email) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("orphan_files");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("fileUrl", fileUrl);
+		params.addValue("email", email);
+		proc.execute(params);
+
+	}
+	/**
+	 * Links for a node and varName on it
+	 * @param nodeID
+	 * @param varName
+	 */
+	public void links(long nodeID, String varName) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("links");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("nodeID", nodeID);
+		params.addValue("varName", varName);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+	}
+	/**
+	 * Get objects from reportpage table in form of a dictionary
+	 * @param objectUrl
+	 * @param state - ACTIVE
+								NOTSUBMITTED
+								ONAPPROVAL
+								DEREGISTERED
+	 */
+	public void reporting_objects(String objectUrl, String state) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("reporting_objects");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("url", objectUrl);
+		params.addValue("state", state);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
 		
 	}
+	public void atc_codes(String url) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("atc_codes");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("url", url);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+	}
+
 
 }

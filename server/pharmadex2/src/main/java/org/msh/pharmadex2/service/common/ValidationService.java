@@ -4,10 +4,8 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.time.LocalDate;
-import java.time.Period;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +48,7 @@ import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.FileDTO;
 import org.msh.pharmadex2.dto.IntervalDTO;
 import org.msh.pharmadex2.dto.LegacyDataDTO;
+import org.msh.pharmadex2.dto.LinksDTO;
 import org.msh.pharmadex2.dto.MessageDTO;
 import org.msh.pharmadex2.dto.PersonDTO;
 import org.msh.pharmadex2.dto.PersonSpecialDTO;
@@ -118,8 +117,8 @@ public class ValidationService {
 		data.clearErrors();
 		FormFieldDTO<String> prefLabel =  data.getLiterals().get("prefLabel");
 		if(prefLabel != null) {
-			if(prefLabel.getValue().length()<2 || prefLabel.getValue().length()>100) {
-				suggest(prefLabel, 2,100,strict);
+			if(prefLabel.getValue().length()<2 || prefLabel.getValue().length()>Integer.MAX_VALUE) {
+				suggest(prefLabel, 2,Integer.MAX_VALUE,strict);
 				data.setValid(false);
 			}
 		}else {
@@ -313,7 +312,7 @@ public class ValidationService {
 		data.clearErrors();
 		List<Assembly> allAssms = assemblyServ.loadDataConfiguration(data.getUrl());
 		List<String> exts=boilerServ.variablesExtensions(data);
-		
+
 		//validate all components
 		List<AssemblyDTO> legs = assemblyServ.auxLiterals(data.getUrl(), allAssms);
 		for(AssemblyDTO l : legs) {
@@ -390,12 +389,6 @@ public class ValidationService {
 			}
 		}
 
-		/*List<AssemblyDTO> personSpec = assemblyServ.auxPersonSpecials(data.getUrl());
-		for(AssemblyDTO per : personSpec) {
-			if(per.isRequired()) {
-				mandatoryPersonSpec(data, per.getPropertyName(),per,strict);
-			}
-		}*/
 		List<AssemblyDTO> atc = assemblyServ.auxAtc(data.getUrl(),allAssms);
 		for(AssemblyDTO a : atc) {
 			if(a.isRequired()) {
@@ -406,6 +399,8 @@ public class ValidationService {
 		for(AssemblyDTO interval : intervals) {
 			mandatoryInterval(data, interval,strict);
 		}
+		List<AssemblyDTO> links=assemblyServ.auxLinks(data.getUrl(), allAssms);
+		mandatoryLinks(data, links, strict);
 
 		List<AssemblyDTO> things = assemblyServ.auxThings(data.getUrl(),allAssms);
 		for(AssemblyDTO thing :things) {
@@ -417,6 +412,21 @@ public class ValidationService {
 		return data;
 	}
 
+
+	private void mandatoryLinks(ThingDTO data, List<AssemblyDTO> links, boolean strict) {
+		for(AssemblyDTO aDto : links) {
+			if(aDto.isRequired()) {
+				LinksDTO dto = data.getLinks().get(aDto.getPropertyName());
+				if(dto != null) {
+					if(dto.getLinks().size()==0) {
+						dto.setValid(false);
+						dto.setIdentifier(messages.get("link_selection is empty"));
+					}
+				}
+			}
+		}
+
+	}
 
 	/**
 	 * Check an interval of dates
@@ -594,7 +604,7 @@ public class ValidationService {
 			dto.getRegistration_date().invalidate(errorMess);
 			dto.setStrict(strict);
 		}
-			//register number should be not empty, not duplicated for url given
+		//register number should be not empty, not duplicated for url given
 		if(!dto.isReadOnly()){
 			if(regNum.length()>=1 && regNum.length()<=255) {
 				List<Register> rr = boilerServ.registerByUrlAndNumber(regNum, dto.getUrl());

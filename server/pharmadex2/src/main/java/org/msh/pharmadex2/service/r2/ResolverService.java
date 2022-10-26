@@ -16,7 +16,7 @@ import java.util.Set;
 import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
-import org.msh.pdex2.model.r2.Assembly;
+import org.msh.pdex2.model.enums.YesNoNA;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.model.r2.Register;
@@ -24,6 +24,7 @@ import org.msh.pdex2.model.r2.Scheduler;
 import org.msh.pdex2.model.r2.Thing;
 import org.msh.pdex2.model.r2.ThingDict;
 import org.msh.pdex2.model.r2.ThingDoc;
+import org.msh.pdex2.model.r2.ThingLink;
 import org.msh.pdex2.model.r2.ThingRegister;
 import org.msh.pdex2.model.r2.ThingScheduler;
 import org.msh.pdex2.model.r2.ThingThing;
@@ -36,7 +37,6 @@ import org.msh.pharmadex2.dto.ResourceDTO;
 import org.msh.pharmadex2.dto.SchedulerDTO;
 import org.msh.pharmadex2.dto.ThingValuesDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
-import org.msh.pharmadex2.service.common.DtoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,6 +63,8 @@ public class ResolverService {
 	private AssemblyService assemblyServ;
 	@Autowired
 	private ResolverServiceRender renderServ;
+	@Autowired
+	Messages messages;
 
 	/**
 	 * Resolve model to values map for using in DocxView
@@ -72,18 +74,30 @@ public class ResolverService {
 	 */
 	@Transactional
 	public Map<String, Object> resolveModel(Map<String, Object> model, ResourceDTO fres) throws ObjectNotFoundException {
+		boolean hasTable=false;			//should we resolve @form or @changes
+		for(String key : model.keySet()) {
+			if(key.toUpperCase().contains("@FORM") || key.toUpperCase().contains("@CHANGES")){
+				hasTable=true;
+				break;
+			}
+		}
 		Map<String, Object> errors = new LinkedHashMap<String, Object>();
 		Map<String, List<AssemblyDTO>> assemblies = new HashMap<String, List<AssemblyDTO>>();
 		for(String key :model.keySet()) {
-			String[] expr = key.split("@");
-			if(expr.length==2) {
-				Map<String, Object> value = resolve(expr[0],fres, assemblies);	//first change here in READVARIABLE
-				model.put(key, valueToString(value, expr[1]));				//second there
-				errors = resolveError(value, errors);
-			}else {
-				if(!key.equalsIgnoreCase(ResolverServiceRender.ERROR_TAG)) {
-					model=renderServ.error("resolveModel. Wrong expression "+key, key, model);
+			if(model.get(key).getClass().getName().contains("Object")) {
+				logger.trace("resolve key "+key);
+				String[] expr = key.split("@");
+				if(expr.length==2) {
+					Map<String, Object> value = resolve(expr[0],fres, assemblies, hasTable);	//first change here in READVARIABLE
+					model.put(key, valueToString(value, expr[1]));				//second there
+					errors = resolveError(value, errors);
+				}else {
+					if(!key.equalsIgnoreCase(ResolverServiceRender.ERROR_TAG)) {
+						model=renderServ.error("resolveModel. Wrong expression "+key, key, model);
+					}
 				}
+			}else {
+				logger.trace("model hit!");
 			}
 		}
 		if(errors.keySet().size()>0) {		//actually one
@@ -220,10 +234,16 @@ public class ResolverService {
 				}
 			}
 
+			if(data instanceof YesNoNA) {
+				YesNoNA v = (YesNoNA)data;
+				ret = messages.get(v.getKey());
+			}
+			
 			//the rest are always strings
 			if(data instanceof String) {
 				ret=(String) data;
 			}
+			
 			return ret;
 		}else {
 			if(value.size()>0) {
@@ -245,11 +265,12 @@ public class ResolverService {
 	 * @param rootNodeId
 	 * @param fres - the template with EL expressions
 	 * @param assemblies 
+	 * @param hasTable - should we call ObjectToTable?
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public Map<String, Object> resolve(String expr,  ResourceDTO fres, Map<String, List<AssemblyDTO>> assemblies) throws ObjectNotFoundException{
+	public Map<String, Object> resolve(String expr,  ResourceDTO fres, Map<String, List<AssemblyDTO>> assemblies, boolean hasTable) throws ObjectNotFoundException{
 		//System.out.println(new Date());
 		Map<String, Object> ret = new LinkedHashMap<String, Object>();
 		long historyId=fres.getHistoryId();
@@ -286,7 +307,7 @@ public class ResolverService {
 					Concept topConcept = renderServ.topConcept(urls.get(0), nodeId, historyId,ret);
 					if(topConcept!=null) {
 						if(urls.size()>=1) {
-							ret = plainVariable(ret, urls, topConcept,assemblies);					//dive here to add a new EL
+							ret = plainVariable(ret, urls, topConcept,assemblies, hasTable);					//dive here to add a new EL
 						}else {
 							ret = renderServ.error("resolve. Variable is not defined. "+expr, expr, ret);
 							return ret;
@@ -311,23 +332,29 @@ public class ResolverService {
 	 * @param ret map with the variables 
 	 * @param urls path to the variable
 	 * @param topConcept concept from which the path starts
+	 * @param hasTable 
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
 	public Map<String, Object> plainVariable(Map<String, Object> ret, List<String> urls, Concept topConcept,
-			Map<String, List<AssemblyDTO>> assemblies)
+			Map<String, List<AssemblyDTO>> assemblies, boolean hasTable)
 					throws ObjectNotFoundException {
 		Concept var=topConcept;
+		long topID=var.getID();					//store ID for future compare
 		List<String> varNameList=urls.subList(1, urls.size());
 		if(urls.size()>2) {
 			var=nextConcept(urls.get(1),var,ret);
 			varNameList=urls.subList(2, urls.size());
 		}
-
+		if(var.getID()==topID) {					//the variable is on the first (main) page
+			varNameList=urls.subList(1, urls.size());
+		}
+		Thing varThing = boilerServ.thingByNode(var);
+		assemblies=assemblyServ.auxAll(varThing.getUrl(),assemblies);
 		//
 		String varName = String.join("/",varNameList);
-		ret=readVariable(varName, var, ret,assemblies);				//dive here to add a new EL
+		ret=readVariable(varName, var, ret,assemblies, hasTable);				//dive here to add a new EL
 		return ret;
 	}
 
@@ -337,6 +364,7 @@ public class ResolverService {
 	 * @param fres
 	 * @param ret
 	 * @return
+	 * @deprecated
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
@@ -372,7 +400,7 @@ public class ResolverService {
 							var=nextConcept(v, var,ret);
 						}
 						Map<String, List<AssemblyDTO>> assemblies = new HashMap<String, List<AssemblyDTO>>();
-						ret=readVariable(varName, var, ret,assemblies);
+						ret=readVariable(varName, var, ret,assemblies,true);
 					}else {
 						ret = renderServ.error(urls.toString(), "resolveCharacter. Variable is not defined. "+urls, ret);
 						return ret;
@@ -395,6 +423,7 @@ public class ResolverService {
 	 * @param fres
 	 * @param ret 
 	 * @param assemblies2 
+	 * @deprecated
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
@@ -424,7 +453,7 @@ public class ResolverService {
 						for(String v : urls) {
 							var=nextConcept(v, var,ret);
 						}
-						ret=readVariable(varName, var, ret, assemblies);				//ADD NEW CLASSESS TO IT!
+						ret=readVariable(varName, var, ret, assemblies,true);				//ADD NEW CLASSESS TO IT!
 					}else {
 						ret = renderServ.error(urls.toString(),"resolve. Variable is not defined. "+urls,ret);
 					}
@@ -475,15 +504,11 @@ public class ResolverService {
 		//dictionaries
 		DictValuesDTO valDict = data.getDictionaries().get(varName.toUpperCase());
 		if(valDict != null) {
-			List<Assembly> assemblies =assemblyServ.loadDataConfiguration(data.getUrl());
-			List<AssemblyDTO> adList = assemblyServ.auxDictionaries(data.getUrl(),assemblies);
-			for(AssemblyDTO ad : adList) {
-				List<Concept> selected = new ArrayList<Concept>();
-				for(Long id : valDict.getSelected()) {
-					selected.add(closureServ.loadConceptById(id));
-				}
-				value=renderServ.dictionaryValues(value, selected);
+			List<Concept> selected = new ArrayList<Concept>();
+			for(Long id : valDict.getSelected()) {
+				selected.add(closureServ.loadConceptById(id));
 			}
+			value=renderServ.dictionaryValues(value, selected);
 			return value;
 		}
 		//addresses
@@ -524,15 +549,17 @@ public class ResolverService {
 	 * Do not forget do the same for readVariableFromThing
 	 * @param varName
 	 * @param var
+	 * @param hasTable 
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
 	public Map<String, Object> readVariable(String varName, Concept var, Map<String, Object> value,
-			Map<String, List<AssemblyDTO>> assemblies) throws ObjectNotFoundException {
+			Map<String, List<AssemblyDTO>> assemblies, boolean hasTable) throws ObjectNotFoundException {
 		value.clear();
 		//init configurations
 		Thing varThing = boilerServ.thingByNode(var);
+		//logger.trace("assemblies "+ varThing.getUrl());
 		List<AssemblyDTO> strings = assembly(varThing.getUrl(), "strings", assemblies);
 		//List<AssemblyDTO> literals = assemblyServ.auxLiterals(varThing.getUrl());
 		List<AssemblyDTO> literals = assembly(varThing.getUrl(), "literals", assemblies);
@@ -553,7 +580,10 @@ public class ResolverService {
 		//List<AssemblyDTO> registers = assemblyServ.auxRegisters(varThing.getUrl());
 		List<AssemblyDTO> registers = assembly(varThing.getUrl(), "registers", assemblies);
 		List<AssemblyDTO> intervals = assembly(varThing.getUrl(), "intervals", assemblies);
+		List<AssemblyDTO> links = assembly(varThing.getUrl(), "links", assemblies);
 		List<AssemblyDTO> things = assembly(varThing.getUrl(), "things", assemblies);
+		List<AssemblyDTO> logical = assembly(varThing.getUrl(), "logical", assemblies);
+
 		for(AssemblyDTO ad : strings) {											//strings are literals
 			if(ad.getPropertyName().equalsIgnoreCase(varName)) {
 				String valStr = literalServ.readValue(varName, var);
@@ -648,7 +678,13 @@ public class ResolverService {
 
 		for(AssemblyDTO ad :persons) {
 			if(varName.toUpperCase().startsWith(ad.getPropertyName().toUpperCase())) {	//following path will be after variable
-				value=persons(ad,varName,var,value, assemblies);
+				value=persons(ad,varName,var,value, assemblies, hasTable);
+			}
+		}
+		// links are very similar to persons
+		for(AssemblyDTO ad :links) {
+			if(varName.toUpperCase().startsWith(ad.getPropertyName().toUpperCase())) {	//following path will be after variable
+				value=links(ad,varName,var,value, assemblies, hasTable);
 			}
 		}
 
@@ -659,7 +695,9 @@ public class ResolverService {
 		}
 
 		for(AssemblyDTO ival : intervals) {
-			value=renderServ.interval(varName, var, value);
+			if(ival.getPropertyName().equalsIgnoreCase(varName)) {
+				value=renderServ.interval(varName, var, value);
+			}
 		}
 
 		for(AssemblyDTO ad : things) {
@@ -668,6 +706,13 @@ public class ResolverService {
 			}
 		}
 
+		for(AssemblyDTO ad : logical) {
+			if(ad.getPropertyName().equalsIgnoreCase(varName)) {
+				YesNoNA ch = renderServ.logicalChoice(varName, var);
+				value.put("choice", ch);
+				return value;
+			}
+		}
 
 		if(value == null) {
 			value=renderServ.error(varName,"readVariable. Value not found",value);
@@ -680,8 +725,8 @@ public class ResolverService {
 
 
 	/**
-	 * Get or load the assembly
-	 * Ensure that any assembly will be loaded once
+	 * Get an assembly from the list of assemblies
+	 * It presumed that all assemblies have been loaded that any assembly will be loaded once
 	 * @param assemblies map of previously loaded assemblies
 	 * @param url - url for this assembly for load
 	 * @param clazz - class name - strings, literals, etc
@@ -693,11 +738,7 @@ public class ResolverService {
 		String key=url+"."+clazz;
 		List<AssemblyDTO> assms = assemblies.get(key);
 		if(assms == null) {
-			assms = assemblyServ.aux(url, clazz);
-			assemblies.put(key, assms);
-			//logger.trace("load assembly "+ key);
-		}else {
-			//logger.trace("hit assembly "+ key);
+			assms= new ArrayList<AssemblyDTO>();
 		}
 		return assms;
 	}
@@ -718,12 +759,13 @@ public class ResolverService {
 	 * @param varName
 	 * @param var
 	 * @param value
+	 * @param hasTable do we need to render a person as a table?
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
 	private Map<String, Object> persons(AssemblyDTO ad, String varName, Concept var, Map<String, Object> value, Map<String, 
-			List<AssemblyDTO>> assemblies) throws ObjectNotFoundException {
+			List<AssemblyDTO>> assemblies, boolean hasTable) throws ObjectNotFoundException {
 		//logger.trace("resolve persons "+varName);
 		List<Concept> pers = renderServ.personList(var,true);
 		//varName should has following structure varName/index/path_to_value
@@ -735,8 +777,10 @@ public class ResolverService {
 				Integer index=Integer.valueOf(urls.get(1));
 				if(pers.size()>index) {
 					List<String> path=urls.subList(1, urls.size());
-					value = plainVariable(value,path,pers.get(index),assemblies);
-					value=renderObject(pers.get(index), path, urls.get(urls.size()-1), assemblies, value);
+					value = plainVariable(value,path,pers.get(index),assemblies, false);
+					if(hasTable) {
+						value=renderObject(pers.get(index), path, urls.get(urls.size()-1), assemblies, value);
+					}
 				}else {
 					value.put(urls.get(urls.size()-1), "");
 					value=renderServ.error(varName, " Index to a person data is wrong " +index +" allowed up to "+(pers.size()-1),value);
@@ -768,6 +812,79 @@ public class ResolverService {
 		//logger.trace("resolved persons "+varName);
 		return value;
 	}
+
+	/**
+	 * Create a variable from links
+	 * @param ad
+	 * @param varName
+	 * @param var
+	 * @param value
+	 * @param hasTable do we need to render a link as a table?
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private Map<String, Object> links(AssemblyDTO ad, String varName, Concept var, Map<String, Object> value, Map<String, 
+			List<AssemblyDTO>> assemblies, boolean hasTable) throws ObjectNotFoundException {
+		//logger.trace("resolve persons "+varName);
+		String[] vars= varName.split("/");
+		if(vars.length>0) {
+			List<ThingLink> links = renderServ.linkList(var, vars[0]);
+			//varName should has following structure varName/index/path_to_value
+			//example is pharmacies/1/prefLabel means prefLabel of the first person in the list of owners
+			//thus, parse it and make a recursive call
+			List<String> urls = Arrays.asList(varName.split("/"));
+			if(urls.size()>2) {
+				try {
+					Integer index=Integer.valueOf(urls.get(1));
+					if(links.size()>index) {
+						List<String> path=urls.subList(1, urls.size());
+						value = plainVariable(value,path,links.get(index).getLinkedObject(),assemblies, false);
+						String linkRole = "";
+						if(links.get(index).getDictItem() != null) {
+							linkRole=literalServ.readPrefLabel(links.get(index).getDictItem());
+						}
+						value.put("link_role",linkRole);
+					}else {
+						value.put(urls.get(urls.size()-1), "");
+						value=renderServ.error(varName, " Index to a linked data is wrong " +index +" allowed up to "+(links.size()-1),value);
+					}
+				} catch (NumberFormatException e) {
+					value.put(urls.get(urls.size()-1), "");
+					value = renderServ.error(varName, "Path to a linked data is wrong ",value);
+				}
+			}else
+				if(urls.size()==2){						//the most probably it is something like 0@form or 0@link_role
+					//take a link by index
+					Integer index=0;
+					try {
+						index = Integer.valueOf(urls.get(1));
+					} catch (NumberFormatException e) {
+						value=renderServ.error(varName, "Index to a linked data should be number", value);
+					}
+					if(links.size()>index) {
+						String linkRole = "";
+						if(links.get(index).getDictItem() != null) {
+							linkRole=literalServ.readPrefLabel(links.get(index).getDictItem());
+						}
+						value.put("link_role",linkRole);
+						String head=literalServ.readPrefLabel(links.get(index).getLinkedObject());
+						value=renderObject(links.get(index).getLinkedObject(), urls, head, assemblies, value);
+					}else {
+						value.put(urls.get(urls.size()-1), "");
+						value=renderServ.error(varName, " Index to a linked data is wrong " +index +" allowed up to "+(links.size()-1),value);
+					}
+				}else {
+					value.put(urls.get(urls.size()-1), "");
+					value = renderServ.error(varName, "Path to a linked data is wrong ",value);
+				}
+		}else {
+			value.put(varName, "");
+			value = renderServ.error(varName, "Path to a linked data is empty or wrong ",value);
+		}
+		return value;
+	}
+
 
 
 	/**

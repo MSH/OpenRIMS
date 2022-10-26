@@ -28,8 +28,8 @@ public class ReportLiteral implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC222274181AB73CE660B14D")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC222274181AB73CE660B14D", strategy="native")	
+	@GeneratedValue(generator="VAC2222741838448926A07377")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222741838448926A07377", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	
@@ -50,8 +50,11 @@ public class ReportLiteral implements Serializable {
 	@Column(name="ValueStr", nullable=true, length=2048)	
 	private String valueStr;
 	
-	@Column(name="ValueDate", nullable=true)	
-	private java.util.Date valueDate;
+	@Column(name="DataModuleId", nullable=false, length=20)	
+	private long dataModuleId;
+	
+	@Column(name="PageUrl", nullable=true, length=255)	
+	private String pageUrl;
 	
 	private void setID(long value) {
 		this.ID = value;
@@ -65,16 +68,26 @@ public class ReportLiteral implements Serializable {
 		return getID();
 	}
 	
-	/**
-	 * Identifier of the concept in the main database
-	 */
+	public void setDataModuleId(long value) {
+		this.dataModuleId = value;
+	}
+	
+	public long getDataModuleId() {
+		return dataModuleId;
+	}
+	
+	public void setPageUrl(String value) {
+		this.pageUrl = value;
+	}
+	
+	public String getPageUrl() {
+		return pageUrl;
+	}
+	
 	public void setConceptID(long value) {
 		this.conceptID = value;
 	}
 	
-	/**
-	 * Identifier of the concept in the main database
-	 */
 	public long getConceptID() {
 		return conceptID;
 	}
@@ -119,20 +132,6 @@ public class ReportLiteral implements Serializable {
 	 */
 	public String getValueStr() {
 		return valueStr;
-	}
-	
-	/**
-	 * In case the value can be represented as Date
-	 */
-	public void setValueDate(java.util.Date value) {
-		this.valueDate = value;
-	}
-	
-	/**
-	 * In case the value can be represented as Date
-	 */
-	public java.util.Date getValueDate() {
-		return valueDate;
 	}
 	
 	public void setReportSession(org.msh.pdex2.model.dwh.ReportSession value) {

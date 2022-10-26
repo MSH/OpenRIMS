@@ -2,8 +2,17 @@ package org.msh.pharmadex2.service.r2;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
@@ -23,13 +32,19 @@ import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.FileResourceDTO;
 import org.msh.pharmadex2.dto.PersonSelectorDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
+import org.msh.pharmadex2.dto.TileDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -69,7 +84,7 @@ public class ResourceService {
 			return new ByteArrayResource(messages.loadNmraLogo().getBytes());
 		}
 	}
-	
+
 	/**
 	 * Load NMRA footer
 	 * @return
@@ -85,8 +100,8 @@ public class ResourceService {
 			return new ByteArrayResource(messages.loadNmraLogo().getBytes());
 		}
 	}
-	
-	
+
+
 	/**
 	 * Read a file resource as ByteArrayResource
 	 * @param url
@@ -237,6 +252,61 @@ public class ResourceService {
 			table=boilerServ.selectedRowsRestore(selected, table);
 		}
 		return dto;
+	}
+
+	@Transactional
+	public ResponseEntity<Resource> loadTileIconByUrl(String imgUrl) throws ObjectNotFoundException {
+		Concept node = fileNode("images.tiles", imgUrl);
+		FileResource fres = boilerServ.fileResourceByNode(node);
+		Resource res = new ByteArrayResource(fres.getFile());
+		String format=fres.getMediatype();
+		return ResponseEntity.ok()
+				.contentType(MediaType.parseMediaType(format+"+xml"))
+				.header("filename","specialfeatures.svg")
+				.body(res);
+	}
+
+	/**
+	 * Из картинки в рабочей папке создаем пустую палитурку по умрлчанию
+	 * @return
+	 * @throws ObjectNotFoundException
+	 * @throws IOException
+	 */
+	public ResponseEntity<Resource> createEmptyResource() throws ObjectNotFoundException, IOException {
+		Path pathFileout = Paths.get("src","main","resources", "static/img/empty.jpg");
+		Resource resource = new ByteArrayResource(Files.readAllBytes(pathFileout));
+
+		return ResponseEntity.ok()
+				.contentType(MediaType.parseMediaType("image/jpg+xml"))
+				.header("filename","empty.jpg")
+				.body(resource);
+	}
+	/**
+	 * load image from local resource
+	 * @param iconurl
+	 * @return
+	 * @throws IOException
+	 * @throws ObjectNotFoundException 
+	 */
+	public ResponseEntity<Resource> createImageResource(String iconurl) throws IOException, ObjectNotFoundException {
+		if(iconurl.startsWith("/")) {
+			iconurl=iconurl.substring(1);
+		}
+		Resource resource = new ClassPathResource("/static/"+iconurl);
+		String[] path=iconurl.split("/");
+		String fileName=path[path.length-1];
+		String[] filetypa=fileName.split("\\.");
+		String filetype=filetypa[filetypa.length-1];
+		if(filetype.equalsIgnoreCase("jpg")) {
+			filetype="jpeg";
+		}
+		if(filetype.equalsIgnoreCase("svg")) {
+			filetype="svg+xml";
+		}
+		return ResponseEntity.ok()
+				.contentType(MediaType.parseMediaType("image/"+filetype))
+				.header("filename",path[path.length-1])
+				.body(resource);
 	}
 
 }

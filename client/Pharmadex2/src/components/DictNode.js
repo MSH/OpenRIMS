@@ -5,6 +5,7 @@ import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
 import FieldInput from './form/FieldInput'
 import ButtonUni from './form/ButtonUni'
+import Navigator from './utils/Navigator'
 
 /**
  * A component responsible for edit/display a concept's node and all literals defined for it
@@ -95,7 +96,7 @@ class DictNode extends Component{
             keys.forEach((key, index)=>{
                 if(literals[key].value != undefined){
                     let mode="text"
-                    if(key=="description"){
+                    if(key=="description" || key=="prefLabel"){
                         mode="textarea"
                     }else{
                         mode="text"

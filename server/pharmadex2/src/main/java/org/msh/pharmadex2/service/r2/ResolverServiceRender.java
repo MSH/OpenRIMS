@@ -17,18 +17,24 @@ import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
+import org.msh.pdex2.model.enums.YesNoNA;
 import org.msh.pdex2.model.r2.Assembly;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.model.r2.Thing;
 import org.msh.pdex2.model.r2.ThingDict;
+import org.msh.pdex2.model.r2.ThingLink;
 import org.msh.pdex2.model.r2.ThingPerson;
 import org.msh.pdex2.model.r2.ThingThing;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AssemblyDTO;
+import org.msh.pharmadex2.dto.LinkDTO;
+import org.msh.pharmadex2.dto.LinksDTO;
 import org.msh.pharmadex2.dto.RegisterDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
+import org.msh.pharmadex2.dto.form.FormFieldDTO;
+import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.common.DtoService;
 import org.msh.pharmadex2.service.common.ValidationService;
@@ -67,6 +73,8 @@ public class ResolverServiceRender {
 	private ValidationService validServ;
 	@Autowired
 	private JdbcRepository jdbcRepo;
+	@Autowired
+	private LinkService linkServ;
 
 	/**
 	 * Render a whole object as a table
@@ -90,7 +98,7 @@ public class ResolverServiceRender {
 		TableQtb table = (TableQtb) value.get(FORM);
 		//first row should be a prefLabel, in case the prefLabel is not under the var
 		for(Assembly asm :assms) {
-			table=clazz(asm, var, table, deepDive);
+			table=renderClazz(asm, var, table, deepDive);
 		}
 		return value;
 	}
@@ -126,7 +134,7 @@ public class ResolverServiceRender {
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public TableQtb clazz(Assembly asm, Concept var, TableQtb table, boolean deepDive) throws ObjectNotFoundException {
+	public TableQtb renderClazz(Assembly asm, Concept var, TableQtb table, boolean deepDive) throws ObjectNotFoundException {
 		String clazz = asm.getClazz();
 		String varName=asm.getPropertyName().getIdentifier();
 		if(clazz.equalsIgnoreCase("literals") || clazz.equalsIgnoreCase("strings")) {
@@ -199,10 +207,15 @@ public class ResolverServiceRender {
 		}
 
 		if(clazz.equalsIgnoreCase("persons")) {
-			table = presonsTable(asm, var, table);
 			if(deepDive) {
 				table=personDetails(asm,var,table);
+			}else {
+				table = presonsTable(asm, var, table);
 			}
+		}
+		
+		if(clazz.equalsIgnoreCase("links")) {
+			table = linksTable(asm, var, table);
 		}
 
 		if(clazz.equalsIgnoreCase("things") && deepDive) {
@@ -211,11 +224,13 @@ public class ResolverServiceRender {
 				if(tt.getVarname().equalsIgnoreCase(varName)) {
 					List<Concept> roots = closureServ.loadParents(tt.getConcept());
 					if(roots.size()>1) {
-						table=tableRow(tt.getID(), mess.get(tt.getVarname()), "", true, table);
+						table=tableRow(tt.getID(), "", "", false, table);
+						table=tableRow(tt.getID(), "*  " +mess.get(tt.getVarname()), "", true, table);
+						table=tableRow(tt.getID(), "", "", false, table);
 						int rows=table.getRows().size();
 						List<Assembly> assms1 = assemblyServ.loadDataConfiguration(roots.get(0).getIdentifier());
 						for(Assembly asm1 :assms1) {
-							table=clazz(asm1, tt.getConcept(), table,deepDive);
+							table=renderClazz(asm1, tt.getConcept(), table,deepDive);
 						}
 						if(table.getRows().size()==rows) {
 							//no add, remove the header
@@ -223,6 +238,14 @@ public class ResolverServiceRender {
 						}
 					}
 				}
+			}
+		}
+		
+		if(clazz.equalsIgnoreCase("logical")) {
+			String valStr = literalServ.readValue(varName, var);
+			if(valStr.length() > 0) {
+				YesNoNA ch = logicalChoice(varName, var);
+				table=tableRow(asm.getID(), varName, mess.get(ch.getKey()), false, table);
 			}
 		}
 		return table;
@@ -251,7 +274,7 @@ public class ResolverServiceRender {
 					if(tp.getPersonUrl()!=null && tp.getPersonUrl().length()>0) {
 						List<Assembly> assms = assemblyServ.loadDataConfiguration(tp.getPersonUrl()); 
 						for(Assembly assm : assms ) {
-							table=clazz(assm, tp.getConcept(), table,true);
+							table=renderClazz(assm, tp.getConcept(), table, true);
 						}
 					}
 					num++;
@@ -311,7 +334,26 @@ public class ResolverServiceRender {
 		Collections.sort(names);
 		return names;
 	}
-
+	/**
+	 * Represent links component as a table
+	 * @param asm
+	 * @param var
+	 * @param table
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	@Transactional
+	public TableQtb linksTable(Assembly asm, Concept var, TableQtb table) throws ObjectNotFoundException {
+		table=tableRow(0, mess.get(asm.getPropertyName().getIdentifier()), "", true, table);
+		LinksDTO links = new LinksDTO();
+		links.setNodeID(var.getID());
+		links = linkServ.loadLinks(links, asm.getPropertyName().getIdentifier());
+		for(LinkDTO link : links.getLinks()) {
+			table=tableRow(link.getID(), link.getObjectLabel(), link.getDictLabel(), false, table);
+		}
+		table=tableRow(0,"", "", false, table);
+		return table;
+	}
 	/**
 	 * Read an address and represent it as a map
 	 * @param varName 
@@ -361,7 +403,21 @@ public class ResolverServiceRender {
 		return value;
 	}
 
-
+	public YesNoNA logicalChoice(String varName, Concept var) throws ObjectNotFoundException {
+		String valStr = literalServ.readValue(varName, var);
+		Integer index=2;
+		try {
+			index = Integer.valueOf(valStr);
+		} catch (NumberFormatException e) {
+			//nothing to do
+		}
+		YesNoNA val = YesNoNA.NA;
+		if(valStr.length()>0) {
+			val = YesNoNA.values()[index-1];
+		}
+		//value.put("choice", val);
+		return val;
+	}
 	/**
 	 * Local Date to String using TableCell
 	 * @param ld
@@ -809,6 +865,19 @@ public class ResolverServiceRender {
 			}
 		}
 		return value;
+	}
+
+	/**
+	 * Get list of links
+	 * @param var concept on which links are
+	 * @param varName - variable name of "links" component
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public List<ThingLink> linkList(Concept var, String varName) throws ObjectNotFoundException {
+		List<ThingLink> ret = linkServ.list(var, varName);
+		return ret;
 	}
 
 

@@ -84,7 +84,7 @@ public class FormFieldDTO<T> extends FieldSuggest{
 
 	@Override
 	public String toString() {
-		return "FormFieldDTO [value=" + value + "]";
+		return getValue().toString();
 	}
 
 	public static FormFieldDTO<String> of(String string) {
@@ -160,5 +160,7 @@ public class FormFieldDTO<T> extends FieldSuggest{
 		FormFieldDTO<OptionDTO> ret = new FormFieldDTO<OptionDTO>(optionDTO);
 		return ret;
 	}
+	
+	
 
 }

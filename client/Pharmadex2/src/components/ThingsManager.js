@@ -1,5 +1,5 @@
 import React , {Component} from 'react'
-import {Container, Row, Col, Breadcrumb, BreadcrumbItem} from 'reactstrap'
+import {Container, Row, Col, Breadcrumb, BreadcrumbItem, Collapse} from 'reactstrap'
 import PropTypes from 'prop-types'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
@@ -48,7 +48,8 @@ class ThingsManager extends Component{
                 next_step_error:'',
                 of:'',
                 conclude:'',
-            }
+            },
+            fullcollapse:[]
         }
         this.eventProcessor=this.eventProcessor.bind(this)
         this.paintThings=this.paintThings.bind(this)
@@ -60,6 +61,7 @@ class ThingsManager extends Component{
         this.paintRegister=this.paintRegister.bind(this)
         this.onNextClick=this.onNextClick.bind(this)
         this.onConcludeClick=this.onConcludeClick.bind(this)
+        this.toggle=this.toggle.bind(this)
     } 
     /**
      * Propagate values from the master thing to the rest of path
@@ -184,7 +186,7 @@ class ThingsManager extends Component{
                 if(data.subject=="register_loaded"){
                     this.state.register=data.data
                 }
-                if(data.subject=="thingLoaded"){
+                if(data.subject=="thingLoaded" && !data.data.readOnly){
                     this.state.thingIdentifier=data.data.identifier
                     if(this.state.data.auxPath.length>0){
                         this.state.data.auxPath[this.state.data.auxPathIndex]=data.data
@@ -222,6 +224,17 @@ class ThingsManager extends Component{
         SpinnerMain.show()
         Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/activity/path", this.state.data, (query,result)=>{
             this.state.data=result
+
+            this.state.fullcollapse = []
+            if(Fetchers.isGoodArray(this.state.data.path)){
+                this.state.data.path.forEach((thing, index)=>{
+                    this.state.fullcollapse.push({
+                        ind:index,
+                        collapse:false
+                    })
+                })
+            }
+            
             this.setState(this.state)
         } )
     }
@@ -270,18 +283,24 @@ class ThingsManager extends Component{
                 this.state.data.path.forEach((thing, index)=>{
                     thing.readOnly=true
                     ret.push(
-                        <h4 key={index+1000}>
-                            {thing.title}
-                        </h4>
+                        <h4 className='btn-link' key={index+1000} style={{cursor:"pointer"}} 
+                            onClick={()=>{this.toggle(index)}}>{thing.title}</h4>
                     )
-                    ret.push(
-                        <Thing key={index}
-                        data={thing}
-                        recipient={this.state.identifier}
-                        readOnly={true}
-                        narrow={this.props.narrow}
-                    />
-                    )
+                    /* ret.push(
+                        <Collapse key={index+500} isOpen={this.state.fullcollapse[index].collapse} >
+                            {this.thingComp(index, thing)}
+                        </Collapse>
+                    ) */
+                    if(this.state.fullcollapse[index].collapse){
+                        ret.push(
+                            <Thing key={index+"_thing"}
+                            data={thing}
+                            recipient={this.state.identifier}
+                            readOnly={true}
+                            narrow={this.props.narrow}
+                            />
+                        )
+                    }
                 })
             }
             return ret
@@ -289,6 +308,24 @@ class ThingsManager extends Component{
             return this.paintCurrentThing()
         }
     }
+
+ 
+    /**
+     * Ставим отметку какой именно thing нужно открыть
+     */
+    toggle(ind) {
+        if(this.state.data != undefined && this.state.data.path != undefined){
+            if(Fetchers.isGoodArray(this.state.fullcollapse)){
+                this.state.fullcollapse.forEach((el, i)=>{
+                    if(ind == i){
+                        el.collapse = !el.collapse
+                    }
+                })
+            }
+            this.setState(this.state);
+        }
+    }
+
     /**
      * Auxiliary "loop" cycle
      */

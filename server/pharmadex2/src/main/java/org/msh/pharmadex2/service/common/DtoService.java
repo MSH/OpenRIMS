@@ -48,10 +48,6 @@ public class DtoService {
 	BoilerService boilerServ;
 	@Autowired
 	Messages messages;
-	@Autowired
-	AssemblyService assemblyServ;
-	@Autowired
-	DictService dictServ;
 
 	/**
 	 * Create optionDTO in the current language from the list of dictionary nodes
@@ -498,6 +494,7 @@ public class DtoService {
 		data.getMinLen().setValue(new Long(assm.getMin()));
 		data.getMult().setValue(logicalOpt(assm.getMult(),data.getMult().getValue()));
 		data.getUnique().setValue(logicalOpt(assm.getUnique(), data.getUnique().getValue()));
+		data.getPrefLabel().setValue(logicalOpt(assm.getPrefLabel(), data.getPrefLabel().getValue()));
 		data.setNodeId(node.getID());
 		data.getOrd().setValue(new Long(assm.getOrd()));
 		data.getReadOnly().setValue(logicalOpt(assm.getReadOnly(),data.getReadOnly().getValue()));
@@ -567,6 +564,7 @@ public class DtoService {
 		ret.setMin(new BigDecimal(assm.getMin()));
 		ret.setMult(assm.getMult());
 		ret.setUnique(assm.getUnique());
+		ret.setPrefLabel(assm.getPrefLabel());
 		ret.setPropertyName(assm.getPropertyName().getIdentifier());
 		String description = literalServ.readDescription(assm.getPropertyName());
 		ret.setDescription(description);

@@ -24,9 +24,14 @@ class TileImage extends Component{
                 </figure>
             )
         }else{
+            let imageUrl=this.props.content.imageUrl
+            let srclink = "api/public/tileicon?iconurl=" + imageUrl
+            if(imageUrl.toUpperCase().startsWith("HTTP")){
+                srclink=imageUrl;
+            }
             return (
                 <figure style={{cursor:'hand'}}>
-                    <img src={this.props.content.image}/>
+                    <img src={srclink}/>
                     <figcaption className={"bg-dark"}>
                         <Row>
                             <Col xs='1' sm='1' lg='1' xl='1'>
@@ -67,7 +72,7 @@ class TileImage extends Component{
                     let keyFrom=event.dataTransfer.getData("text/plain")
                     let keyTo = this.props.content.numRow + "&" + this.props.content.numCol
                     this.props.changeCol(keyFrom, keyTo)
-                    this.props.loader();
+                    this.props.loader(false);
                 }
             }}>
                 

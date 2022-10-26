@@ -217,6 +217,9 @@ class DataVarForm extends Component{
                     <Col xs='12' sm='12' lg='2' xl='2'>
                         <ViewEditOption attribute='unique' component={this} edit/>
                     </Col>
+                    <Col xs='12' sm='12' lg='2' xl='2'>
+                        <ViewEditOption attribute='prefLabel' component={this} edit/>
+                    </Col>
                 </Row>
                 <Row>
                     <Col>

@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>2.4.3</version>
-		<relativePath/> <!-- lookup parent from repository -->
+		<version>2.7.4</version>
+		<relativePath /> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>org.msh.pharmadex2</groupId>
 	<artifactId>pharmadex2</artifactId>
@@ -43,6 +44,11 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-mail -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -66,9 +72,9 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-        <groupId>org.springframework.session</groupId>
-        	<artifactId>spring-session-jdbc</artifactId>
-    	</dependency>
+			<groupId>org.springframework.session</groupId>
+			<artifactId>spring-session-jdbc</artifactId>
+		</dependency>
 		<!-- The database -->
 		<dependency>
 			<groupId>org.msh</groupId>
@@ -77,48 +83,48 @@
 		</dependency>
 		<dependency>
 			<groupId>com.github.binodsh</groupId>
-    		<artifactId>date-converter</artifactId>
-   			 <version>2.0.0</version>
+			<artifactId>date-converter</artifactId>
+			<version>2.0.0</version>
 		</dependency>
-				<!-- Apache dependences -->
+		<!-- Apache dependences -->
 		<!-- https://mvnrepository.com/artifact/commons-beanutils/commons-beanutils -->
 		<dependency>
-		    <groupId>commons-beanutils</groupId>
-		    <artifactId>commons-beanutils</artifactId>
-		    <version>1.9.4</version>
+			<groupId>commons-beanutils</groupId>
+			<artifactId>commons-beanutils</artifactId>
+			<version>1.9.4</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
 		<dependency>
-		    <groupId>org.apache.commons</groupId>
-		    <artifactId>commons-lang3</artifactId>
-		    <version>3.11</version>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-lang3</artifactId>
+			<version>3.11</version>
 		</dependency>
-		   <!-- https://mvnrepository.com/artifact/org.apache.poi/poi -->
-		   		<!-- https://mvnrepository.com/artifact/org.apache.poi/poi-ooxml -->
-			<!-- https://mvnrepository.com/artifact/commons-validator/commons-validator -->
-			<dependency>
-			    <groupId>commons-validator</groupId>
-			    <artifactId>commons-validator</artifactId>
-			    <version>1.7</version>
-			</dependency>
-			<!-- https://mvnrepository.com/artifact/org.apache.poi/poi -->
-			<dependency>
-			    <groupId>org.apache.poi</groupId>
-			    <artifactId>poi</artifactId>
-			    <version>4.1.2</version>
-			</dependency>
+		<!-- https://mvnrepository.com/artifact/org.apache.poi/poi -->
+		<!-- https://mvnrepository.com/artifact/org.apache.poi/poi-ooxml -->
+		<!-- https://mvnrepository.com/artifact/commons-validator/commons-validator -->
+		<dependency>
+			<groupId>commons-validator</groupId>
+			<artifactId>commons-validator</artifactId>
+			<version>1.7</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.apache.poi/poi -->
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi</artifactId>
+			<version>4.1.2</version>
+		</dependency>
 
 
-			<dependency>
-				<groupId>org.apache.poi</groupId>
-				<artifactId>poi-ooxml</artifactId>
-				<version>4.1.2</version>
-			</dependency>
-			<dependency>
-				<groupId>org.apache.commons</groupId>
-				<artifactId>commons-text</artifactId>
-				<version>1.9</version>
-			</dependency>
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-ooxml</artifactId>
+			<version>4.1.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-text</artifactId>
+			<version>1.9</version>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -127,9 +133,9 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
-    				<source>1.8</source>
-    				<target>1.8</target>
-    				<executable>true</executable>
+					<source>1.8</source>
+					<target>1.8</target>
+					<executable>true</executable>
 				</configuration>
 			</plugin>
 		</plugins>

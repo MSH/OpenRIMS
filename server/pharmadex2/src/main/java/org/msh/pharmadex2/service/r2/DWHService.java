@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.model.dwh.ReportSession;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.dwh.ReportSessionRepo;
@@ -56,9 +57,15 @@ public class DWHService {
 			uploadFlag.set(false);
 			long newSessionID = sessionOpen();
 			if(newSessionID>0) {
-				jdbcRepo.dwh_update(newSessionID);
+				try {
+					jdbcRepo.dwh_update(newSessionID);
+				} catch (ObjectNotFoundException e) {
+					uploadFlag.set(true);
+					sessionRepo.deleteById(newSessionID);
+					logger.info("DWHService.upload() failed "+ e.getMessage());
+					return;
+				}
 				sessionClose(newSessionID);
-					
 			}else {
 				logger.error("can't start upload");
 			}
@@ -78,7 +85,7 @@ public class DWHService {
 	 * @param newSessionID 
 	 */
 	@Transactional
-	private void sessionClose(long newSessionID) {
+	public void sessionClose(long newSessionID) {
 		Optional<ReportSession> currento = sessionRepo.findById(newSessionID);
 		if(currento.isPresent()) {
 			ReportSession current = currento.get();
