@@ -1211,6 +1211,20 @@ public class JdbcRepository {
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 	}
+	/**
+	 * Get all references for a data URL given
+	 * A data URL is a URL from the data configurations
+	 * Known usage - data configurator, to provide strict rules to edit a data structure
+	 * @param url
+	 */
+	public void data_url_references(String url) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("data_url_references");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("url", url);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+	}
 
 
 }

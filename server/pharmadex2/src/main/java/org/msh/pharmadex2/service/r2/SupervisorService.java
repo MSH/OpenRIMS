@@ -298,12 +298,11 @@ public class SupervisorService {
 	 */
 	private Headers headersDataCollections(Headers headers) {
 		headers.getHeaders().clear();
-		headers.setPageSize(50);
 		headers.getHeaders()
 				.add(TableHeader.instanceOf("identifier", "url", true, true, true, TableHeader.COLUMN_LINK, 0));
 		headers.getHeaders()
 				.add(TableHeader.instanceOf("pref", "description", true, true, true, TableHeader.COLUMN_STRING, 0));
-		headers.setPageSize(100);
+		headers.setPageSize(20);
 		return headers;
 	}
 
@@ -373,8 +372,11 @@ public class SupervisorService {
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
+	@Transactional
 	public DataConfigDTO dataCollectionVariablesLoad(DataConfigDTO data) throws ObjectNotFoundException {
+		data.setRestricted(false);
 		if (data.getNodeId() > 0) {
+			// variables
 			TableQtb table = data.getVarTable();
 			if (table.getHeaders().getHeaders().size() == 0) {
 				table.setHeaders(headersVariables(table.getHeaders()));
@@ -386,6 +388,11 @@ public class SupervisorService {
 			List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", where, table.getHeaders());
 			TableQtb.tablePage(rows, table);
 			table.setSelectable(false);
+			// is edit restricted?
+			Concept conc = closureServ.loadConceptById(data.getNodeId());
+			jdbcRepo.data_url_references(conc.getIdentifier());
+			List<TableRow> rows1 = jdbcRepo.qtbGroupReport("select * from data_url_references", "", "", new Headers());
+			data.setRestricted(rows1.size()>0);	//at least one reference is existed
 		}
 		return data;
 	}

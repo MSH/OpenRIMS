@@ -18,8 +18,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.scheduling.annotation.EnableAsync;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.LocaleResolver;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -124,5 +122,4 @@ public class Pharmadex2Application implements WebMvcConfigurer  {
 		ret.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 		return ret;
 	}
-
 }

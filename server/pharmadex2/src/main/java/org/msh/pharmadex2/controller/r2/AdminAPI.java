@@ -5,6 +5,7 @@ import java.sql.SQLException;
 
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
+import org.msh.pharmadex2.dto.AboutDTO;
 import org.msh.pharmadex2.dto.ActuatorAdmDTO;
 import org.msh.pharmadex2.dto.ContentDTO;
 import org.msh.pharmadex2.dto.DataCollectionDTO;
@@ -37,6 +38,7 @@ import org.msh.pharmadex2.service.r2.ImportAService;
 import org.msh.pharmadex2.service.r2.ImportATCcodesService;
 import org.msh.pharmadex2.service.r2.ImportAdmUnitsService;
 import org.msh.pharmadex2.service.r2.ImportBService;
+import org.msh.pharmadex2.service.r2.MailService;
 import org.msh.pharmadex2.service.r2.MetricService;
 import org.msh.pharmadex2.service.r2.PubOrgService;
 import org.msh.pharmadex2.service.r2.ReportService;
@@ -52,8 +54,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 /**
- * Common API for all authenticated users
+ * Admin (Supervisor) API
  * 
  * @author alexk
  *
@@ -100,7 +104,10 @@ public class AdminAPI {
 	private AccessControlService accessControlService;
 	@Autowired
 	private ImportATCcodesService importATCcodesService;
-
+	@Autowired
+	private ObjectMapper objectMapper;
+	@Autowired
+	private MailService mailServ;
 	/**
 	 * Tiles for landing page
 	 * 
@@ -1031,6 +1038,22 @@ public class AdminAPI {
 		} catch (IOException | ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
+	}
+	/**
+	 * Test mail configuration - send mail to the Supervisor's address
+	 * @param message
+	 * @return
+	 * @throws DataNotFoundException 
+	 */
+	@PostMapping("/api/admin/mail/test")
+	public AboutDTO mailTest(Authentication auth, @RequestBody AboutDTO message) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		try {
+			message = mailServ.testMail(user,message);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return message;
 	}
 
 }

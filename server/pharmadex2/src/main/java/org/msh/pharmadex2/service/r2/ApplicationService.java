@@ -97,7 +97,11 @@ public class ApplicationService {
 	private PubOrgService pubOrgServ;
 	@Autowired
 	private AssemblyService assmServ;
-
+	@Autowired
+	private AccessControlService accessControlServ;
+	@Autowired
+	private MailService mailService;
+	
 	/**
 	 * recreate only a table for selected applications
 	 * @param data
@@ -907,6 +911,7 @@ public class ApplicationService {
 			//the current activity, if checklist is defined
 			if(curHis.getActConfig()!=null) {
 				data.setBackground(validServ.isActivityBackground(curHis.getActConfig()));
+				data.setAttention(validServ.isActivityAttention(curHis.getActConfig()));
 				String dictUrl = curHis.getActivity().getLabel();
 				if(dictUrl!=null && dictUrl.toUpperCase().startsWith("DICTIONAR")) {
 					data.setHost(validServ.isHostApplication(curHis.getApplDict()));
@@ -1695,7 +1700,7 @@ public class ApplicationService {
 			int actCode = data.actionSelected();
 			if(data.isApplicant()) {
 				actCode=0;
-			}
+			};
 			/*systemDictNode(root, "0", messages.get("continue"));
 			systemDictNode(root, "1", messages.get("route_action"));
 			systemDictNode(root, "2", messages.get("newactivity"));
@@ -1711,6 +1716,7 @@ public class ApplicationService {
 				if(accServ.isApplicant(user)){
 					data=submitNext(curHis, user, data);
 				}else {
+					sendEmailAttention(user, curHis, data);
 					data=validServ.submitNextData(curHis, user, data);
 					data=submitNext(curHis, user, data);
 				}
@@ -1732,11 +1738,13 @@ public class ApplicationService {
 				data=actionCancel(curHis, data);
 				return data;
 			case 4:
+				sendEmailAttention(user, curHis, data);
 				data=validServ.submitApprove(curHis, user, data);
 				//data=validServ.submitApproveData(curHis, user, data);
 				data=submitApprove(curHis, user, data);
 				return data;
 			case 5:
+				sendEmailAttention(user, curHis, data);
 				data=validServ.submitReject(curHis, user, data);
 				data=validServ.submitRejectData(curHis, user, data);
 				data=submitReject(curHis, user, data);
@@ -1749,6 +1757,7 @@ public class ApplicationService {
 			case 7:
 				data=validServ.submitAmendment(curHis, user, data);
 				if(data.isValid()) {
+					sendEmailAttention(user, curHis, data);
 					data=isAmended(curHis,user,data);
 					data=submitApprove(curHis, user, data);
 				}
@@ -1757,6 +1766,7 @@ public class ApplicationService {
 				data=validServ.submitDeregistration(curHis, user, data);
 				data=validServ.submitDeregistrationData(curHis,data);
 				if(data.isValid()) {
+					sendEmailAttention(user, curHis, data);
 					data=submitDeregistration(curHis, user, data);
 				}
 				return data;
@@ -1767,6 +1777,30 @@ public class ApplicationService {
 			}
 		}else {
 			throw new ObjectNotFoundException("submitSend. Access denied",logger);
+		}
+	}
+	private void sendEmailAttention(UserDetailsDTO user, History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
+		//23.10.2022
+		boolean attentionActivity = validServ.isActivityAttention(curHis.getActConfig());
+		if(attentionActivity) {
+			String applicantEmail = accessControlServ.applicantEmailByApplication(curHis.getApplication());
+			String applName = literalServ.readPrefLabel(curHis.getApplicationData());
+			String curActivity = literalServ.readPrefLabel(curHis.getActConfig());
+			String nextActivity = "";
+			if(data.getNextJob().getRows() != null && data.getNextJob().getRows().size() > 0){
+				for(TableRow r:data.getNextJob().getRows()) {
+					if(r.getSelected()) {
+						nextActivity = r.getCellByKey("pref").getValue();
+						break;
+					}
+				}
+			}
+			
+			String res=mailService.createAttentionMail(user, applicantEmail, applName, curActivity, nextActivity); 
+		data.getNotes().setValue(res);
+		data.getNotes().setMark(true);
+		data.getNotes().setReadOnly(true);
+		data.getNotes().setTextArea(true);
 		}
 	}
 	/**

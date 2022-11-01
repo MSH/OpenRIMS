@@ -494,6 +494,11 @@ public class AssemblyService {
 				assm.setPropertyName("background");
 				ret.add(assm);
 			}
+			{
+				AssemblyDTO assm = new AssemblyDTO();
+				assm.setPropertyName("attention");
+				ret.add(assm);
+			}
 		}
 		//*********************************** read from configuration ***************************************************
 		if(ret.size()==0) {
@@ -667,6 +672,7 @@ public class AssemblyService {
 				cell2.getVariables().add(ACTIVITY_EXECUTIVES);
 				cell2.getVariables().add("background");
 				cell2.getVariables().add(ACTIVITY_CONFIG_FINALIZE);
+				cell2.getVariables().add("attention");
 				row.getCells().add(cell2);
 
 				ret.add(row);

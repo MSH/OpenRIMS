@@ -31,6 +31,7 @@ public class LayoutCalculator {
 			LayoutRowDTO rowDto = new LayoutRowDTO();
 			getRows().add(rowDto);
 			rowNo=row;
+			colNo=-1;
 		}
 		int rowIndex= getRows().size()-1;
 		if(col!=colNo) {

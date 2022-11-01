@@ -247,15 +247,17 @@ public class UserService implements UserDetailsService {
 		for(User_role ur :user.getRoles()) {
 			if(ur.getActive()) {
 				String role = ur.getRole().getRolename();
-				boolean found = false;
-				for(UserRoleDto rdto:ret) {
-					if(rdto.getAuthority().equalsIgnoreCase(role)) {
-						found = true;
-						break;
+				if(!role.contains("APPLICANT")) {
+					boolean found = false;
+					for(UserRoleDto rdto:ret) {
+						if(rdto.getAuthority().equalsIgnoreCase(role)) {
+							found = true;
+							break;
+						}
 					}
-				}
-				if(!found) {
-					ret.add(createUserRoleDto(ur));
+					if(!found) {
+						ret.add(createUserRoleDto(ur));
+					}
 				}
 			}
 		}
@@ -616,7 +618,7 @@ public class UserService implements UserDetailsService {
 					applDict.getPrevSelected().add(dictVal.getConcept().getID());
 				}
 			}
-			
+
 		}else {
 			data.getGlobal_enable().setValue(dtoServ.booleanToYesNo(false));
 		}
@@ -677,6 +679,7 @@ public class UserService implements UserDetailsService {
 			Concept org = closureServ.loadConceptById(data.getConceptId()); 
 			user.setOrganization(org);
 			user.setConcept(node);
+			user.setCurrentRole(null);
 			//save dictionaries
 			user.getDictionaries().clear();
 			user.getDictionaries().addAll(createDictItems(data.getRoles()));
@@ -691,6 +694,7 @@ public class UserService implements UserDetailsService {
 				user.setEnabled(false);
 			}
 			List<UserRoleDto> allRoles = userGetAllAuthorities(user);
+			user.setConceptRole(null);	//2022-10-27
 			if(user.getCurrentRole()==null && user.getConceptRole()==null) {
 				for(UserRoleDto urd : allRoles) {
 					if (urd.getConceptId()>0) {
@@ -699,21 +703,25 @@ public class UserService implements UserDetailsService {
 					}
 				}
 			}
-			if(allRoles.size()==0) {						//drop all roles
-				user.setConceptRole(null);
-				user.setCurrentRole(null);
+			// assign the first role that suit this user as a current one
+			for(UserRoleDto urd : allRoles) {
+				if(!urd.getAuthority().contains("APPLICANT")) {
+					Concept role = closureServ.loadConceptById(urd.getId());
+					user.setConceptRole(role);
+					break;
+				}
 			}
 			user = userRepo.save(user);
 		}
 		return data;
 	}
-	
+
 	@Transactional
 	public UserDetailsDTO updateUser(UserDetailsDTO data) throws ObjectNotFoundException {
 		User user = userRepo.findByEmail(data.getEmail()).get();
 		user.setPassword(data.getPassword());
 		user = userRepo.save(user);
-		
+
 		data = userToDTO(user);
 		return data;
 	}

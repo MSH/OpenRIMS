@@ -14,6 +14,7 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.msh.pdex2.dto.table.TableCell;
 import org.msh.pdex2.dto.table.TableHeader;
+import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pharmadex2.controller.common.POIProcessor;
@@ -51,28 +52,28 @@ public class ExcelViewMult extends AbstractXlsxView{
 
 	@Override
 	protected void buildExcelDocument(Map<String, Object> model,
+			//TODO seems as void!
 			Workbook workbook,
 			HttpServletRequest request,
 			HttpServletResponse response)	{
 
-		workbookForDataConfiguration(model, workbook);
+		workbookForDataConfiguration(model, null, workbook);
 	}
 
 	/**
 	 * Really build the workbook 
 	 * @param model
+	 * @param mess 
 	 * @param workbook
 	 */
-	public void workbookForDataConfiguration(@SuppressWarnings("rawtypes") Map model, Workbook workbook) {
-		//VARIABLES REQUIRED IN MODEL
-		getProcessor().initWorkbook(workbook);
+	public void workbookForDataConfiguration(@SuppressWarnings("rawtypes") Map model, Messages mess, Workbook workbook) {
 		Object dato = model.get("data");
 		if(dato!=null) {
 			if(dato instanceof Map<?,?>) {
 				@SuppressWarnings("unchecked")
 				Map<String,DataCollectionDTO> data = (Map<String, DataCollectionDTO>) dato;
 				for(String key : data.keySet()) {
-					placeDataConfigurationSheet(key, data.get(key));
+					placeDataConfigurationSheet(key, mess, data.get(key));
 				}
 			}
 		}else {
@@ -93,16 +94,23 @@ public class ExcelViewMult extends AbstractXlsxView{
 	/**
 	 * Add a sheet to a workbook given
 	 * @param key - sheet name
+	 * @param mess 
 	 * @param data - data to place
 	 * @return
 	 */
-	public void placeDataConfigurationSheet(String key, DataCollectionDTO data) {
+	public void placeDataConfigurationSheet(String key, Messages mess, DataCollectionDTO data) {
 		getProcessor().createSheet(key,1000);
 		int row=0;
+		placeTitle(key,10,row);
+		row++;
 		placeTitle(data.getDescription().getValue(), 10, row);
 		row++;
 		row = placeHeaders(data.getTable().getHeaders().getHeaders(),row);
-		row = placeRows(data.getTable().getHeaders().getHeaders(),data.getTable().getRows(),row);
+		if(data.getTable().getRows().size()>0) {
+			row = placeRows(data.getTable().getHeaders().getHeaders(),data.getTable().getRows(),row);
+		}else {
+			placeTitle(mess.get("badconfiguration"), 10, row);
+		}
 	}
 
 	/**
@@ -265,5 +273,19 @@ public class ExcelViewMult extends AbstractXlsxView{
 			colNo=0;
 		}
 	}
+	/**
+	 * Create a sheet and place data collection references on it
+	 * @param title the sheet name
+	 * @param references
+	 * @param workbook
+	 */
+	public void dataCollectionReferences(String title, TableQtb references, XSSFWorkbook workbook) {
+		getProcessor().createSheet(title,1000);
+		int row=0;
+		placeHeaders(references.getHeaders().getHeaders(), row);
+		row++;
+		placeRows(references.getHeaders().getHeaders(), references.getRows(),row);
+	}
+
 
 }

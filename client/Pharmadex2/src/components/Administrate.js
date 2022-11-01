@@ -24,6 +24,7 @@ import Import_B from './Import_B'
 import ActuatorAdm from './ActuatorAdm'
 import ChangePassAdmin from './ChangePassAdmin'
 import Import_ATC from './Import_ATC'
+import Fetchers from './utils/Fetchers'
 
 /**
  * Administrative functions for the supervisor
@@ -59,6 +60,7 @@ class Administrate extends Component{
                 changePassAdmin:'',
                 importATC:'',
                 actuatorMonitoring:'',
+                test_mail:''
             },
             isOpen:false,
             menu:'',
@@ -180,6 +182,28 @@ class Administrate extends Component{
                                                     </div>
                                                     </NavLink>
                                                 </NavItem>
+                                            </DropdownItem>
+                                            <DropdownItem>
+                                            <div>
+                                                <NavItem active={false}>
+                                                    <div
+                                                        style={{color:'gray'}}
+                                                        onClick={()=>{
+                                                            Fetchers.postJSON("/api/admin/mail/test",{},(query,result)=>{
+                                                                let color='success'
+                                                                if(!result.valid){
+                                                                    color='danger'
+                                                                }
+                                                                Navigator.message('*', '*', 
+                                                                    'show.alert.pharmadex.2', {mess:result.identifier, color:color})
+                                                            })
+                                                        }}
+                                                    >
+                                                        <i className="fas fa-xs fa-envelope mr-1"></i>
+                                                        {this.state.labels.test_mail}
+                                                    </div>
+                                                </NavItem>
+                                            </div>
                                             </DropdownItem>
                                             <DropdownItem>
                                             <div>

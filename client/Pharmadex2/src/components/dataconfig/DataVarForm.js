@@ -36,6 +36,9 @@ class DataVarForm extends Component{
         this.eventProcessor=this.eventProcessor.bind(this)
         this.buttons=this.buttons.bind(this)
         this.loadData=this.loadData.bind(this)
+        this.option=this.option.bind(this)
+        this.hiddenUrl=this.hiddenUrl.bind(this)
+        this.hiddenAuxUrl=this.hiddenAuxUrl.bind(this)
     }
 
     /**
@@ -96,7 +99,7 @@ class DataVarForm extends Component{
                                 }}
                             />
                         </Col>
-                        <Col xs='12' sm='12' lg='4' xl='4'>
+                        <Col xs='12' sm='12' lg='4' xl='4' hidden={this.props.restricted && this.state.data.varNodeId!=0}>
                             <ButtonUni
                                 disabled={this.state.data.varNodeId==0}
                                 label={this.state.labels.global_suspend}
@@ -134,6 +137,58 @@ class DataVarForm extends Component{
             )
         }
 
+option(){
+    if(this.props.restricted){
+        if(this.state.data.varNodeId!=0){
+           return(<Col>
+                <ViewEditOption component={this} attribute='clazz' />
+            </Col>)
+        }else{
+            return(<Col>
+            <ViewEditOption component={this} attribute='clazz' edit />
+        </Col>)
+        }
+    }else{
+        return( <Col>
+        <ViewEditOption component={this} attribute='clazz' edit />
+    </Col>)
+    }
+}
+hiddenUrl(){
+    if(this.props.restricted){
+        if(this.state.data.varNodeId!=0){
+           return(<Col xs='12' sm='12' lg='4' xl='6'>
+           <ViewEdit mode='text' attribute='url' component={this} />
+       </Col>)
+        }else{
+            return(<Col xs='12' sm='12' lg='4' xl='6'>
+            <ViewEdit mode='text' attribute='url' component={this} edit/>
+            </Col>)
+        }
+    }else{
+        return(<Col xs='12' sm='12' lg='4' xl='6'>
+            <ViewEdit mode='text' attribute='url' component={this} edit/>
+            </Col>)
+    }
+}
+hiddenAuxUrl(){
+    if(this.props.restricted){
+        if(this.state.data.varNodeId!=0){
+           return(<Col xs='12' sm='12' lg='6' xl='6'>
+           <ViewEdit mode='text' attribute='auxUrl' component={this} />
+       </Col>)
+        }else{
+            return(<Col xs='12' sm='12' lg='6' xl='6'>
+            <ViewEdit mode='text' attribute='auxUrl' component={this} edit/>
+        </Col>)
+        }
+    }else{
+        return(<Col xs='12' sm='12' lg='6' xl='6'>
+        <ViewEdit mode='text' attribute='auxUrl' component={this} edit/>
+    </Col>)
+    }
+}
+
     render(){
         if(this.state.data.clazz == undefined || this.state.labels.locale==undefined){
             return []
@@ -143,12 +198,12 @@ class DataVarForm extends Component{
                 {this.buttons()}
                 <Row>
                     <Col>
-                        <FieldGuarded mode="text" attribute="varName" component={this} />
+                        <FieldGuarded mode="text" attribute="varName" component={this} editno={this.props.restricted && this.state.data.varNodeId!=0}/>
                     </Col>
                 </Row>
                 <Row>
                     <Col>
-                        <FieldGuarded mode="text" attribute="varNameExt" component={this} />
+                        <FieldGuarded mode="text" attribute="varNameExt" component={this} editno={this.props.restricted && this.state.data.varNodeId!=0}/>
                     </Col>
                 </Row>
                 <Row>
@@ -157,9 +212,7 @@ class DataVarForm extends Component{
                     </Col>
                 </Row>
                 <Row>
-                    <Col>
-                        <ViewEditOption component={this} attribute='clazz' edit />
-                    </Col>
+                    {this.option()}
                 </Row>
                 <Row>
                     <Col xs='12' sm='12' lg='3' xl='3'>
@@ -197,9 +250,8 @@ class DataVarForm extends Component{
                     </Col>
                 </Row>
                 <Row>
-                    <Col xs='12' sm='12' lg='4' xl='6'>
-                        <ViewEdit mode='text' attribute='url' component={this} edit/>
-                    </Col>
+                    {this.hiddenUrl()}
+
                     <Col xs='12' sm='12' lg='4' xl='6'>
                         <ViewEdit mode='text' attribute='dictUrl' component={this} edit/>
                     </Col>
@@ -208,9 +260,7 @@ class DataVarForm extends Component{
                 <Row>
                 </Row>
                 <Row>
-                    <Col xs='12' sm='12' lg='6' xl='6'>
-                        <ViewEdit mode='text' attribute='auxUrl' component={this} edit/>
-                    </Col>
+                    {this.hiddenAuxUrl()}
                     <Col xs='12' sm='12' lg='2' xl='2'>
                         <ViewEditOption attribute='readOnly' component={this} edit/>
                     </Col>
@@ -239,4 +289,5 @@ DataVarForm.propTypes={
     nodeId:PropTypes.number.isRequired,         //data collection node id (a data collection consists of variables)
     varNodeId:PropTypes.number.isRequired,      //variable node
     recipient:PropTypes.string.isRequired,      //recipient for messages
+    restricted:PropTypes.bool.isRequired    //show read-only data
 }

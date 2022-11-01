@@ -19,6 +19,9 @@ public class DataConfigDTO extends AllowValidation {
 	private TableQtb table=new TableQtb();
 	//table for a data url variables
 	private TableQtb varTable=new TableQtb();
+	//edit restricted because of external refs.
+	private boolean restricted=false;
+	
 	public long getNodeId() {
 		return nodeId;
 	}
@@ -42,6 +45,13 @@ public class DataConfigDTO extends AllowValidation {
 	}
 	public void setVarTable(TableQtb varTable) {
 		this.varTable = varTable;
+	}
+	
+	public boolean isRestricted() {
+		return restricted;
+	}
+	public void setRestricted(boolean restricted) {
+		this.restricted = restricted;
 	}
 	@Override
 	public String toString() {

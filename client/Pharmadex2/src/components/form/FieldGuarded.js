@@ -46,7 +46,7 @@ class FieldGuarded extends Component{
                     <Col xs='12' sm='12' lg='10' xl='10'>
                         <ViewEdit mode={this.props.mode} attribute={this.props.attribute} component={this.props.component} edit={this.state.edit}/>
                     </Col>
-                    <Col xs='12' sm='12' lg='2' xl='2' className="align-self-center">
+                    <Col xs='12' sm='12' lg='2' xl='2' className="align-self-center" hidden={this.props.editno}>
                     <Button
                         style={{color:'green'}}
                         hidden={this.state.edit}
@@ -82,4 +82,6 @@ FieldGuarded.propTypes={
     mode: PropTypes.oneOf(['text','textarea','number']).isRequired, //type of data
     attribute  :PropTypes.string.isRequired,                        //should be component.state.labels[attribute] and component.state.data[attribute]
     component   :PropTypes.object.isRequired,                        //caller component
+    editno:PropTypes.bool.isRequired,    //show read-only data,
+    //nodeId:PropTypes.number.isRequired         //data collection node id (a data collection consists of variables)
 }
