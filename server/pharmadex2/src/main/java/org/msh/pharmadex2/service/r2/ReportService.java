@@ -709,7 +709,13 @@ public class ReportService {
 		}
 		return dto;
 	}
-
+	/**
+	 * Export Data Configuration to Excel
+	 * @param dto
+	 * @return
+	 * @throws ObjectNotFoundException
+	 * @throws IOException
+	 */
 	public Resource dataCollectionVariablesExport(DataConfigDTO dto) throws ObjectNotFoundException, IOException {
 		Map<String, DataCollectionDTO> data = new LinkedHashMap<String, DataCollectionDTO>();
 		Concept node = closureServ.loadConceptById(dto.getNodeId());
@@ -720,7 +726,12 @@ public class ReportService {
 		model.put("data", data);
 		XSSFWorkbook workbook = new XSSFWorkbook();
 		ExcelViewMult excel = new ExcelViewMult();
-		excel.workbookForDataConfiguration(model, workbook);
+		excel.getProcessor().initWorkbook(workbook);
+		if(dto.isRestricted()) {
+			TableQtb references = dataCollectionReferences(dto);
+			excel.dataCollectionReferences(mess.get("menu_references"),references, workbook);
+		}
+		excel.workbookForDataConfiguration(model, mess, workbook);
 
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		workbook.write(out);
@@ -728,6 +739,25 @@ public class ReportService {
 		workbook.close();
 		out.close();
 		return new ByteArrayResource(arr);
+	}
+	/**
+	 * Load data collection references into the table
+	 * @param dto
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private TableQtb dataCollectionReferences(DataConfigDTO dto) throws ObjectNotFoundException {
+		TableQtb ret = new TableQtb();
+		Concept conc = closureServ.loadConceptById(dto.getNodeId());
+		jdbcRepo.data_url_references(conc.getIdentifier());
+		Headers headers = ret.getHeaders();
+		headers.getHeaders().add(TableHeader.instanceOf("label", mess.get("menu_references") ,15,TableHeader.COLUMN_STRING));
+		headers.getHeaders().add(TableHeader.instanceOf("url", "URL",40, TableHeader.COLUMN_STRING));
+		headers.getHeaders().add(TableHeader.instanceOf("count",mess.get("global_quantity"),15, TableHeader.COLUMN_LONG));
+		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from data_url_references", "", "", headers);
+		ret.getRows().addAll(rows);
+		return ret;
 	}
 
 	/**
@@ -749,7 +779,11 @@ public class ReportService {
 		Concept node = closureServ.findConceptInBranchByIdentifier(root, mainUrl);
 		DataCollectionDTO dto = new DataCollectionDTO();
 		dto.setNodeId(node.getID());
-		dto.getDescription().setValue(literalServ.readPrefLabel(node));
+		try {
+			dto.getDescription().setValue(literalServ.readPrefLabel(node));
+		} catch (Exception e) {
+			dto.getDescription().setValue(mess.get("badconfiguration"));
+		}
 		dto.getUrl().setValue(mainUrl);
 		dto.setVarName(varName);
 		// variables

@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -75,6 +76,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 
 /**
  * Service to validate application specific DTOs
@@ -1085,35 +1087,83 @@ public class ValidationService {
 	 * @throws ObjectNotFoundException 
 	 */
 	private DataVariableDTO variableScreen(DataVariableDTO data) throws ObjectNotFoundException {
-		if(data.getVarNameExt().getValue().length()==0) {	//it is not real variables
+		if(data.getVarNameExt().getValue().length()==0) {//it is not real variables
 			if(data.getNodeId()>0) {
 				long row=data.getRow().getValue();
 				long col=data.getCol().getValue();
 				long ord=data.getOrd().getValue();
+				//ik 28102022 ScreenParam for not things <90
+				Long s1 = 0l;
+				int obj1 = Long.compare(row, s1);  
+				 int obj2 = Long.compare(col, s1); 
+				 int obj3 = Long.compare(ord, s1); 
+				if (!data.getClazz().getValue().getCode().equalsIgnoreCase("things")) {
+					if(obj1<0) {row=0l; data.getRow().setValue(s1);}
+					if(obj2<0) {col=0l; data.getCol().setValue(s1);}
+					if(obj3<0) {ord=0l; data.getOrd().setValue(s1);}
+				}
+				s1 = 89l;
+				long s2=1l;
+				  obj1 = Long.compare(row, s1);  
+				  obj2 = Long.compare(col, s2); 
+				  obj3 = Long.compare(ord, s1); 
+				if (!data.getClazz().getValue().getCode().equalsIgnoreCase("things")) {
+					if(obj1>0) {row=s1; data.getRow().setValue(s1);}
+					if(obj2>0) {col=s2; data.getCol().setValue(s2);}
+					if(obj3>0) {ord=s1; data.getOrd().setValue(s1);}	
+				}else {
+					if(obj3>0) {ord=s1; data.getOrd().setValue(s1);}
+				}
 				Concept root = closureServ.loadConceptById(data.getNodeId());
 				List<Concept> variables = literalServ.loadOnlyChilds(root);
-				for(Concept var : variables) {
+				int numOrd =(int) ord;
+				int numRow=0;
+				ArrayList<Assembly> list=new ArrayList<Assembly>();
+				for(Concept var : variables) { //F2
 					String ext=var.getLabel();
 					if(ext==null) {
 						ext="";
 					}
-					if(var.getID()!=data.getVarNodeId() && var.getActive() && ext.length() ==0) {
+					if( var.getID()!=data.getVarNodeId() && var.getActive() && ext.length() ==0) {//1 
 						Assembly assm = boilerServ.assemblyByVariable(var,true);
-						if(
-								assm.getRow()==row
-								&& assm.getCol()==col
-								&& assm.getOrd()==ord
-								) {
-							data.setIdentifier(messages.get("busyscreenposition"));
-							data.setValid(false);
-							return data;
-						}
+						list.add(assm);
+					}//1
+				}//f2	
+				long maxRow=0l; 
+				for(Assembly asRow:list) {
+					if(!asRow.getClazz().equalsIgnoreCase("things")) {
+					obj1 = Long.compare(asRow.getRow(), maxRow); 
+					if(obj1>0) {maxRow=asRow.getRow();}
 					}
-
 				}
-			}else {
-				throw new ObjectNotFoundException("variableScreen. Data Collection node ID not found",logger);
-			}
+				boolean flag =true;
+				for(Assembly asOrd:list) {
+					if(asOrd.getRow()==row && asOrd.getCol()==col && asOrd.getOrd()==ord) {
+						numOrd+=1;
+						if(numOrd>=90) {//..1
+							numRow= (int) maxRow;
+							if(numRow>=89) {
+								data.setIdentifier(messages.get("errorscreenposition"));
+								data.setValid(false);
+								return data;
+							}else {
+								if(flag) {
+									numRow+=1;										
+									flag=false;}
+								numOrd=numOrd-(int)ord;
+								asOrd.setOrd(numOrd);
+								asOrd.setRow(numRow);
+								asOrd = boilerServ.assemblySave(asOrd);
+								}
+						}else {//..1
+							asOrd.setOrd(numOrd);
+							asOrd = boilerServ.assemblySave(asOrd);
+						}				
+					}
+				}
+		}else {
+			throw new ObjectNotFoundException("variableScreen. Data Collection node ID not found",logger);
+		}
 		}
 		return data;
 	}
@@ -1273,6 +1323,21 @@ public class ValidationService {
 		}
 	}
 
+	/**
+	 * Is this activity attention
+	 * @param actConf
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public boolean isActivityAttention(Concept actConf) throws ObjectNotFoundException {
+		if(actConf!=null) {
+			YesNoNA result = dtoServ.readLogicalLiteral("attention", actConf);
+			return result.equals(YesNoNA.YES);
+		}else {
+			return false;
+		}
+	}
 	/**
 	 * Is this activity foreground?
 	 * @param actConfig

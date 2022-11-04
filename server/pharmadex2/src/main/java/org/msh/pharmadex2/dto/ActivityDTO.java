@@ -35,6 +35,7 @@ public class ActivityDTO extends AllowValidation{
 	//current activity has been done successfully
 	private boolean done=false;
 	
+	private boolean attention = false;
 	
 	public List<DataUnitDTO> getModiPath() {
 		return modiPath;
@@ -103,6 +104,12 @@ public class ActivityDTO extends AllowValidation{
 	}
 	public void setDone(boolean done) {
 		this.done = done;
+	}
+	public boolean isAttention() {
+		return attention;
+	}
+	public void setAttention(boolean attention) {
+		this.attention = attention;
 	}
 	
 }

@@ -171,6 +171,9 @@ public class WebApp {
 				if(role.contains("secretary")) {
 					return new RedirectView("/secretary",true);
 				}
+				if(role.contains("applicant") || role.contains("user")) {
+					return new RedirectView("/logout");
+				}
 				return new RedirectView("landing",true);		//default
 			}else {
 				return new RedirectView("landing",true);

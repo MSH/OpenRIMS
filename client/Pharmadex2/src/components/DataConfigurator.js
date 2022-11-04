@@ -1,5 +1,5 @@
 import React , {Component} from 'react'
-import {Container, Row, Col} from 'reactstrap'
+import {Container, Row, Col, FormText} from 'reactstrap'
 import PropTypes from 'prop-types'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
@@ -33,7 +33,8 @@ class DataConfigurator extends Component{
                 global_cancel:'',
                 variables:'',
                 preview:'',
-                global_export:'',
+                explore:'',
+                restricted_edit:'',
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -106,16 +107,7 @@ class DataConfigurator extends Component{
                         <Col xs='12' sm='12' lg='6' xl='6'>
                             <SearchControl label={this.state.labels.search} table={this.state.data.varTable} loader={this.loader}/>
                         </Col>
-                        <Col xs='12' sm='12' lg='6' xl='2'>
-                            <ButtonUni
-                                label={this.state.labels.global_export}
-                                onClick={()=>{
-                                    let dl = new Downloader()
-                                    dl.postDownload('/api/admin/data/collection/variables/export', this.state.data, "file.bin")
-                                }}
-                                color="info"
-                            />
-                        </Col>
+                        
                         <Col xs='12' sm='12' lg='6' xl='2'>
                             <ButtonUni
                                 label={this.state.labels.global_add}
@@ -139,6 +131,16 @@ class DataConfigurator extends Component{
                                 Navigator.navigate("administrate", "dataformpreview",param) 
                             }}
                             color="success"
+                            />
+                        </Col>
+                        <Col xs='12' sm='12' lg='6' xl='2'>
+                            <ButtonUni
+                                label={this.state.labels.explore}
+                                onClick={()=>{
+                                    let dl = new Downloader()
+                                    dl.postDownload('/api/admin/data/collection/variables/export', this.state.data, "file.bin")
+                                }}
+                                color="info"
                             />
                         </Col>
                     </Row>
@@ -271,13 +273,15 @@ class DataConfigurator extends Component{
         if(this.state.vars){
             if(this.state.form){
                 return(
-                    <DataVarForm nodeId={this.state.data.nodeId} varNodeId={this.state.data.varNodeId} recipient={this.state.identifier} />
+                    <DataVarForm nodeId={this.state.data.nodeId} varNodeId={this.state.data.varNodeId} 
+                                        recipient={this.state.identifier} restricted={this.state.data.restricted}/>
                 )
             }else{
                 return this.dataVarsTable()
             }
         }
     }
+
     render(){
         if(this.state.data.table == undefined || this.state.labels.locale==undefined){
             return []
@@ -308,8 +312,18 @@ class DataConfigurator extends Component{
                     </Col>
                     <Col xs='12' sm='12' lg='6'xl='6'>
                         <Row>
+                            <Col className="d-inline p-2">
+                                <h6>
+                                <i hidden={!this.state.data.restricted} className="fa fa-exclamation-triangle" style={{FontSize:'2em',color: 'tomato'}} aria-hidden="true"></i>
+                                {this.state.labels.variables}
+                                </h6>
+                            </Col>
+                        </Row>
+                        <Row hidden={!this.state.data.restricted}>
                             <Col>
-                                <h6>{this.state.labels.variables}</h6>
+                                <FormText color="muted">
+                                    {this.state.labels.restricted_edit}
+                                </FormText>
                             </Col>
                         </Row>
                         {this.right()}

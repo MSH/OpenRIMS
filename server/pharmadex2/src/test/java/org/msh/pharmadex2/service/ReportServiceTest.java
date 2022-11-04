@@ -11,6 +11,7 @@ import java.util.Map;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.Test;
 import org.msh.pdex2.exception.ObjectNotFoundException;
+import org.msh.pdex2.i18n.Messages;
 import org.msh.pharmadex2.Pharmadex2Application;
 import org.msh.pharmadex2.controller.r2.ExcelViewMult;
 import org.msh.pharmadex2.dto.DataCollectionDTO;
@@ -27,6 +28,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 public class ReportServiceTest {
 	@Autowired
 	ReportService reportServ;
+	@Autowired
+	Messages mess;
 	
 	@Test
 	public void dataConfiguration() throws ObjectNotFoundException {
@@ -48,7 +51,7 @@ public class ReportServiceTest {
 		model.put("data",data);
 		XSSFWorkbook workbook = new XSSFWorkbook();
 		ExcelViewMult excel = new ExcelViewMult();
-		excel.workbookForDataConfiguration(model, workbook);
+		excel.workbookForDataConfiguration(model, mess, workbook);
 		Path pathFileout = Paths.get("src","test","resources", "reportDataStructure.xlsx");
 		File fileout = pathFileout.toFile();
 		FileOutputStream fos = new FileOutputStream(fileout);
