@@ -61,11 +61,25 @@ class Fetchers{
           })
           .catch(error=> {
               Spinner.hide()
-              Alerts.showSessionTimeOut("Your session has timed out. Please login again", ()=>{window.location="/logout"})
+              Alerts.showSessionTimeOut("Your session has timed out. Please login again", ()=>{Fetchers.logoutTimeOut()})
             }
            ) 
     }
 
+    static logoutTimeOut(){
+        let h = window.location.hash
+        window.document.cookie = "PDX2_SENDURL=" + encodeURIComponent(h);
+
+        window.location="/logout";
+        location.reload();
+    }
+
+    static logout(){
+        window.document.cookie = "PDX2_SENDURL=";
+
+        window.location.hash = ""
+        window.location.href="/logout";
+    }
     /**
      * For this and all objects downto sets justloaded property
      * @param {object} resp - just loaded data

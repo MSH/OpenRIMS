@@ -316,7 +316,7 @@ public class ValidationService {
 		List<String> exts=boilerServ.variablesExtensions(data);
 
 		//validate all components
-		List<AssemblyDTO> legs = assemblyServ.auxLiterals(data.getUrl(), allAssms);
+		 List<AssemblyDTO> legs = assemblyServ.auxLegacyData(data.getUrl(), allAssms);
 		for(AssemblyDTO l : legs) {
 			if(l.isRequired()) {
 				mandatoryLegacy(data, l,strict);
@@ -341,6 +341,23 @@ public class ValidationService {
 				mandatoryLiteral(data, lit,strict);
 			}
 		}
+		// check for prefLabel if this is the first page of the application
+		if(data.getPathIndex()==1000 || data.getAuxPathIndex()==1000) {
+			lits.addAll(s);
+			boolean flag=false;
+			for(AssemblyDTO assm : lits) {
+					if(assm.getPropertyName().equalsIgnoreCase("prefLabel")) {
+						flag=true;
+					}
+			}
+			if(!flag) {
+				data.setValid(flag);
+				data.setIdentifier(messages.get("configuration_error_preflabel"));
+				return data;
+			}
+		}
+
+		
 		List<AssemblyDTO> dats = assemblyServ.auxDates(data.getUrl(),allAssms);
 		for(AssemblyDTO dat : dats) {
 			if(dat.isRequired()) {
@@ -482,7 +499,12 @@ public class ValidationService {
 	 */
 	private void mandatoryLegacy(ThingDTO data, AssemblyDTO l, boolean strict) {
 		LegacyDataDTO dto = data.getLegacy().get(l.getPropertyName());
-		if(dto!=null) {
+		FormFieldDTO<String> prefLabelDTO = data.getLiterals().get("prefLabel");
+		if(prefLabelDTO==null) {
+			prefLabelDTO = data.getStrings().get("prefLabel");
+		}
+		//if(dto!=null) {
+		if(prefLabelDTO==null || prefLabelDTO.getValue().isEmpty()) {
 			if(dto.getSelectedNode()==0) {
 				dto.setValid(false);
 				dto.setStrict(strict);

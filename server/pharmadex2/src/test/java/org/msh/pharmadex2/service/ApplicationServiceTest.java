@@ -11,6 +11,9 @@ import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pharmadex2.Pharmadex2Application;
+import org.msh.pharmadex2.dto.AboutDTO;
+import org.msh.pharmadex2.dto.ActivityDTO;
+import org.msh.pharmadex2.dto.ActivityToRun;
 import org.msh.pharmadex2.dto.WorkflowParamDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.r2.ApplicationService;
@@ -37,8 +40,6 @@ public class ApplicationServiceTest {
 	BoilerService boilerServ;
 	@Autowired
 	ObjectMapper objectMapper;
-	@Autowired
-	JdbcRepository jdbcRepo;
 	
 	
 	@Test
@@ -48,28 +49,33 @@ public class ApplicationServiceTest {
 		System.out.println(objectMapper.writeValueAsString(wpdto));
 		
 	}
-	//@Test
-	public void executors_select() throws ObjectNotFoundException {
-		Concept actConf = closureServ.loadConceptById(34316);
-		History prevHis = boilerServ.historyById(3295);
-		Concept applConc=null;
-		Concept dictConc=closureServ.loadConceptById(34302);
-		Concept configRoot=closureServ.loadConceptById(34316);
-		History curHis=applServ.createHostHistorySample(prevHis, applConc, dictConc, configRoot);
-		List<String> executors = applServ.executors_select(actConf, curHis);
-		System.out.println(executors);
-	}
-	
-	//@Test
-	@Transactional
-	public void executors_select_jdbc() throws ObjectNotFoundException {
-		History curHis = boilerServ.historyById(3385);
-		Concept actConf = closureServ.loadConceptById(34445);
-		TableQtb execTable = new TableQtb();
-		execTable.setHeaders(applServ.headersExecutors(execTable.getHeaders()));
-		TableQtb table = applServ.executorsTable(curHis, actConf, execTable, false);
-		for(TableRow tr : table.getRows()) {
-			System.out.println(tr.getRow().get(0));
+	/**
+	 * Search for any not submitted test application and try to build a list on activities to run
+	 * Print this list to check manually 
+	 * @throws ObjectNotFoundException
+	 */
+	@Test
+	public void activitiesAndExcutors() throws ObjectNotFoundException {
+		//get all activities
+		Concept configRoot = closureServ.loadRoot("configuration.application.workflow.junit");
+		List<Concept> nextActs = applServ.loadActivities(configRoot);
+		//search for a first not submitted application
+		Concept root = closureServ.loadRoot("workflow.junit.test");	
+		List<Concept> emails=closureServ.loadLevel(root);
+		for(Concept email :emails) {
+			List<Concept> appls= closureServ.loadLevel(email);
+			for(Concept applData : appls) {
+				List<History> hlist = boilerServ.historyAll(applData);
+				if(hlist.size()==1) {
+					History curHis = hlist.get(0);
+					AboutDTO data = new AboutDTO();		//may be any that extends AllowValidation 
+					List<ActivityToRun> acts=applServ.activitiesToRun(data, "application.workflow.junit", curHis, nextActs);
+					for(ActivityToRun act : acts) {
+						System.out.println(act);
+					}
+					return;
+				}
+			}
 		}
 	}
 }

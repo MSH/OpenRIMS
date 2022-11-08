@@ -12,7 +12,6 @@ import javax.servlet.http.HttpSession;
 
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.old.Context;
-import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.service.common.ContextServices;
 import org.msh.pharmadex2.service.common.UserService;
 import org.slf4j.Logger;
@@ -130,7 +129,7 @@ public class WebApp {
 		ret.addObject("languages", languages);
 		return ret;
 	}
-	
+
 	/**
 	 * redirect to a tabset depends on auth data
 	 * @return
@@ -138,7 +137,7 @@ public class WebApp {
 	 */
 	@GetMapping({"/"})
 	public RedirectView redirectHome(Authentication auth,
-			@CookieValue(ContextServices.PDEX_CONTEXT) Optional<String> contextId,
+			@CookieValue(ContextServices.PDEX_CONTEXT) Optional<String> contextId, 
 			HttpServletResponse response) throws JsonProcessingException {
 		Context context = contextServ.loadContext(contextId);
 		response.addCookie(createContextCookie(Long.toString(context.getID())));

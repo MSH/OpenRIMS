@@ -38,6 +38,7 @@ import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.EventLog;
 import org.msh.pdex2.model.r2.FileResource;
 import org.msh.pdex2.model.r2.History;
+import org.msh.pdex2.model.r2.LegacyData;
 import org.msh.pdex2.model.r2.PublicOrganization;
 import org.msh.pdex2.model.r2.Register;
 import org.msh.pdex2.model.r2.Scheduler;
@@ -57,6 +58,7 @@ import org.msh.pdex2.repository.r2.ConceptRepo;
 import org.msh.pdex2.repository.r2.EventLogRepo;
 import org.msh.pdex2.repository.r2.FileResourceRepo;
 import org.msh.pdex2.repository.r2.HistoryRepo;
+import org.msh.pdex2.repository.r2.LegacyDataRepo;
 import org.msh.pdex2.repository.r2.PubOrgRepo;
 import org.msh.pdex2.repository.r2.RegisterRepo;
 import org.msh.pdex2.repository.r2.SchedulerRepo;
@@ -135,6 +137,8 @@ public class BoilerService {
 	private UserRepo userRepo;
 	@Autowired
 	private PubOrgRepo pubOrgRepo;
+	@Autowired
+	private LegacyDataRepo legacyRepo;
 	/**
 	 * Convert resource bundle to DTO
 	 * @param bundle
@@ -1324,4 +1328,13 @@ public class BoilerService {
 		}
 	}
 	
+	@Transactional
+	public LegacyData findLegacyByConcept(Concept concept) throws ObjectNotFoundException {
+		Optional<LegacyData> leg = legacyRepo.findByConcept(concept);
+		if(leg.isPresent()) {
+			return leg.get();
+		}else {
+			throw new ObjectNotFoundException("findByConcept. LegacyData by concept  not found. The Concept Id is "+concept.getID(),logger);
+		}
+	}
 }

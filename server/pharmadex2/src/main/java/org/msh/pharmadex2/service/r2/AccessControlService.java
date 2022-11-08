@@ -301,18 +301,22 @@ public class AccessControlService {
 			if(isSupervisor(user)) {
 				return true;
 			}else {
-				String email=parents.get(1).getIdentifier();
-				if(email!=null) {
-					if(!email.contains("@")) {
-						return true;
-					}
-					if(sameEmail(email, user.getEmail())) {
-						return true;
+				if(parents.size()>1) {
+					String email=parents.get(1).getIdentifier();
+					if(email!=null) {
+						if(!email.contains("@")) {
+							return true;
+						}
+						if(sameEmail(email, user.getEmail())) {
+							return true;
+						}else {
+							return isSupervisor(user);
+						}
 					}else {
 						return isSupervisor(user);
 					}
 				}else {
-					return isSupervisor(user);
+					return false;
 				}
 			}
 		}else {

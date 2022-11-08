@@ -13,6 +13,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class DataConfigDTO extends AllowValidation {
 	//selected data url node
 	private long nodeId=0;
+	//a page selected last time
+	private int pageNo=0;
 	//selected variable url node
 	private long varNodeId=0;
 	//table for data urls
@@ -28,12 +30,20 @@ public class DataConfigDTO extends AllowValidation {
 	public void setNodeId(long nodeId) {
 		this.nodeId = nodeId;
 	}
+	
+	public int getPageNo() {
+		return pageNo;
+	}
+	public void setPageNo(int pageNo) {
+		this.pageNo = pageNo;
+	}
 	public long getVarNodeId() {
 		return varNodeId;
 	}
 	public void setVarNodeId(long varNodeId) {
 		this.varNodeId = varNodeId;
 	}
+	
 	public TableQtb getTable() {
 		return table;
 	}

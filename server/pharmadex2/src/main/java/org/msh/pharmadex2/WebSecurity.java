@@ -46,6 +46,8 @@ public class WebSecurity {
 	UserService userService;
 	@Autowired
 	PasswordEncoder encoder;
+	
+	public static final String PDX2_URL_COOKIE = "PDX2_SENDURL";
 
 	/**
 	 * Configure form based authentication
@@ -103,10 +105,11 @@ public class WebSecurity {
 			.formLogin()
 			.loginPage("/form/login")
 			.failureUrl("/form/login")
-			//.successForwardUrl("/")
 			.and()
-			.logout().deleteCookies("PDX2_SESSION","remember-me")
-			.logoutSuccessUrl("/")
+			.logout()
+			.logoutSuccessHandler(new PdxLogoutSuccessHandler())
+			.deleteCookies("PDX2_SESSION","remember-me", PDX2_URL_COOKIE)
+			//.logoutSuccessUrl("/")
 			.and()
 			.rememberMe().key("арозаупаланалапуазора")
 			.and()			
@@ -162,12 +165,13 @@ public class WebSecurity {
 			.antMatchers("/actuator/**").hasAuthority("ROLE_ADMIN")
 			.anyRequest().denyAll()
 			.and()
-			.oauth2Login().loginPage("/oauth_login")///oauth_login
-			//.failureUrl("/form/login")
-			//.oauth2Login().failureUrl("/form/login")
+			.oauth2Login()
+				.loginPage("/oauth_login")
+				.successHandler(new GoogleAuthenticationSuccessHandler())
 			.and()
-			.logout().deleteCookies("PDX2_SESSION","remember-me")
-			.logoutSuccessUrl("/")
+			.logout()
+			.logoutSuccessHandler(new PdxLogoutSuccessHandler())
+			.deleteCookies("PDX2_SESSION","remember-me", PDX2_URL_COOKIE)
 			.and()			
 			.exceptionHandling().accessDeniedPage("/");
 		}

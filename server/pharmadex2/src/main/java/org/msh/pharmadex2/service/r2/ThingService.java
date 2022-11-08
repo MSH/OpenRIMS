@@ -30,6 +30,7 @@ import org.msh.pdex2.model.r2.Assembly;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.FileResource;
 import org.msh.pdex2.model.r2.History;
+import org.msh.pdex2.model.r2.LegacyData;
 import org.msh.pdex2.model.r2.Register;
 import org.msh.pdex2.model.r2.Scheduler;
 import org.msh.pdex2.model.r2.Thing;
@@ -1110,10 +1111,15 @@ public class ThingService {
 	private ThingDTO storeLegacy(Thing thing, ThingDTO data) throws ObjectNotFoundException {
 		thing.getLegacyData().clear();
 		/*22.09.2022 new version */
-		List<AssemblyDTO> assemblie = assemblyServ.auxByClazz(data.getUrl(), "legacy");
+		//List<AssemblyDTO> assemblie = assemblyServ.auxByClazz(data.getUrl(), "legacy");
 		for(String key :data.getLegacy().keySet()) {
 			ThingLegacyData tld = new ThingLegacyData();
 			LegacyDataDTO dto = data.getLegacy().get(key);
+			FormFieldDTO<String> prefLabelDTO = data.getLiterals().get("prefLabel");
+			if(prefLabelDTO==null) {
+				prefLabelDTO= data.getStrings().get("prefLabel");
+			}
+			if(prefLabelDTO==null || prefLabelDTO.getValue().isEmpty()) {
 			if(dto.getSelectedNode()>0) {
 				Concept node=closureServ.loadConceptById(dto.getSelectedNode());
 				tld.setConcept(node);
@@ -1121,15 +1127,15 @@ public class ThingService {
 				tld.setVarName(dto.getVarName());
 				thing.getLegacyData().add(tld);
 				//tune variables, we understand that legacy data component is only one :)
-				/* 22.09.2022 old version
-				FormFieldDTO<String> prefLabelDTO = data.getLiterals().get("prefLabel");
-				if(prefLabelDTO==null) {
-					prefLabelDTO = data.getStrings().get("prefLabel");
-				}
-				if(prefLabelDTO != null) {
+				// 22.09.2022 old version RETURN 04.11.2022 ika
+				//FormFieldDTO<String> prefLabelDTO = data.getLiterals().get("prefLabel");
+				//if(prefLabelDTO==null) {
+				//	prefLabelDTO = data.getStrings().get("prefLabel");
+				//}
+				//if(prefLabelDTO != null) {
 					String prefLabel=literalServ.readPrefLabel(node);
 					prefLabelDTO.setValue(prefLabel);
-				}
+				//}
 				//alt label may be configured as altLabel or another name
 				FormFieldDTO<String> altLabelDTO = data.getLiterals().get(dto.getAltLabel());
 				if(altLabelDTO==null) {
@@ -1138,9 +1144,27 @@ public class ThingService {
 				if(altLabelDTO != null) {
 					String altLabel=literalServ.readValue("altLabel", node);		//here altLabel is right
 					altLabelDTO.setValue(altLabel);
-				}*/
-
-				/*22.09.2022 new version */
+				}
+							//for legacyRegister  register
+				LegacyData legacy=boilerServ.findLegacyByConcept(node);
+				RegisterDTO regDto = data.getRegisters().get("legacyRegister");
+				if(regDto!=null) {
+				FormFieldDTO<LocalDate> rD=new FormFieldDTO<LocalDate>();
+				FormFieldDTO<LocalDate> eD=new FormFieldDTO<LocalDate>();
+				FormFieldDTO<String> num=new FormFieldDTO<String>();
+					num.setReadOnly(true);
+					num.setValue(legacy.getRegister());
+					regDto.setReg_number(num);
+					LocalDate regDate=boilerServ.localDateFromDate(legacy.getRegDate());
+					rD.setReadOnly(true);
+					rD.setValue(regDate);
+					regDto.setRegistration_date(rD);
+					LocalDate expDate=boilerServ.localDateFromDate(legacy.getExpDate());
+					eD.setValue(expDate);
+					regDto.setExpiry_date(eD);
+					data.getRegisters().replace("legacyRegister", regDto);
+			}
+				/*22.09.2022 new version CANCEL 04.11.2022 ika
 				FormFieldDTO<String> prefLabelDTO = data.getLiterals().get(LiteralService.PREF_NAME);
 				if(prefLabelDTO==null) {
 					prefLabelDTO = data.getStrings().get(LiteralService.PREF_NAME);
@@ -1173,8 +1197,9 @@ public class ThingService {
 						String altLabel=literalServ.readValue("altLabel", node);		//here altLabel is right
 						altLabelDTO.setValue(altLabel);
 					}
-				}
+				}*/
 			}
+		}
 		}
 		return data;
 	}
@@ -1965,7 +1990,7 @@ public class ThingService {
 		}
 		return path;
 	}
-
+	
 	/**
 	 * Create a deep clone of the ThingDTO
 	 * @param dto
