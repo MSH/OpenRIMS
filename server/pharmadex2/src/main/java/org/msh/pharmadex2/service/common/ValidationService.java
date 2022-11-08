@@ -77,7 +77,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-
 /**
  * Service to validate application specific DTOs
  * @author alexk
@@ -342,7 +341,7 @@ public class ValidationService {
 			}
 		}
 		// check for prefLabel if this is the first page of the application
-		if(data.getPathIndex()==1000 || data.getAuxPathIndex()==1000) {
+		if(data.isFirstPage() || data.isAuxfirstPage()) {
 			lits.addAll(s);
 			boolean flag=false;
 			for(AssemblyDTO assm : lits) {

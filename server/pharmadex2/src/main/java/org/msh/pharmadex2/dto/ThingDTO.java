@@ -78,6 +78,8 @@ public class ThingDTO extends AllowValidation {
 	//The main static path - things that should be filled
 	private List<ThingDTO> path = new ArrayList<ThingDTO>();								//all things path
 	private int pathIndex=0;																					//the current index in the path		
+	private boolean firstPage=false;
+	private boolean auxfirstPage=false;
 	
 	//auxiliary dynamic path
 	private String auxPathVar="";																			//variable name that initiate path rebuild
@@ -463,6 +465,18 @@ public class ThingDTO extends AllowValidation {
 		}
 		// the last resort
 		return ret;
+	}
+	public boolean isFirstPage() {
+		return firstPage;
+	}
+	public void setFirstPage(boolean firstPage) {
+		this.firstPage = firstPage;
+	}
+	public boolean isAuxfirstPage() {
+		return auxfirstPage;
+	}
+	public void setAuxfirstPage(boolean auxfirstPage) {
+		this.auxfirstPage = auxfirstPage;
 	}
 	
 }

@@ -1632,7 +1632,10 @@ public class ApplicationService {
 	}
 
 	/**
-	 * Perform a submit action required by a NMRA executor or supervisor user
+	 * Submit an activity in a workflow
+	 * The submit action is defined by the code of an activity
+	 * This code should be selected by a user from the left upper table
+	 * The content of the left upper table is calculated before  
 	 * 
 	 * @param user
 	 * @param data
@@ -1650,7 +1653,8 @@ public class ApplicationService {
 				actCode = 0;
 			}
 			;
-			/*systemDictNode(root, "0", messages.get("continue"));
+			/*Possible activity codes from SystemService.submitActionDictionary 
+			 systemDictNode(root, "0", messages.get("continue"));
 			systemDictNode(root, "1", messages.get("route_action"));
 			systemDictNode(root, "2", messages.get("newactivity"));
 			systemDictNode(root, "3", messages.get("cancel"));
