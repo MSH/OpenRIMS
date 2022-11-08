@@ -40,7 +40,7 @@ class AlertFloat extends Component{
                 setTimeout(() => {
                     this.state.data=''
                     this.setState(this.state)
-                }, 10000);
+                }, 20000);
                 this.setState(this.state)
             }
            

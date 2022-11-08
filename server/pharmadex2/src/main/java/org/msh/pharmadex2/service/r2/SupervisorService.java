@@ -171,13 +171,13 @@ public class SupervisorService {
 		return path;
 	}
 	/*	 *//** 2011-11-11 DEPRECATED and useless
-			 * Load activity configuration or user data configuration
-			 * 
-			 * @param data
-			 * @param user
-			 * @return
-			 * @throws ObjectNotFoundException
-			 *//*
+	 * Load activity configuration or user data configuration
+	 * 
+	 * @param data
+	 * @param user
+	 * @return
+	 * @throws ObjectNotFoundException
+	 *//*
 				@Transactional
 				public ThingDTO thingLoad(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 				if(data.getNodeId()>0) {
@@ -269,24 +269,36 @@ public class SupervisorService {
 		Concept root = closureServ.loadRoot(SystemService.DATA_COLLECTIONS_ROOT);
 		if (data.getTable().getHeaders().getHeaders().size() == 0) {
 			data.getTable().setHeaders(headersDataCollections(data.getTable().getHeaders()));
+		}else {
+			//change page should deselect all
+			if(data.getTable().getHeaders().getPage()!=data.getPageNo()) {
+				data.setNodeId(0l);
+				data.setVarNodeId(0l);
+				data.setVarTable(new TableQtb());
+			}
 		}
-		List<Long> selected = new ArrayList<Long>();
-		if (data.getNodeId() > 0) {
-			for (TableRow row : data.getTable().getRows()) {
-				if (row.getSelected()) {
-					selected.add(row.getDbID());
+		//load a table
+		jdbcRepo.prepareDictionaryLevel(root.getID());
+		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from _dictlevel", "", "", data.getTable().getHeaders());
+		// set a page with the a currently selected object
+		TableQtb.tablePage(rows, data.getTable());					//determine the size in pages
+		int pages=data.getTable().getHeaders().getPages();
+		int pageSize=data.getTable().getHeaders().getPageSize();
+		int pageNo=0;
+		for(int page=1;page<=pages;page++) {
+			List<TableRow> rows1=TableHeader.fetchPage(rows, page, pageSize);
+			for(TableRow row : rows1) {
+				if(row.getDbID()==data.getNodeId()) {
+					row.setSelected(true);
+					pageNo=page;
+					data.getTable().getHeaders().setPage(page);
 				}
 			}
 		}
-		data.setTable(dictServ.loadTable(root, data.getTable(), selected, false, false));
-		for (TableRow row : data.getTable().getRows()) {
-			if (selected.contains(row.getDbID()) || row.getDbID() == data.getNodeId()) {
-				row.setSelected(true);
-				data.setNodeId(row.getDbID());
-			}
-		}
+		TableQtb.tablePage(rows, data.getTable());				//set the right page
 		// reload variables table, if some selected
 		data = dataCollectionVariablesLoad(data);
+		data.setPageNo(data.getTable().getHeaders().getPage());
 		return data;
 	}
 
@@ -299,10 +311,12 @@ public class SupervisorService {
 	private Headers headersDataCollections(Headers headers) {
 		headers.getHeaders().clear();
 		headers.getHeaders()
-				.add(TableHeader.instanceOf("identifier", "url", true, true, true, TableHeader.COLUMN_LINK, 0));
+		.add(TableHeader.instanceOf("identifier", "url", true, true, true, TableHeader.COLUMN_LINK, 0));
 		headers.getHeaders()
-				.add(TableHeader.instanceOf("pref", "description", true, true, true, TableHeader.COLUMN_STRING, 0));
+		.add(TableHeader.instanceOf("pref", "description", true, true, true, TableHeader.COLUMN_STRING, 0));
 		headers.setPageSize(20);
+		headers.getHeaders().get(0).setSort(true);
+		headers.getHeaders().get(0).setSortValue(TableHeader.SORT_ASC);
 		return headers;
 	}
 
@@ -403,14 +417,14 @@ public class SupervisorService {
 		headers.getHeaders().add(TableHeader.instanceOf("col", "col", true, true, true, TableHeader.COLUMN_LONG, 0));
 		headers.getHeaders().add(TableHeader.instanceOf("ord", "order", true, true, true, TableHeader.COLUMN_LONG, 0));
 		headers.getHeaders()
-				.add(TableHeader.instanceOf("propertyName", "variables", true, true, true, TableHeader.COLUMN_LINK, 0));
+		.add(TableHeader.instanceOf("propertyName", "variables", true, true, true, TableHeader.COLUMN_LINK, 0));
 		headers.getHeaders()
 		.add(TableHeader.instanceOf("ext", "ext", true, true, true, TableHeader.COLUMN_STRING, 0));
 		headers.getHeaders()
-				.add(TableHeader.instanceOf("clazz", "clazz", true, true, true, TableHeader.COLUMN_STRING, 0));
+		.add(TableHeader.instanceOf("clazz", "clazz", true, true, true, TableHeader.COLUMN_STRING, 0));
 
 		headers.getHeaders()
-				.add(TableHeader.instanceOf("pref", "description", true, true, true, TableHeader.COLUMN_STRING, 0));
+		.add(TableHeader.instanceOf("pref", "description", true, true, true, TableHeader.COLUMN_STRING, 0));
 
 		TableHeader h = headers.getHeaders().get(0);
 		h.setSort(true);
@@ -513,10 +527,10 @@ public class SupervisorService {
 				if (data.getVarNodeId() > 0) {
 					node = closureServ.loadConceptById(data.getVarNodeId());
 				}
-				
+
 				node.setIdentifier(data.getVarName().getValue()+data.getVarNameExt().getValue());
 				node.setLabel(data.getVarNameExt().getValue());
-				
+
 				Concept root = closureServ.loadConceptById(data.getNodeId());
 				node = closureServ.saveToTree(root, node);
 				node = literalServ.prefAndDescription(data.getDescription().getValue(),
@@ -681,7 +695,7 @@ public class SupervisorService {
 	private Headers headerResources(Headers headers) {
 		headers.getHeaders().clear();
 		headers.getHeaders()
-				.add(TableHeader.instanceOf("url", "dataurl", true, true, true, TableHeader.COLUMN_LINK, 0));
+		.add(TableHeader.instanceOf("url", "dataurl", true, true, true, TableHeader.COLUMN_LINK, 0));
 		headers.getHeaders().add(
 				TableHeader.instanceOf("description", "description", true, true, true, TableHeader.COLUMN_STRING, 0));
 		boilerServ.translateHeaders(headers);
@@ -865,7 +879,7 @@ public class SupervisorService {
 		headers.getHeaders().clear();
 		headers.setPageSize(50);
 		headers.getHeaders()
-				.add(TableHeader.instanceOf("message_key", "res_key", true, true, true, TableHeader.COLUMN_LINK, 0));
+		.add(TableHeader.instanceOf("message_key", "res_key", true, true, true, TableHeader.COLUMN_LINK, 0));
 		headers.getHeaders().add(
 				TableHeader.instanceOf("message_value", "res_value", true, true, true, TableHeader.COLUMN_LINK, 0));
 		boilerServ.translateHeaders(headers);

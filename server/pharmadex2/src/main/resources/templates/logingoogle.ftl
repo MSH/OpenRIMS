@@ -207,7 +207,7 @@ span.psw {
 			<ul>
 				<#list providers?keys as key>
 					<#if "Google"==key>
-						<div class="google-btn" onclick="window.location.href='${providers[key]}';">
+						<div class="google-btn" onclick="addcookie(); window.location.href='${providers[key]}'">
 							<div class="google-icon-wrapper">
 							<img class="google-icon" src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg"/>
 							</div>
@@ -226,6 +226,11 @@ span.psw {
     </div>
     </form>
 </div>
-   
-</body>
+	<script type="text/javascript">
+    	function addcookie(){
+    		var h = window.location.hash;
+    		document.cookie = "PDX2_SENDURL=" + encodeURIComponent(h);
+	        location.reload();
+    	}
+    </script>
 </html>

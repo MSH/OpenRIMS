@@ -82,6 +82,9 @@ class DataConfigurator extends Component{
     loader(){
         Fetchers.postJSONNoSpinner("/api/admin/data/collections/load", this.state.data, (query,result)=>{
             this.state.data=result
+            if(this.state.data.nodeId==0){
+                this.state.vars=false
+            }
             this.setState(this.state)
         })
     }

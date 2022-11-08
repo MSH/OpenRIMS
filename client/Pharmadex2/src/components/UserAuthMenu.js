@@ -76,7 +76,7 @@ class UserAuthMenu extends Component{
               </Form>
             </NavItem>
             <NavItem>
-              <NavLink href="/logout">{this.state.labels.logout}</NavLink>
+              <NavLink onClick={()=>{Fetchers.logout()}}>{this.state.labels.logout}</NavLink>
             </NavItem>
             <NavItem>
                 <Languages />

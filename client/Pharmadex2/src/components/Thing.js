@@ -111,6 +111,7 @@ class Thing extends Component{
                 if(this.state.data.valid){
                     this.storeLocal()
                 }else{
+                    Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'danger'})
                     this.setState(this.state)
                 }
                 if(savedByAction){

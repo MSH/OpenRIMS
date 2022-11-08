@@ -251,6 +251,9 @@ class ThingsManager extends Component{
         if(this.state.data.path != undefined && this.state.data.path[index] != undefined){
             index=this.state.data.pathIndex
             data=this.state.data.path[index]
+            if(index==0){
+                data.pathIndex=1000
+            }
             let norepaint = (index==0 && data.nodeId==0) //to avoid double register on the first form
             data.repaint=!norepaint                   //repaint it!
         }
@@ -258,6 +261,9 @@ class ThingsManager extends Component{
         if(this.state.data.auxPath != undefined && this.state.data.auxPath.length>0){
             index=this.state.data.auxPathIndex
             data=this.state.data.auxPath[index]
+            if(index==0){
+                data.auxPathIndex=1000
+            }
             data.repaint=true  
         }
         return(
