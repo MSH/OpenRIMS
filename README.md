@@ -12,7 +12,7 @@ Directories:
 * server - server software consist of two projects:
   * pdxmodel - database access project. This project built on Spring Boot, Maven. Created by Spring Boot Initializer
   * pharmadex2 - web project. This project built on Spring Boot Maven. Created by Spring Boot Initializer 
-* database - databse structure. The real database is not fit GitHub constrains. Please, ask alex.kurasoff@gmail.com for more data
+* database - databse structure. The real database exceeds GitHub restrictions. Please contact digital@msh.org.
 * date-convertor - utility project to conert Nepali dates.
 
 For more information, contact digital@msh.org
