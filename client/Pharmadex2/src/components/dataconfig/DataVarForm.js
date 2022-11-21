@@ -99,7 +99,7 @@ class DataVarForm extends Component{
                                 }}
                             />
                         </Col>
-                        <Col xs='12' sm='12' lg='4' xl='4' hidden={this.props.restricted && this.state.data.varNodeId!=0}>
+                        <Col xs='12' sm='12' lg='4' xl='4' hidden={!this.props.restricted && this.state.data.varNodeId!=0}>
                             <ButtonUni
                                 disabled={this.state.data.varNodeId==0}
                                 label={this.state.labels.global_suspend}
@@ -155,7 +155,7 @@ option(){
     }
 }
 hiddenUrl(){
-    if(this.props.restricted){
+    if(!this.props.restricted){
         if(this.state.data.varNodeId!=0){
            return(<Col xs='12' sm='12' lg='4' xl='6'>
            <ViewEdit mode='text' attribute='url' component={this} />
@@ -172,7 +172,7 @@ hiddenUrl(){
     }
 }
 hiddenAuxUrl(){
-    if(this.props.restricted){
+    if(!this.props.restricted){
         if(this.state.data.varNodeId!=0){
            return(<Col xs='12' sm='12' lg='6' xl='6'>
            <ViewEdit mode='text' attribute='auxUrl' component={this} />
@@ -198,12 +198,12 @@ hiddenAuxUrl(){
                 {this.buttons()}
                 <Row>
                     <Col>
-                        <FieldGuarded mode="text" attribute="varName" component={this} editno={this.props.restricted && this.state.data.varNodeId!=0}/>
+                        <FieldGuarded mode="text" attribute="varName" component={this} editno={!this.props.restricted && this.state.data.varNodeId!=0}/>
                     </Col>
                 </Row>
                 <Row>
                     <Col>
-                        <FieldGuarded mode="text" attribute="varNameExt" component={this} editno={this.props.restricted && this.state.data.varNodeId!=0}/>
+                        <FieldGuarded mode="text" attribute="varNameExt" component={this} editno={!this.props.restricted && this.state.data.varNodeId!=0}/>
                     </Col>
                 </Row>
                 <Row>

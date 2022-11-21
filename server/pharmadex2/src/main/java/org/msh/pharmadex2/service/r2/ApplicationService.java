@@ -1375,7 +1375,7 @@ public class ApplicationService {
 				if (data.isValid()) {
 					allowed.add("1"); // route to another executor
 				}
-				data = validServ.submitApprove(curHis, user, data);
+				data = validServ.submitApprove(curHis, user, data, null);
 				if (data.isValid()) {
 					allowed.add("4");
 				}
@@ -1692,10 +1692,7 @@ public class ApplicationService {
 				data = actionCancel(curHis, data);
 				return data;
 			case 4:
-				sendEmailAttention(user, curHis, data);
-				data = validServ.submitApprove(curHis, user, data);
-				// data=validServ.submitApproveData(curHis, user, data);
-				data = submitApprove(curHis, user, data);
+				data = submitSendApprove(data, user, curHis);
 				return data;
 			case 5:
 				sendEmailAttention(user, curHis, data);
@@ -1733,7 +1730,27 @@ public class ApplicationService {
 			throw new ObjectNotFoundException("submitSend. Access denied", logger);
 		}
 	}
+		
+	/**
+	 * 10.11.2022 khomenska
+	 *  Approve action
+	 */
+	private ActivitySubmitDTO submitSendApprove(ActivitySubmitDTO data, UserDetailsDTO user, History curHis) throws ObjectNotFoundException{
+		Concept applRoot = closureServ.loadParents(curHis.getApplication()).get(0);
+		String applUrl = applRoot.getIdentifier();
+		Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
+		List<Concept> nextActs = loadActivities(configRoot);
+		
+		data = validServ.submitApprove(curHis, user, data, nextActs);
 
+		data = submitApprove(curHis, user, data);
+		
+		if(data.isValid()) {
+			sendEmailAttention(user, curHis, data);
+		}
+		return data;
+	}
+	
 	private void sendEmailAttention(UserDetailsDTO user, History curHis, ActivitySubmitDTO data)
 			throws ObjectNotFoundException {
 		// 23.10.2022

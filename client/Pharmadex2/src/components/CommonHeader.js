@@ -46,7 +46,7 @@ class CommonHeader extends Component{
             <Container fluid className="bg-dark">
                 <Row>
                     <Col xs='10' sm='10' lg='2' xl='2' className="d-flex justify-content-start p-0 d-print-none">
-                        <img src="api/public/nmra.svg" height={60}/>
+                        <img src="api/public/headerlogo" height={60}/>
                     </Col>
                     <Col xs='2' sm='2' lg='10' xl='10' className="d-flex justify-content-end">
                         {this.userMenu()}

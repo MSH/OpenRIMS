@@ -86,6 +86,9 @@ public class SupervisorService {
 	@Autowired
 	ResourceBundleRepo resourceBundleRepo;
 
+	@Value("${variables.properties.edit}")
+	private boolean variablesPropertiesEdit;
+	
 	/**
 	 * Create content for administrative tile, using existed supervisor features
 	 * 
@@ -403,10 +406,14 @@ public class SupervisorService {
 			TableQtb.tablePage(rows, table);
 			table.setSelectable(false);
 			// is edit restricted?
+			if(!variablesPropertiesEdit) {
 			Concept conc = closureServ.loadConceptById(data.getNodeId());
 			jdbcRepo.data_url_references(conc.getIdentifier());
 			List<TableRow> rows1 = jdbcRepo.qtbGroupReport("select * from data_url_references", "", "", new Headers());
 			data.setRestricted(rows1.size()>0);	//at least one reference is existed
+			}else{
+				data.setRestricted(true);
+			}
 		}
 		return data;
 	}

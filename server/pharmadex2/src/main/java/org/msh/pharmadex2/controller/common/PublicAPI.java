@@ -13,6 +13,7 @@ import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pharmadex2.dto.AboutDTO;
 import org.msh.pharmadex2.dto.ContentDTO;
+import org.msh.pharmadex2.dto.SystemImageDTO;
 import org.msh.pharmadex2.dto.UserFormDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.exception.DataNotFoundException;
@@ -121,15 +122,14 @@ public class PublicAPI{
 	 * @return
 	 * @throws DataNotFoundException 
 	 */
-	@RequestMapping(value="api/public/nmra.svg", method = RequestMethod.GET)
+	@RequestMapping(value="api/public/headerlogo", method = RequestMethod.GET)
 	public ResponseEntity<Resource> nmraLogo() throws DataNotFoundException {
-		Resource res;
 		try {
-			res = resourceServ.logo();
+			SystemImageDTO dto = resourceServ.logo();
 			return ResponseEntity.ok()
-					.contentType(MediaType.parseMediaType("image/svg+xml"))
-					.header("filename","nmra.svg")
-					.body(res);
+					.contentType(MediaType.parseMediaType(dto.getMediatype()))
+					.header("filename", dto.getFilename())
+					.body(dto.getResource());
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -140,15 +140,14 @@ public class PublicAPI{
 	 * @return
 	 * @throws DataNotFoundException 
 	 */
-	@RequestMapping(value="api/public/footer.svg", method = RequestMethod.GET)
+	@RequestMapping(value="api/public/footerlogo", method = RequestMethod.GET)
 	public ResponseEntity<Resource> nmraFooter() throws DataNotFoundException {
-		Resource res;
 		try {
-			res = resourceServ.footer();
+			SystemImageDTO dto = resourceServ.footer();
 			return ResponseEntity.ok()
-					.contentType(MediaType.parseMediaType("image/svg+xml"))
-					.header("filename","nmra.svg")
-					.body(res);
+					.contentType(MediaType.parseMediaType(dto.getMediatype()))
+					.header("filename", dto.getFilename())
+					.body(dto.getResource());
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -263,9 +262,33 @@ public class PublicAPI{
 			throw new DataNotFoundException(e);
 		}
 	}
+	
 	@PostMapping("/api/public/report/loadlink")
 	public String reportLoadlink(Authentication auth, @RequestBody String data) {
 		return reportServ.getLinkReport();
 	}
 	
+	/* 15.11.2022 khomenska */
+	@RequestMapping(value="api/public/terms", method = RequestMethod.GET)
+	public ResponseEntity<Resource> loadTerms() throws DataNotFoundException, IOException {
+		ResponseEntity<Resource> res;
+		try {
+			res = resourceServ.downloadTerms();
+			return res;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+	
+	/* 15.11.2022 khomenska */
+	@RequestMapping(value="api/public/privacy", method = RequestMethod.GET)
+	public ResponseEntity<Resource> loadPrivacy() throws DataNotFoundException, IOException {
+		ResponseEntity<Resource> res;
+		try {
+			res = resourceServ.downloadPrivacy();
+			return res;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
 }

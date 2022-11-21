@@ -28,8 +28,8 @@ public class ReportPage implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC222274183844892720737A")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC222274183844892720737A", strategy="native")	
+	@GeneratedValue(generator="VAC2222741845D6414E804DF1")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222741845D6414E804DF1", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	
@@ -47,7 +47,7 @@ public class ReportPage implements Serializable {
 	@Column(name="Lang", nullable=true, length=255)	
 	private String lang;
 	
-	@Column(name="PrefLabel", nullable=true, length=255)	
+	@Column(name="PrefLabel", nullable=true)	
 	private String prefLabel;
 	
 	@Column(name="Owner", nullable=true, length=255)	

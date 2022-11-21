@@ -2,14 +2,8 @@ package org.msh.pharmadex2.service.r2;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -29,10 +23,9 @@ import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.controller.common.DocxView;
 import org.msh.pharmadex2.dto.AssemblyDTO;
-import org.msh.pharmadex2.dto.FileResourceDTO;
 import org.msh.pharmadex2.dto.PersonSelectorDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
-import org.msh.pharmadex2.dto.TileDTO;
+import org.msh.pharmadex2.dto.SystemImageDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,9 +33,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.ResourceLoader;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -73,33 +65,51 @@ public class ResourceService {
 	 * Read a logo from resource or default one
 	 * @return
 	 * @throws ObjectNotFoundException 
+	 *  15.11.2022 khomenska 
 	 */
 	@Transactional
-	public Resource logo() throws ObjectNotFoundException {
+	public SystemImageDTO logo() throws ObjectNotFoundException {
+		SystemImageDTO dto = new SystemImageDTO();
+		dto.setFilename("nmra.svg");
+		dto.setMediatype("image/svg+xml");
+		
 		Concept node=fileNode("images.design", "resources.system.logo");
 		if(node != null) {
-			FileResource fres=boilerServ.fileResourceByNode(node);
-			return new ByteArrayResource(fres.getFile());
+			FileResource fres = boilerServ.fileResourceByNode(node);
+			dto.setResource(new ByteArrayResource(fres.getFile()));
+			dto.setFilename(fres.getConcept().getLabel());
+			dto.setMediatype(fres.getMediatype());
 		}else {
-			return new ByteArrayResource(messages.loadNmraLogo().getBytes());
+			dto.setResource(new ByteArrayResource(messages.loadNmraLogo().getBytes()));
 		}
+		return dto;
 	}
 
 	/**
 	 * Load NMRA footer
 	 * @return
 	 * @throws ObjectNotFoundException 
+	 * 15.11.2022 khomenska 
 	 */
 	@Transactional
-	public Resource footer() throws ObjectNotFoundException {
+	public SystemImageDTO footer() throws ObjectNotFoundException {
+		SystemImageDTO dto = new SystemImageDTO();
+		dto.setFilename("nmra.svg");
+		dto.setMediatype("image/svg+xml");
+		
 		Concept node=fileNode("images.design", "resources.system.logo.footer");
 		if(node != null) {
-			FileResource fres=boilerServ.fileResourceByNode(node);
-			return new ByteArrayResource(fres.getFile());
+			FileResource fres = boilerServ.fileResourceByNode(node);
+			dto.setResource(new ByteArrayResource(fres.getFile()));
+			dto.setFilename(fres.getConcept().getLabel());
+			dto.setMediatype(fres.getMediatype());
 		}else {
-			return new ByteArrayResource(messages.loadNmraLogo().getBytes());
+			dto.setResource(new ByteArrayResource(messages.loadNmraLogo().getBytes()));
 		}
+		
+		return dto;
 	}
+
 
 
 	/**
@@ -309,4 +319,52 @@ public class ResourceService {
 				.body(resource);
 	}
 
+	/* 15.11.2022 khomenska */
+	@Transactional
+	public ResponseEntity<Resource> downloadTerms() throws ObjectNotFoundException, IOException {
+		return downloadFile("resources.system.terms");
+	}
+	
+	/* 15.11.2022 khomenska */
+	@Transactional
+	public ResponseEntity<Resource> downloadPrivacy() throws ObjectNotFoundException, IOException {
+		return downloadFile("resources.system.privacy");
+	}
+	
+	/* 15.11.2022 khomenska */
+	private ResponseEntity<Resource> downloadFile(String varName) throws ObjectNotFoundException, IOException{
+		Concept node=fileNode("images.design", varName);
+		String typeOpen = "inline";
+		String mediaType = "application/pdf";
+		if(node != null) {
+			FileResource fres = boilerServ.fileResourceByNode(node);
+			String fileName = node.getLabel();
+			Resource res = new ByteArrayResource(fres.getFile());
+			mediaType = fres.getMediatype();
+			
+			return ResponseEntity.ok()
+					.contentType(MediaType.parseMediaType(mediaType))
+					.contentLength(fres.getFileSize())
+					.header(HttpHeaders.CONTENT_DISPOSITION, typeOpen + "; filename=\"" + fileName +"\"")
+					.header("filename", fileName)
+					.body(res);
+		}else {
+			String fileName = "privacypolicy.pdf";
+			if(varName.equals("resources.system.terms")) {
+				fileName = "termsofuse.pdf";
+			}
+			
+			Path pathFile = Paths.get("src","main","resources", "static", "shablon", fileName);
+			byte[] bytes = Files.readAllBytes(pathFile);
+			Resource res = new ByteArrayResource(bytes);
+			
+			return ResponseEntity.ok()
+					.contentType(MediaType.parseMediaType(mediaType))
+					.contentLength(res.contentLength())
+					.header(HttpHeaders.CONTENT_DISPOSITION, typeOpen + "; filename=\"" + fileName +"\"")
+					.header("filename", fileName)
+					.body(res);
+			//throw new ObjectNotFoundException(" load. File not found. Node url=\"images.design\", varName=\""+varName +"\"");
+		}
+	}
 }

@@ -28,7 +28,7 @@ private RedirectStrategy redirectStrategy = new DefaultRedirectStrategy();
 	}
 
 	static public String getCookieValue(HttpServletRequest request, Authentication authentication) throws UnsupportedEncodingException {
-		String appurl = "/";
+		String appurl = "";
 		
 		if(request.getCookies() != null) {
 			for(Cookie ck:request.getCookies()) {

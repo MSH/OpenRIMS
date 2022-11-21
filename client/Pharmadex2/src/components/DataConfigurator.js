@@ -317,12 +317,12 @@ class DataConfigurator extends Component{
                         <Row>
                             <Col className="d-inline p-2">
                                 <h6>
-                                <i hidden={!this.state.data.restricted} className="fa fa-exclamation-triangle" style={{FontSize:'2em',color: 'tomato'}} aria-hidden="true"></i>
+                                <i hidden={this.state.data.restricted} className="fa fa-exclamation-triangle" style={{FontSize:'2em',color: 'tomato'}} aria-hidden="true"></i>
                                 {this.state.labels.variables}
                                 </h6>
                             </Col>
                         </Row>
-                        <Row hidden={!this.state.data.restricted}>
+                        <Row hidden={this.state.data.restricted}>
                             <Col>
                                 <FormText color="muted">
                                     {this.state.labels.restricted_edit}

@@ -84,7 +84,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class ValidationService {
-	private static final Logger logger = LoggerFactory.getLogger(DtoService.class);
+	private static final Logger logger = LoggerFactory.getLogger(ValidationService.class);
 	@Autowired
 	Messages messages;
 	@Autowired
@@ -106,6 +106,13 @@ public class ValidationService {
 	@Autowired
 	private DeregistrationService deregServ;
 
+	/**
+	 * ^[a-z]{1,} - первый символ всегда буква
+	 * [a-z0-9]* - далее буква или цыфра или _ или .
+	 * ((\\.|\\_)[a-z0-9]{1,})* - после любого _ или . всегда буква или цыфра. Повторы тоже возможны
+	 */
+	private static final String regexVarName = "^[a-z]{1,}[a-z0-9]*" + "((\\.|\\_)[a-z0-9]{1,})*";
+	private static final Pattern pattern = Pattern.compile(regexVarName, Pattern.CASE_INSENSITIVE);
 	/**
 	 * Validate a node
 	 * @param data
@@ -545,10 +552,21 @@ public class ValidationService {
 	 * @param regex
 	 * @return
 	 */
-	private boolean patternMatch(String value, String regex) {
+	public boolean patternMatch(String value, String regex) {
 		Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
 		Matcher matcher = pattern.matcher(value);
 		return matcher.find();
+	}
+	
+	/**
+	 * RegExp pattern matches
+	 * @return true if full value  \sequencematches this matcher's pattern
+	 * если вся строка value подходит под шаблон
+	 */
+	public boolean patternMatchFull(String value) {
+		Matcher matcher = pattern.matcher(value);
+		
+		return matcher.matches();
 	}
 
 	/**
@@ -1010,11 +1028,13 @@ public class ValidationService {
 	@Transactional
 	public AllowValidation workflowConfig(List<Concept> activities, Concept configRoot, AllowValidation data) throws ObjectNotFoundException {
 		data.clearErrors();
+		boolean hasSchedulers = false;
 		//each activity definition should has prefLabel,activityurl, checklisturl
 		for(Concept aco : activities) {
 			String prefLabel=literalServ.readPrefLabel(aco);
 			String activityUrl = literalServ.readValue("activityurl", aco);
 			String checklisturl = literalServ.readValue("checklisturl",aco);
+			String dataurl = literalServ.readValue("dataurl",aco);
 			if(prefLabel.length()==0
 					|| activityUrl.length()==0
 					|| checklisturl.length()==0){
@@ -1029,11 +1049,24 @@ public class ValidationService {
 					data.setValid(false);
 					return data;
 				}
+				//Schedulers 09.11.2022 khomenska
+				List<Assembly> assemblies = assemblyServ.loadDataConfiguration(dataurl);
+				List<AssemblyDTO> schedulers = assemblyServ.auxSchedulers(dataurl, assemblies);
+				if(schedulers != null && schedulers.size() > 0) {
+					hasSchedulers = true;
+				}
 			}else {
 				data.setIdentifier(messages.get("badconfiguration")+"ThingID is ZERO config root is " + configRoot.getID());
 				data.setValid(false);
 				return data;
 			}
+		}
+		if(!hasSchedulers) {//Schedulers 09.11.2022 khomenska
+			String w = messages.get("badconfiguration")+" " + messages.get("notFoundSchedulers");
+			data.setIdentifier(w);
+			logger.info(w);
+			data.setValid(false);
+			return data;
 		}
 		return data;
 	}
@@ -1063,6 +1096,7 @@ public class ValidationService {
 	public DataVariableDTO variable(DataVariableDTO data) throws ObjectNotFoundException {
 		data.clearErrors();
 		data=variableName(data);
+		data=variableExtName(data);
 		data=variableClazzAndParams(data);
 		data=variableScreen(data);
 		data=variableDictionary(data);
@@ -1218,7 +1252,10 @@ public class ValidationService {
 	 * Variable name should be defined
 	 * @param data
 	 * @return
-	 * @throws ObjectNotFoundException 
+	 * @throws ObjectNotFoundException
+	 *  
+	 * 18.11.2022 khomenska
+	 * add verification with Pattern
 	 */
 	private DataVariableDTO variableName(DataVariableDTO data) throws ObjectNotFoundException {
 		FormFieldDTO<String> vn= data.getVarName();
@@ -1227,6 +1264,39 @@ public class ValidationService {
 			suggest(vn,3,100,true);
 		}
 		data.propagateValidation();
+		if(patternMatchFull(vn.getValue())) {
+			// все подходит по патерну
+		}else {
+			// не подходит по патерну - выдаем сообщение, но разрешаем сохранять ПОКА
+			data.setValid(false);
+			data.setStrict(false);
+			String mess = messages.get("varNameHasError");
+			data.setIdentifier(mess);
+		}
+		return data;
+	}
+	
+	/**
+	 * VariableExt name should be defined
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 *  
+	 * 18.11.2022 khomenska
+	 * add verification with Pattern
+	 */
+	private DataVariableDTO variableExtName(DataVariableDTO data) throws ObjectNotFoundException {
+		FormFieldDTO<String> vn= data.getVarNameExt();
+		if(vn.getValue().length() > 0){
+			if(!patternMatchFull(vn.getValue())) {
+				// не подходит по патерну - выдаем сообщение, но разрешаем сохранять ПОКА
+				data.setValid(false);
+				data.setStrict(false);
+				String mess = messages.get("varNameExtHasError");
+				data.setIdentifier(mess);
+			}
+		}
+		
 		return data;
 	}
 	/**
@@ -1488,24 +1558,66 @@ public class ValidationService {
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public ActivitySubmitDTO submitApprove(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
+	public ActivitySubmitDTO submitApprove(History curHis, UserDetailsDTO user, ActivitySubmitDTO data, List<Concept> nextActs) throws ObjectNotFoundException {
 		data.clearErrors();
+		data.setColorAlert("info");
 		if(!data.isReassign()) {
 			Concept exec = closureServ.getParent(curHis.getActivity());
 			if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {
 				if(isActivityForeground(curHis.getActConfig())) {
 					if(curHis.getGo()==null) {
 						if(isActivityFinalAction(curHis, SystemService.FINAL_ACCEPT)) {
-							return data;
+							if(nextActs != null) {//TODO khomenska 09112022
+								if(validateConfigurationRegister(nextActs)) {
+									return data;
+								}else {
+									String w = messages.get("badconfiguration") + " " + messages.get("notFoundRegisters");
+									data.setIdentifier(w);
+									data.setColorAlert("danger");
+									logger.info(w);
+									data.setValid(false);
+									return data;
+								}
+							}else {
+								return data;
+							}
 						}
 					}
 				}
 			}
 		}
+		data.setColorAlert("danger");
 		data.setIdentifier(messages.get("error_activityfinal"));
 		data.setValid(false);
 		return data;
 	}
+	
+	/**
+	 * khomenska 10.11.2022
+	 * 
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	private boolean validateConfigurationRegister(List<Concept> activities) throws ObjectNotFoundException {
+		boolean hasRegisters = false;
+
+		for(Concept aco : activities) {
+			String dataurl = literalServ.readValue("dataurl",aco);
+			List<Assembly> assemblies = assemblyServ.loadDataConfiguration(dataurl);
+			List<AssemblyDTO> registers = assemblyServ.auxRegisters(dataurl, assemblies);
+			if(registers != null && registers.size() > 0) {
+				for(AssemblyDTO ass:registers) {
+					if(ass.isRequired() && ass.isMult()) {
+						hasRegisters = true;
+						return hasRegisters;
+					}
+				}
+			}
+		}
+		
+		return hasRegisters;
+	}
+	
 	/**
 	 * Is it reject action. Is reject action is allowed
 	 * @param curHis
