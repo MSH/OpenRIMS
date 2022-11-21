@@ -1,15 +1,18 @@
 package org.msh.pharmadex2.service.r2;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.poi.util.IOUtils;
 import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
@@ -353,11 +356,8 @@ public class ResourceService {
 			if(varName.equals("resources.system.terms")) {
 				fileName = "termsofuse.pdf";
 			}
-			
-			Path pathFile = Paths.get("src","main","resources", "static", "shablon", fileName);
-			byte[] bytes = Files.readAllBytes(pathFile);
-			Resource res = new ByteArrayResource(bytes);
-			
+			InputStream in = getClass().getResourceAsStream("/static/shablon/"+fileName);
+			Resource res = new ByteArrayResource(IOUtils.toByteArray(in));
 			return ResponseEntity.ok()
 					.contentType(MediaType.parseMediaType(mediaType))
 					.contentLength(res.contentLength())
