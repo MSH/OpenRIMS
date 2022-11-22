@@ -410,7 +410,7 @@ public class SupervisorService {
 			Concept conc = closureServ.loadConceptById(data.getNodeId());
 			jdbcRepo.data_url_references(conc.getIdentifier());
 			List<TableRow> rows1 = jdbcRepo.qtbGroupReport("select * from data_url_references", "", "", new Headers());
-			data.setRestricted(rows1.size()>0);	//at least one reference is existed
+			data.setRestricted(rows1.size()==0);	//at least one reference is existed
 			}else{
 				data.setRestricted(true);
 			}
