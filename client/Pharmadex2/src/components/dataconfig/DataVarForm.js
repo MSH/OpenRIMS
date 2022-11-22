@@ -39,6 +39,7 @@ class DataVarForm extends Component{
         this.option=this.option.bind(this)
         this.hiddenUrl=this.hiddenUrl.bind(this)
         this.hiddenAuxUrl=this.hiddenAuxUrl.bind(this)
+        this.hiddenRestricted=this.hiddenRestricted.bind(this)
     }
 
     /**
@@ -99,7 +100,7 @@ class DataVarForm extends Component{
                                 }}
                             />
                         </Col>
-                        <Col xs='12' sm='12' lg='4' xl='4' hidden={!this.props.restricted && this.state.data.varNodeId!=0}>
+                        <Col xs='12' sm='12' lg='4' xl='4' hidden={this.hiddenRestricted()}>
                             <ButtonUni
                                 disabled={this.state.data.varNodeId==0}
                                 label={this.state.labels.global_suspend}
@@ -155,38 +156,49 @@ option(){
     }
 }
 hiddenUrl(){
-    if(!this.props.restricted){
-        if(this.state.data.varNodeId!=0){
-           return(<Col xs='12' sm='12' lg='4' xl='6'>
-           <ViewEdit mode='text' attribute='url' component={this} />
-       </Col>)
-        }else{
-            return(<Col xs='12' sm='12' lg='4' xl='6'>
-            <ViewEdit mode='text' attribute='url' component={this} edit/>
-            </Col>)
-        }
-    }else{
+    if(this.props.restricted){
         return(<Col xs='12' sm='12' lg='4' xl='6'>
             <ViewEdit mode='text' attribute='url' component={this} edit/>
             </Col>)
+    }else{
+        if(this.state.data.varNodeId==0){
+            return(<Col xs='12' sm='12' lg='4' xl='6'>
+            <ViewEdit mode='text' attribute='url' component={this} edit/>
+            </Col>)
+        }else{
+            return(<Col xs='12' sm='12' lg='4' xl='6'>
+            <ViewEdit mode='text' attribute='url' component={this} />
+        </Col>)
+        }
     }
 }
 hiddenAuxUrl(){
-    if(!this.props.restricted){
-        if(this.state.data.varNodeId!=0){
-           return(<Col xs='12' sm='12' lg='6' xl='6'>
-           <ViewEdit mode='text' attribute='auxUrl' component={this} />
-       </Col>)
-        }else{
-            return(<Col xs='12' sm='12' lg='6' xl='6'>
-            <ViewEdit mode='text' attribute='auxUrl' component={this} edit/>
-        </Col>)
-        }
-    }else{
+    if(this.props.restricted){
         return(<Col xs='12' sm='12' lg='6' xl='6'>
         <ViewEdit mode='text' attribute='auxUrl' component={this} edit/>
     </Col>)
+    }else{
+        if(this.state.data.varNodeId==0){
+            return(<Col xs='12' sm='12' lg='6' xl='6'>
+            <ViewEdit mode='text' attribute='auxUrl' component={this} edit/>
+        </Col>)
+        }else{
+            return(<Col xs='12' sm='12' lg='6' xl='6'>
+           <ViewEdit mode='text' attribute='auxUrl' component={this} />
+       </Col>)
+        }
     }
+}
+hiddenRestricted(){
+    let x = new Boolean(true) 
+    if(this.props.restricted){
+        x=false;
+    }else{
+        if(this.state.data.varNodeId==0){
+            x=false;
+        }
+    }
+    return(x)
 }
 
     render(){
@@ -198,12 +210,12 @@ hiddenAuxUrl(){
                 {this.buttons()}
                 <Row>
                     <Col>
-                        <FieldGuarded mode="text" attribute="varName" component={this} editno={!this.props.restricted && this.state.data.varNodeId!=0}/>
+                        <FieldGuarded mode="text" attribute="varName" component={this} editno={this.hiddenRestricted()}/>
                     </Col>
                 </Row>
                 <Row>
                     <Col>
-                        <FieldGuarded mode="text" attribute="varNameExt" component={this} editno={!this.props.restricted && this.state.data.varNodeId!=0}/>
+                        <FieldGuarded mode="text" attribute="varNameExt" component={this} editno={this.hiddenRestricted()}/>
                     </Col>
                 </Row>
                 <Row>

@@ -91,7 +91,7 @@ public class DWHServiceTest {
 	 */
 	//@Test
 	public void deadLock() {
-		while (true)	jdbcRepo.reporting_objects("who.atc.human", "ACTIVE");
+		while (true)	jdbcRepo.reporting_objects("who.atc.human", "LEGACY");
 	}
 	
 }

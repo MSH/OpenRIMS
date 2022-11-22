@@ -35,15 +35,15 @@ class About extends Component{
             <Container fluid className="pl-0 ml-0 bg-light d-print-none">
                 <Row  className="pl-0 ml-0" >
                     <Col xs="12" sm="12" lg="4" xl="3" className="pl-0 ml-0">
-                        <a href="https://usaid.gov" target="_blank"><img src="/img/USAIDMTASP.svg" height="70" className="pl-0 ml-0" /> </a>
+                        <a href="https://usaid.gov" target="_blank"><img src="/img/USAIDMTASP.svg" height="60" className="pl-0 ml-0" /> </a>
                     </Col>
                     <Col xs="12" sm="12" lg="6" xl="7" style={{borderLeftWidth:'5px !important'}}>
                         <Row xs="12" sm="12" lg="12" xl="12" >
                             <Col xs='12' sm='12' lg='9' xl='10' className={"pl-0 ml-0"}>
                                 <small>{this.state.labels.footermessage}</small>
                             </Col>
-                            <Col xs='12' sm='12' lg='3' xl='2' className="pl-0 ml-0">
-                                <Row className="d-flex align-items-center">
+                            <Col xs='12' sm='12' lg='3' xl='2' className="pl-0 ml-0" >
+                                <Row className="d-flex align-items-center" style={{color:'#000080'}}>
                                     <Col>
                                     <Row className="d-flex align-items-center" style={{color:'#000080'}}>
                                     <Col>
@@ -74,7 +74,7 @@ class About extends Component{
                     </Col>
                     <Col xs='12' sm='12' lg='2' xl='2'>
                         <Row>
-                            <Col xs='12' sm='12' lg='12' xl='12' className={"pt-2 justify-content-end d-flex align-items-center pt-1"}> 
+                            <Col xs='12' sm='12' lg='12' xl='12' className={"pt-2 justify-content-end d-flex align-items-center"}> 
                                 <a href="https://openrims.org" target="_blank"><img src="/img/OpenRIMS.svg" height={40} /> </a>
                             </Col>
                         </Row>
