@@ -191,7 +191,7 @@ public class ActivityAPI {
 		//Headers List
 		model.put(ExcelView.HEADERS, data.getFullsearch().getHeaders().getHeaders());
 		//Rows
-		model.put(ExcelView.ROWS, data.getScheduled().getRows());
+		model.put(ExcelView.ROWS, data.getFullsearch().getRows());
 		response.setHeader( HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"monitoring_fullsearch.xlsx\"");
 		response.setHeader("filename", "monitoring_fullsearch.xlsx");       
 		return new ModelAndView(new ExcelView(), model);
