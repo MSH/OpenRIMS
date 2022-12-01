@@ -18,7 +18,6 @@ import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.model.r2.Scheduler;
 import org.msh.pdex2.model.r2.Thing;
-import org.msh.pdex2.model.r2.ThingAmendment;
 import org.msh.pdex2.model.r2.ThingDict;
 import org.msh.pdex2.model.r2.ThingScheduler;
 import org.msh.pdex2.model.r2.ThingThing;
@@ -374,6 +373,11 @@ public class ApplicationService {
 		if (data.getHistoryId() > 0) {
 			// get workflow configuration root
 			History curHis = boilerServ.historyById(data.getHistoryId());
+			if(!singeltonCondition(curHis)) {
+				data.setValid(false);
+				data.setIdentifier(messages.get("singletonError"));
+				return data;
+			}
 			Concept applRoot = closureServ.loadParents(curHis.getApplication()).get(0);
 			String applUrl = applRoot.getIdentifier();
 			Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
@@ -411,7 +415,33 @@ public class ApplicationService {
 			throw new ObjectNotFoundException("submit. History record id is ZERO", logger);
 		}
 	}
-	
+
+	/**
+	 * It is impossible running more than one modification and/or de-registration against the same object
+	 * in addition it is impossible running modification and de-registration if any host application is running
+	 * Guest may be running without any condition
+	 * Host runs automatically
+	 * @param curHis
+	 * @return true if condition is 
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public boolean singeltonCondition(History curHis) throws ObjectNotFoundException {
+		if(amendmentServ.hasAmendment(curHis.getApplicationData())) {
+			Concept applData = amendmentServ.initialApplicationData(curHis.getApplicationData());
+			Headers headers = new Headers();
+			headers.getHeaders().add(TableHeader.instanceOf("url", TableHeader.COLUMN_STRING));
+			// check host
+			jdbcRepo.guestPlusHost(applData.getID());
+			List<TableRow> rowsHost= jdbcRepo.qtbGroupReport("select * from guestPlusHost", "", "", headers);
+			jdbcRepo.dregPlusModi(applData.getID());
+			List<TableRow> rowsModi= jdbcRepo.qtbGroupReport("select * from dregPlusModi", "", "", headers);
+			return rowsHost.size()==0 && rowsModi.size()==0;
+		}else {
+			return true;
+		}
+	}
+
 	/**
 	 * Collect necessary data about activities to run
 	 * @param data to inform about errors
@@ -618,11 +648,12 @@ public class ApplicationService {
 		if (actConf != null) {
 			String addrUrl = literalServ.readValue("addressurl", actConf);
 			if (addrUrl.length() > 0) {
-				Thing rootThing = boilerServ.thingByNode(curHis.getApplicationData());
-				if (rootThing.getAmendments().iterator().hasNext()) {
+				Concept applData=amendmentServ.initialApplicationData(curHis.getApplicationData());
+				Thing rootThing = boilerServ.thingByNode(applData);
+				/*if (rootThing.getAmendments().iterator().hasNext()) { 2022-11-27 wrong routing detected
 					ThingAmendment ta = rootThing.getAmendments().iterator().next();
 					rootThing = boilerServ.thingByNode(ta.getConcept());
-				}
+				}*/
 				for (ThingThing tt : rootThing.getThings()) {
 					if (tt.getUrl().equalsIgnoreCase(addrUrl)) {
 						ret = boilerServ.adminUnitLevel(pubOrgServ.territoryLevel(), tt.getConcept());
@@ -896,18 +927,18 @@ public class ApplicationService {
 				data.setAttention(validServ.isActivityAttention(curHis.getActConfig()));
 				//String dictUrl = curHis.getActivity().getLabel();
 				//if (dictUrl != null && dictUrl.toUpperCase().startsWith("DICTIONAR")) {
-					data.setHost(validServ.isHostApplication(curHis.getApplDict()));
-					dto = createActivity(user, curHis, false);
-					ThingDTO dt = createLoadActivityData(data, curHis, user, false);
-					data.getPath().add(dto);
-					data.getData().add(dt);
-					// notes from the previous step
-					String psn = "";
-					if (curHis.getPrevNotes() != null) {
-						psn = curHis.getPrevNotes().trim();
-					}
-					data.getNotes().add(psn);
-					data.getCancelled().add(curHis.getCancelled());
+				data.setHost(validServ.isHostApplication(curHis.getApplDict()));
+				dto = createActivity(user, curHis, false);
+				ThingDTO dt = createLoadActivityData(data, curHis, user, false);
+				data.getPath().add(dto);
+				data.getData().add(dt);
+				// notes from the previous step
+				String psn = "";
+				if (curHis.getPrevNotes() != null) {
+					psn = curHis.getPrevNotes().trim();
+				}
+				data.getNotes().add(psn);
+				data.getCancelled().add(curHis.getCancelled());
 				//}
 			}
 			data = amendmentServ.amended(curHis.getApplicationData(), data);
@@ -1666,44 +1697,55 @@ public class ApplicationService {
 			switch (actCode) {
 			case 0: // NMRA executor continue workflow from the activity selected
 				data = validServ.submitNext(curHis, user, data);
-				if (accServ.isApplicant(user)) {
-					data = submitNext(curHis, user, data);
-				} else {
-					sendEmailAttention(user, curHis, data);
-					data = validServ.submitNextData(curHis, user, data);
-					data = submitNext(curHis, user, data);
+				if(data.isValid()) {
+					if (accServ.isApplicant(user)) {
+						data = submitNext(curHis, user, data);
+					} else {
+						sendEmailAttention(user, curHis, data);
+						data = validServ.submitNextData(curHis, user, data);
+						data = submitNext(curHis, user, data);
+					}
 				}
 				return data;
 			case 1: // NMRA executor route the activity to other executor
 				data = validServ.submitRoute(curHis, user, data);
 				data = validServ.submitReAssign(curHis, user, data);
-				data = submitReAssign(curHis, user, data);
+				if(data.isValid()) {
+					data = submitReAssign(curHis, user, data);
+				}
 				return data;
 			case 2: // NMRA executor initiate an additional activity for others NMRA executors or
 				// for the applicant
 				data = checkApplicantExecutor(data, curHis);
 				data = validServ.submitAddActivity(curHis, user, data);
 				data = validServ.submitAddActivityData(curHis, user, data);
-				data = submitAddActivity(curHis, user, data);
+				if(data.isValid()) {
+					data = submitAddActivity(curHis, user, data);
+				}
 				return data;
 			case 3:
 				data = validServ.actionCancel(curHis, data);
 				data = validServ.actionCancelData(curHis, data);
-				data = actionCancel(curHis, data);
+				if(data.isValid()) {
+					data = actionCancel(curHis, data);
+				}
 				return data;
 			case 4:
-				data = submitSendApprove(data, user, curHis);
+				data = submitSendApprove(data, user, curHis); //validation is inside
 				return data;
 			case 5:
-				sendEmailAttention(user, curHis, data);
 				data = validServ.submitReject(curHis, user, data);
 				data = validServ.submitRejectData(curHis, user, data);
-				data = submitReject(curHis, user, data);
+				if(data.isValid()) {
+					data = submitReject(curHis, user, data);
+				}
 				return data;
 			case 6:
 				data = validServ.actionReassign(curHis, data);
 				data = validServ.submitReAssign(curHis, user, data);
-				data = submitReAssign(curHis, user, data);
+				if(data.isValid()) {
+					data = submitReAssign(curHis, user, data);
+				}
 				return data;
 			case 7:
 				data = validServ.submitAmendment(curHis, user, data);
@@ -1730,7 +1772,7 @@ public class ApplicationService {
 			throw new ObjectNotFoundException("submitSend. Access denied", logger);
 		}
 	}
-		
+
 	/**
 	 * 10.11.2022 khomenska
 	 *  Approve action
@@ -1740,17 +1782,14 @@ public class ApplicationService {
 		String applUrl = applRoot.getIdentifier();
 		Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
 		List<Concept> nextActs = loadActivities(configRoot);
-		
 		data = validServ.submitApprove(curHis, user, data, nextActs);
-
-		data = submitApprove(curHis, user, data);
-		
 		if(data.isValid()) {
+			data = submitApprove(curHis, user, data);
 			sendEmailAttention(user, curHis, data);
 		}
 		return data;
 	}
-	
+
 	private void sendEmailAttention(UserDetailsDTO user, History curHis, ActivitySubmitDTO data)
 			throws ObjectNotFoundException {
 		// 23.10.2022
@@ -1769,7 +1808,8 @@ public class ApplicationService {
 				}
 			}
 
-			String res = mailService.createAttentionMail(user, applicantEmail, applName, curActivity, nextActivity);
+			String attnote = literalServ.readValue("attnote", curHis.getActConfig());
+			String res = mailService.createAttentionMail(user, applicantEmail, applName, curActivity, nextActivity, attnote);
 			data.getNotes().setValue(res);
 			data.getNotes().setMark(true);
 			data.getNotes().setReadOnly(true);
@@ -1895,6 +1935,7 @@ public class ApplicationService {
 			throws ObjectNotFoundException, JsonProcessingException {
 		Concept applicant = closureServ.getParent(curHis.getApplicationData());
 		rejectApplication(curHis, applicant.getIdentifier(), data);
+		sendEmailAttention(user, curHis, data);
 		return data;
 	}
 
@@ -2116,7 +2157,7 @@ public class ApplicationService {
 				data.setIdentifier(mess);
 			}
 		} else {
-					logger.error(applUrl + " " + data.getIdentifier());
+			logger.error(applUrl + " " + data.getIdentifier());
 		}
 		return data;
 	}

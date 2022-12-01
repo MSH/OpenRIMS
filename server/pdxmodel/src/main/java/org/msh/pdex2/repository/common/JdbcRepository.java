@@ -1225,6 +1225,48 @@ public class JdbcRepository {
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 	}
-
+/**
+ * Known usage - Monitoring all feature for Supervisor, Moderator, Applicant, Secretary
+ * @param 0 - lang
+ * @param 1, 2, 3 - APPLICANT (mail applicant, null, null)
+ * MODERATOR COUNTRY (null, mail moderator, null)
+ * MODERATOR TERRITORY (null, mail moderator, mail moderator)
+ * SUPERVISOR||SECRETARY COUNTRY (null, null, null)
+ * SUPERVISOR||SECRETARY TERRITORY (null, null, mail supervisor||secretary)
+ */
+	public void monitoring_all(String app, String mod, String loc) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("monitoring_all");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		params.addValue("ownerEmail", app);
+		params.addValue("moderEmail", mod);
+		params.addValue("localEmail", loc);
+		proc.execute(params);
+	}
+	
+	/**
+	 * For an applDataID given select running Guest or Host applications 
+	 * @param applicationID null means all
+	 */
+	public void guestPlusHost(Long applDataID) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("guestPlusHost");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("applDataId", applDataID);
+		proc.execute(params);
+	}
+	
+	/**
+	 * For an applDataID given select running applications for De-registration and modification 
+	 * @param applicationID null means all
+	 */
+	public void dregPlusModi(Long applDataID) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("dregPlusModi");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("applDataId", applDataID);
+		proc.execute(params);
+	}
 
 }

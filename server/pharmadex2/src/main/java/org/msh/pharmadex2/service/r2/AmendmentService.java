@@ -1600,5 +1600,10 @@ public class AmendmentService {
 			}
 		}
 	}
+	@Transactional
+	public boolean hasAmendment(Concept applicationData) throws ObjectNotFoundException {
+		Thing thing = boilerServ.thingByNode(applicationData);
+		return thing.getAmendments() != null && thing.getAmendments().size()>0;
+	}
 
 }

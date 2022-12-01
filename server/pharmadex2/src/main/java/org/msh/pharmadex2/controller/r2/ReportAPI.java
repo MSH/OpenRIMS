@@ -75,7 +75,7 @@ public class ReportAPI {
 			data.setThing(thingServ.path(data.getThing()));
 			return data;
 		} catch (ObjectNotFoundException e) {
-			throw new DataNotFoundException(e);
+					throw new DataNotFoundException(e);
 		}
 	}
 	

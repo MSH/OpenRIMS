@@ -56,7 +56,7 @@ class UserGuestMenu extends Component{
                 </Form>
               </NavItem>
               <NavItem>
-                <NavLink onClick={()=>{Fetchers.logout()}}>{this.state.labels.logout}</NavLink>
+                <NavLink onClick={()=>{Fetchers.logout()}}><span style={{cursor:'pointer'}}>{this.state.labels.logout}</span></NavLink>
               </NavItem>
               <NavItem>
                   <Languages />

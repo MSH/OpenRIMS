@@ -92,7 +92,20 @@ public class AccessControlService {
 			return false;
 		}
 	}
-
+/**
+ * SECRETARY-?
+ */
+	public boolean isSecretary(UserDetailsDTO user) {
+		if(user.getGranted().size()==0) {
+			return false;
+		}
+		if(user.getGranted().get(0).getAuthority().toUpperCase().contains("SECRETARY")) {
+			return true;
+		}else {
+			return false;
+		}
+	}
+	
 	/**
 	 * Is this user currently acted as a moderator
 	 * @param user
@@ -423,7 +436,7 @@ public class AccessControlService {
 	/**
 	 * Is office of this user restricted by territory?
 	 * @param user
-	 * @return
+	 * @return true - territorial User. false - mainOrganization User
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
@@ -445,6 +458,7 @@ public class AccessControlService {
 		}
 		return false;
 	}
+	
 	/**
 	 * Is the role is an applicant?
 	 * @param role

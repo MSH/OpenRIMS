@@ -111,6 +111,16 @@ public class ActivityAPI {
 		}
 		return data;
 	}
+	@PostMapping("/api/*/my/monitoring/application")
+	public ApplicationsDTO application(Authentication auth, @RequestBody ApplicationsDTO data) throws DataNotFoundException {
+		userServ.userData(auth, new UserDetailsDTO());
+		try {
+			data.setThing(thingServ.path(data.getThing()));
+			return data;
+		} catch (ObjectNotFoundException e) {
+					throw new DataNotFoundException(e);
+		}
+	}
 	
 	@PostMapping("/api/*/my/monitoring/actual/excel")
 	public ModelAndView myMonitoringActualExcel(Authentication auth, 
@@ -161,6 +171,32 @@ public class ActivityAPI {
 		response.setHeader("filename", "monitoring_scheduled.xlsx");       
 		return new ModelAndView(new ExcelView(), model);
 	}
+	
+	@PostMapping("/api/*/my/monitoring/fullsearch/excel")
+	public ModelAndView myMonitoringFullsearchExcel(Authentication auth, 
+			@RequestBody ApplicationsDTO data,
+			HttpServletResponse response) throws DataNotFoundException {
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		data.getScheduled().getHeaders().setPageSize(Integer.MAX_VALUE);
+		try {
+			data = monitoringServ.myMonitoring(data, user);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		Map<String, Object> model = new HashMap<String, Object>();
+		//Sheet Name
+		model.put(ExcelView.SHEETNAME, messages.get("fullsearch"));
+		//Title
+		model.put(ExcelView.TITLE, messages.get("monitoring"));
+		//Headers List
+		model.put(ExcelView.HEADERS, data.getFullsearch().getHeaders().getHeaders());
+		//Rows
+		model.put(ExcelView.ROWS, data.getScheduled().getRows());
+		response.setHeader( HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"monitoring_fullsearch.xlsx\"");
+		response.setHeader("filename", "monitoring_fullsearch.xlsx");       
+		return new ModelAndView(new ExcelView(), model);
+	}
+	
 	
 	
 	/**
@@ -252,7 +288,7 @@ public class ActivityAPI {
 	 */
 	@PostMapping({ "/api/*/thing/load"})
 	public ThingDTO thingLoad(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
-		logger.debug("start thing");
+		//logger.debug("start thing");
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			if (data.getNodeId() == 0) {
@@ -261,9 +297,12 @@ public class ActivityAPI {
 				data = thingServ.loadThing(data, user);
 			}
 		} catch (ObjectNotFoundException e) {
-			throw new DataNotFoundException(e);
+			//e.getMessage();
+			throw new DataNotFoundException( "Foo Not Found", e);
+			//throw new ResponseStatusException(
+			        //HttpStatus.NOT_FOUND, "Foo Not Found", e);
 		}
-		logger.debug("end thing");
+		//logger.debug("end thing");
 		return data;
 	}
 

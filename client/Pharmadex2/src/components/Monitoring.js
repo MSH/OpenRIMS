@@ -10,6 +10,11 @@ import ButtonUni from './form/ButtonUni'
 import ActivityManager from './ActivityManager'
 import SearchControl from './utils/SearchControl'
 import Downloader from './utils/Downloader'
+import ApplicationEvents from './applevents/ApplicationEvents'
+import ApplicationHistory from './reports/ApplicationHistory'
+import ApplicationRegisters from './reports/ApplicationRegisters'
+import Thing from './Thing'
+import FieldDisplay from './form/FieldDisplay'
 
 /**
  * Responsible for assigned activities. Any user, except an applicant
@@ -28,6 +33,9 @@ class ToDoList extends Component{
                 actual:'',
                 scheduled:'',
                 exportExcel:'',
+                cancel:'',
+                fullSearch:'',
+                dateactualLb:''
             },
             data:{},
         }
@@ -36,6 +44,9 @@ class ToDoList extends Component{
         this.content=this.content.bind(this)
         this.actual=this.actual.bind(this)
         this.scheduled=this.scheduled.bind(this)
+        this.fullsearch=this.fullsearch.bind(this)
+        this.drillDown=this.drillDown.bind(this)
+        this.swich=this.swich.bind(this)
     }
 
     /**
@@ -167,25 +178,145 @@ class ToDoList extends Component{
         )
     }
  
+    fullsearch(){
+        return(
+<Row>
+<Col>
+<Row className="mb-3">
+                        <Col xs='12' sm='12' lg='4' xl='4'>
+                            <SearchControl key='4' label={this.state.labels.search} table={this.state.data.fullsearch} loader={this.loadData}/>
+                        </Col>
+                        <Col xs='12' sm='12' lg='6' xl='6' className="d-flex justify-content-center">
+                        <small>{this.state.labels.dateactualLb}</small>
+                        <FieldDisplay attribute='dateactual' component={this} mode='time'/>
+                        </Col>
+                        <Col xs='12' sm='12' lg='2' xl='2' className="d-flex justify-content-end">
+                        <ButtonUni
+                            label={this.state.labels.exportExcel}
+                            onClick={()=>{
+                                let downloader = new Downloader();
+                                Fetchers.setJustLoaded(this.state.data,false)
+                                downloader.postDownload("/api/"+Navigator.tabSetName()+ "/my/monitoring/fullsearch/excel",
+                                this.state.data, "monitoring_fullsearch.xlsx");
+                            }} 
+                            color={"info"}
+                                />
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col>
+                            <CollectorTable key='44'
+                            tableData={this.state.data.fullsearch}
+                            loader={this.loadData}
+                            headBackground={Pharmadex.settings.tableHeaderBackground}
+                            styleCorrector={(header)=>{
+                                if(header=='fullsearch'){
+                                    return {width:'10%'}
+                                }
+                            }}
+                            selectRow={(row)=>{
+                                this.drillDown(row)
+                                }}   
+                            />
+                        </Col>
+                    </Row>
+</Col>
+</Row>
+        )
+    }
+    drillDown(rowNo){
+        this.state.data.thing.nodeId=this.state.data.fullsearch.rows[rowNo].dbID
+        Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/my/monitoring/application", this.state.data, (query,result)=>{
+            this.state.data=result
+            this.state.title=result.thing.path[0].title
+            this.setState(this.state)
+        })
+    }
+     /**
+     * Paint full thing
+     */
+      paintApplication(){
+        let ret=[]
+        let path=this.state.data.thing.path
+        this.state.data.thing.nodeId=0
+        if(Fetchers.isGoodArray(path)){
+            ret.push(
+                <Row  style={{justifyContent: 'right'}} >
+                <Col xs='12' sm='12' lg='2' xl='2' className="d-flex justify-content-end">
+                            <ButtonUni
+                                    label={this.state.labels.cancel}
+                                    color='info'
+                                    onClick={()=>{
+                                        this.state.data.thing.nodeId=0
+                                        this.setState(this.state)
+                                    }}
+                                />
+                        </Col>
+                        </Row>
+            )
+            ret.push(
+                <ApplicationHistory key='ah1' nodeid={this.state.data.thing.nodeId} recipient={this.state.identifier}/>
+            )
+            ret.push(
+                <ApplicationEvents key='ae1' appldataid={this.state.data.thing.nodeId} recipient={this.state.identifier} />
+            )
+            ret.push(
+                <ApplicationRegisters key='ar1' nodeid={this.state.data.thing.nodeId} recipient={this.state.identifier}/>
+            )
+            path.forEach((element, index)=>{
+                ret.push(
+                    <Thing
+                        key={index}
+                        data={element}
+                        recipient={this.state.identifier}
+                        readOnly
+                        narrow
+                    />
+                )
+            })
+        }
+        return ret
+    }
+ swich(){
+    let parStr=""
+    let data={}
+    //this.state.data.thing.nodeId=0
+    switch( this.state.menu){
+        case "activitymanager":
+            parStr = Navigator.parameterValue();
+            data = JSON.parse(parStr)
+            return <ActivityManager historyId={data.historyId} recipient={this.state.identifier}/>
+        case "actual":
+            return(this.actual())
+        case "scheduled":
+            return(this.scheduled())
+        case "fullsearch":
+            return(this.fullsearch())
+        default:
+            return (this.actual())
+    }
+ }
     /**
      * determine the content
      */
     content(){
-        let parStr=""
-        let data={}
-        switch( this.state.menu){
-            case "activitymanager":
-                parStr = Navigator.parameterValue();
-                data = JSON.parse(parStr)
-                return <ActivityManager historyId={data.historyId} recipient={this.state.identifier}/>
-            case "actual":
-                return(this.actual())
-            case "scheduled":
-                return(this.scheduled())
-            default:
-                return (this.actual())
-
-        }
+        if(this.state.data.thing.nodeId>0){
+            return (
+                <Row>
+                    <Col>
+                       {this.paintApplication()}
+                    </Col>
+                </Row>
+            )
+        }else{
+            return(
+                <Row>
+                    <Col>
+                    {this.swich()}
+                    </Col>
+                </Row>
+                 )
+            }
     }
     render(){
         if(this.state.data.table== undefined || this.state.data.table.rows == undefined || this.state.labels.locale==undefined){
@@ -209,6 +340,12 @@ class ToDoList extends Component{
                                         <Nav>     
                                             <NavItem active={this.state.menu=='scheduled'}>
                                                 <NavLink href={"/"+Navigator.tabSetName()+"#"+Navigator.tabName()+"/scheduled"}>{this.state.labels.scheduled}</NavLink>
+                                            </NavItem>
+                                        </Nav>
+                                        {/* ik */}
+                                        <Nav>     
+                                            <NavItem active={this.state.menu=='fullSearch'}>
+                                                <NavLink href={"/"+Navigator.tabSetName()+"#"+Navigator.tabName()+"/fullSearch"}>{this.state.labels.fullSearch}</NavLink>
                                             </NavItem>
                                         </Nav>
                                         <Nav>     

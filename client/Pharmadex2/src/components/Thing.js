@@ -47,7 +47,10 @@ class Thing extends Component{
             repaint:this.props.data.repaint,
             identifier:Date.now().toString(),  //my address for messages
             data:this.props.data,             //ThingDTO         
-            labels:{},
+            labels:{
+                save_app_error:'',
+                success:''
+            },
         }
         this.state.data.readOnly=this.props.readOnly
         
@@ -110,8 +113,13 @@ class Thing extends Component{
                 this.state.data=result
                 if(this.state.data.valid){
                     this.storeLocal()
+                    Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.success, color:'success'})
                 }else{
-                    Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'danger'})
+                    let err_mess=this.state.labels.save_app_error
+                    if(this.state.data.identifier){
+                        err_mess=this.state.data.identifier
+                    }
+                    Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:err_mess, color:'danger'})
                     this.setState(this.state)
                 }
                 if(savedByAction){
@@ -136,6 +144,7 @@ class Thing extends Component{
                     Navigator.message(this.state.identifier, this.props.recipient, "saved", this.state.data)
                 }
             }else{
+                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'danger'})
                 this.setState(this.state)
             }
             

@@ -174,6 +174,14 @@ public class AssemblyService {
 				fld.setPropertyName("addressurl");
 				ret.add(fld);	
 			}
+			{// notes to mail 26.11.2022
+				AssemblyDTO fld = new AssemblyDTO();
+				fld.setRequired(false);
+				fld.setReadOnly(false);
+				fld.setTextArea(true);
+				fld.setPropertyName("attnote");
+				ret.add(fld);
+			}
 		}
 		if(ret.size()==0) {
 			//List<Assembly> assms = loadDataConfiguration(url);
@@ -666,13 +674,14 @@ public class AssemblyService {
 				cell1.getVariables().add("checklisturl");
 				cell1.getVariables().add("dataurl");
 				cell1.getVariables().add("addressurl");
+				cell1.getVariables().add("attention");
+				cell1.getVariables().add("attnote");// notes to mail 26.11.2022
 				row.getCells().add(cell1);
 
 				LayoutCellDTO cell2 = new LayoutCellDTO();
 				cell2.getVariables().add(ACTIVITY_EXECUTIVES);
 				cell2.getVariables().add("background");
 				cell2.getVariables().add(ACTIVITY_CONFIG_FINALIZE);
-				cell2.getVariables().add("attention");
 				row.getCells().add(cell2);
 
 				ret.add(row);

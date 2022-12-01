@@ -182,12 +182,12 @@ class Persons extends Component{
                 <Container fluid>
                     <Row hidden={this.state.data.rtable.rows.length==0}>
                         <Col>
-                            <Row hidden={readOnly}>
+                            <Row>
                                 <Col className='d-flex justify-content-end'>
                                     <h6>{this.state.labels.marktoremove}</h6>
                                 </Col>
                             </Row>
-                            <Row hidden={readOnly}>
+                            <Row>
                                 <Col>
                                     <CollectorTable
                                         tableData={this.state.data.rtable}
@@ -204,6 +204,7 @@ class Persons extends Component{
                                                 }
                                             })
                                             this.setState(this.state)
+                                            Navigator.message(this.state.identifier, this.props.recipient, "onSelectionChange", this.state.data)
                                         }}
                                         linkProcessor={(rowNo)=>{
                                             if(readOnly){
@@ -217,6 +218,7 @@ class Persons extends Component{
                                                 }
                                             })
                                             this.setState(this.state)
+                                            Navigator.message(this.state.identifier, this.props.recipient, "onSelectionChange", this.state.data)
                                         }}
                                         headBackground={Pharmadex.settings.tableHeaderBackground}
                                     />  

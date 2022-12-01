@@ -1,10 +1,12 @@
 package org.msh.pharmadex2.dto;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pharmadex2.dto.form.AllowValidation;
+import org.msh.pharmadex2.dto.form.FormFieldDTO;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 /**
@@ -20,6 +22,9 @@ public class ApplicationsDTO extends AllowValidation {
 	private long dictItemId=0;
 	private TableQtb table = new TableQtb();
 	private TableQtb scheduled = new TableQtb();
+	private TableQtb fullsearch = new TableQtb();
+	private ThingDTO thing= new ThingDTO();
+	private FormFieldDTO<LocalDate> dateactual=new FormFieldDTO(LocalDate.now()) ;
 
 	public String getUrl() {
 		return url;
@@ -67,6 +72,30 @@ public class ApplicationsDTO extends AllowValidation {
 
 	public void setScheduled(TableQtb scheduled) {
 		this.scheduled = scheduled;
+	}
+
+	public TableQtb getFullsearch() {
+		return fullsearch;
+	}
+
+	public void setFullsearch(TableQtb fullsearch) {
+		this.fullsearch = fullsearch;
+	}
+
+	public ThingDTO getThing() {
+		return thing;
+	}
+
+	public void setThing(ThingDTO thing) {
+		this.thing = thing;
+	}
+
+	public FormFieldDTO<LocalDate> getDateactual() {
+		return dateactual;
+	}
+
+	public void setDateactual(FormFieldDTO<LocalDate> dateactual) {
+		this.dateactual = dateactual;
 	}
 	
 }

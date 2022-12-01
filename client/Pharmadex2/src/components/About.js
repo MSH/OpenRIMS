@@ -75,7 +75,7 @@ class About extends Component{
                     <Col xs='12' sm='12' lg='2' xl='2'>
                         <Row>
                             <Col xs='12' sm='12' lg='12' xl='12' className={"pt-2 justify-content-end d-flex align-items-center"}> 
-                                <a href="https://openrims.org" target="_blank"><img src="/img/OpenRIMS.svg" height={40} /> </a>
+                                <a href="https://openrims.org" target="_blank"><img src="/img/OpenRIMS.svg" height={30} /> </a>
                             </Col>
                         </Row>
                         <Row>

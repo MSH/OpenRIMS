@@ -50,7 +50,7 @@ class UserNotAuthMenu extends Component{
               <NavLink href="/form/login">{this.state.labels.login}</NavLink>
             </NavItem>
             <NavItem>
-              <NavLink onClick={()=>{Fetchers.logout()}}>{this.state.labels.logout}</NavLink>
+              <NavLink onClick={()=>{Fetchers.logout()}}><span style={{cursor:'pointer'}}>{this.state.labels.logout}</span></NavLink>
             </NavItem>
             <NavItem>
                 <Languages />

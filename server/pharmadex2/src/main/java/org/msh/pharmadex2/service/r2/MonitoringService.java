@@ -1,6 +1,8 @@
 package org.msh.pharmadex2.service.r2;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import org.msh.pdex2.dto.table.Headers;
@@ -45,7 +47,7 @@ public class MonitoringService {
 	@Transactional
 	public ApplicationsDTO myMonitoring(ApplicationsDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		jdbcRepo.in_activities();
-		if(accServ.isSupervisor(user)) {
+		if(accServ.isSupervisor(user) || accServ.isSecretary(user)) {
 			data=supervisor(data,user);
 			return data;
 		}
@@ -84,17 +86,23 @@ public class MonitoringService {
 	 * @param data
 	 * @param applicant
 	 * @return
+	 * @throws ObjectNotFoundException 
 	 */
-	private ApplicationsDTO applicant(ApplicationsDTO data, UserDetailsDTO applicant) {
+	private ApplicationsDTO applicant(ApplicationsDTO data, UserDetailsDTO applicant) throws ObjectNotFoundException {
 		if(!data.getTable().hasHeaders()) {
 			data.getTable().setHeaders(applicantHeaders(data.getTable().getHeaders()));
 		}
 		if(!data.getScheduled().hasHeaders()) {
 			data.getScheduled().setHeaders(applicantHeaders(data.getScheduled().getHeaders()));
 		}
-		String where = "applicant='"+applicant.getEmail()+"'" + " and officeID is not null";
+		
+		String where  = "applicant='"+applicant.getEmail()+"'" + " and officeID is not null";
 		data = loadTablesApplicant(where, data);
 		data.getTable().setSelectable(true);
+		//fullsearch
+				jdbcRepo.monitoring_all(applicant.getEmail(), null,null);
+				fullSearch_proc(data);
+		data.getFullsearch().setSelectable(true);
 		return data;
 	}
 	/**
@@ -119,6 +127,14 @@ public class MonitoringService {
 		}else {
 			data=moderatorCountry(u, resp, data);
 		}
+		//fullsearch
+				if(accServ.isTerritoryUser(user)) {
+					jdbcRepo.monitoring_all(null, user.getEmail(), user.getEmail());
+				}else {
+					jdbcRepo.monitoring_all(null, user.getEmail(), null);
+				}
+				fullSearch_proc(data);
+				data.getFullsearch().setSelectable(true);
 		return data;
 	}
 	/**
@@ -166,20 +182,49 @@ public class MonitoringService {
 	 * It is presumed that the in_activities is ready
 	 * @param data
 	 * @return
+	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	private ApplicationsDTO supervisor(ApplicationsDTO data, UserDetailsDTO user) {
+	private ApplicationsDTO supervisor(ApplicationsDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		if(!data.getTable().hasHeaders()) {
 			data.getTable().setHeaders(supervisorHeaders(data.getTable().getHeaders()));
 		}
 		if(!data.getScheduled().hasHeaders()) {
 			data.getScheduled().setHeaders(supervisorHeaders(data.getScheduled().getHeaders()));
 		}
+		
 		String where = "supervisor='"+user.getEmail()+"'";
 		data = loadTables(where, data);
 		data.getTable().setSelectable(true);
 		data.getScheduled().setSelectable(true);
+		//fullsearch
+		if(accServ.isTerritoryUser(user)) {
+			jdbcRepo.monitoring_all(null, null, user.getEmail());
+		}else {
+			jdbcRepo.monitoring_all(null, null, null);
+		}
+		fullSearch_proc(data);
+		data.getFullsearch().setSelectable(true);
 		return data;
+	}
+	
+	private void fullSearch_proc(ApplicationsDTO data) throws ObjectNotFoundException {
+		if(!data.getFullsearch().hasHeaders()) {
+			data.getFullsearch().setHeaders(fullSearchHeaders(data.getFullsearch().getHeaders()));
+		}
+		String select="SELECT * FROM pdx2.monitoring_all";
+		List<TableRow> fullsearch = jdbcRepo.qtbGroupReport(select,"", "", data.getFullsearch().getHeaders());
+		TableQtb.tablePage(fullsearch, data.getFullsearch());
+		data.getFullsearch().setSelectable(false);
+		select ="SELECT CompletedAt FROM pdx2.reportsession where Actual='1'";
+		Headers ret = new Headers();
+		ret.getHeaders().add(TableHeader.instanceOf("CompletedAt","CompletedAt",false,false,false,TableHeader.COLUMN_LOCALDATE,0));
+		List<TableRow> dateActual= jdbcRepo.qtbGroupReport(select, "", "", ret);
+		if(dateActual.size()>0) {
+			LocalDate date=(LocalDate) dateActual.get(0).getCell("CompletedAt", ret).getOriginalValue();
+			data.getDateactual().setValue(date);
+			data.getDateactual().setReadOnly(true);
+		}
 	}
 	/**
 	 * Load current and scheduled tables.
@@ -206,12 +251,12 @@ public class MonitoringService {
 	/**
 	 * Load current and scheduled tables.
 	 * It's assumed that in_activities has been executed and headers have been built
-	 * @param where
+	 * @param where String where
 	 * @param data
 	 * @return
 	 */
 	@Transactional
-	private ApplicationsDTO loadTablesApplicant(String where, ApplicationsDTO data) {
+	private ApplicationsDTO loadTablesApplicant(String where , ApplicationsDTO data) {
 		String currWhere = where +" and scheduled<=curdate() + Interval 1 day";
 		String schedWhere= where+ " and scheduled>curdate()";
 		//String select = "select max(ID) as 'ID', scheduled, prefLabel, process, activity from in_activities";
@@ -224,6 +269,79 @@ public class MonitoringService {
 		data.getTable().setSelectable(false);
 		data.getScheduled().setSelectable(false);
 		return data;
+	}
+	
+	
+	private Headers fullSearchHeaders(Headers headers) {
+		headers.getHeaders().clear();
+		headers.getHeaders().add(TableHeader.instanceOf(
+				"application", 
+				"prod_app_type",
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_STRING,
+				15));
+		headers.getHeaders().add(TableHeader.instanceOf(
+				"prefLabel",
+				"prefLabel",
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_STRING,
+				30));
+		headers.getHeaders().add(TableHeader.instanceOf(
+				"owner",
+				"owners",
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_STRING,
+				20));
+		headers.getHeaders().add(TableHeader.instanceOf(
+				"state",
+				"state",
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_STRING,
+				20));
+		headers.getHeaders().add(TableHeader.instanceOf(
+				"regNo",
+				"reg_number",
+				false,
+				true,
+				true,
+				TableHeader.COLUMN_STRING,
+				20));
+		headers.getHeaders().add(TableHeader.instanceOf(
+				"regDate",
+				"registration_date",
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_STRING,
+				30));
+		headers.getHeaders().add(TableHeader.instanceOf(
+				"expDate",
+				"expiry_date",
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_STRING,
+				30));
+		headers.getHeaders().add(TableHeader.instanceOf(
+				"address",
+				"address",
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_STRING,
+				30));
+		headers.setPageSize(20);
+		boilerServ.translateHeaders(headers);
+		headers.getHeaders().get(0).setSortValue(TableHeader.SORT_ASC);
+		return headers;
 	}
 	
 	/**

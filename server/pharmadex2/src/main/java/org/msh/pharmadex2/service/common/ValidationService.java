@@ -1050,11 +1050,12 @@ public class ValidationService {
 					return data;
 				}
 				//Schedulers 09.11.2022 khomenska
-				List<Assembly> assemblies = assemblyServ.loadDataConfiguration(dataurl);
+				hasSchedulers = true;			//TODO
+				/*List<Assembly> assemblies = assemblyServ.loadDataConfiguration(dataurl);
 				List<AssemblyDTO> schedulers = assemblyServ.auxSchedulers(dataurl, assemblies);
 				if(schedulers != null && schedulers.size() > 0) {
 					hasSchedulers = true;
-				}
+				}*/
 			}else {
 				data.setIdentifier(messages.get("badconfiguration")+"ThingID is ZERO config root is " + configRoot.getID());
 				data.setValid(false);
@@ -1567,20 +1568,21 @@ public class ValidationService {
 				if(isActivityForeground(curHis.getActConfig())) {
 					if(curHis.getGo()==null) {
 						if(isActivityFinalAction(curHis, SystemService.FINAL_ACCEPT)) {
-							if(nextActs != null) {//TODO khomenska 09112022
-								if(validateConfigurationRegister(nextActs)) {
-									return data;
+							return data;
+							/*	if(nextActs != null) {//TODO khomenska 09112022
+									if(validateConfigurationRegister(nextActs)) {
+										return data;
+									}else {
+										String w = messages.get("badconfiguration") + " " + messages.get("notFoundRegisters");
+										data.setIdentifier(w);
+										data.setColorAlert("danger");
+										logger.info(w);
+										data.setValid(false);
+										return data;
+									}
 								}else {
-									String w = messages.get("badconfiguration") + " " + messages.get("notFoundRegisters");
-									data.setIdentifier(w);
-									data.setColorAlert("danger");
-									logger.info(w);
-									data.setValid(false);
 									return data;
-								}
-							}else {
-								return data;
-							}
+								}*/
 						}
 					}
 				}
@@ -1599,8 +1601,9 @@ public class ValidationService {
 	 * @throws ObjectNotFoundException 
 	 */
 	private boolean validateConfigurationRegister(List<Concept> activities) throws ObjectNotFoundException {
-		boolean hasRegisters = false;
-
+		return true;	//TODO
+		/*boolean hasRegisters = false;
+		
 		for(Concept aco : activities) {
 			String dataurl = literalServ.readValue("dataurl",aco);
 			List<Assembly> assemblies = assemblyServ.loadDataConfiguration(dataurl);
@@ -1614,8 +1617,9 @@ public class ValidationService {
 				}
 			}
 		}
-		
 		return hasRegisters;
+		*/
+		
 	}
 	
 	/**
@@ -1901,23 +1905,7 @@ public class ValidationService {
 		data=submitNotesIsMandatory(curHis, data);
 		return data;
 	}
-	/**
-	 * Approve action should run at least one follow up (scheduled) action
-	 * @param curHis
-	 * @param user
-	 * @param data
-	 * @return
-	 */
-	public ActivitySubmitDTO submitApproveData(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) {
-		if(data.isValid()) {
-			int sch = data.getScheduled().getRows().size();
-			if(sch==0) {
-				data.setValid(false);
-				data.setIdentifier(messages.get("shouldbefollowup"));
-			}
-		}
-		return data;
-	}
+
 
 	/**
 	 * Any extra requirements to data yet
