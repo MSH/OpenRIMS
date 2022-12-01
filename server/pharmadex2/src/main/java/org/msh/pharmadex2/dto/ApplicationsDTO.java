@@ -1,6 +1,7 @@
 package org.msh.pharmadex2.dto;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,7 +25,7 @@ public class ApplicationsDTO extends AllowValidation {
 	private TableQtb scheduled = new TableQtb();
 	private TableQtb fullsearch = new TableQtb();
 	private ThingDTO thing= new ThingDTO();
-	private FormFieldDTO<LocalDate> dateactual=new FormFieldDTO(LocalDate.now()) ;
+	private FormFieldDTO<LocalDateTime> dateactual=new FormFieldDTO(LocalDateTime.now()) ;
 
 	public String getUrl() {
 		return url;
@@ -90,11 +91,11 @@ public class ApplicationsDTO extends AllowValidation {
 		this.thing = thing;
 	}
 
-	public FormFieldDTO<LocalDate> getDateactual() {
+	public FormFieldDTO<LocalDateTime> getDateactual() {
 		return dateactual;
 	}
 
-	public void setDateactual(FormFieldDTO<LocalDate> dateactual) {
+	public void setDateactual(FormFieldDTO<LocalDateTime> dateactual) {
 		this.dateactual = dateactual;
 	}
 	

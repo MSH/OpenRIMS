@@ -1,6 +1,7 @@
 package org.msh.pharmadex2.service.r2;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -218,10 +219,10 @@ public class MonitoringService {
 		data.getFullsearch().setSelectable(false);
 		select ="SELECT CompletedAt FROM pdx2.reportsession where Actual='1'";
 		Headers ret = new Headers();
-		ret.getHeaders().add(TableHeader.instanceOf("CompletedAt","CompletedAt",false,false,false,TableHeader.COLUMN_LOCALDATE,0));
+		ret.getHeaders().add(TableHeader.instanceOf("CompletedAt","CompletedAt",false,false,false,TableHeader.COLUMN_LOCALDATETIME,0));
 		List<TableRow> dateActual= jdbcRepo.qtbGroupReport(select, "", "", ret);
 		if(dateActual.size()>0) {
-			LocalDate date=(LocalDate) dateActual.get(0).getCell("CompletedAt", ret).getOriginalValue();
+			LocalDateTime date=(LocalDateTime) dateActual.get(0).getCell("CompletedAt", ret).getOriginalValue();
 			data.getDateactual().setValue(date);
 			data.getDateactual().setReadOnly(true);
 		}
