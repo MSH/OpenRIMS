@@ -139,7 +139,7 @@ class DataVarForm extends Component{
         }
 
 option(){
-    if(this.props.restricted){
+    if(!this.props.restricted){
         if(this.state.data.varNodeId!=0){
            return(<Col>
                 <ViewEditOption component={this} attribute='clazz' />

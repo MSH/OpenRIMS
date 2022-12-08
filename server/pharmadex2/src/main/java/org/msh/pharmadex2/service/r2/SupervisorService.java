@@ -391,7 +391,7 @@ public class SupervisorService {
 	 */
 	@Transactional
 	public DataConfigDTO dataCollectionVariablesLoad(DataConfigDTO data) throws ObjectNotFoundException {
-		data.setRestricted(false);
+		data.setRestricted(true);
 		if (data.getNodeId() > 0) {
 			// variables
 			TableQtb table = data.getVarTable();

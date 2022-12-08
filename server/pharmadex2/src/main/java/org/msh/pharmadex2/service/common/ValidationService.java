@@ -1499,9 +1499,10 @@ public class ValidationService {
 	@Transactional
 	public ActivitySubmitDTO submitNext(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		data.clearErrors();
-		if(!deregServ.isDeregistrationActivity(curHis)) {
+		if(!deregServ.isDeregistrationActivity(curHis)) {//1
 			if(!data.isReject()) {
-				if(!data.isReassign()) {
+				if(!data.isReassign()) {//2
+					
 					Concept exec = closureServ.getParent(curHis.getActivity());
 					if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {
 						if(isActivityForeground(curHis.getActConfig())) {
@@ -1510,9 +1511,9 @@ public class ValidationService {
 							}
 						}
 					}
-				}
+				}//2
 			}
-		}
+		}//1
 		data.setIdentifier(messages.get("error_sendsent"));
 		data.setValid(false);
 		return data;

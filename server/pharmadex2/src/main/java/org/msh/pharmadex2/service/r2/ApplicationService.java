@@ -171,7 +171,7 @@ public class ApplicationService {
 		headers.getHeaders()
 		.add(TableHeader.instanceOf("notes", "description", true, true, true, TableHeader.COLUMN_STRING, 0));
 
-		headers.getHeaders().get(0).setSortValue(TableHeader.SORT_ASC);
+		headers.getHeaders().get(0).setSortValue(TableHeader.SORT_DESC);
 		headers = boilerServ.translateHeaders(headers);
 		return headers;
 	}
@@ -925,6 +925,15 @@ public class ApplicationService {
 			if (curHis.getActConfig() != null) {
 				data.setBackground(validServ.isActivityBackground(curHis.getActConfig()));
 				data.setAttention(validServ.isActivityAttention(curHis.getActConfig()));
+				if(validServ.isActivityFinalAction(curHis, systemServ.FINAL_ACCEPT)) {
+					data.setFinalization(true);
+				}else if(validServ.isActivityFinalAction(curHis, systemServ.FINAL_AMEND)) {
+				data.setFinalization(true); 
+				}else if(validServ.isActivityFinalAction(curHis, systemServ.FINAL_DEREGISTRATION)) {
+					data.setFinalization(true);
+				}else {
+					data.setFinalization(false);
+				}
 				//String dictUrl = curHis.getActivity().getLabel();
 				//if (dictUrl != null && dictUrl.toUpperCase().startsWith("DICTIONAR")) {
 				data.setHost(validServ.isHostApplication(curHis.getApplDict()));
@@ -1398,9 +1407,12 @@ public class ApplicationService {
 					// activity/executor
 				}
 			} else {
-				data = validServ.submitNext(curHis, user, data);
+				data = validServ.submitNext(curHis, user, data);//ika06122022
 				if (data.isValid()) {
-					allowed.add("0"); // next activity
+					data = validServ.submitAmendment(curHis, user, data);
+					if (!data.isValid()) {
+						allowed.add("0"); // next activity
+					}
 				}
 				data = validServ.submitRoute(curHis, user, data);
 				if (data.isValid()) {

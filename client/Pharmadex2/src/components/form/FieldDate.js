@@ -82,6 +82,7 @@ class FieldDate extends Component{
                         }
                     }
                 }}
+                type={data[key].detail}
                 />
             </FormGroup>
         )

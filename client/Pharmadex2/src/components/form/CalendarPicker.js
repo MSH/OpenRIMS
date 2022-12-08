@@ -119,6 +119,7 @@ class CalendarPicker extends Component{
                                 this.togglePopover()
                                 this.props.onChange(e)
                             }}
+                            defaultView={this.props.type}
                         />
                     </PopoverBody>
                 </Popover>
