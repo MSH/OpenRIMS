@@ -184,7 +184,8 @@ public class ClosureService {
 			if(parent != null) {
 				parent = loadConceptById(parent.getID());
 
-				Concept oldNode = findConceptInBranchByIdentifier(parent, node.getIdentifier());
+				//Concept oldNode = findConceptInBranchByIdentifier(parent, node.getIdentifier());
+				Concept oldNode = findActivConceptInBranchByIdentifier(parent, node.getIdentifier());
 				if(oldNode.getID()>0) {
 					if(node.getLabel()!=null) {
 						oldNode.setLabel(node.getLabel().trim());
@@ -544,6 +545,44 @@ public class ClosureService {
 				throw new ObjectNotFoundException(
 						"findConceptInBranchByIdentifier.  The branch has more than one child with the same Identifier. Closures IDs are"+ childs
 						+" branch root is "+root,logger);
+			}
+		}
+	}
+		/**
+		 * Find concept activ in a branch by the identifier .
+		 * @param root
+		 * @param string
+		 * @return if not found, return new concept with the identifier given
+		 * @throws ObjectNotFoundException 
+		 */
+		@Transactional
+		public Concept findActivConceptInBranchByIdentifier(Concept root, String identifier) throws ObjectNotFoundException {
+			List<Closure> childs = closureRepo.findInBranchByConceptIdentifier(root, identifier);
+			if(childs.size()==1) {
+				return childs.get(0).getChild();
+			}else {
+				if(childs.size()==0) {
+					Concept ret = new Concept();
+					ret.setIdentifier(identifier);
+					return ret;
+			}else {
+					List<Closure> activ= new ArrayList<Closure>();
+					for(Closure clo:childs) {
+						if(clo.getChild().getActive()) {
+							activ.add(clo);
+						}
+					}
+				if(activ.size()==0) {
+					Concept ret1 = new Concept();
+					ret1.setIdentifier(identifier);
+					return ret1;
+				}else if (activ.size()==1) {
+					return activ.get(0).getChild();
+				}else {
+					throw new ObjectNotFoundException(
+							"findConceptInBranchByIdentifier.  The branch has more than one child with the same Identifier. Closures IDs are"+ activ
+							+" branch root is "+root,logger);
+				}
 			}
 		}
 	}

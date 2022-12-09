@@ -1172,7 +1172,7 @@ public class ValidationService {
 				}
 				Concept root = closureServ.loadConceptById(data.getNodeId());
 				List<Concept> variables = literalServ.loadOnlyChilds(root);
-				int numOrd =(int) ord;
+				//int numOrd =(int) ord;
 				int numRow=0;
 				ArrayList<Assembly> list=new ArrayList<Assembly>();
 				for(Concept var : variables) { //F2
@@ -1192,37 +1192,51 @@ public class ValidationService {
 					if(obj1>0) {maxRow=asRow.getRow();}
 					}
 				}
-				boolean flag =true;
+				//is the position consolidated
+				boolean flag=false;
 				for(Assembly asOrd:list) {
 					if(asOrd.getRow()==row && asOrd.getCol()==col && asOrd.getOrd()==ord) {
-						numOrd+=1;
-						if(numOrd>=90) {//..1
-							numRow= (int) maxRow;
-							if(numRow>=89) {
-								data.setIdentifier(messages.get("errorscreenposition"));
-								data.setValid(false);
-								return data;
-							}else {
-								if(flag) {
-									numRow+=1;										
-									flag=false;}
-								numOrd=numOrd-(int)ord;
-								asOrd.setOrd(numOrd);
-								asOrd.setRow(numRow);
-								asOrd = boilerServ.assemblySave(asOrd);
-								}
-						}else {//..1
-							asOrd.setOrd(numOrd);
-							asOrd = boilerServ.assemblySave(asOrd);
-						}				
+						flag=true;
 					}
 				}
+				//
+				if(flag) {
+				List<Assembly> newRow= new ArrayList<Assembly>();
+				for(Assembly asOrd:list) {
+					if(asOrd.getRow()==row && asOrd.getCol()==col && asOrd.getOrd()>=ord) {
+						if(asOrd.getOrd()+1>=90) {
+							newRow.add(asOrd);
+						}else {
+						asOrd.setOrd(asOrd.getOrd()+1);
+						asOrd = boilerServ.assemblySave(asOrd);
+						}
+					}
+				}
+				if(!newRow.isEmpty()) {
+					numRow= (int) maxRow;
+					if(numRow>=89) {
+						data.setIdentifier(messages.get("errorscreenposition"));
+						data.setValid(false);
+						return data;
+					}else {
+						numRow+=1;	
+						for(Assembly asOrd:newRow) {
+							asOrd.setOrd(89-asOrd.getOrd());
+							asOrd.setRow(numRow);
+							asOrd = boilerServ.assemblySave(asOrd);
+						}
+					}
+					
+				}
+				}
+				//
 		}else {
 			throw new ObjectNotFoundException("variableScreen. Data Collection node ID not found",logger);
 		}
 		}
 		return data;
 	}
+
 
 	/**
 	 * Class of variable should be defined

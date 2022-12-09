@@ -776,7 +776,8 @@ public class ReportService {
 		// get root by mainUrl
 		logger.trace(varName + "---->" + mainUrl);
 		Concept root = closureServ.loadRoot("configuration.data");
-		Concept node = closureServ.findConceptInBranchByIdentifier(root, mainUrl);
+		//Concept node = closureServ.findConceptInBranchByIdentifier(root, mainUrl);//ik 09122022 add new metod
+		Concept node = closureServ.findActivConceptInBranchByIdentifier(root, mainUrl);
 		DataCollectionDTO dto = new DataCollectionDTO();
 		dto.setNodeId(node.getID());
 		try {
