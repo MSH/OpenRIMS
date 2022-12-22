@@ -76,6 +76,7 @@ class Thing extends Component{
         this.personSpecControl=this.personSpecControl.bind(this)
         this.helpButton=this.helpButton.bind(this)
         this.reloadComponents=this.reloadComponents.bind(this)
+        this.droplistFiled=this.droplistFiled.bind(this)
     }
     /**
      * GEt prefLabel
@@ -394,7 +395,8 @@ class Thing extends Component{
         Locales.createLabels(this,'atc')
         Locales.createLabels(this, 'legacy');
         Locales.createLabels(this, 'intervals');
-        Locales.createLabels(this,"links")
+        Locales.createLabels(this,"links");
+        Locales.createLabels(this,"droplist")
         if(this.state.data.activityName != undefined){
             this.state.labels[this.state.data.activityName]=''     //for activity names
         }
@@ -613,7 +615,36 @@ class Thing extends Component{
             return[]
         }
     }
-
+/**
+     * Responsible for droplist
+     * @param {string} name 
+     * @param {number} index 
+     * @returns 
+     */
+ droplistFiled(name, index){
+    let fieldDTO = this.state.data.droplist[name]
+    if(fieldDTO != undefined){
+        let readOnly=this.props.readOnly || fieldDTO.readOnly
+        let mark=""
+        if(fieldDTO.mark){
+            mark= "markedbycolor"
+        }
+        return(
+            <Row key={index} className={mark}>
+                <Col>
+                    <ViewEditOption
+                        edit={!readOnly} 
+                        attribute={name}
+                        component={this} 
+                        data={this.state.data.droplist}
+                    />
+                </Col>
+            </Row>
+        )
+    }else{
+        return[]
+    }
+}
 
     /**
      * Responsible for person selection
@@ -763,6 +794,13 @@ class Thing extends Component{
                 )
             }
         }
+        //
+        if(this.state.data.droplist.hasOwnProperty(name)){
+            return (
+                this.droplistFiled(name,index)
+            )
+        }
+
         if(this.state.data.addresses.hasOwnProperty(name)){
             if(data != undefined){
                 this.state.data.addresses[name]=data

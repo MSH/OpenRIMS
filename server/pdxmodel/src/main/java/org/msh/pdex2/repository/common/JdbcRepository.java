@@ -1189,16 +1189,23 @@ public class JdbcRepository {
 	 * Get objects from reportpage table in form of a dictionary
 	 * @param objectUrl
 	 * @param state - ACTIVE
+	 							OTHER
+	 							ATC
+	 							LEGACY
 								NOTSUBMITTED
 								ONAPPROVAL
 								DEREGISTERED
+								LOST
+	 The parameters objectUrl and state allows comma separated lists
+	 * @param owner - email of an owner or null
 	 */
-	public void reporting_objects(String objectUrl, String state) {
+	public void reporting_objects(String objectUrl, String state, String owner) {
 		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
 		proc.withProcedureName("reporting_objects");
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("url", objectUrl);
 		params.addValue("state", state);
+		params.addValue("email", owner);
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 		

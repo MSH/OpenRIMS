@@ -374,6 +374,7 @@ public class DtoService {
 		return data;
 	}
 	
+	
 	/**
 	 * Load values for all literals from the database
 	 * Add, if necessary new configured for url literals

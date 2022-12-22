@@ -4,6 +4,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -282,7 +284,7 @@ public class SupervisorService {
 		}
 		//load a table
 		jdbcRepo.prepareDictionaryLevel(root.getID());
-		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from _dictlevel", "", "", data.getTable().getHeaders());
+		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from _dictlevel", "", "active=true", data.getTable().getHeaders());
 		// set a page with the a currently selected object
 		TableQtb.tablePage(rows, data.getTable());					//determine the size in pages
 		int pages=data.getTable().getHeaders().getPages();
@@ -507,6 +509,14 @@ public class SupervisorService {
 				optVal.getOptions().add(opt);
 				i++;
 			}
+			Collections.sort(optVal.getOptions(), new Comparator<OptionDTO>() {
+
+				@Override
+				public int compare(OptionDTO o1, OptionDTO o2) {
+					return o1.getCode().compareTo(o2.getCode());
+				}
+				
+			});
 			data.getClazz().setValue(optVal);
 		}
 		return data;

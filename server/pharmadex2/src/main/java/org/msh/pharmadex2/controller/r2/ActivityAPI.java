@@ -815,7 +815,11 @@ public class ActivityAPI {
 	@PostMapping({ "/api/*/links/table" })
 	public LinksDTO linksTable(Authentication auth, @RequestBody LinksDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
-		data=linkServ.loadObjectsTable(data);
+		try {
+			data=linkServ.loadObjectsTable(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
 		return data;
 	}
 	/**

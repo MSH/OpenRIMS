@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -79,6 +80,7 @@ import org.msh.pharmadex2.service.r2.SystemService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.datetime.DateFormatter;
 import org.springframework.stereotype.Service;
@@ -1337,4 +1339,15 @@ public class BoilerService {
 			throw new ObjectNotFoundException("findByConcept. LegacyData by concept  not found. The Concept Id is "+concept.getID(),logger);
 		}
 	}
+	/**
+	 * Convert date to string using the current locale
+	 * @param date
+	 * @return
+	 */
+	public String dateToString(Date date) {
+		DateTimeFormatter formatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(LocaleContextHolder.getLocale());
+		LocalDate ld=localDateFromDate(date);
+		return ld.format(formatter);
+	}
+
 }

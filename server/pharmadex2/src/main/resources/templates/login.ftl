@@ -203,19 +203,8 @@ span.psw {
 	 </div>
     <div class="container">
 		<div class="first_flex"">
-			<label for="uname"><b>${username}</b></label>
-			<input type="text" id="username" placeholder="${usernamePlease}" name="username" required>
-					
-			<label for="psw"><b>${password}</b></label>
-			<input type="password" placeholder="${passwordPlease}" name="password" id="password">
-					        
-			<button type="submit">${login}</button>
-			<label>
-				<input type="checkbox" checked="checked" name="remember-me"> ${remember}
-			</label>
-			<br/> <br/><br/>    
-			<label><b>${oath2}</b></label>
-			<ul>
+		<label><b>${oath2}</b></label>
+		<ul>
 				<#list providers?keys as key>
 					<#if "Google"==key>
 						<div class="google-btn" onclick="document.getElementById('username').removeAttribute('required');
@@ -234,6 +223,21 @@ span.psw {
 					</#if>
 				</#list>
 			</ul>
+			
+			<div style="font-size: 0.5em">
+			<label for="uname"><b>${username}</b></label>
+			<input type="text" id="username" placeholder="${usernamePlease}" name="username" required>
+					
+			<label for="psw"><b>${password}</b></label>
+			<input type="password" placeholder="${passwordPlease}" name="password" id="password">
+					        
+			<button type="submit">${login}</button>
+			<label>
+				<input type="checkbox" checked="checked" name="remember-me"> ${remember}
+			</label>
+			<br/> <br/><br/>    
+			
+			</div>
 			
 		</div>
     </div>

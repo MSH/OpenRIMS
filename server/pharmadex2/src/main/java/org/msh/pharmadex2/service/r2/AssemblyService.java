@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.apache.poi.ss.format.CellDateFormatter;
 import org.msh.pdex2.dto.table.Headers;
 import org.msh.pdex2.dto.table.TableHeader;
 import org.msh.pdex2.dto.table.TableRow;
@@ -1032,6 +1033,27 @@ public class AssemblyService {
 	}
 
 	/**
+	 * droplist data references
+	 * @param assms
+	 * @param exts 
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	@Transactional
+	public List<AssemblyDTO> auxDropListData(String url, List<Assembly> assms) throws ObjectNotFoundException {
+		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
+		// TODO hardcoded definitions...
+		if(ret.size()==0) {
+			for(Assembly assm : assms) {
+				if(assm.getClazz().equalsIgnoreCase("droplist")) {
+					ret.add(dtoServ.assemblyDto(assm));
+				}
+			}
+		}
+		return ret;
+	}
+	
+	/**
 	 * Dates intervals
 	 * !!!! attantion, temporary only for the first iteration!
 	 * @param data
@@ -1460,6 +1482,22 @@ public class AssemblyService {
 			}
 		}
 		return dto;
+	}
+	/**
+	 * Create layout for a thing created from literals
+	 * @param literals
+	 * @return
+	 */
+	public List<LayoutRowDTO> literalsLayout(Map<String, String> literals) {
+		List<LayoutRowDTO> ret = new ArrayList<LayoutRowDTO>();
+		LayoutRowDTO row = new LayoutRowDTO();
+		LayoutCellDTO cell = new LayoutCellDTO();
+		row.getCells().add(cell);
+		for(String key :literals.keySet()) {
+			cell.getVariables().add(key);
+		}
+		ret.add(row);
+		return ret;
 	}
 }
 

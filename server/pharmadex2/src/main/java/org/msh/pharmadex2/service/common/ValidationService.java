@@ -426,17 +426,45 @@ public class ValidationService {
 		}
 		List<AssemblyDTO> links=assemblyServ.auxLinks(data.getUrl(), allAssms);
 		mandatoryLinks(data, links, strict);
-
+		
+		/*19122022 khomka
 		List<AssemblyDTO> things = assemblyServ.auxThings(data.getUrl(),allAssms);
 		for(AssemblyDTO thing :things) {
 			if(thing.isRequired()) {
-				mandatoryThing(data.getThings().get(thing.getIdentifier()));
+				mandatoryThing(data.getThings().get(thing.getPropertyName()));
+			}
+		}
+		*/
+		List<AssemblyDTO> droplists = assemblyServ.auxDropListData(data.getUrl(),allAssms);
+		for(AssemblyDTO droplist :droplists) {
+			if(droplist.isRequired()) {
+				mandatoryDropList(data.getDroplist().get(droplist.getPropertyName()), strict, droplist);
 			}
 		}
 		data.propagateValidation();
 		return data;
 	}
+	
+	private void mandatoryDropList(FormFieldDTO<OptionDTO> data, boolean strict, AssemblyDTO droplist) {
+		data.setError(false);
+		if(data.getValue().getId()==0) {
+			FormFieldDTO<String> str= new FormFieldDTO<String>();
+			data.setError(true);
+			data.setStrict(strict);
+			data.setSuggest(messages.get("valuesmustbeselected"));
+			
+			str.setValue(droplist.getPropertyName());
+					;
+			help(str, droplist.getDescription());
+		}
+		
+	}
 
+	public List<AssemblyDTO> loadThingByConfig(ThingDTO data) throws ObjectNotFoundException {
+		List<Assembly> allAssms = assemblyServ.loadDataConfiguration(data.getUrl());
+		List<AssemblyDTO> things = assemblyServ.auxThings(data.getUrl(),allAssms);
+		return things;
+	}
 
 	private void mandatoryLinks(ThingDTO data, List<AssemblyDTO> links, boolean strict) {
 		for(AssemblyDTO aDto : links) {

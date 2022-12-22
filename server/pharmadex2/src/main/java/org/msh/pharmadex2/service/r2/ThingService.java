@@ -273,6 +273,10 @@ public class ThingService {
 		data.getMainLabels().clear();
 		data.getMainLabels().putAll(assemblyServ.mainLabelsByUrl(data.getUrl()));
 		//logger.trace("END content");
+		//DropList data
+		List<AssemblyDTO> droplist = assemblyServ.auxDropListData(data.getUrl(), assemblies);
+		data=dictServ.createDropList(data,droplist);
+		
 		return data;
 	}
 	/**
@@ -319,6 +323,8 @@ public class ThingService {
 		}
 		return data;
 	}
+	
+	
 	/**
 	 * Create ATC codes lookup table and load selected codes 
 	 * @param atc
@@ -1046,6 +1052,7 @@ public class ThingService {
 		data = storeLinks(thing, data);					//should be first, because may change literals
 		data = storeLegacy(thing, data);				//should be first, because may change literals
 		data = storeDictionaries(thing,data, user);	    //should be first, because may change literals
+		data = storeDropList(thing,data, user);
 		data = storeStrings(node,data);
 		data = storeLiterals(node, data);
 		data = storeDates(node,data);
@@ -1062,6 +1069,51 @@ public class ThingService {
 		
 		data=amendServ.storePersonToRemove(data, thing);
 
+		return data;
+	}
+	private ThingDTO storeDropList(Thing thing, ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		/* полуить из конфигурации droplists*/
+		List<Assembly> assemblies =assemblyServ.loadDataConfiguration(data.getUrl());
+		List<AssemblyDTO> droplists = assemblyServ.auxDropListData(data.getUrl(), assemblies);
+		for(AssemblyDTO dl:droplists) {
+			String key=dl.getPropertyName();
+			FormFieldDTO<OptionDTO> fld =data.getDroplist().get(key);
+			Long id=fld.getValue().getId();
+			Concept dictItem = closureServ.loadConceptById(id);
+			ThingDict thingDict = new ThingDict();
+			thingDict.setUrl(dl.getUrl());
+			thingDict.setConcept(dictItem);
+			thingDict.setVarname(dl.getPropertyName());
+			thing.getDictionaries().add(thingDict);
+			if(dl!= null && dl.isPrefLabel() && !dl.isMult()) {
+				FormFieldDTO<String> prefLabelDTO = data.getLiterals().get(LiteralService.PREF_NAME);
+				if(prefLabelDTO == null) {
+					prefLabelDTO = data.getStrings().get(LiteralService.PREF_NAME);
+				}
+				if(prefLabelDTO == null) {
+					prefLabelDTO = new FormFieldDTO<String>("");
+					data.getLiterals().put("prefLabel", prefLabelDTO);
+					prefLabelDTO = data.getLiterals().get(LiteralService.PREF_NAME);
+				}
+				if(prefLabelDTO != null) {
+					String prefLabel = literalServ.readPrefLabel(dictItem);
+					prefLabelDTO.setValue(prefLabel);
+				}
+				FormFieldDTO<String> descriptionDTO = data.getLiterals().get(LiteralService.DESCRIPTION);
+				if(descriptionDTO==null) {
+					descriptionDTO=data.getStrings().get(LiteralService.DESCRIPTION);
+				}
+				if(descriptionDTO == null) {
+					descriptionDTO = new FormFieldDTO<String>("");
+					data.getLiterals().put("description", descriptionDTO);
+					descriptionDTO = data.getLiterals().get(LiteralService.DESCRIPTION);
+				}
+				if(descriptionDTO != null) {
+					String descr=literalServ.readDescription(dictItem);		//here altLabel is right
+					descriptionDTO.setValue(descr);
+				}
+			}
+		}
 		return data;
 	}
 	/**
@@ -1563,9 +1615,9 @@ public class ThingService {
 	@Transactional
 	public ThingDTO storeDictionaries(Thing thing, ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		if(thing.getID()>0) {
-			entityManager.refresh(thing);
+			//entityManager.refresh(thing);
 			thing.getDictionaries().clear();
-			boilerServ.saveThing(thing);
+			//boilerServ.saveThing(thing);
 			//entityManager.flush();
 		}
 		/*22.09.2022 new version */
@@ -1844,7 +1896,7 @@ public class ThingService {
 	}
 
 	/**
-	 * load a thing
+	 * load a thing or Legacy if one
 	 * @param data
 	 * @param user
 	 * @return
@@ -1857,6 +1909,10 @@ public class ThingService {
 			Thing thing = new Thing();
 			thing = boilerServ.thingByNode(node,thing);
 			//determine URL
+			if(data.getUrl() == null) {
+				// it is not a thing, display only literals under the node
+				return loadThingFromLiterals(node, data);
+			}
 			if(data.getUrl().length()==0) {
 				data.setUrl(thing.getUrl());
 			}
@@ -1878,6 +1934,7 @@ public class ThingService {
 				data.setDates(dtoServ.readAllDates(data.getDates(),node));
 				data.setNumbers(dtoServ.readAllNumbers(data.getNumbers(),node));
 				data.setLogical(dtoServ.readAllLogical(data.getLogical(), node));
+				
 				//compare with amended, if needed
 				data=amendServ.diffMark(data);
 			}else {
@@ -1888,7 +1945,24 @@ public class ThingService {
 		}
 		return data;
 	}
-
+	
+	/**
+	 * Create a thing from literals to have possibility to display it on the screen
+	 * @param node
+	 * @param data
+	 * @return
+	 */
+	@Transactional
+	private ThingDTO loadThingFromLiterals(Concept node, ThingDTO data) {
+		Map<String,String> literals= literalServ.literals(node);
+		literals=legacyServ.additionalData(node,literals);
+		for(String key : literals.keySet()) {
+			data.getLiterals().put(key,FormFieldDTO.of(literals.get(key)));
+		}
+		data.setLayout(assemblyServ.literalsLayout(literals));
+		return data;
+	}
+	
 	@Transactional
 	public boolean removeThing(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		if(data.getNodeId() > 0) {
@@ -2367,7 +2441,10 @@ public class ThingService {
 		for(String key :thing.getRegisters().keySet()) {
 			data.getRegisters().put(key.toUpperCase(), thing.getRegisters().get(key));
 		}
-
+		data.getDroplist().clear();
+		for(String key:thing.getDroplist().keySet()) {
+			data.getDroplist().put(key.toUpperCase(), thing.getDroplist().get(key));
+		}
 		return data;
 	}
 	/**
