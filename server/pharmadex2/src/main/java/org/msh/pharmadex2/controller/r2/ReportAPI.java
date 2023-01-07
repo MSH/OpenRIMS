@@ -70,9 +70,12 @@ public class ReportAPI {
 	 */
 	@PostMapping("/api/*/report/application")
 	public ReportDTO application(Authentication auth, @RequestBody ReportDTO data) throws DataNotFoundException {
-		userServ.userData(auth, new UserDetailsDTO());
+		UserDetailsDTO user=userServ.userData(auth, new UserDetailsDTO());
+		data.setIdentifier("");
 		try {
+			if(thingServ.openThing(data,user)) {
 			data.setThing(thingServ.path(data.getThing()));
+			}
 			return data;
 		} catch (ObjectNotFoundException e) {
 					throw new DataNotFoundException(e);

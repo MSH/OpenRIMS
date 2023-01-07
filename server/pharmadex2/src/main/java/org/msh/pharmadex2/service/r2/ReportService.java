@@ -214,9 +214,10 @@ public class ReportService {
 			table.setHeaders(headers);
 		}
 		String where = "";
-		/*if(accessControl.isApplicant(user)) {
+		//05012023 add control - applicant should see only own
+		if(accessControl.isApplicant(user)) {
 			where="email='"+user.getEmail()+"'";
-		}*/
+		}
 		jdbcRepo.report_deregister(repConf.getAddressUrl(), repConf.getRegisterAppUrl());
 		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from report_deregister", "", where, table.getHeaders());
 		TableQtb.tablePage(rows, table);
@@ -268,9 +269,14 @@ public class ReportService {
 				repConf.getOwnerUrl(), repConf.getInspectAppUrl(), repConf.getRenewAppUrl(),
 				repConf.getRegisterAppUrl());
 		String where = "";
-		/*if(accessControl.isApplicant(user)) {
-			where="email='"+user.getEmail()+"'";
-		}*/
+		//05012023 add control - applicant should see only own
+		if(accessControl.isApplicant(user)) {
+			if(user.getEmail().length()>3) {
+				where="email='"+user.getEmail()+"'";
+			}else {
+				where ="dict_stage_url='"+SystemService.DICTIONARY_HOST_APPLICATIONS+"'";
+			}
+		}
 		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from report_sites", "", where, table.getHeaders());
 		TableQtb.tablePage(rows, table);
 		table.setSelectable(false);

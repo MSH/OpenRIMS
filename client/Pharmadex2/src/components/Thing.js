@@ -70,10 +70,8 @@ class Thing extends Component{
         this.autoFillFormField=this.autoFillFormField.bind(this)
         this.numberFiled=this.numberFiled.bind(this)
         this.logicalFiled=this.logicalFiled.bind(this)
-        this.personSelectorControl=this.personSelectorControl.bind(this)
         this.saveGuest=this.saveGuest.bind(this)
         this.postLoaded=this.postLoaded.bind(this)
-        this.personSpecControl=this.personSpecControl.bind(this)
         this.helpButton=this.helpButton.bind(this)
         this.reloadComponents=this.reloadComponents.bind(this)
         this.droplistFiled=this.droplistFiled.bind(this)
@@ -386,12 +384,9 @@ class Thing extends Component{
         Locales.createLabels(this,"resources")
         Locales.createLabels(this,"addresses")
         Locales.createLabels(this,"persons")
-        Locales.createLabels(this,"personselector")
         Locales.createLabels(this,"schedulers")
         Locales.createLabels(this,'files')
         Locales.createLabels(this,'registers')
-        Locales.createLabels(this,'personspec')
-        Locales.createLabels(this,'amendments')
         Locales.createLabels(this,'atc')
         Locales.createLabels(this, 'legacy');
         Locales.createLabels(this, 'intervals');
@@ -646,105 +641,6 @@ class Thing extends Component{
     }
 }
 
-    /**
-     * Responsible for person selection
-     * @param {string} name 
-     * @param {number} index 
-     * @returns 
-     */
-        personSelectorControl(name, index){
-        if(this.state.data.readOnly || this.props.readOnly){
-            return []
-        }
-        let res=this.state.data.personselector[name] 
-        if(res!=undefined){
-            return(
-            <Row key={index}>
-                <Col>
-                    <Row>
-                        <Col>
-                            <h6>{this.state.labels[name]}</h6>
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col>
-                            <PersonSelector data={res}
-                                            recipient={this.state.identifier}
-                            />
-                        </Col>
-                    </Row>
-                </Col>
-            </Row>
-            )
-        }
-    }
-
-    /**
-     * Responsible for the special person data
-     * @param {string} name 
-     * @param {number} index 
-     * @returns 
-     */
-        personSpecControl(name, index){
-            let res=this.state.data.personspec[name] 
-            if(res!=undefined){
-                return(
-                <Row key={index}>
-                    <Col>
-                        <Row hidden={this.state.data.personspec[name].valid} className="mb-1">
-                            <Col>
-                                <Alert color="danger" className="p-0 m-0">
-                                    <small>{this.state.data.personspec[name].identifier}</small>
-                                </Alert>
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col>
-                                <PersonSpecial data={res}
-                                                recipient={this.state.identifier}
-                                />
-                            </Col>
-                        </Row>
-                    </Col>
-                </Row>
-                )
-            }
-        }
-
-    /**
-     * Responsible for the amended object selection
-     * @param {string} name 
-     * @param {number} index 
-     * @deprecated
-     * @returns 
-     */
-        amendmentsControl(name, index){
-        let res=this.state.data.amendments[name] 
-        if(res!=undefined){
-            return(
-            <Row key={index}>
-                <Col>
-                    <Row hidden={this.state.data.amendments[name].valid} className="mb-1">
-                        <Col>
-                            <Alert color="danger" className="p-0 m-0">
-                                <small>{this.state.data.amendments[name].identifier}</small>
-                            </Alert>
-                        </Col>
-                    </Row>
-                    <Row hidden={this.props.readOnly}>
-                        <Col>
-                            <Amended data={res}
-                                            recipient={this.state.identifier}
-                            />
-                        </Col>
-                    </Row>
-                </Col>
-            </Row>
-            )
-        }
-    }
-
- 
 
     /**
      * Take component by variable name and then create it or replace data
@@ -829,11 +725,7 @@ class Thing extends Component{
                 ResourcesUsage.place(data, index, this.props.readOnly, this.state.identifier, this.state.labels[name], this.state.data)
             )
         }
-        if(this.state.data.personselector.hasOwnProperty(name)){
-            return(
-                this.personSelectorControl(name,index)
-            )
-        }
+
         if(this.state.data.schedulers.hasOwnProperty(name)){
             return(
                 //this.schedulersControl(name,index)
@@ -862,24 +754,7 @@ class Thing extends Component{
                 )
             }
         }
-        if(this.state.data.personspec.hasOwnProperty(name)){
-            if(data != undefined){
-                this.state.data.personspec[name]=data
-            }else{
-                return(
-                    this.personSpecControl(name, index)
-                )
-            }
-        }
-        if(this.state.data.amendments.hasOwnProperty(name)){
-            if(data != undefined){
-                this.state.data.amendments[name]=data
-            }else{
-                return(
-                    this.amendmentsControl(name, index)
-                )
-            }
-        }
+
         if(this.state.data.atc.hasOwnProperty(name)){
             if(data != undefined){
                 this.state.data.atc[name]=data

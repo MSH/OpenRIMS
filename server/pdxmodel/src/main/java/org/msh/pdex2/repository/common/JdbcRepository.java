@@ -683,6 +683,16 @@ public class JdbcRepository {
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 	}
+	
+	public void report_open_nmra(long nodeid, String email) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("report_open_nmra");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("nodeid", nodeid);
+		params.addValue("email", email);
+		proc.execute(params);
+	}
+	
 	/**
 	 * Get all values of the literal given
 	 * @param rootId

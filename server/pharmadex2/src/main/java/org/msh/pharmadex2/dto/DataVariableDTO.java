@@ -79,12 +79,18 @@ public class DataVariableDTO extends AllowValidation {
 		this.clazz = clazz;
 	}
 	public FormFieldDTO<Long> getMaxLen() {
+		if(maxLen.getValue()==null) {
+			maxLen.setValue(0l);
+		}
 		return maxLen;
 	}
 	public void setMaxLen(FormFieldDTO<Long> maxLen) {
 		this.maxLen = maxLen;
 	}
 	public FormFieldDTO<Long> getMinLen() {
+		if(minLen.getValue()==null) {
+			minLen.setValue(0l);
+		}
 		return minLen;
 	}
 	public void setMinLen(FormFieldDTO<Long> minLen) {
@@ -118,18 +124,27 @@ public class DataVariableDTO extends AllowValidation {
 		this.prefLabel = prefLabel;
 	}
 	public FormFieldDTO<Long> getRow() {
+		if(row.getValue()==null) {
+			row.setValue(0l);
+		}
 		return row;
 	}
 	public void setRow(FormFieldDTO<Long> row) {
 		this.row = row;
 	}
 	public FormFieldDTO<Long> getCol() {
+		if(col.getValue()==null) {
+			col.setValue(0l);
+		}
 		return col;
 	}
 	public void setCol(FormFieldDTO<Long> col) {
 		this.col = col;
 	}
 	public FormFieldDTO<Long> getOrd() {
+		if(ord.getValue()==null) {
+			ord.setValue(0l);
+		}
 		return ord;
 	}
 	public void setOrd(FormFieldDTO<Long> ord) {

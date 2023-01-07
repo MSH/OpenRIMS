@@ -30,6 +30,7 @@ class TableReport extends Component{
                 search:'',
                 global_showPrint:'',
                 cancel:'',
+                warning:''
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -100,10 +101,15 @@ class TableReport extends Component{
     drillDown(rowNo){
         this.state.data.thing.nodeId=this.state.data.table.rows[rowNo].dbID
         Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/report/application", this.state.data, (query,result)=>{
+            let path=result.thing.path
+            if(Fetchers.isGoodArray(path)){
             this.state.data=result
             this.state.title=result.thing.path[0].title
             this.setState(this.state)
             Navigator.message(this.state.identifier, this.props.recipient, "onDrillDown", this.state.data.thing.title)
+        }else{
+            Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:result.identifier, color:'info'})
+        }
         })
     }
     /**

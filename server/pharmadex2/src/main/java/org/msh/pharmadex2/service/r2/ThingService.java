@@ -64,6 +64,7 @@ import org.msh.pharmadex2.dto.PersonDTO;
 import org.msh.pharmadex2.dto.PersonSelectorDTO;
 import org.msh.pharmadex2.dto.PersonSpecialDTO;
 import org.msh.pharmadex2.dto.RegisterDTO;
+import org.msh.pharmadex2.dto.ReportDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
 import org.msh.pharmadex2.dto.SchedulerDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
@@ -979,8 +980,6 @@ public class ThingService {
 					}
 				}
 
-				//person special may change parent ID
-				data = storePersonSpecial(data, thing);
 				//attach to the parent auxiliary things
 				if(data.getParentId()>0) {
 					Concept incl=closureServ.loadConceptById(data.getParentId());
@@ -1061,7 +1060,6 @@ public class ThingService {
 
 		data = storeDocuments(thing, data,user);
 		data = storeAddresses(user, node, thing,data);
-		data = storeAmended(user, node, thing, data);
 		data = storeSchedule(user, thing, data);
 		data = storeRegister(user, thing, data);
 		data = storeAtc(thing, data);
@@ -1277,76 +1275,7 @@ public class ThingService {
 		}
 		return data;
 	}
-	/**
-	 * Store which object should be amended 
-	 * @deprecated
-	 * @param user
-	 * @param node
-	 * @param thing
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	@Transactional
-	private ThingDTO storeAmended(UserDetailsDTO user, Concept node, Thing thing, ThingDTO data) throws ObjectNotFoundException {
-		if(data.getAmendments().size()==1) {
-			Set<String> keySet = data.getAmendments().keySet();
-			AmendmentDTO dto = data.getAmendments().get(keySet.iterator().next());
-			dto=validServ.amendment(dto);		//always mandatory, always strict
-			if(dto.isValid()) {
-				data.setValid(true);
-				data = amendServ.save(user, node, thing, data, dto);
-			}else {
-				data.setValid(false);
-			}
-		}
-		return data;
-	}
-	/**
-	 * Component Person Special may change the parent ID
-	 * @deprecated
-	 * @param data
-	 * @param thing 
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	@Transactional
-	private ThingDTO storePersonSpecial(ThingDTO data, Thing thing) throws ObjectNotFoundException {
-		Set<String> keyset = data.getPersonspec().keySet();
-		if(keyset.size()==1) {
-			PersonSpecialDTO dto = data.getPersonspec().get(keyset.iterator().next());
-			//save under the current person Id
-			Concept pconc = new Concept();
-			for(TableRow row : dto.getTable().getRows()) {
-				if(row.getSelected()) {
-					pconc=closureServ.loadConceptById(row.getDbID());
-					break;
-				}
-			}
-			if(pconc.getID()>0) {
-				Thing th = boilerServ.thingByNode(pconc);
-				Concept conc = closureServ.loadConceptById(data.getNodeId());
-				conc.setLabel(pconc.getID()+"");				//save Person ID to the label of node. Acceptable
-				ThingThing link= new ThingThing();
-				for(ThingThing tt :th.getThings()) {
-					if(tt.getUrl().equalsIgnoreCase(dto.getPresonDataUrl())) {
-						link=tt;
-					}
-				}
-				if(link.getID()==0) {
-					link.setConcept(conc);
-					link.setUrl(data.getUrl());
-					link.setVarname(data.getVarName());
-					th.getThings().add(link);
-					th=thingRepo.save(th);
-				}
-			}
-			//set new parent ID
-			data.setParentId(dto.getParentId());
-		}
 
-		return data;
-	}
 	/**
 	 * Sometimes the data URL may be changed, this we should re-save the data under the new url
 	 * @param data
@@ -2420,19 +2349,6 @@ public class ThingService {
 		for(String key :thing.getAddresses().keySet()) {
 			data.getAddresses().put(key.toUpperCase(), addressData(thing.getAddresses().get(key)));
 		}
-		data.getPersonselection().clear();
-		for(String key :thing.getPersonselector().keySet()) {
-			Long selected=0l;
-			for(TableRow row : thing.getPersonselector().get(key).getTable().getRows()) {
-				if(row.getSelected()) {
-					selected=row.getDbID();
-					break;
-				}
-			}
-			if(selected>0l) {
-				data.getPersonselection().put(key,selected);
-			}
-		}
 		data.getSchedulers().clear();
 		for(String key :thing.getSchedulers().keySet()) {
 			data.getSchedulers().put(key.toUpperCase(), thing.getSchedulers().get(key));
@@ -2610,7 +2526,29 @@ public class ThingService {
 		}
 		return false;
 	}
-	
-
+	public boolean openThing(ReportDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		ThingDTO thing=data.getThing();
+		if(thing.getNodeId()>0) {
+			String select = "";
+			if (!accessControlServ.isApplicant(user)) {
+				jdbcRepo.report_open_nmra(thing.getNodeId(), user.getEmail());
+				select = "select * from report_open_nmra";
+				Headers headers= new Headers();
+				headers.getHeaders().add(TableHeader.instanceOf("us", "us", false, false, false, TableHeader.COLUMN_STRING, 0));
+				List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", "", headers);
+				if(rows.size()>0) {
+					return true;
+				}else {
+					data.setIdentifier(messages.get("warningNMRA"));
+					return false;
+				}
+			}else {
+				return true;
+			} 
+		}else {
+			data.setIdentifier(messages.get("errorNMRA"));
+			return false;
+		}
+	}
 }
 

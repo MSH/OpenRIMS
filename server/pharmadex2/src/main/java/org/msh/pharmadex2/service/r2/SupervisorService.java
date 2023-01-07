@@ -461,6 +461,7 @@ public class SupervisorService {
 		if (data.getNodeId() > 0) {
 			data = initializeClazz(data);
 			data = initializeLogical(data);
+			data.setRequired(FormFieldDTO.of(dtoServ.enumToOptionDTO(YesNoNA.NA, YesNoNA.values())));
 			Concept node = closureServ.loadConceptById(data.getNodeId());
 			if (data.getVarNodeId() > 0) {
 				Concept varNode = closureServ.loadConceptById(data.getVarNodeId());
@@ -537,8 +538,8 @@ public class SupervisorService {
 				data.getRow().setValue(100l);
 				data.getCol().setValue(100l);
 			}
-			data = validServ.variable(data);
-			if (data.isValid() || (!data.isValid() && !data.isStrict())) {
+			data = validServ.variable(data, true);
+			if (dataCollectionVariableCanBeSaved(data)) {
 				// save a node
 				Concept node = new Concept();
 				if (data.getVarNodeId() > 0) {
@@ -560,6 +561,22 @@ public class SupervisorService {
 			return data;
 		} else {
 			throw new ObjectNotFoundException("dataCollectionVariableSave. Data collection node id is ZERO", logger);
+		}
+	}
+	/**
+	 * Allow saving logic
+	 * @param data
+	 * @return
+	 */
+	private boolean dataCollectionVariableCanBeSaved(DataVariableDTO data) {
+		if(data.isValid()) {
+			return true;
+		}else {
+			if(!data.isStrict()) {
+				return data.getNodeId()>0;	// Temporarily we allow relaxed validation for already saved items 2023-01-04
+			}else {
+				return false;
+			}
 		}
 	}
 

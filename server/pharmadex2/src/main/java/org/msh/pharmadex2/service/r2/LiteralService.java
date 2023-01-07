@@ -44,6 +44,7 @@ public class LiteralService {
 	private static final String IDENTIFIER = "_LITERALS_";
 	public static final String DESCRIPTION = "description";
 	public static final String PREF_NAME = "prefLabel";
+	public static final String URL = "URL";
 
 	public static final String ICON_URL = "iconurl";
 	public static final String MORE_URL = "moreurl";

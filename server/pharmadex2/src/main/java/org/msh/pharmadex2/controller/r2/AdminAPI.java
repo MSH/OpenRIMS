@@ -1,10 +1,14 @@
 package org.msh.pharmadex2.controller.r2;
 
+import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Optional;
 
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
+import org.msh.pdex2.model.r2.FileResource;
+import org.msh.pdex2.repository.r2.FileResourceRepo;
 import org.msh.pharmadex2.dto.AboutDTO;
 import org.msh.pharmadex2.dto.ActuatorAdmDTO;
 import org.msh.pharmadex2.dto.ContentDTO;
@@ -16,6 +20,7 @@ import org.msh.pharmadex2.dto.Dict2DTO;
 import org.msh.pharmadex2.dto.DictNodeDTO;
 import org.msh.pharmadex2.dto.DictionariesDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
+import org.msh.pharmadex2.dto.FileDTO;
 import org.msh.pharmadex2.dto.MessageDTO;
 import org.msh.pharmadex2.dto.PublicOrgDTO;
 import org.msh.pharmadex2.dto.ReportConfigDTO;
@@ -28,12 +33,14 @@ import org.msh.pharmadex2.dto.WorkflowDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.exception.DataNotFoundException;
 import org.msh.pharmadex2.service.common.UserService;
+import org.msh.pharmadex2.service.common.ValidationService;
 import org.msh.pharmadex2.service.r2.AccessControlService;
 import org.msh.pharmadex2.service.r2.ActuatorService;
 import org.msh.pharmadex2.service.r2.ApplicationService;
 import org.msh.pharmadex2.service.r2.ContentService;
 import org.msh.pharmadex2.service.r2.DWHService;
 import org.msh.pharmadex2.service.r2.DictService;
+import org.msh.pharmadex2.service.r2.DictionaryService;
 import org.msh.pharmadex2.service.r2.ImportAService;
 import org.msh.pharmadex2.service.r2.ImportATCcodesService;
 import org.msh.pharmadex2.service.r2.ImportAdmUnitsService;
@@ -42,17 +49,30 @@ import org.msh.pharmadex2.service.r2.MailService;
 import org.msh.pharmadex2.service.r2.MetricService;
 import org.msh.pharmadex2.service.r2.PubOrgService;
 import org.msh.pharmadex2.service.r2.ReportService;
+import org.msh.pharmadex2.service.r2.ResourceService;
 import org.msh.pharmadex2.service.r2.SupervisorService;
 import org.msh.pharmadex2.service.r2.SystemService;
 import org.msh.pharmadex2.service.r2.ThingService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -108,6 +128,15 @@ public class AdminAPI {
 	private ObjectMapper objectMapper;
 	@Autowired
 	private MailService mailServ;
+	@Autowired
+	private ValidationService validation;
+	@Autowired
+	private ResourceService resourceServ;
+	@Autowired
+	DictionaryService dictionaryServ;
+
+	
+	
 	/**
 	 * Tiles for landing page
 	 * 
@@ -614,6 +643,22 @@ public class AdminAPI {
 		}
 		return data;
 	}
+	
+	/**
+	 * Get a simple help
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/data/configuration/variable/help")
+	public DataVariableDTO dataCollectionVariableHelp(@RequestBody DataVariableDTO data) throws DataNotFoundException {
+		try {
+			data = validation.variable(data, false);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
 
 	/**
 	 * Save a variable definition
@@ -1055,5 +1100,75 @@ public class AdminAPI {
 		}
 		return message;
 	}
+	
+	/**
+	 * Download or read workflow reference guide
+	 * @return
+	 * @throws DataNotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value="/api/admin/help/wfrguide", method = RequestMethod.GET)
+	public ResponseEntity<Resource> loadPrivacy() throws DataNotFoundException, IOException {
+		ResponseEntity<Resource> res;
+		try {
+			res = resourceServ.adminHelpWfrGuide();
+			return res;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
 
+
+	@RequestMapping(value = {"/api/admin/dictionary/export/dicturl={url}&curid={id}"}, method = RequestMethod.GET)
+	public ResponseEntity<Resource> dictionaryExport(@PathVariable(value = "url", required = true) String dicturl, @PathVariable(value = "id", required = true) Long currentId)
+			throws DataNotFoundException, ObjectNotFoundException {
+		try {
+			return dictionaryServ.exportDictionary(dicturl, currentId);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+	
+	/**
+	 * Load import admin units feature
+	 * 
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/dictionary/import/load")
+	public ThingDTO dictionaryImportLoad(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		try {
+			data = dictionaryServ.importLoad(data, user);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
+	@PostMapping({"/api/admin/dictionary/import/run"})
+	public DictionaryDTO dictionaryImportRun(Authentication auth, @RequestParam("dict") String jsonDict,
+			@RequestParam("file") Optional<MultipartFile> file) throws DataNotFoundException {
+		DictionaryDTO dict = new DictionaryDTO();
+		try {
+			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+			dict = objectMapper.readValue(jsonDict, DictionaryDTO.class);
+			byte[] fileBytes = new byte[0];
+			if (file.isPresent()) {
+				fileBytes = file.get().getBytes();
+				dict = dictionaryServ.importRun(dict, fileBytes);
+			}
+		} catch (ObjectNotFoundException | IOException e) {
+			throw new DataNotFoundException(e);
+		}
+		return dict;
+	}
+	
+	@RequestMapping(value = {"/api/admin/dictionary/import/errorfile"}, method = RequestMethod.GET)
+	public ResponseEntity<Resource> dictionaryExport()
+			throws DataNotFoundException, ObjectNotFoundException, IOException {
+		ResponseEntity<Resource> resp = dictionaryServ.getFileErrors();
+		return resp;
+	}
 }

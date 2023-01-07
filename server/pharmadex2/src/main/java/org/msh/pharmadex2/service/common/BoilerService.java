@@ -1228,7 +1228,9 @@ public class BoilerService {
 					df.setMinimumFractionDigits(0);
 					ret=df.format(regNod);
 				}
-				return ret;
+				ret=replaceNonPrintCh(ret);
+				
+				return ret.trim();
 			} catch (Exception e) {
 				return null;
 			}
@@ -1349,5 +1351,31 @@ public class BoilerService {
 		LocalDate ld=localDateFromDate(date);
 		return ld.format(formatter);
 	}
-
+	/**
+	 * Null value is zero value
+	 * @param value
+	 * @return
+	 */
+	public long nullIsZero(Long value) {
+		if(value==null) {
+			return 0;
+		}else {
+			return value;
+		}
+	}
+/**
+ *replase non-printable characters
+ */
+	public String replaceNonPrintCh(String val) {
+		// strips off all non-ASCII characters
+		//val = val.replaceAll("[^\\x00-\\x7F]", "");
+		 
+		    // erases all the ASCII control characters
+			val = val.replaceAll("[\\p{Cntrl}&&[^\r\n\t]]", "");
+		     
+		    // removes non-printable characters from Unicode
+			val = val.replaceAll("\\p{C}", "");
+		return val;
+	}
+	
 }

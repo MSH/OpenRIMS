@@ -65,6 +65,8 @@ public class AssemblyService {
 	public static final String SYSTEM_IMPORT_ATCCODES_RELOAD = SYSTEM_IMPORT_ATCCODES + "_reload";
 	public static final String DATAIMPORT_CODES = "dataimport_codes";
 	
+	public static final String SYSTEM_IMPORT_DICTIONARY="system.import.dictionary";
+	
 	@Autowired
 	private ClosureService closureServ;
 	@Autowired
@@ -567,6 +569,16 @@ public class AssemblyService {
 			assm.setDictUrl(SystemService.DICTIONARY_SYSTEM_IMPORT_DATA);
 			ret.add(assm);
 		}
+		if(url.equalsIgnoreCase(SYSTEM_IMPORT_DICTIONARY)) {
+			AssemblyDTO assm = new AssemblyDTO();
+			assm.setPropertyName(DATAIMPORT_DATA);
+			assm.setUrl("data.import");
+			assm.setDescription(messages.get("pleaseuploadimportdata"));
+			assm.setRequired(true);
+			assm.setFileTypes(".xlsx");
+			assm.setDictUrl("dictionary.system.import");
+			ret.add(assm);
+		}
 		if(ret.size()==0) {
 			//List<Assembly> assms = loadDataConfiguration(url);
 			for(Assembly assm : assemblies) {
@@ -796,6 +808,14 @@ public class AssemblyService {
 			cell1.getVariables().add(DATAIMPORT_RESULT);
 			row.getCells().add(cell1);
 
+			ret.add(row);
+		}
+		if(url.equalsIgnoreCase(SYSTEM_IMPORT_DICTIONARY)) {
+			//file uploader and r/o field for messages output
+			LayoutRowDTO row= new LayoutRowDTO();
+			LayoutCellDTO cell1 = new LayoutCellDTO();
+			cell1.getVariables().add(DATAIMPORT_DATA);
+			row.getCells().add(cell1);
 			ret.add(row);
 		}
 		/*************************************** LOAD FROM CONFIGURATION ******************************************************************/
