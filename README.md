@@ -1,4 +1,4 @@
-<img src="Logos/MTaPS_Name%2BUSAID.Horz.png" width="150"> &nbsp;&nbsp; <img src="Logos/MSH_4c.png" width="75"> &nbsp;&nbsp; <img src="logos/LogoOpenRIMSnew450x450-e1658854010600.png" width="75">
+<img src="Logos/MTaPS_Name%2BUSAID.Horz.png" width="150"> &nbsp;&nbsp; <img src="Logos/MSH_4c.png" width="75"> &nbsp;&nbsp; <img src="logos/LogoOpenRIMSnew450x450-e1658854010600.png" width="25">
 
 # OpenRIMS
 The MTaPS Project is funded by the U.S. Agency for International Development (USAID) under contract no. 7200AA18C00074 and implemented by Management Sciences for Health. The information provided on this web site is not official U.S. Government information and does not represent the views or positions of the U.S. Agency for International Development or the U.S. Government. 
