@@ -5,6 +5,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.msh.pharmadex2.dto.form.AllowValidation;
+import org.msh.pharmadex2.dto.form.FormFieldDTO;
+import org.msh.pharmadex2.dto.form.OptionDTO;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -33,6 +35,7 @@ public class ThingValuesDTO  extends AllowValidation{
 	private Map<String,Long> personselection = new LinkedHashMap<String, Long>();
 	private Map<String,SchedulerDTO> schedulers = new LinkedHashMap<String, SchedulerDTO>();
 	private Map<String,RegisterDTO> registers = new LinkedHashMap<String, RegisterDTO>();
+	private Map<String, FormFieldDTO<OptionDTO>> droplist = new LinkedHashMap<String, FormFieldDTO<OptionDTO>>();// dropdown list Dictionary
 	
 	public String getUrl() {
 		return url;
@@ -107,6 +110,12 @@ public class ThingValuesDTO  extends AllowValidation{
 	}
 	public void setRegisters(Map<String, RegisterDTO> registers) {
 		this.registers = registers;
+	}
+	public Map<String, FormFieldDTO<OptionDTO>> getDroplist() {
+		return droplist;
+	}
+	public void setDroplist(Map<String, FormFieldDTO<OptionDTO>> droplist) {
+		this.droplist = droplist;
 	}
 	
 }

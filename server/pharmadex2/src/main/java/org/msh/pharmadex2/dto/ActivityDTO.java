@@ -37,6 +37,7 @@ public class ActivityDTO extends AllowValidation{
 	private boolean done=false;
 	
 	private boolean attention = false;
+	private boolean  finalization= false;
 	
 	public List<DataUnitDTO> getModiPath() {
 		return modiPath;
@@ -111,6 +112,12 @@ public class ActivityDTO extends AllowValidation{
 	}
 	public void setAttention(boolean attention) {
 		this.attention = attention;
+	}
+	public boolean isFinalization() {
+		return finalization;
+	}
+	public void setFinalization(boolean finalization) {
+		this.finalization = finalization;
 	}
 	
 }

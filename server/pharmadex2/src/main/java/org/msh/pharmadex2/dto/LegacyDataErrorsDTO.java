@@ -80,4 +80,12 @@ public class LegacyDataErrorsDTO {
 		newRow.createCell(maxCellIndex+1).setCellValue(url);
 	}
 
+	public void copyHeaderRow(XSSFRow headerRow) {
+		XSSFRow newRow = getSheet().createRow(0);
+		CellCopyPolicy policy = new CellCopyPolicy();
+		policy.setCopyCellValue(true);
+		for(int i = 0; i <= headerRow.getLastCellNum(); i++) {
+			newRow.createCell(i).copyCellFrom(headerRow.getCell(i), policy);
+		}
+	}
 }

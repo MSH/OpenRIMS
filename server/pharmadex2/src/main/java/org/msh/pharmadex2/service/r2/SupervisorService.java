@@ -4,6 +4,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -282,7 +284,7 @@ public class SupervisorService {
 		}
 		//load a table
 		jdbcRepo.prepareDictionaryLevel(root.getID());
-		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from _dictlevel", "", "", data.getTable().getHeaders());
+		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from _dictlevel", "", "active=true", data.getTable().getHeaders());
 		// set a page with the a currently selected object
 		TableQtb.tablePage(rows, data.getTable());					//determine the size in pages
 		int pages=data.getTable().getHeaders().getPages();
@@ -391,7 +393,7 @@ public class SupervisorService {
 	 */
 	@Transactional
 	public DataConfigDTO dataCollectionVariablesLoad(DataConfigDTO data) throws ObjectNotFoundException {
-		data.setRestricted(false);
+		data.setRestricted(true);
 		if (data.getNodeId() > 0) {
 			// variables
 			TableQtb table = data.getVarTable();
@@ -459,6 +461,7 @@ public class SupervisorService {
 		if (data.getNodeId() > 0) {
 			data = initializeClazz(data);
 			data = initializeLogical(data);
+			data.setRequired(FormFieldDTO.of(dtoServ.enumToOptionDTO(YesNoNA.NA, YesNoNA.values())));
 			Concept node = closureServ.loadConceptById(data.getNodeId());
 			if (data.getVarNodeId() > 0) {
 				Concept varNode = closureServ.loadConceptById(data.getVarNodeId());
@@ -507,6 +510,14 @@ public class SupervisorService {
 				optVal.getOptions().add(opt);
 				i++;
 			}
+			Collections.sort(optVal.getOptions(), new Comparator<OptionDTO>() {
+
+				@Override
+				public int compare(OptionDTO o1, OptionDTO o2) {
+					return o1.getCode().compareTo(o2.getCode());
+				}
+				
+			});
 			data.getClazz().setValue(optVal);
 		}
 		return data;
@@ -527,8 +538,8 @@ public class SupervisorService {
 				data.getRow().setValue(100l);
 				data.getCol().setValue(100l);
 			}
-			data = validServ.variable(data);
-			if (data.isValid() || (!data.isValid() && !data.isStrict())) {
+			data = validServ.variable(data, true);
+			if (dataCollectionVariableCanBeSaved(data)) {
 				// save a node
 				Concept node = new Concept();
 				if (data.getVarNodeId() > 0) {
@@ -550,6 +561,22 @@ public class SupervisorService {
 			return data;
 		} else {
 			throw new ObjectNotFoundException("dataCollectionVariableSave. Data collection node id is ZERO", logger);
+		}
+	}
+	/**
+	 * Allow saving logic
+	 * @param data
+	 * @return
+	 */
+	private boolean dataCollectionVariableCanBeSaved(DataVariableDTO data) {
+		if(data.isValid()) {
+			return true;
+		}else {
+			if(!data.isStrict()) {
+				return data.getNodeId()>0;	// Temporarily we allow relaxed validation for already saved items 2023-01-04
+			}else {
+				return false;
+			}
 		}
 	}
 

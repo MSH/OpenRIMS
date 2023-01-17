@@ -325,23 +325,28 @@ public class ResourceService {
 	/* 15.11.2022 khomenska */
 	@Transactional
 	public ResponseEntity<Resource> downloadTerms() throws ObjectNotFoundException, IOException {
-		return downloadFile("resources.system.terms");
+		return downloadFile("resources.system.terms","termsofuse.pdf");
 	}
 	
 	/* 15.11.2022 khomenska */
 	@Transactional
 	public ResponseEntity<Resource> downloadPrivacy() throws ObjectNotFoundException, IOException {
-		return downloadFile("resources.system.privacy");
+		return downloadFile("resources.system.privacy","privacypolicy.pdf");
+	}
+	
+	@Transactional
+	public ResponseEntity<Resource> adminHelpWfrGuide() throws ObjectNotFoundException, IOException {
+		return downloadFile("resources.help.wfrguide","wfrguide.pdf");
 	}
 	
 	/* 15.11.2022 khomenska */
-	private ResponseEntity<Resource> downloadFile(String varName) throws ObjectNotFoundException, IOException{
+	private ResponseEntity<Resource> downloadFile(String varName, String fileName) throws ObjectNotFoundException, IOException{
 		Concept node=fileNode("images.design", varName);
 		String typeOpen = "inline";
 		String mediaType = "application/pdf";
 		if(node != null) {
 			FileResource fres = boilerServ.fileResourceByNode(node);
-			String fileName = node.getLabel();
+			fileName = node.getLabel();
 			Resource res = new ByteArrayResource(fres.getFile());
 			mediaType = fres.getMediatype();
 			
@@ -352,10 +357,6 @@ public class ResourceService {
 					.header("filename", fileName)
 					.body(res);
 		}else {
-			String fileName = "privacypolicy.pdf";
-			if(varName.equals("resources.system.terms")) {
-				fileName = "termsofuse.pdf";
-			}
 			InputStream in = getClass().getResourceAsStream("/static/shablon/"+fileName);
 			Resource res = new ByteArrayResource(IOUtils.toByteArray(in));
 			return ResponseEntity.ok()

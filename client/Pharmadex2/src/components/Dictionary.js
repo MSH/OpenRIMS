@@ -1,5 +1,5 @@
 import React , {Component} from 'react'
-import {Container, Row, Col,Alert,Breadcrumb,BreadcrumbItem, FormGroup, Label, Input, Nav} from 'reactstrap'
+import {Container, Row, Col,Alert,Breadcrumb,BreadcrumbItem, FormGroup, Label, Input, Card, CardHeader, CardBody} from 'reactstrap'
 import PropTypes from 'prop-types'
 import Fetchers from './utils/Fetchers'
 import Locales from './utils/Locales'
@@ -11,6 +11,9 @@ import FieldsComparator from './form/FieldsComparator'
 import DictNode from './DictNode'
 import Navigator from'./utils/Navigator'
 import SearchControl from './utils/SearchControl'
+import Thing from './Thing'
+import FieldUpload from './form/FieldUpload'
+import Downloader from './utils/Downloader'
 
 /**
  * Allows:
@@ -37,6 +40,7 @@ class Dictionary extends Component{
     constructor(props){
         super(props)
         this.state={
+            identifier:Date.now().toString(),
             sendMess:false,
             sendMessSave:false,
             activeNode:0,
@@ -44,12 +48,22 @@ class Dictionary extends Component{
             level:-1,
             edit:false,
             data:this.props.data,
+            showimport:false,
+            thing:{},
+            file:{},
             labels:{
                 global_add:"",
                 global_delete:'',
+                global_save:"",
+                global_cancel:"",
                 next:'',
                 search:'',
                 selectedonly:'',
+                global_import_short:"",
+                global_export_short:"",
+                upload_file:"",
+                headerImport:"",
+                saved:""
             }
         }
         this.createBreadCrumb=this.createBreadCrumb.bind(this)
@@ -59,6 +73,10 @@ class Dictionary extends Component{
         this.canAdd=this.canAdd.bind(this)
         this.selectRow=this.selectRow.bind(this)
         this.loadForward=this.loadForward.bind(this)
+        this.exportClick=this.exportClick.bind(this)
+        this.importRunClick=this.importRunClick.bind(this)
+        this.importForm=this.importForm.bind(this)
+        this.loadImport=this.loadImport.bind(this)
     }
        /**
      * Return changed style
@@ -191,6 +209,7 @@ class Dictionary extends Component{
         if(this.props.data.url != this.state.data.url){
             this.state.data=this.props.data
             this.state.edit=false
+            this.state.showimport=false
             this.setState(this.state)
         }
         let fld=this.comparator.checkChanges()
@@ -365,6 +384,9 @@ class Dictionary extends Component{
                     this.state.hasnext=true
                     this.state.data=result//
                     this.state.data.varName=varName//
+                    this.state.file = {}
+                    //document.getElementById("fileinputidinactivity").value = "";
+                    this.state.showimport=false
                     this.comparator = new FieldsComparator(this)//
                 }else{
                     this.state.hasnext=false
@@ -373,6 +395,127 @@ class Dictionary extends Component{
                 this.setState(this.state)
             })
         //}
+    }
+
+    exportClick(){
+        var api = '/api/admin/dictionary/export/dicturl=' + this.state.data.url
+        if(this.state.data.urlId == 0){
+            api += '&curid=' + this.state.data.path[this.state.data.path.length - 1].id
+        }else{
+            api += '&curid=' + this.state.data.urlId
+        }
+        window.open(api, "_blank").focus()
+    }
+
+    importRunClick(){
+        let formData = new FormData()
+        formData.append('dict', JSON.stringify(this.state.data))
+        formData.append('file', this.state.file);
+        Fetchers.postFormJson('/api/admin/dictionary/import/run', formData, (formData,result)=>{
+            this.state.file = {}
+            if(result.valid){
+                this.state.showimport=false
+                this.tableLoader()
+                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.saved, color:'success'})
+            }else{
+                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:result.identifier, color:'danger'})
+                window.open('/api/admin/dictionary/import/errorfile', "_blank").focus()
+                this.state.showimport=false
+                this.tableLoader()
+            }
+            //document.getElementById("fileinputidinactivity").value = "";
+        })
+    }
+
+    loadImport(){
+        Fetchers.postJSON("/api/admin/dictionary/import/load", this.state.thing, (query,result)=>{
+            this.state.thing=result
+            this.state.showimport=true;
+            this.setState(this.state)
+        })
+    }
+
+    /**
+     * Error message for a file
+     */
+     fileError(){
+        let fileName = this.state.data.fileName
+        let ret=""
+        if(fileName !== undefined){
+            if(fileName.error){
+                ret = fileName.suggest
+            }
+        }
+        return ret;
+    }
+
+    importForm(){
+        //ApplicationFiles.place(this.state.data.thing.documents["dataimport"], "index", false, this.state.identifier, "dataimport")
+        //ApplicationFiles.place(this.state.thing.documents["dataimport"], "index", false, this.state.identifier, "dataimport")
+        /*
+        <ApplicationFiles data={this.state.thing.documents["dataimport"]} key={this.state.identifier+index}
+                                            recipient={this.state.identifier}
+                                            readOnly={false}
+                            />
+        */
+        if(this.state.thing != undefined && this.state.thing.documents != undefined){
+            var index = 0
+            return (
+                <Card style={{width:"100%"}} >
+                    <CardHeader >
+                        <b>{this.state.labels.headerImport}</b>
+                    </CardHeader>
+                    <CardBody>
+                        <Row>
+                            <Col xs='12' sm='12' lg='12' xl='12'>
+                                <b>{this.state.labels.upload_file}</b>
+                            </Col>
+                        </Row>
+                        <Row>
+                            <Col xs='12' sm='12' lg='12' xl='12'>
+                                <FieldUpload onChange={(file)=>{
+                                                this.state.file=file
+                                                this.setState(this.state)
+                                            }}
+                                            accept={".xlsx"}
+                                            prompt={this.state.labels.upload_file}
+                                            error={this.fileError()}                            
+                                        />
+                            </Col>
+                        </Row>
+                        <Row>
+                            <Col xs='12' sm='12' lg='4' xl='4' >
+                            </Col>
+                            <Col xs='12' sm='12' lg='4' xl='4' className="d-flex justify-content-end">
+                                    <ButtonUni
+                                        label={this.state.labels.global_save}
+                                        onClick={()=>{
+                                            //this.state.data.editor = false
+                                            //this.setState(this.state)
+                                            this.importRunClick()
+                                        }}
+                                        color="success"
+                                    />
+                            </Col>
+                            <Col xs='12' sm='12' lg='4' xl='4' className="d-flex justify-content-end">
+                                    <ButtonUni
+                                        label={this.state.labels.global_cancel}
+                                        onClick={()=>{
+                                            //this.state.data.editor=false
+                                            this.state.file = {}
+                                            document.getElementById("fileinputidinactivity").value = "";
+                                            this.state.showimport = false
+                                            this.setState(this.state)
+                                        }}
+                                        color="info"
+                                    />
+                            </Col>
+                        </Row>
+                        </CardBody>
+                </Card>
+            )
+        }
+        return []
     }
 
     render(){
@@ -434,12 +577,21 @@ class Dictionary extends Component{
                     </Col>
                 </Row>
                 <Row hidden={this.state.data.readOnly}>
-                    <Col xs='12' sm='12' lg='5' xl='5'>
+                    <Col xs='12' sm='12' lg='12' xl='4'>
                         <div hidden={hideControls}>
                         <SearchControl label={this.state.labels.search} table={this.state.data.table} loader={this.tableLoader}/>
                         </div>
+                        <div hidden={!this.canAdd()}>
+                            <ButtonUni
+                                onClick={()=>{
+                                    this.exportClick()
+                                }}
+                                label={this.state.labels.global_export_short}
+                                color="success"
+                            />
+                        </div>
                     </Col>
-                    <Col xs='12' sm='12' lg='4' xl='4'>
+                    <Col xs='12' sm='12' lg='12' xl='4'>
                         <FormGroup hidden={hideControls} check className="form-control-sm">
                             <Label check>
                             <Input 
@@ -455,8 +607,19 @@ class Dictionary extends Component{
                                 {this.state.labels.selectedonly}
                             </Label>
                         </FormGroup>
+                        <div hidden={!this.canAdd()}>
+                            <ButtonUni
+                                onClick={()=>{
+                                    this.loadImport()
+                                    //this.showimport=true;
+                                    ///this.setState(this.state)
+                                }}
+                                label={this.state.labels.global_import_short}
+                                color="info"
+                            />
+                        </div>
                     </Col>
-                    <Col xs='12' sm='12' lg='3' xl='3' className="pb-2" >
+                    <Col xs='12' sm='12' lg='12' xl='4' className="pb-2" >
                         <div hidden={!this.canAdd()}>
                             <ButtonUni
                                 onClick={()=>{
@@ -468,6 +631,13 @@ class Dictionary extends Component{
                                 color="primary"
                             />
                         </div>
+                    </Col>
+                </Row>
+                <Row hidden={!this.canAdd()}>
+                    <Col xs='12' sm='12' lg='12' xl='12' >
+                        <Row className="pb-1" hidden={!this.state.showimport}>
+                            {this.importForm()}
+                        </Row>
                     </Col>
                 </Row>
                 <Row className="pb-1">

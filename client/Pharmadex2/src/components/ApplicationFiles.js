@@ -322,6 +322,21 @@ class ApplicationFiles extends Component{
         }
     }
 
+    /**
+     * Place this component to ThingDTO
+     * @param {FileDTO} file
+     * @param {number} index 
+     * @param {boolean} readOnly 
+     * @param {string} identifier 
+     * @param {string} label 
+     * @returns 
+     */
+    static onlyform(files,index,readOnly,identifier,label){
+        this.state.data = files
+        this.state.data.editor = true
+        return place(files,index,readOnly,identifier,label)
+    }
+
     render(){
         if(this.state.data.table==undefined){
             return []

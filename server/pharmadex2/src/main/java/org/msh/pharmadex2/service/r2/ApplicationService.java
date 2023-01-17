@@ -3,7 +3,10 @@ package org.msh.pharmadex2.service.r2;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.msh.pdex2.dto.table.Headers;
 import org.msh.pdex2.dto.table.TableCell;
@@ -13,12 +16,14 @@ import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.old.User;
+import org.msh.pdex2.model.r2.Assembly;
 import org.msh.pdex2.model.r2.Checklistr2;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.model.r2.Scheduler;
 import org.msh.pdex2.model.r2.Thing;
 import org.msh.pdex2.model.r2.ThingDict;
+import org.msh.pdex2.model.r2.ThingPerson;
 import org.msh.pdex2.model.r2.ThingScheduler;
 import org.msh.pdex2.model.r2.ThingThing;
 import org.msh.pdex2.repository.common.JdbcRepository;
@@ -31,6 +36,7 @@ import org.msh.pharmadex2.dto.ActivityToRun;
 import org.msh.pharmadex2.dto.ApplicationHistoryDTO;
 import org.msh.pharmadex2.dto.ApplicationOrActivityDTO;
 import org.msh.pharmadex2.dto.ApplicationsDTO;
+import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.CheckListDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.QuestionDTO;
@@ -171,7 +177,7 @@ public class ApplicationService {
 		headers.getHeaders()
 		.add(TableHeader.instanceOf("notes", "description", true, true, true, TableHeader.COLUMN_STRING, 0));
 
-		headers.getHeaders().get(0).setSortValue(TableHeader.SORT_ASC);
+		headers.getHeaders().get(0).setSortValue(TableHeader.SORT_DESC);
 		headers = boilerServ.translateHeaders(headers);
 		return headers;
 	}
@@ -384,30 +390,37 @@ public class ApplicationService {
 			List<Concept> nextActs = loadActivities(configRoot);
 			data = (CheckListDTO) validServ.workflowConfig(nextActs, configRoot, data);
 			if (data.isValid()) {
-				if (nextActs.size() > 0) {
-					List<ActivityToRun> toRun = activitiesToRun(data, applUrl, curHis, nextActs);
-					//finish the current activity and run others
-					if(toRun.size()>0 && data.isValid()) {
-						curHis = closeActivity(curHis, false);
-						// tracking by an applicant
-						activityTrackRun(null, curHis, applUrl, user.getEmail()); 
-						// monitoring by the all supervisors as a last resort
-						activityMonitoringRun(null, curHis, applUrl); 
-						// run activities
-						for(ActivityToRun act :toRun ) {
-							for (String email : act.getExecutors()) {
-								activityCreate(null, act.getConfig(), curHis, email, String.join(",",act.getFallBack()));
+				//boolean fullValid = fullValidation(curHis, user);
+				boolean fullValid=checkPagesDefined(curHis.getApplicationData());
+				if(fullValid) {
+					if (nextActs.size() > 0) {
+						List<ActivityToRun> toRun = activitiesToRun(data, applUrl, curHis, nextActs);
+						//finish the current activity and run others
+						if(toRun.size()>0 && data.isValid()) {
+							curHis = closeActivity(curHis, false);
+							// tracking by an applicant
+							activityTrackRun(null, curHis, applUrl, user.getEmail()); 
+							// monitoring by the all supervisors as a last resort
+							activityMonitoringRun(null, curHis, applUrl); 
+							// run activities
+							for(ActivityToRun act :toRun ) {
+								for (String email : act.getExecutors()) {
+									activityCreate(null, act.getConfig(), curHis, email, String.join(",",act.getFallBack()));
+								}
+							}
+						}else {
+							if(data.isValid()) {
+								data.setValid(false);
+								data.setIdentifier(messages.get("badconfiguration") + applUrl);
 							}
 						}
-					}else {
-						if(data.isValid()) {
-							data.setValid(false);
-							data.setIdentifier(messages.get("badconfiguration") + applUrl);
-						}
+					} else {
+						data.setValid(false);
+						data.setIdentifier(messages.get("badconfiguration") + " " + "activities");
 					}
-				} else {
+				}else {
 					data.setValid(false);
-					data.setIdentifier(messages.get("badconfiguration") + " " + "activities");
+					data.setIdentifier(messages.get("errorApplNotFull"));
 				}
 			}
 			return data;
@@ -415,6 +428,199 @@ public class ApplicationService {
 			throw new ObjectNotFoundException("submit. History record id is ZERO", logger);
 		}
 	}
+
+	/**
+	 * Have all pages been defined?
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional			// may become public in the future
+	private boolean checkPagesDefined(Concept data) throws ObjectNotFoundException {
+		boolean ret = true;
+		//check persons on the first page
+		if(!checkPagesPersonDefined(data)) {
+			return false;
+		}
+		// get thing
+		Thing thing = new Thing();
+		thing=boilerServ.thingByNode(data, thing);
+		if(thing.getID()>0) {
+			// get all pages
+			Map<String,Concept> pages =new LinkedHashMap<String, Concept>();
+			for(ThingThing tt : thing.getThings()) {
+				pages.put(tt.getUrl().toUpperCase(),tt.getConcept());
+			}
+			// get data configuration URL
+			Concept owner = closureServ.getParent(data);
+			if(owner != null) {
+				Concept root=closureServ.getParent(owner);
+				if(root != null) {
+					List<Assembly> assms =assmServ.loadDataConfiguration(root.getIdentifier());
+					for(Assembly assm :assms) {
+						if(assm.getClazz().equalsIgnoreCase("things")) {
+							String url = assm.getUrl();
+							Concept page = pages.get(url.toUpperCase());
+							if(page==null) {
+								return false;
+							}else {
+								if(!checkPagesPersonDefined(page)) {
+									return false;
+								}
+							}
+						}
+					}
+				}else {
+					ret=false;
+				}
+			}else {
+				ret=false;
+			}
+		}else {
+			ret=false;
+		}
+		return ret;
+	}
+	
+	/**
+	 * check "persons" (in general 1:m)
+	 * @param page
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	@Transactional
+	private boolean checkPagesPersonDefined(Concept page) throws ObjectNotFoundException {
+		Thing pThing = new Thing();
+		pThing=boilerServ.thingByNode(page, pThing);
+		for(ThingPerson tp : pThing.getPersons()) {
+			if (!checkPagesDefined(tp.getConcept())){
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * 20122022 khomka
+	 * complete verification of all Things
+	 * @param curHis
+	 * @param user
+	 * @return
+	 * @throws ObjectNotFoundException
+	 * @deprecated
+	 */
+	private boolean fullValidation(History curHis, UserDetailsDTO user) throws ObjectNotFoundException {
+		Concept node = closureServ.loadConceptById(curHis.getApplicationData().getID());
+		Thing thing = new Thing();
+		thing = boilerServ.thingByNode(node, thing);
+		ThingDTO dto = new ThingDTO();
+		dto.setUrl(thing.getUrl());
+		dto.setNodeId(node.getID());
+		dto = thingServ.createContent(dto, user);
+		dto.setStrings(dtoServ.readAllStrings(dto.getStrings(), node));
+		dto.setLiterals(dtoServ.readAllLiterals(dto.getLiterals(), node));
+		dto.setDates(dtoServ.readAllDates(dto.getDates(), node));
+		dto.setNumbers(dtoServ.readAllNumbers(dto.getNumbers(), node));
+		dto.setLogical(dtoServ.readAllLogical(dto.getLogical(), node));
+
+		//dto.getThings().remove("classifiers");
+
+		dto = validServ.thing(dto, false);
+		List<AssemblyDTO> thinfAss = validServ.loadThingByConfig(dto);
+		for(AssemblyDTO ass :thinfAss) {
+			if(ass.isRequired()) {
+				ThingDTO th = dto.getThings().get(ass.getPropertyName());
+				Concept thnode= closureServ.loadConceptById(th.getNodeId());
+				if(th != null) {
+					th = thingServ.createContent(th, user);
+					th.setStrings(dtoServ.readAllStrings(th.getStrings(), thnode));
+					th.setLiterals(dtoServ.readAllLiterals(th.getLiterals(), thnode));
+					th.setDates(dtoServ.readAllDates(th.getDates(), thnode));
+					th.setNumbers(dtoServ.readAllNumbers(th.getNumbers(), thnode));
+					th.setLogical(dtoServ.readAllLogical(th.getLogical(), thnode));
+
+					th = validServ.thing(th, false);
+					if(!th.isValid()) {
+						return false;
+					}
+
+					boolean valid = validThings(th, user);
+					if(!valid) {
+						return false;
+					}
+				}else {// 20122022 khomka Нужна эта ветка - вдруг в конфигурации Thing есть, а в аппликации его нет
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	private boolean validThings(ThingDTO th, UserDetailsDTO user) throws ObjectNotFoundException {
+		Map<ThingDTO, Concept> mapThing = new HashMap<ThingDTO, Concept>();
+
+		if(th.getPersons() != null && th.getPersons().keySet() != null && th.getPersons().keySet().size() > 0) {
+			for(String key:th.getPersons().keySet()) {
+				if(th.getPersons().get(key).getTable() != null && th.getPersons().get(key).getTable().getRows() != null) {
+					List<TableRow> rows = th.getPersons().get(key).getTable().getRows();
+					for(TableRow row:rows) {
+						Long personID = row.getDbID();
+						if(personID > 0) {
+							Concept pnode = closureServ.loadConceptById(personID);
+							Thing pth = new Thing();
+							pth = boilerServ.thingByNode(pnode, pth);
+							ThingDTO pthdto = new ThingDTO();
+							pthdto.setUrl(pth.getUrl());
+							pthdto.setNodeId(pnode.getID());
+
+							mapThing.put(pthdto, pnode);
+						}else {
+							return false;
+						}
+					}
+				}else {
+					return false;
+				}
+			}
+		}
+
+		if(th.getThings() != null && th.getThings().keySet() != null && th.getThings().keySet().size() > 0) {
+			for(String key:th.getThings().keySet()) {
+				ThingDTO vdto = th.getThings().get(key);
+				if(vdto.getNodeId() > 0) {
+					Concept vnode = closureServ.loadConceptById(vdto.getNodeId());
+					mapThing.put(vdto, vnode);
+				}else {
+					return false;
+				}
+			}
+		}
+
+		if(mapThing.keySet() != null && mapThing.keySet().size() > 0) {
+			for(ThingDTO thingDTO:mapThing.keySet()) {
+				Concept nodeDTO = mapThing.get(thingDTO);
+
+				thingDTO = thingServ.createContent(thingDTO, user);
+				thingDTO.setStrings(dtoServ.readAllStrings(thingDTO.getStrings(), nodeDTO));
+				thingDTO.setLiterals(dtoServ.readAllLiterals(thingDTO.getLiterals(), nodeDTO));
+				thingDTO.setDates(dtoServ.readAllDates(thingDTO.getDates(), nodeDTO));
+				thingDTO.setNumbers(dtoServ.readAllNumbers(thingDTO.getNumbers(), nodeDTO));
+				thingDTO.setLogical(dtoServ.readAllLogical(thingDTO.getLogical(), nodeDTO));
+
+				thingDTO = validServ.thing(thingDTO, false);
+				if(!thingDTO.isValid()) {
+					return false;
+				}
+
+				boolean v = validThings(thingDTO, user);
+				if(!v)
+					return v;
+			}
+		}
+
+		return true;
+	}
+
 
 	/**
 	 * It is impossible running more than one modification and/or de-registration against the same object
@@ -925,6 +1131,15 @@ public class ApplicationService {
 			if (curHis.getActConfig() != null) {
 				data.setBackground(validServ.isActivityBackground(curHis.getActConfig()));
 				data.setAttention(validServ.isActivityAttention(curHis.getActConfig()));
+				if(validServ.isActivityFinalAction(curHis, systemServ.FINAL_ACCEPT)) {
+					data.setFinalization(true);
+				}else if(validServ.isActivityFinalAction(curHis, systemServ.FINAL_AMEND)) {
+					data.setFinalization(true); 
+				}else if(validServ.isActivityFinalAction(curHis, systemServ.FINAL_DEREGISTRATION)) {
+					data.setFinalization(true);
+				}else {
+					data.setFinalization(false);
+				}
 				//String dictUrl = curHis.getActivity().getLabel();
 				//if (dictUrl != null && dictUrl.toUpperCase().startsWith("DICTIONAR")) {
 				data.setHost(validServ.isHostApplication(curHis.getApplDict()));
@@ -1398,9 +1613,12 @@ public class ApplicationService {
 					// activity/executor
 				}
 			} else {
-				data = validServ.submitNext(curHis, user, data);
+				data = validServ.submitNext(curHis, user, data);//ika06122022
 				if (data.isValid()) {
-					allowed.add("0"); // next activity
+					data = validServ.submitAmendment(curHis, user, data);
+					if (!data.isValid()) {
+						allowed.add("0"); // next activity
+					}
 				}
 				data = validServ.submitRoute(curHis, user, data);
 				if (data.isValid()) {

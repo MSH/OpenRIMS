@@ -472,7 +472,7 @@ class ActivityManager extends Component{
                          }}
                         >{this.state.labels.route_action}</Button>{' '}
 
-                        <Button size="sm" hidden={!this.state.conclude || this.state.send || this.state.data.guest || this.state.data.host}
+                        <Button size="sm" hidden={!this.state.conclude || this.state.send || this.state.data.guest || this.state.data.host|| this.state.data.finalization}
                             className="mr-1" color="warning"
                             onClick={()=>{
                                 this.state.send=true

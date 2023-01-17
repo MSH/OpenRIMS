@@ -41,7 +41,7 @@ public class SystemService {
 	// public static final String DICTIONARY_SYSTEM_IMPORT_LEGACY_DATA =
 	// "dictionary.system.import.legacy.data";
 	// Finalization activity related
-	private static final String FINAL_DEREGISTRATION = "deregistration";
+	public static final String FINAL_DEREGISTRATION = "deregistration";
 	public static final String FINAL_AMEND = "AMEND";
 	public static final String FINAL_DECLINE = "DECLINE";
 	public static final String FINAL_ACCEPT = "ACCEPT";

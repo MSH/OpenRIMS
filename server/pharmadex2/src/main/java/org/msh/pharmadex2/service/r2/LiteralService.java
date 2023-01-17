@@ -44,6 +44,7 @@ public class LiteralService {
 	private static final String IDENTIFIER = "_LITERALS_";
 	public static final String DESCRIPTION = "description";
 	public static final String PREF_NAME = "prefLabel";
+	public static final String URL = "URL";
 
 	public static final String ICON_URL = "iconurl";
 	public static final String MORE_URL = "moreurl";
@@ -519,6 +520,33 @@ public class LiteralService {
 						if(value.getIdentifier().equalsIgnoreCase(locale)) {
 							ret = value.getLabel();
 							break;
+						}
+					}
+				}
+			}
+		}
+		return ret;
+	}
+	
+	/**
+	 * Return all literals under the node
+	 * Attn: low level
+	 * @param node
+	 * @return
+	 */
+	@Transactional
+	public Map<String, String> literals(Concept node) {
+		Map<String, String> ret = new LinkedHashMap<String, String>();
+		List<Concept> childs = closureServ.loadLevel(node);
+		String locale = LocaleContextHolder.getLocale().toString().toUpperCase();
+		for(Concept child : childs) {
+			if(child.getIdentifier().equalsIgnoreCase(IDENTIFIER)) {	//branch from '_LITERALS_'
+				List<Concept> vars = closureServ.loadLevel(child);	    // all variables
+				for(Concept var : vars) {												
+					List<Concept> vals = closureServ.loadLevel(var);		//all values of a variable
+					for(Concept val :vals) {
+						if(val.getIdentifier().equalsIgnoreCase(locale)) {
+							ret.put(var.getIdentifier(), val.getLabel());			//a value on the current language
 						}
 					}
 				}

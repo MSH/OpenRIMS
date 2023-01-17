@@ -6,6 +6,8 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -364,6 +366,24 @@ public class LegacyDataService {
 		dto.setSelectedNode(concept.getID());
 		dto=reloadTable(dto);
 		return dto;
+	}
+	/**
+	 * Get data that is not in the literals
+	 * @param node 
+	 * @param literals
+	 * @return
+	 */
+	@Transactional
+	public Map<String, String> additionalData(Concept node, Map<String, String> literals) {
+		Optional<LegacyData> ld = legacyRepo.findByConcept(node);
+		if(ld.isPresent()) {
+			literals.put("description",ld.get().getNote());
+			literals.put("reg_number",ld.get().getRegister());
+			literals.put("registration_date",boilerServ.dateToString(ld.get().getRegDate()));
+			literals.put("reg_expired",boilerServ.dateToString(ld.get().getRegDate()));
+			literals.put("url",ld.get().getUrl());
+		}
+		return literals;
 	}
 
 }

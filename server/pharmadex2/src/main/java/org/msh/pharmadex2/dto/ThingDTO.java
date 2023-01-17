@@ -64,15 +64,13 @@ public class ThingDTO extends AllowValidation {
 	private Map<String,ResourceDTO> resources = new LinkedHashMap<String, ResourceDTO>();											//documents for upload and templates
 	private Map<String, ThingDTO> things = new LinkedHashMap<String, ThingDTO>();															//things included
 	private Map<String,PersonDTO> persons = new LinkedHashMap<String, PersonDTO>();														//persons tables
-	private Map<String,PersonSelectorDTO> personselector = new LinkedHashMap<String, PersonSelectorDTO>();					//selection from the existing persons
-	private Map<String, PersonSpecialDTO> personspec = new LinkedHashMap<String, PersonSpecialDTO>();							//selection for the special persons
 	private Map<String,SchedulerDTO> schedulers = new LinkedHashMap<String, SchedulerDTO>();										//with workflow should be run
 	private Map<String,RegisterDTO> registers = new LinkedHashMap<String, RegisterDTO>();												//filing system registers
-	private Map<String,AmendmentDTO> amendments = new LinkedHashMap<String, AmendmentDTO>();								//ameded data
 	private Map<String,AtcDTO> atc = new LinkedHashMap<String, AtcDTO>();																		//atc codes
 	private Map<String, LegacyDataDTO> legacy = new LinkedHashMap<String, LegacyDataDTO>();										//list of legacy applications to import
 	private Map<String, IntervalDTO> intervals = new LinkedHashMap<String, IntervalDTO>();
-	private Map<String, LinksDTO> links = new LinkedHashMap<String, LinksDTO>();																// links to other objects
+	private Map<String, LinksDTO> links = new LinkedHashMap<String, LinksDTO>();	
+	private Map<String, FormFieldDTO<OptionDTO>> droplist = new LinkedHashMap<String, FormFieldDTO<OptionDTO>>();// dropdown list Dictionary
 	private ActionBarDTO actionBar= new ActionBarDTO();																										//action bar for it @depricated
 	
 	//The main static path - things that should be filled
@@ -244,6 +242,12 @@ public class ThingDTO extends AllowValidation {
 		this.dates = dates;
 	}
 	public Map<String, FormFieldDTO<Long>> getNumbers() {
+		for(String key : numbers.keySet()) {
+			FormFieldDTO<Long> n = numbers.get(key);
+			if(n.getValue()==null) {
+				n.setValue(0l);
+			}
+		}
 		return numbers;
 	}
 	public void setNumbers(Map<String, FormFieldDTO<Long>> numbers) {
@@ -291,18 +295,7 @@ public class ThingDTO extends AllowValidation {
 	public void setPersons(Map<String, PersonDTO> persons) {
 		this.persons = persons;
 	}
-	public Map<String, PersonSelectorDTO> getPersonselector() {
-		return personselector;
-	}
-	public void setPersonselector(Map<String, PersonSelectorDTO> personselector) {
-		this.personselector = personselector;
-	}
-	public Map<String, PersonSpecialDTO> getPersonspec() {
-		return personspec;
-	}
-	public void setPersonspec(Map<String, PersonSpecialDTO> personspec) {
-		this.personspec = personspec;
-	}
+	
 	public Map<String, SchedulerDTO> getSchedulers() {
 		return schedulers;
 	}
@@ -321,12 +314,6 @@ public class ThingDTO extends AllowValidation {
 	}
 	public void setActionBar(ActionBarDTO actionBar) {
 		this.actionBar = actionBar;
-	}
-	public Map<String, AmendmentDTO> getAmendments() {
-		return amendments;
-	}
-	public void setAmendments(Map<String, AmendmentDTO> amendments) {
-		this.amendments = amendments;
 	}
 	
 	public Map<String, AtcDTO> getAtc() {
@@ -478,5 +465,12 @@ public class ThingDTO extends AllowValidation {
 	public void setAuxfirstPage(boolean auxfirstPage) {
 		this.auxfirstPage = auxfirstPage;
 	}
+	public Map<String, FormFieldDTO<OptionDTO>> getDroplist() {
+		return droplist;
+	}
+	public void setDroplist(Map<String, FormFieldDTO<OptionDTO>> droplist) {
+		this.droplist = droplist;
+	}
+	
 	
 }

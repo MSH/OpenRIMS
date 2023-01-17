@@ -2,6 +2,7 @@ package org.msh.pharmadex2.service.common;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.Period;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -23,8 +24,6 @@ import org.msh.pharmadex2.dto.QuestionDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.dto.form.OptionDTO;
-import org.msh.pharmadex2.service.r2.AssemblyService;
-import org.msh.pharmadex2.service.r2.DictService;
 import org.msh.pharmadex2.service.r2.LiteralService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -303,11 +302,41 @@ public class DtoService {
 			for(AssemblyDTO date :dates) {
 				FormFieldDTO<LocalDate> fld = FormFieldDTO.of(LocalDate.now());
 				fld.setReadOnly(date.isReadOnly());
+				fld.setDetail(getCalendarType(date));
 				data.getDates().put(date.getPropertyName(), fld);
 			}
 		}
 		return data;
 	}
+	
+	/**
+	 * 06122022 khomenska
+	 * for the calendar type depending on the configuration settings
+	 * @return "month", "year", "decade" or "century"
+	 */
+	private String getCalendarType(AssemblyDTO assDate) {
+		String detail = "month";
+		LocalDate minDate = LocalDate.now().plusMonths(assDate.getMin().intValue());
+		LocalDate maxDate = LocalDate.now().plusMonths(assDate.getMax().intValue());
+		int century=LocalDate.now().getYear()-2000;
+		int yCount = Period.between(minDate, maxDate).getYears();
+		int mCount = Period.between(minDate, maxDate).getMonths();
+		
+		if(yCount>century) {
+			detail = "century";
+		}else if(yCount >= 10) {
+			detail = "decade";
+		}else if(yCount == 1) {
+			detail = "year";
+		}else if(mCount>1 && mCount<=12) {
+			detail = "year";
+		}else if(mCount == 1) {
+			detail = "month";
+		}
+		
+		return detail;
+	}
+	
 	/**
 	 * Create numbers from descriptions
 	 * @param data
@@ -344,6 +373,7 @@ public class DtoService {
 		}
 		return data;
 	}
+	
 	
 	/**
 	 * Load values for all literals from the database

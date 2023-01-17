@@ -35,6 +35,7 @@ class DataConfigurator extends Component{
                 preview:'',
                 explore:'',
                 restricted_edit:'',
+                global_help:'',
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -107,11 +108,11 @@ class DataConfigurator extends Component{
         return(
                 <Container fluid>
                     <Row>
-                        <Col xs='12' sm='12' lg='6' xl='6'>
+                        <Col xs='12' sm='12' lg='12' xl='6'>
                             <SearchControl label={this.state.labels.search} table={this.state.data.varTable} loader={this.loader}/>
                         </Col>
-                        
-                        <Col xs='12' sm='12' lg='6' xl='2'>
+                       
+                        <Col xs='12' sm='12' lg='12' xl='2'>
                             <ButtonUni
                                 label={this.state.labels.global_add}
                                 onClick={()=>{
@@ -123,7 +124,7 @@ class DataConfigurator extends Component{
                                 color="primary"
                             />
                         </Col>
-                        <Col xs='12' sm='12' lg='6' xl='2'>
+                        <Col xs='12' sm='12' lg='12' xl='2'>
                             <ButtonUni
                             label={this.state.labels.preview}
                             onClick={()=>{
@@ -136,16 +137,17 @@ class DataConfigurator extends Component{
                             color="success"
                             />
                         </Col>
-                        <Col xs='12' sm='12' lg='6' xl='2'>
+                        <Col xs='12' sm='12' lg='12' xl='2'>
                             <ButtonUni
                                 label={this.state.labels.explore}
                                 onClick={()=>{
                                     let dl = new Downloader()
                                     dl.postDownload('/api/admin/data/collection/variables/export', this.state.data, "file.bin")
                                 }}
-                                color="info"
+                                color="secondary"
                             />
                         </Col>
+                       
                     </Row>
                     <Row>
                         <Col>
@@ -292,13 +294,14 @@ class DataConfigurator extends Component{
         return(
             <Container fluid>
                 <Row>
-                    <Col xs='12' sm='12' lg='11' xl='11'>
+                    <Col xs='12' sm='12' lg='9' xl='11'>
+                        <h6>{this.state.labels.directories}</h6>
                     </Col>
-                    <Col className="d-flex justify-content-end" xs='12' sm='12' lg='1' xl='1'>
+                    <Col xs='12' sm='12' lg='3' xl='1'>
                         <ButtonUni
-                            label={this.state.labels.global_cancel}
+                            label={this.state.labels.global_help}
                             onClick={()=>{
-                                window.location="/"+Navigator.tabSetName()+"#"+Navigator.tabName()
+                                window.open('/api/admin/help/wfrguide','_blank').focus()
                             }}
                             color="info"
                         />
@@ -306,11 +309,7 @@ class DataConfigurator extends Component{
                 </Row>
                 <Row>
                     <Col xs='12' sm='12' lg='6'xl='6'>
-                        <Row>
-                            <Col>
-                                <h6>{this.state.labels.directories}</h6>
-                            </Col>
-                        </Row>
+                        
                         {this.left()} 
                     </Col>
                     <Col xs='12' sm='12' lg='6'xl='6'>

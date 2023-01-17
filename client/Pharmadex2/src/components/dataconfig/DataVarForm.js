@@ -1,5 +1,5 @@
 import React , {Component} from 'react'
-import {Container, Row, Col, Alert} from 'reactstrap'
+import {Container, Row, Col, Alert, Button} from 'reactstrap'
 import PropTypes from 'prop-types'
 import Locales from '../utils/Locales'
 import Fetchers from '../utils/Fetchers'
@@ -31,7 +31,8 @@ class DataVarForm extends Component{
                 cancel:'',
                 screenposition:'',
                 auxiliarydata:'',
-            }
+            },
+            color:"warning"
         }
         this.eventProcessor=this.eventProcessor.bind(this)
         this.buttons=this.buttons.bind(this)
@@ -40,6 +41,7 @@ class DataVarForm extends Component{
         this.hiddenUrl=this.hiddenUrl.bind(this)
         this.hiddenAuxUrl=this.hiddenAuxUrl.bind(this)
         this.hiddenRestricted=this.hiddenRestricted.bind(this)
+        this.helpButton=this.helpButton.bind(this)
     }
 
     /**
@@ -71,6 +73,29 @@ class DataVarForm extends Component{
             this.setState(this.state)
         })
     }
+    helpButton(){
+        return (
+            <Row className='p-0 m-0'>
+            <Col className="d-flex justify-content-end p-0 m-0">
+                <Button
+                    size='lg'
+                    className="p-0 m-0"
+                    color="link"
+                    onClick={()=>{
+                        Fetchers.postJSON("/api/admin/data/configuration/variable/help", this.state.data, (query,result)=>{
+                            this.state.data=result
+                            this.setState(this.state)
+                            this.state.color='warning'
+                            Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:result.identifier, color:'warning'})
+                        })
+                    }}
+                >
+                    <i className="far fa-question-circle"></i>
+                </Button>
+            </Col>
+        </Row>
+        )
+    }
     /**
      * Control buttons
      * @returns 
@@ -90,8 +115,10 @@ class DataVarForm extends Component{
                                         }else{
                                             if(result.strict){
                                                 this.state.data=result
+                                                this.state.color='danger'
                                                 this.setState(this.state)
                                             }else{
+                                                this.state.color='warning'
                                                 Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:result.identifier, color:'warning'})
                                                 Navigator.message(this.state.identifier, this.props.recipient,"formCancel",{})
                                             }
@@ -129,7 +156,7 @@ class DataVarForm extends Component{
                     </Row>
                     <Row>
                         <Col hidden={this.state.data.valid}>
-                            <Alert color="danger" className="p-0 m-0">
+                            <Alert color={this.state.color} className="p-0 m-0">
                                 <small>{this.state.data.identifier}</small>
                             </Alert>       
                         </Col>
@@ -139,7 +166,7 @@ class DataVarForm extends Component{
         }
 
 option(){
-    if(this.props.restricted){
+    if(!this.props.restricted){
         if(this.state.data.varNodeId!=0){
            return(<Col>
                 <ViewEditOption component={this} attribute='clazz' />
@@ -208,6 +235,7 @@ hiddenRestricted(){
         return(
             <Container fluid className={Pharmadex.settings.activeBorder}>
                 {this.buttons()}
+                {this.helpButton()}
                 <Row>
                     <Col>
                         <FieldGuarded mode="text" attribute="varName" component={this} editno={this.hiddenRestricted()}/>
@@ -288,7 +316,7 @@ hiddenRestricted(){
                         <ViewEdit mode='text' attribute='fileTypes' component={this} edit/>
                     </Col>
                 </Row>
-                
+                {this.helpButton()}
                 {this.buttons()}
             </Container>
         )

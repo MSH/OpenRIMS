@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -20,6 +21,7 @@ import org.apache.commons.beanutils.PropertyUtilsBean;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.junit.jupiter.api.Test;
 import org.msh.pharmadex2.dto.ThingDTO;
+import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.springframework.mail.javamail.InternetAddressEditor;
 
 import com.github.binodnme.dateconverter.converter.DateConverter;
@@ -95,6 +97,12 @@ public class ElStupido {
 			     YearMonth.from(LocalDate.parse("2016-11-03"))
 			);
 		System.out.println(monthsBetween);
+	}
+	
+	@Test
+	public void genericClass() {
+		FormFieldDTO<Long> ffld = new FormFieldDTO<Long>();
+		System.out.println(ffld.getValue());
 	}
 	
 }

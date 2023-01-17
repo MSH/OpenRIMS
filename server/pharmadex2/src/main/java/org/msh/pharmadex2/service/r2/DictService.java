@@ -14,8 +14,12 @@ import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
+import org.msh.pdex2.model.enums.YesNoNA;
 import org.msh.pdex2.model.old.Query;
+import org.msh.pdex2.model.r2.Assembly;
 import org.msh.pdex2.model.r2.Concept;
+import org.msh.pdex2.model.r2.Thing;
+import org.msh.pdex2.model.r2.ThingDict;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.common.QueryRepository;
 import org.msh.pdex2.services.r2.ClosureService;
@@ -1202,5 +1206,46 @@ public class DictService {
 	public boolean isAdminUnits(Concept root) {
 		return root.getIdentifier().equalsIgnoreCase("dictionary.admin.units");
 	}
-
+	/**
+	 * Create droplist from dictionaries
+	 * data from url configuration dictionsru is in use. The value by default is "-" (none)
+	 * @param data
+	 * @param droplist
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public ThingDTO createDropList(ThingDTO data, List<AssemblyDTO> droplist) throws ObjectNotFoundException {
+		data.getDroplist().clear();		
+		if(droplist != null) {
+			OptionDTO ret = new OptionDTO();
+			for(AssemblyDTO list : droplist) {
+				//???
+				List<OptionDTO> plainDictionary = loadPlain(list.getUrl());
+				if(plainDictionary!=null) {
+					for(OptionDTO opt:plainDictionary) {
+						ret.getOptions().add(opt);
+					}
+					FormFieldDTO<OptionDTO> fld = FormFieldDTO.of(ret);
+					fld.setReadOnly(list.isReadOnly());
+					data.getDroplist().put(list.getPropertyName(),fld);
+				}
+			}
+			if(data.getNodeId()>0) {
+			Concept node = closureServ.loadConceptById(data.getNodeId());
+			Thing thing = new Thing();
+			thing= boilerServ.thingByNode(node,thing);
+			for(ThingDict th:thing.getDictionaries()) {
+				FormFieldDTO<OptionDTO> dl=data.getDroplist().get(th.getVarname());
+				if(dl!=null){
+					dl.getValue().setId(th.getConcept().getID());
+					dl.getValue().setCode(literalServ.readPrefLabel(th.getConcept()));
+					dl.getValue().setOriginalCode(literalServ.readPrefLabel(th.getConcept()));
+					dl.getValue().setDescription(literalServ.readDescription(th.getConcept()));
+					dl.getValue().setOriginalDescription(literalServ.readDescription(th.getConcept()));
+				}
+			}
+			}
+		}
+		return data;
+	}
 }

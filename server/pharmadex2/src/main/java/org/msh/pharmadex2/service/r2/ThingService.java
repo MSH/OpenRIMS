@@ -64,6 +64,7 @@ import org.msh.pharmadex2.dto.PersonDTO;
 import org.msh.pharmadex2.dto.PersonSelectorDTO;
 import org.msh.pharmadex2.dto.PersonSpecialDTO;
 import org.msh.pharmadex2.dto.RegisterDTO;
+import org.msh.pharmadex2.dto.ReportDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
 import org.msh.pharmadex2.dto.SchedulerDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
@@ -273,6 +274,10 @@ public class ThingService {
 		data.getMainLabels().clear();
 		data.getMainLabels().putAll(assemblyServ.mainLabelsByUrl(data.getUrl()));
 		//logger.trace("END content");
+		//DropList data
+		List<AssemblyDTO> droplist = assemblyServ.auxDropListData(data.getUrl(), assemblies);
+		data=dictServ.createDropList(data,droplist);
+		
 		return data;
 	}
 	/**
@@ -319,6 +324,8 @@ public class ThingService {
 		}
 		return data;
 	}
+	
+	
 	/**
 	 * Create ATC codes lookup table and load selected codes 
 	 * @param atc
@@ -973,8 +980,6 @@ public class ThingService {
 					}
 				}
 
-				//person special may change parent ID
-				data = storePersonSpecial(data, thing);
 				//attach to the parent auxiliary things
 				if(data.getParentId()>0) {
 					Concept incl=closureServ.loadConceptById(data.getParentId());
@@ -1046,6 +1051,7 @@ public class ThingService {
 		data = storeLinks(thing, data);					//should be first, because may change literals
 		data = storeLegacy(thing, data);				//should be first, because may change literals
 		data = storeDictionaries(thing,data, user);	    //should be first, because may change literals
+		data = storeDropList(thing,data, user);
 		data = storeStrings(node,data);
 		data = storeLiterals(node, data);
 		data = storeDates(node,data);
@@ -1054,7 +1060,6 @@ public class ThingService {
 
 		data = storeDocuments(thing, data,user);
 		data = storeAddresses(user, node, thing,data);
-		data = storeAmended(user, node, thing, data);
 		data = storeSchedule(user, thing, data);
 		data = storeRegister(user, thing, data);
 		data = storeAtc(thing, data);
@@ -1062,6 +1067,51 @@ public class ThingService {
 		
 		data=amendServ.storePersonToRemove(data, thing);
 
+		return data;
+	}
+	private ThingDTO storeDropList(Thing thing, ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		/* полуить из конфигурации droplists*/
+		List<Assembly> assemblies =assemblyServ.loadDataConfiguration(data.getUrl());
+		List<AssemblyDTO> droplists = assemblyServ.auxDropListData(data.getUrl(), assemblies);
+		for(AssemblyDTO dl:droplists) {
+			String key=dl.getPropertyName();
+			FormFieldDTO<OptionDTO> fld =data.getDroplist().get(key);
+			Long id=fld.getValue().getId();
+			Concept dictItem = closureServ.loadConceptById(id);
+			ThingDict thingDict = new ThingDict();
+			thingDict.setUrl(dl.getUrl());
+			thingDict.setConcept(dictItem);
+			thingDict.setVarname(dl.getPropertyName());
+			thing.getDictionaries().add(thingDict);
+			if(dl!= null && dl.isPrefLabel() && !dl.isMult()) {
+				FormFieldDTO<String> prefLabelDTO = data.getLiterals().get(LiteralService.PREF_NAME);
+				if(prefLabelDTO == null) {
+					prefLabelDTO = data.getStrings().get(LiteralService.PREF_NAME);
+				}
+				if(prefLabelDTO == null) {
+					prefLabelDTO = new FormFieldDTO<String>("");
+					data.getLiterals().put("prefLabel", prefLabelDTO);
+					prefLabelDTO = data.getLiterals().get(LiteralService.PREF_NAME);
+				}
+				if(prefLabelDTO != null) {
+					String prefLabel = literalServ.readPrefLabel(dictItem);
+					prefLabelDTO.setValue(prefLabel);
+				}
+				FormFieldDTO<String> descriptionDTO = data.getLiterals().get(LiteralService.DESCRIPTION);
+				if(descriptionDTO==null) {
+					descriptionDTO=data.getStrings().get(LiteralService.DESCRIPTION);
+				}
+				if(descriptionDTO == null) {
+					descriptionDTO = new FormFieldDTO<String>("");
+					data.getLiterals().put("description", descriptionDTO);
+					descriptionDTO = data.getLiterals().get(LiteralService.DESCRIPTION);
+				}
+				if(descriptionDTO != null) {
+					String descr=literalServ.readDescription(dictItem);		//here altLabel is right
+					descriptionDTO.setValue(descr);
+				}
+			}
+		}
 		return data;
 	}
 	/**
@@ -1225,76 +1275,7 @@ public class ThingService {
 		}
 		return data;
 	}
-	/**
-	 * Store which object should be amended 
-	 * @deprecated
-	 * @param user
-	 * @param node
-	 * @param thing
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	@Transactional
-	private ThingDTO storeAmended(UserDetailsDTO user, Concept node, Thing thing, ThingDTO data) throws ObjectNotFoundException {
-		if(data.getAmendments().size()==1) {
-			Set<String> keySet = data.getAmendments().keySet();
-			AmendmentDTO dto = data.getAmendments().get(keySet.iterator().next());
-			dto=validServ.amendment(dto);		//always mandatory, always strict
-			if(dto.isValid()) {
-				data.setValid(true);
-				data = amendServ.save(user, node, thing, data, dto);
-			}else {
-				data.setValid(false);
-			}
-		}
-		return data;
-	}
-	/**
-	 * Component Person Special may change the parent ID
-	 * @deprecated
-	 * @param data
-	 * @param thing 
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	@Transactional
-	private ThingDTO storePersonSpecial(ThingDTO data, Thing thing) throws ObjectNotFoundException {
-		Set<String> keyset = data.getPersonspec().keySet();
-		if(keyset.size()==1) {
-			PersonSpecialDTO dto = data.getPersonspec().get(keyset.iterator().next());
-			//save under the current person Id
-			Concept pconc = new Concept();
-			for(TableRow row : dto.getTable().getRows()) {
-				if(row.getSelected()) {
-					pconc=closureServ.loadConceptById(row.getDbID());
-					break;
-				}
-			}
-			if(pconc.getID()>0) {
-				Thing th = boilerServ.thingByNode(pconc);
-				Concept conc = closureServ.loadConceptById(data.getNodeId());
-				conc.setLabel(pconc.getID()+"");				//save Person ID to the label of node. Acceptable
-				ThingThing link= new ThingThing();
-				for(ThingThing tt :th.getThings()) {
-					if(tt.getUrl().equalsIgnoreCase(dto.getPresonDataUrl())) {
-						link=tt;
-					}
-				}
-				if(link.getID()==0) {
-					link.setConcept(conc);
-					link.setUrl(data.getUrl());
-					link.setVarname(data.getVarName());
-					th.getThings().add(link);
-					th=thingRepo.save(th);
-				}
-			}
-			//set new parent ID
-			data.setParentId(dto.getParentId());
-		}
 
-		return data;
-	}
 	/**
 	 * Sometimes the data URL may be changed, this we should re-save the data under the new url
 	 * @param data
@@ -1563,9 +1544,9 @@ public class ThingService {
 	@Transactional
 	public ThingDTO storeDictionaries(Thing thing, ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		if(thing.getID()>0) {
-			entityManager.refresh(thing);
+			//entityManager.refresh(thing);
 			thing.getDictionaries().clear();
-			boilerServ.saveThing(thing);
+			//boilerServ.saveThing(thing);
 			//entityManager.flush();
 		}
 		/*22.09.2022 new version */
@@ -1844,7 +1825,7 @@ public class ThingService {
 	}
 
 	/**
-	 * load a thing
+	 * load a thing or Legacy if one
 	 * @param data
 	 * @param user
 	 * @return
@@ -1857,6 +1838,10 @@ public class ThingService {
 			Thing thing = new Thing();
 			thing = boilerServ.thingByNode(node,thing);
 			//determine URL
+			if(data.getUrl() == null) {
+				// it is not a thing, display only literals under the node
+				return loadThingFromLiterals(node, data);
+			}
 			if(data.getUrl().length()==0) {
 				data.setUrl(thing.getUrl());
 			}
@@ -1878,6 +1863,7 @@ public class ThingService {
 				data.setDates(dtoServ.readAllDates(data.getDates(),node));
 				data.setNumbers(dtoServ.readAllNumbers(data.getNumbers(),node));
 				data.setLogical(dtoServ.readAllLogical(data.getLogical(), node));
+				
 				//compare with amended, if needed
 				data=amendServ.diffMark(data);
 			}else {
@@ -1888,7 +1874,24 @@ public class ThingService {
 		}
 		return data;
 	}
-
+	
+	/**
+	 * Create a thing from literals to have possibility to display it on the screen
+	 * @param node
+	 * @param data
+	 * @return
+	 */
+	@Transactional
+	private ThingDTO loadThingFromLiterals(Concept node, ThingDTO data) {
+		Map<String,String> literals= literalServ.literals(node);
+		literals=legacyServ.additionalData(node,literals);
+		for(String key : literals.keySet()) {
+			data.getLiterals().put(key,FormFieldDTO.of(literals.get(key)));
+		}
+		data.setLayout(assemblyServ.literalsLayout(literals));
+		return data;
+	}
+	
 	@Transactional
 	public boolean removeThing(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		if(data.getNodeId() > 0) {
@@ -2346,19 +2349,6 @@ public class ThingService {
 		for(String key :thing.getAddresses().keySet()) {
 			data.getAddresses().put(key.toUpperCase(), addressData(thing.getAddresses().get(key)));
 		}
-		data.getPersonselection().clear();
-		for(String key :thing.getPersonselector().keySet()) {
-			Long selected=0l;
-			for(TableRow row : thing.getPersonselector().get(key).getTable().getRows()) {
-				if(row.getSelected()) {
-					selected=row.getDbID();
-					break;
-				}
-			}
-			if(selected>0l) {
-				data.getPersonselection().put(key,selected);
-			}
-		}
 		data.getSchedulers().clear();
 		for(String key :thing.getSchedulers().keySet()) {
 			data.getSchedulers().put(key.toUpperCase(), thing.getSchedulers().get(key));
@@ -2367,7 +2357,10 @@ public class ThingService {
 		for(String key :thing.getRegisters().keySet()) {
 			data.getRegisters().put(key.toUpperCase(), thing.getRegisters().get(key));
 		}
-
+		data.getDroplist().clear();
+		for(String key:thing.getDroplist().keySet()) {
+			data.getDroplist().put(key.toUpperCase(), thing.getDroplist().get(key));
+		}
 		return data;
 	}
 	/**
@@ -2533,7 +2526,29 @@ public class ThingService {
 		}
 		return false;
 	}
-	
-
+	public boolean openThing(ReportDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		ThingDTO thing=data.getThing();
+		if(thing.getNodeId()>0) {
+			String select = "";
+			if (!accessControlServ.isApplicant(user)) {
+				jdbcRepo.report_open_nmra(thing.getNodeId(), user.getEmail());
+				select = "select * from report_open_nmra";
+				Headers headers= new Headers();
+				headers.getHeaders().add(TableHeader.instanceOf("us", "us", false, false, false, TableHeader.COLUMN_STRING, 0));
+				List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", "", headers);
+				if(rows.size()>0) {
+					return true;
+				}else {
+					data.setIdentifier(messages.get("warningNMRA"));
+					return false;
+				}
+			}else {
+				return true;
+			} 
+		}else {
+			data.setIdentifier(messages.get("errorNMRA"));
+			return false;
+		}
+	}
 }
 

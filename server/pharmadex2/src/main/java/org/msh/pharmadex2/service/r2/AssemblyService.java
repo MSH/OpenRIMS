@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.apache.poi.ss.format.CellDateFormatter;
 import org.msh.pdex2.dto.table.Headers;
 import org.msh.pdex2.dto.table.TableHeader;
 import org.msh.pdex2.dto.table.TableRow;
@@ -63,6 +64,8 @@ public class AssemblyService {
 	public static final String SYSTEM_IMPORT_ATCCODES = "system.import.atccodes";
 	public static final String SYSTEM_IMPORT_ATCCODES_RELOAD = SYSTEM_IMPORT_ATCCODES + "_reload";
 	public static final String DATAIMPORT_CODES = "dataimport_codes";
+	
+	public static final String SYSTEM_IMPORT_DICTIONARY="system.import.dictionary";
 	
 	@Autowired
 	private ClosureService closureServ;
@@ -566,6 +569,16 @@ public class AssemblyService {
 			assm.setDictUrl(SystemService.DICTIONARY_SYSTEM_IMPORT_DATA);
 			ret.add(assm);
 		}
+		if(url.equalsIgnoreCase(SYSTEM_IMPORT_DICTIONARY)) {
+			AssemblyDTO assm = new AssemblyDTO();
+			assm.setPropertyName(DATAIMPORT_DATA);
+			assm.setUrl("data.import");
+			assm.setDescription(messages.get("pleaseuploadimportdata"));
+			assm.setRequired(true);
+			assm.setFileTypes(".xlsx");
+			assm.setDictUrl("dictionary.system.import");
+			ret.add(assm);
+		}
 		if(ret.size()==0) {
 			//List<Assembly> assms = loadDataConfiguration(url);
 			for(Assembly assm : assemblies) {
@@ -795,6 +808,14 @@ public class AssemblyService {
 			cell1.getVariables().add(DATAIMPORT_RESULT);
 			row.getCells().add(cell1);
 
+			ret.add(row);
+		}
+		if(url.equalsIgnoreCase(SYSTEM_IMPORT_DICTIONARY)) {
+			//file uploader and r/o field for messages output
+			LayoutRowDTO row= new LayoutRowDTO();
+			LayoutCellDTO cell1 = new LayoutCellDTO();
+			cell1.getVariables().add(DATAIMPORT_DATA);
+			row.getCells().add(cell1);
 			ret.add(row);
 		}
 		/*************************************** LOAD FROM CONFIGURATION ******************************************************************/
@@ -1031,6 +1052,27 @@ public class AssemblyService {
 		return ret;
 	}
 
+	/**
+	 * droplist data references
+	 * @param assms
+	 * @param exts 
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	@Transactional
+	public List<AssemblyDTO> auxDropListData(String url, List<Assembly> assms) throws ObjectNotFoundException {
+		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
+		// TODO hardcoded definitions...
+		if(ret.size()==0) {
+			for(Assembly assm : assms) {
+				if(assm.getClazz().equalsIgnoreCase("droplist")) {
+					ret.add(dtoServ.assemblyDto(assm));
+				}
+			}
+		}
+		return ret;
+	}
+	
 	/**
 	 * Dates intervals
 	 * !!!! attantion, temporary only for the first iteration!
@@ -1460,6 +1502,22 @@ public class AssemblyService {
 			}
 		}
 		return dto;
+	}
+	/**
+	 * Create layout for a thing created from literals
+	 * @param literals
+	 * @return
+	 */
+	public List<LayoutRowDTO> literalsLayout(Map<String, String> literals) {
+		List<LayoutRowDTO> ret = new ArrayList<LayoutRowDTO>();
+		LayoutRowDTO row = new LayoutRowDTO();
+		LayoutCellDTO cell = new LayoutCellDTO();
+		row.getCells().add(cell);
+		for(String key :literals.keySet()) {
+			cell.getVariables().add(key);
+		}
+		ret.add(row);
+		return ret;
 	}
 }
 

@@ -28,7 +28,11 @@ class FieldInput extends Component{
             return ""
         }
         if(value==null){
-            return ""
+            if(this.props.mode=='number'){
+                return '0'
+            }else{
+                return ""
+            }
         }
         if(typeof value == 'string'){
             return value

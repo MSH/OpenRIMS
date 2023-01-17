@@ -36,6 +36,8 @@ import org.msh.pharmadex2.dto.RegisterDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
 import org.msh.pharmadex2.dto.SchedulerDTO;
 import org.msh.pharmadex2.dto.ThingValuesDTO;
+import org.msh.pharmadex2.dto.form.FormFieldDTO;
+import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -541,7 +543,22 @@ public class ResolverService {
 			value.put("registeredBS1",boilerServ.localDateToNepali(valReg.getRegistration_date().getValue(),false));
 			value.put("expiredBS1",boilerServ.localDateToNepali(valReg.getExpiry_date().getValue(),false));
 		}
-
+		//droplist
+		FormFieldDTO<OptionDTO> dropList= data.getDroplist().get(varName.toUpperCase());
+if(dropList.getValue().getId()>0) {
+	String code=dropList.getValue().getCode();
+	if(code.isEmpty()|| code==null) {
+		value.put("label"," ");
+	}else {
+		value.put("label", code);
+	}
+	String disc=dropList.getValue().getDescription();
+	if(disc.isEmpty()|| disc==null) {
+		value.put("description"," ");
+	}else {
+		value.put("description", disc);
+	}
+}
 		return value;
 	}
 	/**
@@ -583,6 +600,7 @@ public class ResolverService {
 		List<AssemblyDTO> links = assembly(varThing.getUrl(), "links", assemblies);
 		List<AssemblyDTO> things = assembly(varThing.getUrl(), "things", assemblies);
 		List<AssemblyDTO> logical = assembly(varThing.getUrl(), "logical", assemblies);
+		List<AssemblyDTO> droplist = assembly(varThing.getUrl(), "droplist", assemblies);
 
 		for(AssemblyDTO ad : strings) {											//strings are literals
 			if(ad.getPropertyName().equalsIgnoreCase(varName)) {
@@ -710,7 +728,11 @@ public class ResolverService {
 			if(ad.getPropertyName().equalsIgnoreCase(varName)) {
 				YesNoNA ch = renderServ.logicalChoice(varName, var);
 				value.put("choice", ch);
-				return value;
+			}
+		}
+		for(AssemblyDTO dl : droplist) {
+			if(dl.getPropertyName().equalsIgnoreCase(varName)) {
+				value=droplist(dl, varName, var, value);
 			}
 		}
 
@@ -1004,6 +1026,28 @@ public class ResolverService {
 			}
 		}
 		renderServ.dictionaryValues(value, selected);
+		return value;
+	}
+	
+	/**
+	 * Read selected droplists values
+	 * @param ad 
+	 * @param varName
+	 * @param var
+	 * @param value
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public Map<String, Object> droplist(AssemblyDTO ad, String varName, Concept var, Map<String, Object> value) throws ObjectNotFoundException {
+		value.clear();
+		Thing thing = boilerServ.thingByNode(var);
+		for(ThingDict td :thing.getDictionaries()) {
+			if(td.getVarname().equalsIgnoreCase(varName)) {
+				Concept item=td.getConcept();
+				value.put("label",literalServ.readPrefLabel(item));
+				value.put("description",literalServ.readDescription(item));
+			}
+		}
 		return value;
 	}
 

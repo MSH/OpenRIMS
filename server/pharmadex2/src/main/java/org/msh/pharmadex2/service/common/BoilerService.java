@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -79,6 +80,7 @@ import org.msh.pharmadex2.service.r2.SystemService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.datetime.DateFormatter;
 import org.springframework.stereotype.Service;
@@ -1226,7 +1228,9 @@ public class BoilerService {
 					df.setMinimumFractionDigits(0);
 					ret=df.format(regNod);
 				}
-				return ret;
+				ret=replaceNonPrintCh(ret);
+				
+				return ret.trim();
 			} catch (Exception e) {
 				return null;
 			}
@@ -1337,4 +1341,41 @@ public class BoilerService {
 			throw new ObjectNotFoundException("findByConcept. LegacyData by concept  not found. The Concept Id is "+concept.getID(),logger);
 		}
 	}
+	/**
+	 * Convert date to string using the current locale
+	 * @param date
+	 * @return
+	 */
+	public String dateToString(Date date) {
+		DateTimeFormatter formatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(LocaleContextHolder.getLocale());
+		LocalDate ld=localDateFromDate(date);
+		return ld.format(formatter);
+	}
+	/**
+	 * Null value is zero value
+	 * @param value
+	 * @return
+	 */
+	public long nullIsZero(Long value) {
+		if(value==null) {
+			return 0;
+		}else {
+			return value;
+		}
+	}
+/**
+ *replase non-printable characters
+ */
+	public String replaceNonPrintCh(String val) {
+		// strips off all non-ASCII characters
+		//val = val.replaceAll("[^\\x00-\\x7F]", "");
+		 
+		    // erases all the ASCII control characters
+			val = val.replaceAll("[\\p{Cntrl}&&[^\r\n\t]]", "");
+		     
+		    // removes non-printable characters from Unicode
+			val = val.replaceAll("\\p{C}", "");
+		return val;
+	}
+	
 }

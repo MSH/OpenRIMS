@@ -103,12 +103,12 @@ class ThingsManager extends Component{
                 //movement forward or backward, next has been pressed
                 if(byAction){
                     //button Save has been pressed
-                    if(this.state.data.auxPathIndex>0){
+                    /*0412if(this.state.data.auxPathIndex>0){
                         this.state.data.auxPathIndex--
                     }else{
                         this.state.data.auxPath=[]
                         this.state.data.auxPathIndex=0
-                    }
+                    }*/
 
                 }else{
                     //NEXT has been pressed
@@ -138,7 +138,7 @@ class ThingsManager extends Component{
                 if(byAction){
                 //movement backward,save has been pressed
                     if(this.state.data.pathIndex>0){
-                        this.state.data.pathIndex--
+                        //0412this.state.data.pathIndex--
                         this.setState(this.state)
                     }else{
                         Navigator.message(this.state.identifier, this.props.recipient,"cancelThing",{})
