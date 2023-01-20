@@ -11,9 +11,7 @@ import FieldsComparator from './form/FieldsComparator'
 import DictNode from './DictNode'
 import Navigator from'./utils/Navigator'
 import SearchControl from './utils/SearchControl'
-import Thing from './Thing'
 import FieldUpload from './form/FieldUpload'
-import Downloader from './utils/Downloader'
 
 /**
  * Allows:
@@ -77,6 +75,7 @@ class Dictionary extends Component{
         this.importRunClick=this.importRunClick.bind(this)
         this.importForm=this.importForm.bind(this)
         this.loadImport=this.loadImport.bind(this)
+        this.cleareFileNameLabel=this.cleareFileNameLabel.bind(this)
     }
        /**
      * Return changed style
@@ -408,23 +407,27 @@ class Dictionary extends Component{
     }
 
     importRunClick(){
-        let formData = new FormData()
-        formData.append('dict', JSON.stringify(this.state.data))
-        formData.append('file', this.state.file);
-        Fetchers.postFormJson('/api/admin/dictionary/import/run', formData, (formData,result)=>{
-            this.state.file = {}
-            if(result.valid){
-                this.state.showimport=false
-                this.tableLoader()
-                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.saved, color:'success'})
-            }else{
-                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:result.identifier, color:'danger'})
-                window.open('/api/admin/dictionary/import/errorfile', "_blank").focus()
-                this.state.showimport=false
-                this.tableLoader()
-            }
-            //document.getElementById("fileinputidinactivity").value = "";
-        })
+        if(this.state.file != null && this.state.file.name != undefined){
+            let formData = new FormData()
+            formData.append('dict', JSON.stringify(this.state.data))
+            formData.append('file', this.state.file);
+            Fetchers.postFormJson('/api/admin/dictionary/import/run', formData, (formData,result)=>{
+                this.state.file = {}
+                this.cleareFileNameLabel()
+                if(result.valid){
+                    this.state.showimport=false
+                    this.tableLoader()
+                    Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.saved, color:'success'})
+                }else{
+                    Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:result.identifier, color:'danger'})
+                    window.open('/api/admin/dictionary/import/errorfile', "_blank").focus()
+                    this.state.showimport=false
+                    this.tableLoader()
+                }
+            })
+        }else{
+            Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.upload_file, color:'danger'})
+        }
     }
 
     loadImport(){
@@ -449,17 +452,16 @@ class Dictionary extends Component{
         return ret;
     }
 
+    cleareFileNameLabel(){
+        var lbl = document.getElementsByClassName("custom-file-label");
+        if(lbl != null && lbl.length > 0){
+            lbl[0].textContent=this.state.labels.upload_file
+        }
+        document.getElementById("fileinputidinactivity").value=""
+    }
+
     importForm(){
-        //ApplicationFiles.place(this.state.data.thing.documents["dataimport"], "index", false, this.state.identifier, "dataimport")
-        //ApplicationFiles.place(this.state.thing.documents["dataimport"], "index", false, this.state.identifier, "dataimport")
-        /*
-        <ApplicationFiles data={this.state.thing.documents["dataimport"]} key={this.state.identifier+index}
-                                            recipient={this.state.identifier}
-                                            readOnly={false}
-                            />
-        */
         if(this.state.thing != undefined && this.state.thing.documents != undefined){
-            var index = 0
             return (
                 <Card style={{width:"100%"}} >
                     <CardHeader >
@@ -475,6 +477,10 @@ class Dictionary extends Component{
                             <Col xs='12' sm='12' lg='12' xl='12'>
                                 <FieldUpload onChange={(file)=>{
                                                 this.state.file=file
+                                                var lbl = document.getElementsByClassName("custom-file-label");
+                                                if(lbl != null && lbl.length > 0){
+                                                    lbl[0].textContent=file.name
+                                                }
                                                 this.setState(this.state)
                                             }}
                                             accept={".xlsx"}
@@ -490,8 +496,6 @@ class Dictionary extends Component{
                                     <ButtonUni
                                         label={this.state.labels.global_save}
                                         onClick={()=>{
-                                            //this.state.data.editor = false
-                                            //this.setState(this.state)
                                             this.importRunClick()
                                         }}
                                         color="success"
@@ -501,9 +505,8 @@ class Dictionary extends Component{
                                     <ButtonUni
                                         label={this.state.labels.global_cancel}
                                         onClick={()=>{
-                                            //this.state.data.editor=false
                                             this.state.file = {}
-                                            document.getElementById("fileinputidinactivity").value = "";
+                                            this.cleareFileNameLabel()
                                             this.state.showimport = false
                                             this.setState(this.state)
                                         }}
@@ -611,8 +614,6 @@ class Dictionary extends Component{
                             <ButtonUni
                                 onClick={()=>{
                                     this.loadImport()
-                                    //this.showimport=true;
-                                    ///this.setState(this.state)
                                 }}
                                 label={this.state.labels.global_import_short}
                                 color="info"

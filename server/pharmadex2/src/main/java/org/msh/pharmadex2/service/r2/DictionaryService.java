@@ -291,6 +291,8 @@ public class DictionaryService {
 	 */
 	
 	private Boolean validRow(XSSFRow row, int numColPrefLbl, int numColDescription) {
+		if(row == null)
+			return null;
 		XSSFCell cell = null, cellDescr = null;
 		if(numColPrefLbl >= 0 && numColDescription >= 0) {
 			cell = row.getCell(numColPrefLbl);

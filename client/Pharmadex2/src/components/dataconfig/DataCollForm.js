@@ -106,6 +106,7 @@ class DataCollForm extends Component{
                 </Col>
                 <Col xs='12' sm='12' lg='3' xl='3'>
                     <ButtonUni
+                            disabled={this.state.data.nodeId==0}
                             label={this.state.labels.duplicate}
                             color='secondary'
                             onClick={()=>{

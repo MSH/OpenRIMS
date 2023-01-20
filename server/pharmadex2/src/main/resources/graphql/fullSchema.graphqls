@@ -1,0 +1,19 @@
+type Query {
+	loadReportPages(lang: String!, url: String!, district: String, pharmtype: String):[ReportPageGQL]
+}
+
+type ReportPageGQL{
+	lang:String
+	url:String
+	pharmacy:String
+	district:String
+	address:String
+	pharmtype:String
+	registerNo:String
+	registered:String
+	expired:String
+	owners:String
+	pharmacists:String
+}
+
+

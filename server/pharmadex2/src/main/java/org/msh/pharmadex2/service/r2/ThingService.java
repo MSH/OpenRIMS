@@ -1,7 +1,5 @@
 package org.msh.pharmadex2.service.r2;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Type;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
@@ -18,7 +16,6 @@ import java.util.Set;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
-import org.apache.commons.lang3.reflect.FieldUtils;
 import org.msh.pdex2.dto.table.Headers;
 import org.msh.pdex2.dto.table.TableCell;
 import org.msh.pdex2.dto.table.TableHeader;
@@ -50,7 +47,6 @@ import org.msh.pdex2.repository.r2.ThingRepo;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AddressDTO;
 import org.msh.pharmadex2.dto.AddressValuesDTO;
-import org.msh.pharmadex2.dto.AmendmentDTO;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.AtcDTO;
 import org.msh.pharmadex2.dto.DictValuesDTO;
@@ -61,7 +57,6 @@ import org.msh.pharmadex2.dto.IntervalDTO;
 import org.msh.pharmadex2.dto.LegacyDataDTO;
 import org.msh.pharmadex2.dto.LinksDTO;
 import org.msh.pharmadex2.dto.PersonDTO;
-import org.msh.pharmadex2.dto.PersonSelectorDTO;
 import org.msh.pharmadex2.dto.PersonSpecialDTO;
 import org.msh.pharmadex2.dto.RegisterDTO;
 import org.msh.pharmadex2.dto.ReportDTO;

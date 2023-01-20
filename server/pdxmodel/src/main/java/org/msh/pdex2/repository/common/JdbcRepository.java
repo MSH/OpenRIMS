@@ -7,6 +7,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -36,6 +38,7 @@ import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.LinkedCaseInsensitiveMap;
 
 
 /**
@@ -1286,4 +1289,40 @@ public class JdbcRepository {
 		proc.execute(params);
 	}
 
+	/**
+	 * Simple product report
+	 * @param dataUrl
+	 * @param register_url
+	 * @param string2 
+	 * @param string 
+	 */
+	public List<LinkedCaseInsensitiveMap<Object>> reportpagesQraphql(String lang, String url, String district, String pharmtype) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("reportpages_graphql");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("lang", lang);
+		params.addValue("url", url);
+		params.addValue("district", district);
+		params.addValue("pharmtype", pharmtype);
+		Map<String, Object> map = proc.execute(params);
+		Object result = null;
+		String key = "";
+		Iterator<String> it = map.keySet().iterator();
+		while(it.hasNext()) {
+			String k = it.next();
+			if(k.contains("result")) {
+				key = k;
+				break;
+			}
+		}
+		if(!key.isEmpty()) {
+			result = map.get(key);
+		}
+		List<Object> resList = (ArrayList<Object>)result;
+		List<LinkedCaseInsensitiveMap<Object>> list = new ArrayList<LinkedCaseInsensitiveMap<Object>>();
+		for(Object obj:resList) {
+			list.add((LinkedCaseInsensitiveMap<Object>)obj);
+		}
+		return list;
+	}
 }

@@ -546,8 +546,8 @@ public class SupervisorService {
 					node = closureServ.loadConceptById(data.getVarNodeId());
 				}
 
-				node.setIdentifier(data.getVarName().getValue()+data.getVarNameExt().getValue());
-				node.setLabel(data.getVarNameExt().getValue());
+				node.setIdentifier(data.getVarName().getValue()+data.getVarNameExt().getValue());	//deprecated 2023-01-13
+				node.setLabel(data.getVarNameExt().getValue()); //deprecated 2023-01-1
 
 				Concept root = closureServ.loadConceptById(data.getNodeId());
 				node = closureServ.saveToTree(root, node);

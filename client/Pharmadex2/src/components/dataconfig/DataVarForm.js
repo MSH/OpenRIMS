@@ -246,9 +246,26 @@ hiddenRestricted(){
                         <FieldGuarded mode="text" attribute="varNameExt" component={this} editno={this.hiddenRestricted()}/>
                     </Col>
                 </Row>
+               
                 <Row>
                     <Col>
                         <ViewEdit mode='textarea' component={this} attribute='description' edit />
+                    </Col>
+                </Row>
+                <Row>
+                    <Col className="d-flex justify-content-center">
+                        <h5>{this.state.labels.screenposition}</h5>
+                    </Col>
+                </Row>
+                <Row>
+                    <Col xs='12' sm='12' lg='4' xl='4'>
+                        <ViewEdit mode='number' attribute='row' component={this} edit/>
+                    </Col>
+                    <Col xs='12' sm='12' lg='4' xl='4'>
+                        <ViewEdit mode='number' attribute='col' component={this} edit/>
+                    </Col>
+                    <Col xs='12' sm='12' lg='4' xl='4'>
+                        <ViewEdit mode='number' attribute='ord' component={this} edit/>
                     </Col>
                 </Row>
                 <Row>
@@ -268,22 +285,8 @@ hiddenRestricted(){
                         <ViewEditOption attribute="mult" component={this} edit />
                     </Col>
                 </Row>
-                <Row>
-                    <Col className="d-flex justify-content-center">
-                        <h5>{this.state.labels.screenposition}</h5>
-                    </Col>
-                </Row>
-                <Row>
-                    <Col xs='12' sm='12' lg='4' xl='4'>
-                        <ViewEdit mode='number' attribute='row' component={this} edit/>
-                    </Col>
-                    <Col xs='12' sm='12' lg='4' xl='4'>
-                        <ViewEdit mode='number' attribute='col' component={this} edit/>
-                    </Col>
-                    <Col xs='12' sm='12' lg='4' xl='4'>
-                        <ViewEdit mode='number' attribute='ord' component={this} edit/>
-                    </Col>
-                </Row>
+               
+               
                 <Row>
                     <Col className="d-flex justify-content-center">
                         <h5>{this.state.labels.auxiliarydata}</h5>
