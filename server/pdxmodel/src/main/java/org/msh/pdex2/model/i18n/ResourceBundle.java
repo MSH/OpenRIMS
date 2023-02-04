@@ -25,8 +25,8 @@ public class ResourceBundle implements Serializable {
 	
 	@Column(name="Id", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC222274184AF102B980E800")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC222274184AF102B980E800", strategy="native")	
+	@GeneratedValue(generator="VAC2222741860911A146085FD")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222741860911A146085FD", strategy="native")	
 	private long id;
 	
 	@Column(name="SortOrder", nullable=true, length=1)	

@@ -471,6 +471,7 @@ public class ThingDTO extends AllowValidation {
 	public void setDroplist(Map<String, FormFieldDTO<OptionDTO>> droplist) {
 		this.droplist = droplist;
 	}
+
 	
 	
 }

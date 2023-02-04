@@ -40,11 +40,11 @@ import org.msh.pharmadex2.service.r2.ApplicationService;
 import org.msh.pharmadex2.service.r2.ContentService;
 import org.msh.pharmadex2.service.r2.DWHService;
 import org.msh.pharmadex2.service.r2.DictService;
-import org.msh.pharmadex2.service.r2.DictionaryService;
-import org.msh.pharmadex2.service.r2.ImportAService;
+import org.msh.pharmadex2.service.r2.ImportExportDictionaryService;
 import org.msh.pharmadex2.service.r2.ImportATCcodesService;
 import org.msh.pharmadex2.service.r2.ImportAdmUnitsService;
 import org.msh.pharmadex2.service.r2.ImportBService;
+import org.msh.pharmadex2.service.r2.ImportExportDataConfigService;
 import org.msh.pharmadex2.service.r2.MailService;
 import org.msh.pharmadex2.service.r2.MetricService;
 import org.msh.pharmadex2.service.r2.PubOrgService;
@@ -107,8 +107,6 @@ public class AdminAPI {
 	@Autowired
 	private ReportService reportServ;
 	@Autowired
-	private ImportAService importAService;
-	@Autowired
 	private ThingService thingServ;
 	@Autowired
 	private ImportBService importBServ;
@@ -133,7 +131,9 @@ public class AdminAPI {
 	@Autowired
 	private ResourceService resourceServ;
 	@Autowired
-	DictionaryService dictionaryServ;
+	ImportExportDictionaryService dictionaryServ;
+	@Autowired
+	ImportExportDataConfigService importExportDataConfigService;
 
 	
 	
@@ -617,7 +617,7 @@ public class AdminAPI {
 		try {
 			String mediaType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 			String fileName = "reportDataStructure.xlsx";
-			Resource res = reportServ.dataCollectionVariablesExport(data);
+			Resource res = importExportDataConfigService.dataCollectionVariablesExport(data);
 			return ResponseEntity.ok().contentType(MediaType.parseMediaType(mediaType))
 					// .header(HttpHeaders.CONTENT_DISPOSITION, fres.getContentDisp() + ";
 					// filename=\"" + fres.getFileName() + "\"")
@@ -1075,7 +1075,7 @@ public class AdminAPI {
 		try {
 			String mediaType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 			String fileName = "reportDataStructure.xlsx";
-			Resource res = reportServ.workflowExportExcel(data);
+			Resource res = importExportDataConfigService.workflowExportExcel(data);
 			return ResponseEntity.ok().contentType(MediaType.parseMediaType(mediaType))
 					// .header(HttpHeaders.CONTENT_DISPOSITION, fres.getContentDisp() + ";
 					// filename=\"" + fres.getFileName() + "\"")
@@ -1171,4 +1171,38 @@ public class AdminAPI {
 		ResponseEntity<Resource> resp = dictionaryServ.getFileErrors();
 		return resp;
 	}
+	
+	/**
+	 * Load an electronic form to upload the data file in xlsx
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/data/configuration/load/import")
+	public ThingDTO dataConfigurationLoadImport(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		try {
+			data=importExportDataConfigService.dataConfigurationLoadImport(user, data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	/**
+	 * Import data configuration from the XLSX file uploaded
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/data/configuration/run/import")
+	public ThingDTO dataConfigurationRunImport(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		try {
+			data=importExportDataConfigService.dataConfigurationRunImport(user, data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
 }

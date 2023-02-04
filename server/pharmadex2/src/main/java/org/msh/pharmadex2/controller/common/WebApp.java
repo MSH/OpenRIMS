@@ -28,6 +28,7 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.RedirectView;
@@ -62,21 +63,50 @@ public class WebApp {
 	 * @return
 	 */
 	@GetMapping({"/form/login"})
-	public ModelAndView login(){
+	public ModelAndView login(@RequestParam(name="view") Optional<String> viewParo, 
+			@CookieValue(name = "login_view") Optional<String> viewCooko,
+			@CookieValue(name = "username") Optional<String> useremailo
+			){
+		//determine form view - Company User or NMRA user
+		String view="nmra";
+		if(viewParo.isPresent()) {
+			view=viewParo.get();
+		}else {
+			if(viewCooko.isPresent()) {
+				view=viewCooko.get();
+			}
+		}
 		HttpSession session = request.getSession(false);
 		if (session != null) {
 			session.invalidate();
 		}
 		SecurityContextHolder.clearContext();
 		ModelAndView ret = new ModelAndView("login");
+		//which view will be in use?
+		ret.addObject("view", view);
 		//common fields
+		String useremail="";
 		ret.addObject("application", messages.get("system_name"));
-		ret.addObject("username", messages.get("login"));
-		ret.addObject("usernamePlease", messages.get("loginmessage"));
-		ret.addObject("password", messages.get("password"));
+		ret.addObject("get_password", messages.get("get_by_email"));
+		if(view.equalsIgnoreCase("nmra")) {
+			ret.addObject("username", messages.get("login"));
+			ret.addObject("usernamePlease", messages.get("loginmessage"));
+			ret.addObject("password", messages.get("password"));
+			ret.addObject("login", messages.get("login"));
+		}else {
+			ret.addObject("username", messages.get("email"));
+			ret.addObject("usernamePlease", messages.get("valid_email"));
+			ret.addObject("password", messages.get("temp_password"));
+			ret.addObject("login", messages.get("logincompany"));
+			if(useremailo.isPresent()) {
+				useremail=useremailo.get();
+			}
+			ret.addObject("useremail", messages.get("logincompany"));
+		}
+		ret.addObject("useremail",useremail);
 		ret.addObject("passwordPlease", messages.get("please_password"));
 		ret.addObject("passwordForgot", messages.get("lostPassword"));
-		ret.addObject("login", messages.get("login"));
+		ret.addObject("continue", messages.get("continue"));
 		ret.addObject("remember", messages.get("remember_me"));
 		//OATH2 
 		ret.addObject("oath2",messages.get("oath2"));
@@ -90,7 +120,7 @@ public class WebApp {
 		}
 		Map<String,String> providers = new HashMap<String, String>();
 		clientRegistrations.forEach(registration -> 
-			providers.put(registration.getClientName(), 
+		providers.put(registration.getClientName(), 
 				"/"+authorizationRequestBaseUri + "/" + registration.getRegistrationId()));
 		ret.addObject("providers",providers);
 		//languages
@@ -98,7 +128,9 @@ public class WebApp {
 		ret.addObject("languages", languages);
 		return ret;
 	}
-	
+
+
+
 	@GetMapping({"/oauth_login"})
 	public ModelAndView logingoogle(){
 		HttpSession session = request.getSession(false);
@@ -121,7 +153,7 @@ public class WebApp {
 		}
 		Map<String,String> providers = new HashMap<String, String>();
 		clientRegistrations.forEach(registration -> 
-			providers.put(registration.getClientName(), 
+		providers.put(registration.getClientName(), 
 				"/"+authorizationRequestBaseUri + "/" + registration.getRegistrationId()));
 		ret.addObject("providers",providers);
 		//languages
@@ -184,7 +216,7 @@ public class WebApp {
 	public ModelAndView landing() {
 		return createWithBundles("application");
 	}
-	
+
 	/**
 	 * Crerate a context cookie
 	 * @param contextId

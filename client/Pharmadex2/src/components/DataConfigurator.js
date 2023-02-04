@@ -1,5 +1,5 @@
 import React , {Component} from 'react'
-import {Container, Row, Col, FormText} from 'reactstrap'
+import {Container, Row, Col, FormText, Card,CardBody,CardHeader} from 'reactstrap'
 import PropTypes from 'prop-types'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
@@ -11,6 +11,7 @@ import ButtonUni from './form/ButtonUni'
 import DataCollForm from './dataconfig/DataCollForm'
 import DataVarForm from './dataconfig/DataVarForm'
 import Downloader from './utils/Downloader'
+import ImportDataConfiguration from './ImportDataConfiguration'
 
 /**
  * Configure workflow data
@@ -19,6 +20,7 @@ class DataConfigurator extends Component{
     constructor(props){
         super(props)
         this.state={
+            showimport:false,
             identifier:Date.now().toString(),
             form:false,
             vars:this.props.vars,
@@ -36,6 +38,8 @@ class DataConfigurator extends Component{
                 explore:'',
                 restricted_edit:'',
                 global_help:'',
+                global_import_short:'',
+                import_electronic_form:'',
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -62,6 +66,10 @@ class DataConfigurator extends Component{
                 if(data.subject=="formCollCancel"){
                     this.state.form=false
                     this.state.data.nodeId=0
+                    this.loader()
+                }
+                if(data.subject=='DataConfigurationImportCancel'){
+                    this.state.showimport=false
                     this.loader()
                 }
             }
@@ -179,6 +187,7 @@ class DataConfigurator extends Component{
                 </Container>
         )
     }
+
     /**
      * Data collections (directory) table
      */
@@ -188,11 +197,22 @@ class DataConfigurator extends Component{
         }
         return(
             <Container fluid>
-                <Row>
+                <Row hidden={this.state.showimport}>
                     <Col xs='12' sm='12' lg='6' xl='6'>
                         <SearchControl label={this.state.labels.search} table={this.state.data.table} loader={this.loader}/>
                     </Col>
-                    <Col xs='12' sm='12' lg='4' xl='4'>
+                    <Col xs='12' sm='12' lg='2' xl='2'>
+                    </Col>
+                    <Col xs='12' sm='12' lg='2' xl='2' hidden>
+                        <ButtonUni
+                        label={this.state.labels.global_import_short}
+                        onClick={()=>{
+                            this.state.showimport=true;
+                            this.setState(this.state)
+                            Navigator.message(this.state.identifier, "*",'DataConfigurationImportReload',{})
+                        }}
+                        color="info"
+                        />
                     </Col>
                     <Col xs='12' sm='12' lg='2' xl='2'>
                         <ButtonUni
@@ -207,7 +227,14 @@ class DataConfigurator extends Component{
                         />
                     </Col>
                 </Row>
-                <Row>
+                <Row hidden={!this.state.showimport}>
+                    <Col xs='12' sm='12' lg='12' xl='12' >
+                        <ImportDataConfiguration
+                            recipient={this.state.identifier} 
+                        />
+                    </Col>
+                </Row>
+                <Row hidden={this.state.showimport}>
                     <Col>
                         <CollectorTable
                             tableData={this.state.data.table}

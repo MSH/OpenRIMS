@@ -186,7 +186,6 @@ public class ThingService {
 	 */
 	@Transactional
 	public ThingDTO createContent(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
-		//logger.trace("START CONTENT");
 		List<Assembly> assemblies =assemblyServ.loadDataConfiguration(data.getUrl());
 		//literals
 		List<AssemblyDTO> headings = assemblyServ.auxHeadings(data.getUrl(),assemblies);
@@ -272,7 +271,7 @@ public class ThingService {
 		//DropList data
 		List<AssemblyDTO> droplist = assemblyServ.auxDropListData(data.getUrl(), assemblies);
 		data=dictServ.createDropList(data,droplist);
-		
+		data=validServ.validateThingsIncluded(assemblies, data);
 		return data;
 	}
 	/**
@@ -319,8 +318,8 @@ public class ThingService {
 		}
 		return data;
 	}
-	
-	
+
+
 	/**
 	 * Create ATC codes lookup table and load selected codes 
 	 * @param atc
@@ -1059,7 +1058,7 @@ public class ThingService {
 		data = storeRegister(user, thing, data);
 		data = storeAtc(thing, data);
 		data = storeIntervals(node, data);
-		
+
 		data=amendServ.storePersonToRemove(data, thing);
 
 		return data;
@@ -1072,38 +1071,40 @@ public class ThingService {
 			String key=dl.getPropertyName();
 			FormFieldDTO<OptionDTO> fld =data.getDroplist().get(key);
 			Long id=fld.getValue().getId();
-			Concept dictItem = closureServ.loadConceptById(id);
-			ThingDict thingDict = new ThingDict();
-			thingDict.setUrl(dl.getUrl());
-			thingDict.setConcept(dictItem);
-			thingDict.setVarname(dl.getPropertyName());
-			thing.getDictionaries().add(thingDict);
-			if(dl!= null && dl.isPrefLabel() && !dl.isMult()) {
-				FormFieldDTO<String> prefLabelDTO = data.getLiterals().get(LiteralService.PREF_NAME);
-				if(prefLabelDTO == null) {
-					prefLabelDTO = data.getStrings().get(LiteralService.PREF_NAME);
-				}
-				if(prefLabelDTO == null) {
-					prefLabelDTO = new FormFieldDTO<String>("");
-					data.getLiterals().put("prefLabel", prefLabelDTO);
-					prefLabelDTO = data.getLiterals().get(LiteralService.PREF_NAME);
-				}
-				if(prefLabelDTO != null) {
-					String prefLabel = literalServ.readPrefLabel(dictItem);
-					prefLabelDTO.setValue(prefLabel);
-				}
-				FormFieldDTO<String> descriptionDTO = data.getLiterals().get(LiteralService.DESCRIPTION);
-				if(descriptionDTO==null) {
-					descriptionDTO=data.getStrings().get(LiteralService.DESCRIPTION);
-				}
-				if(descriptionDTO == null) {
-					descriptionDTO = new FormFieldDTO<String>("");
-					data.getLiterals().put("description", descriptionDTO);
-					descriptionDTO = data.getLiterals().get(LiteralService.DESCRIPTION);
-				}
-				if(descriptionDTO != null) {
-					String descr=literalServ.readDescription(dictItem);		//here altLabel is right
-					descriptionDTO.setValue(descr);
+			if(id>0) {
+				Concept dictItem = closureServ.loadConceptById(id);
+				ThingDict thingDict = new ThingDict();
+				thingDict.setUrl(dl.getUrl());
+				thingDict.setConcept(dictItem);
+				thingDict.setVarname(dl.getPropertyName());
+				thing.getDictionaries().add(thingDict);
+				if(dl!= null && dl.isPrefLabel() && !dl.isMult()) {
+					FormFieldDTO<String> prefLabelDTO = data.getLiterals().get(LiteralService.PREF_NAME);
+					if(prefLabelDTO == null) {
+						prefLabelDTO = data.getStrings().get(LiteralService.PREF_NAME);
+					}
+					if(prefLabelDTO == null) {
+						prefLabelDTO = new FormFieldDTO<String>("");
+						data.getLiterals().put("prefLabel", prefLabelDTO);
+						prefLabelDTO = data.getLiterals().get(LiteralService.PREF_NAME);
+					}
+					if(prefLabelDTO != null) {
+						String prefLabel = literalServ.readPrefLabel(dictItem);
+						prefLabelDTO.setValue(prefLabel);
+					}
+					FormFieldDTO<String> descriptionDTO = data.getLiterals().get(LiteralService.DESCRIPTION);
+					if(descriptionDTO==null) {
+						descriptionDTO=data.getStrings().get(LiteralService.DESCRIPTION);
+					}
+					if(descriptionDTO == null) {
+						descriptionDTO = new FormFieldDTO<String>("");
+						data.getLiterals().put("description", descriptionDTO);
+						descriptionDTO = data.getLiterals().get(LiteralService.DESCRIPTION);
+					}
+					if(descriptionDTO != null) {
+						String descr=literalServ.readDescription(dictItem);		//here altLabel is right
+						descriptionDTO.setValue(descr);
+					}
 				}
 			}
 		}
@@ -1165,51 +1166,51 @@ public class ThingService {
 				prefLabelDTO= data.getStrings().get("prefLabel");
 			}
 			if(prefLabelDTO==null || prefLabelDTO.getValue().isEmpty()) {
-			if(dto.getSelectedNode()>0) {
-				Concept node=closureServ.loadConceptById(dto.getSelectedNode());
-				tld.setConcept(node);
-				tld.setUrl(dto.getUrl());
-				tld.setVarName(dto.getVarName());
-				thing.getLegacyData().add(tld);
-				//tune variables, we understand that legacy data component is only one :)
-				// 22.09.2022 old version RETURN 04.11.2022 ika
-				//FormFieldDTO<String> prefLabelDTO = data.getLiterals().get("prefLabel");
-				//if(prefLabelDTO==null) {
-				//	prefLabelDTO = data.getStrings().get("prefLabel");
-				//}
-				//if(prefLabelDTO != null) {
+				if(dto.getSelectedNode()>0) {
+					Concept node=closureServ.loadConceptById(dto.getSelectedNode());
+					tld.setConcept(node);
+					tld.setUrl(dto.getUrl());
+					tld.setVarName(dto.getVarName());
+					thing.getLegacyData().add(tld);
+					//tune variables, we understand that legacy data component is only one :)
+					// 22.09.2022 old version RETURN 04.11.2022 ika
+					//FormFieldDTO<String> prefLabelDTO = data.getLiterals().get("prefLabel");
+					//if(prefLabelDTO==null) {
+					//	prefLabelDTO = data.getStrings().get("prefLabel");
+					//}
+					//if(prefLabelDTO != null) {
 					String prefLabel=literalServ.readPrefLabel(node);
 					prefLabelDTO.setValue(prefLabel);
-				//}
-				//alt label may be configured as altLabel or another name
-				FormFieldDTO<String> altLabelDTO = data.getLiterals().get(dto.getAltLabel());
-				if(altLabelDTO==null) {
-					altLabelDTO=data.getStrings().get(dto.getAltLabel());
-				}
-				if(altLabelDTO != null) {
-					String altLabel=literalServ.readValue("altLabel", node);		//here altLabel is right
-					altLabelDTO.setValue(altLabel);
-				}
-							//for legacyRegister  register
-				LegacyData legacy=boilerServ.findLegacyByConcept(node);
-				RegisterDTO regDto = data.getRegisters().get("legacyRegister");
-				if(regDto!=null) {
-				FormFieldDTO<LocalDate> rD=new FormFieldDTO<LocalDate>();
-				FormFieldDTO<LocalDate> eD=new FormFieldDTO<LocalDate>();
-				FormFieldDTO<String> num=new FormFieldDTO<String>();
-					num.setReadOnly(true);
-					num.setValue(legacy.getRegister());
-					regDto.setReg_number(num);
-					LocalDate regDate=boilerServ.localDateFromDate(legacy.getRegDate());
-					rD.setReadOnly(true);
-					rD.setValue(regDate);
-					regDto.setRegistration_date(rD);
-					LocalDate expDate=boilerServ.localDateFromDate(legacy.getExpDate());
-					eD.setValue(expDate);
-					regDto.setExpiry_date(eD);
-					data.getRegisters().replace("legacyRegister", regDto);
-			}
-				/*22.09.2022 new version CANCEL 04.11.2022 ika
+					//}
+					//alt label may be configured as altLabel or another name
+					FormFieldDTO<String> altLabelDTO = data.getLiterals().get(dto.getAltLabel());
+					if(altLabelDTO==null) {
+						altLabelDTO=data.getStrings().get(dto.getAltLabel());
+					}
+					if(altLabelDTO != null) {
+						String altLabel=literalServ.readValue("altLabel", node);		//here altLabel is right
+						altLabelDTO.setValue(altLabel);
+					}
+					//for legacyRegister  register
+					LegacyData legacy=boilerServ.findLegacyByConcept(node);
+					RegisterDTO regDto = data.getRegisters().get("legacyRegister");
+					if(regDto!=null) {
+						FormFieldDTO<LocalDate> rD=new FormFieldDTO<LocalDate>();
+						FormFieldDTO<LocalDate> eD=new FormFieldDTO<LocalDate>();
+						FormFieldDTO<String> num=new FormFieldDTO<String>();
+						num.setReadOnly(true);
+						num.setValue(legacy.getRegister());
+						regDto.setReg_number(num);
+						LocalDate regDate=boilerServ.localDateFromDate(legacy.getRegDate());
+						rD.setReadOnly(true);
+						rD.setValue(regDate);
+						regDto.setRegistration_date(rD);
+						LocalDate expDate=boilerServ.localDateFromDate(legacy.getExpDate());
+						eD.setValue(expDate);
+						regDto.setExpiry_date(eD);
+						data.getRegisters().replace("legacyRegister", regDto);
+					}
+					/*22.09.2022 new version CANCEL 04.11.2022 ika
 				FormFieldDTO<String> prefLabelDTO = data.getLiterals().get(LiteralService.PREF_NAME);
 				if(prefLabelDTO==null) {
 					prefLabelDTO = data.getStrings().get(LiteralService.PREF_NAME);
@@ -1243,8 +1244,8 @@ public class ThingService {
 						altLabelDTO.setValue(altLabel);
 					}
 				}*/
+				}
 			}
-		}
 		}
 		return data;
 	}
@@ -1858,7 +1859,7 @@ public class ThingService {
 				data.setDates(dtoServ.readAllDates(data.getDates(),node));
 				data.setNumbers(dtoServ.readAllNumbers(data.getNumbers(),node));
 				data.setLogical(dtoServ.readAllLogical(data.getLogical(), node));
-				
+
 				//compare with amended, if needed
 				data=amendServ.diffMark(data);
 			}else {
@@ -1869,7 +1870,7 @@ public class ThingService {
 		}
 		return data;
 	}
-	
+
 	/**
 	 * Create a thing from literals to have possibility to display it on the screen
 	 * @param node
@@ -1886,7 +1887,7 @@ public class ThingService {
 		data.setLayout(assemblyServ.literalsLayout(literals));
 		return data;
 	}
-	
+
 	@Transactional
 	public boolean removeThing(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		if(data.getNodeId() > 0) {
@@ -1988,7 +1989,7 @@ public class ThingService {
 		}
 		return path;
 	}
-	
+
 	/**
 	 * Create a deep clone of the ThingDTO
 	 * @param dto
@@ -2227,16 +2228,20 @@ public class ThingService {
 			}
 			//core ThingDTO
 			AssemblyDTO coreAssembly = assemblyServ.auxPathConfig(data, dictNodeId,data.getAuxPathVar());
-			ThingDTO coreDTO= ThingDTO.createIncluded(data, coreAssembly);
-			coreDTO.setParentId(data.getNodeId());
-			coreDTO.setNodeId(personDTO.getNodeId());
-			coreDTO.setTitle(messages.get(personDTO.getVarName()));
-			coreDTO.setHistoryId(data.getHistoryId());
-			coreDTO.setVarName(personDTO.getVarName());
-			//calculate path and place it to auxiliary path of the thing
-			List<ThingDTO> path = createPath(coreDTO, new ArrayList<ThingDTO>(),-1);
-			data.getAuxPath().clear();
-			data.getAuxPath().addAll(path);
+			if(coreAssembly.isValid()) {
+				ThingDTO coreDTO= ThingDTO.createIncluded(data, coreAssembly);
+				coreDTO.setParentId(data.getNodeId());
+				coreDTO.setNodeId(personDTO.getNodeId());
+				coreDTO.setTitle(messages.get(personDTO.getVarName()));
+				coreDTO.setHistoryId(data.getHistoryId());
+				coreDTO.setVarName(personDTO.getVarName());
+				//calculate path and place it to auxiliary path of the thing
+				List<ThingDTO> path = createPath(coreDTO, new ArrayList<ThingDTO>(),-1);
+				data.getAuxPath().clear();
+				data.getAuxPath().addAll(path);
+			}else {
+				data.addError(coreAssembly.getIdentifier());
+			}
 			return data;
 		}else {
 			throw new ObjectNotFoundException("auxPath. Wrong dictionary selection. Only one is allowed "
@@ -2455,7 +2460,7 @@ public class ThingService {
 		}
 		return data;
 	}
-	
+
 	/**
 	 * change Password by Admin Load
 	 * @param data
@@ -2481,7 +2486,7 @@ public class ThingService {
 		}
 		return data;
 	}
-	
+
 	/**
 	 * change Password by Admin Load
 	 * @param data

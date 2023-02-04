@@ -31,8 +31,10 @@ import org.msh.pdex2.model.r2.Assembly;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.model.r2.Register;
+import org.msh.pdex2.model.r2.Scheduler;
 import org.msh.pdex2.model.r2.Thing;
 import org.msh.pdex2.model.r2.ThingDict;
+import org.msh.pdex2.model.r2.ThingScheduler;
 import org.msh.pdex2.model.r2.ThingThing;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.common.UserRepo;
@@ -40,10 +42,12 @@ import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.ActivitySubmitDTO;
 import org.msh.pharmadex2.dto.AddressDTO;
 import org.msh.pharmadex2.dto.AmendmentDTO;
+import org.msh.pharmadex2.dto.AskForPass;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.AtcDTO;
 import org.msh.pharmadex2.dto.CheckListDTO;
 import org.msh.pharmadex2.dto.DataCollectionDTO;
+import org.msh.pharmadex2.dto.DataPreviewDTO;
 import org.msh.pharmadex2.dto.DataVariableDTO;
 import org.msh.pharmadex2.dto.DictNodeDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
@@ -114,6 +118,10 @@ public class ValidationService {
 	 */
 	private static final String regexVarName = "^[a-z]{1,}[a-z0-9]*" + "((\\.|\\_)[a-z0-9]{1,})*";
 	private static final Pattern pattern = Pattern.compile(regexVarName, Pattern.CASE_INSENSITIVE);
+	public static final String regexEmail="^[-a-z0-9~!$%^&*_=+}{\\'?]+(\\.[-a-z0-9~!$%^&*_=+}{\\'?]+)*@([a-z0-9_]"
+			+ "[-a-z0-9_]*(\\.[-a-z0-9_]+)*\\.(aero|arpa|biz|com|coop|edu|gov|info|int|mil|museum|name|net|org|pro|travel|mobi|"
+			+ "[a-z][a-z])|([0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}))(:[0-9]{1,5})?$";
+	private static final Pattern emailPattern = Pattern.compile(regexEmail, Pattern.CASE_INSENSITIVE);
 	/**
 	 * Validate a node
 	 * @param data
@@ -564,9 +572,19 @@ public class ValidationService {
 			if(fld!=null) {
 				String value= fld.getValue();
 				if(value.length()>0) {
-					if(!patternMatch(value, aDTO.getFileTypes())) {
+					Pattern pattern;
+					try {
+						pattern = Pattern.compile(aDTO.getFileTypes(), Pattern.CASE_INSENSITIVE);
+						Matcher matcher = pattern.matcher(value);
+						if(!matcher.find()) {
+							fld.setError(true);
+							fld.setSuggest(messages.get("invalidformat"));
+							fld.setStrict(strict);
+							help(fld, aDTO.getDescription());
+						}
+					} catch (Exception e) {
 						fld.setError(true);
-						fld.setSuggest(messages.get("invalidformat"));
+						fld.setSuggest(messages.get("invalidpattern"));
 						fld.setStrict(strict);
 						help(fld, aDTO.getDescription());
 					}
@@ -594,7 +612,6 @@ public class ValidationService {
 	 */
 	public boolean patternMatchFull(String value) {
 		Matcher matcher = pattern.matcher(value);
-
 		return matcher.matches();
 	}
 
@@ -1041,7 +1058,7 @@ public class ValidationService {
 			if(prefLabel.length()==0
 					|| activityUrl.length()==0
 					|| checklisturl.length()==0){
-				data.setIdentifier(messages.get("badconfiguration")+prefLabel+"/"+activityUrl+"/"+checklisturl);
+				data.setIdentifier(messages.get("badconfiguration")+"/"+messages.get("error_preflabel")+"/"+activityUrl+"/"+checklisturl);
 				data.setValid(false);
 				return data;
 			}
@@ -1104,16 +1121,48 @@ public class ValidationService {
 		data=variableExtName(data,strict);
 		data=variableClazz(data,strict);
 		data=variableScreen(data,strict);
+		data=variableFileTypes(data);
 		// special validation
 		data=variableMinMaxWhenRequired(data,strict);
 		data= variableUrl(data, strict);
 		data=variableDictUrl(data,strict);
 		data=variableAuxUrl(data,strict);
 		data=variableDocuments(data);
-
 		data.propagateValidation();
 		return data;
 	}
+	/**
+	 * field fileTypes should be checked and all non-printable characters should be removed:
+	 * <ul>
+	 * <li> literals(strings) - empty or valid Java Regular Expression pattern
+	 * <li> documents - empty or value of attribute "accept" of the input file control (https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/accept)
+	 * </ul>
+	 * For now we validate only for literals
+	 * @param data
+	 * @return
+	 */
+	private DataVariableDTO variableFileTypes(DataVariableDTO data) {
+		String clazz = data.getClazz().getValue().getCode();
+		if(clazz.equalsIgnoreCase("literals") || clazz.equalsIgnoreCase("strings")) {
+			if(data.getFileTypes()!=null) {
+				String regex = boilerServ.replaceNonPrintCh(data.getFileTypes().getValue());
+				regex=regex.replace(" ", "");
+				data.getFileTypes().setValue(regex);
+				if(regex.length()>0) {
+					try {
+						Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+						data.getFileTypes().clearValidation();
+					} catch (Exception e) {
+						data.getFileTypes().setError(true);
+						data.getFileTypes().setSuggest(messages.get("invalidpattern"));
+						data.setIdentifier(messages.get("invalidpattern"));
+					}
+				}
+			}
+		}
+		return data;
+	}
+
 	/**
 	 * Is auxUrl mandatory
 	 * @param data
@@ -1121,7 +1170,7 @@ public class ValidationService {
 	 */
 	private DataVariableDTO variableAuxUrl(DataVariableDTO data, boolean strict) {
 		List<String> auxUrlReq = Arrays.asList ( 
-				"persons", 
+				//"persons", 
 				"schedulers", 
 				"links"
 				);
@@ -1371,7 +1420,7 @@ public class ValidationService {
 			if(required.equals(YesNoNA.YES)) {
 				long min = boilerServ.nullIsZero(data.getMinLen().getValue());
 				long max = boilerServ.nullIsZero(data.getMaxLen().getValue());
-				if(((min==max) && min==0) ||(min>max)) {
+				if(((min==max) && min==0)) {
 					suggest(data.getMinLen(),messages.get("valueReq"),strict);
 					suggest(data.getMaxLen(),messages.get("valueReq"),strict);
 					data.setValid(false);
@@ -1711,7 +1760,7 @@ public class ValidationService {
 			if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {
 				if(isActivityForeground(curHis.getActConfig())) {
 					if(curHis.getGo()==null) {
-						if(isActivityFinalAction(curHis, SystemService.FINAL_ACCEPT)) {
+						if(isActivityFinalAction(curHis, SystemService.FINAL_ACCEPT) || isActivityFinalAction(curHis, SystemService.FINAL_COMPANY)) {
 							return data;
 							/*	if(nextActs != null) {//TODO khomenska 09112022
 									if(validateConfigurationRegister(nextActs)) {
@@ -2166,6 +2215,67 @@ public class ValidationService {
 		}
 		return data;
 	}
-
+	/**
+	 * Validate all additional pages if ones
+	 * @param assemblies
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public ThingDTO validateThingsIncluded(List<Assembly> assemblies, ThingDTO data) throws ObjectNotFoundException {
+		for(Assembly  assm : assemblies ) {
+			if(assm.getClazz().equalsIgnoreCase("things")) {
+				data=validateThingIncluded(assm,data);
+			}
+		}
+		return data;
+	}
+	/**
+	 * Validate an additional page definition
+	 * @param assm
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private ThingDTO validateThingIncluded(Assembly assm, ThingDTO data) throws ObjectNotFoundException {
+		data.clearErrors();
+		//rule 1. The URL should be defined
+		if(assm.getUrl() == null) {
+			data.addError(messages.get("emptyurl"));
+		}else {
+			if(assm.getUrl().length()==0) {
+				data.addError(messages.get("emptyurl"));
+			}else {
+				//rule 2. If the thing contains class "persons" the aux URL should be defined 
+				List<Assembly> clazzes =  assemblyServ.loadDataConfiguration(assm.getUrl());
+				for(Assembly clazz : clazzes) {
+					if(clazz.getClazz().equalsIgnoreCase("persons")) {
+						if(assm.getAuxDataUrl()==null) {
+							data.addError(messages.get("emptyauxurl"));
+						}else {
+							if(assm.getAuxDataUrl().length()==0) {
+								data.addError(messages.get("emptyauxurl"));
+							}
+						}
+					}
+				}
+			}
+		}
+		return data;
+	}
+	/**
+	 * Validate email address using regex
+	 * @param data
+	 * @return
+	 */
+	public AskForPass validEmail(AskForPass data) {
+		Matcher matcher = emailPattern.matcher(data.getEmail());
+		if(!matcher.find()) {
+			data.addError(messages.get("valid_email"));
+		}
+		return data;
+	}
 
 }

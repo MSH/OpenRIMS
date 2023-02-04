@@ -166,6 +166,9 @@ class Thing extends Component{
                     this.state.data=result
                     this.setState(this.state)
                     Navigator.message(this.state.identifier, this.props.recipient, "thingValidated", result)
+                    if(!this.state.data.valid){
+
+                    }
                 })
             }
             if(data.subject=='thingReload'){
@@ -237,6 +240,7 @@ class Thing extends Component{
                         if(result.valid){
                             Navigator.message(this.state.identifier, this.props.recipient, "auxPath", this.state.data)
                         }else{
+                            Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'danger'})
                             this.setState(this.state)
                         }
                     })
@@ -372,6 +376,7 @@ class Thing extends Component{
      * Common action after thing has been loaded or accepted
      */
     postLoaded(){
+        let err_mess=this.state.data.identifier
         this.state.data.identifier=this.state.identifier
         Navigator.message(this.state.identifier, "*","refreshData",this.state.data);
         Locales.createLabels(this, "strings")
@@ -416,6 +421,9 @@ class Thing extends Component{
             this.comparator=undefined       //the latch!
         }
         Navigator.message(this.state.identifier, this.props.recipient,"thingLoaded",this.state.data);
+        if(!this.state.data.valid){
+            Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:err_mess, color:'danger'})
+        }
     }
     componentWillUnmount(){
         window.removeEventListener("message",this.eventProcessor)
@@ -906,6 +914,7 @@ class Thing extends Component{
         if(this.state.data.activityName != undefined){
             activityName=this.state.labels[this.state.data.activityName]
         }
+       
         return(
             <Container fluid>
                 {this.helpButton()}

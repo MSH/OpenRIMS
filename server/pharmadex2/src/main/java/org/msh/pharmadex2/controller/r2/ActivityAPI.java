@@ -626,6 +626,9 @@ public class ActivityAPI {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data=applServ.submitSend(user,data);
+			if(!data.isValid()) {
+				data.setColorAlert("danger");
+			}
 		} catch (ObjectNotFoundException | JsonProcessingException e) {
 			throw new DataNotFoundException(e);
 		}

@@ -90,7 +90,7 @@ public class SupervisorService {
 
 	@Value("${variables.properties.edit}")
 	private boolean variablesPropertiesEdit;
-	
+
 	/**
 	 * Create content for administrative tile, using existed supervisor features
 	 * 
@@ -409,10 +409,10 @@ public class SupervisorService {
 			table.setSelectable(false);
 			// is edit restricted?
 			if(!variablesPropertiesEdit) {
-			Concept conc = closureServ.loadConceptById(data.getNodeId());
-			jdbcRepo.data_url_references(conc.getIdentifier());
-			List<TableRow> rows1 = jdbcRepo.qtbGroupReport("select * from data_url_references", "", "", new Headers());
-			data.setRestricted(rows1.size()==0);	//at least one reference is existed
+				Concept conc = closureServ.loadConceptById(data.getNodeId());
+				jdbcRepo.data_url_references(conc.getIdentifier());
+				List<TableRow> rows1 = jdbcRepo.qtbGroupReport("select * from data_url_references", "", "", new Headers());
+				data.setRestricted(rows1.size()==0);	//at least one reference is existed
 			}else{
 				data.setRestricted(true);
 			}
@@ -516,7 +516,7 @@ public class SupervisorService {
 				public int compare(OptionDTO o1, OptionDTO o2) {
 					return o1.getCode().compareTo(o2.getCode());
 				}
-				
+
 			});
 			data.getClazz().setValue(optVal);
 		}
@@ -878,9 +878,8 @@ public class SupervisorService {
 						rm = list.get(0);
 						if (list.size() == 1 && rm.getId() == data.getSelectedIds().get(rb.getLocale().toUpperCase())) {
 							// это редактирование записи
-
+							rm.setMessage_key(key);
 							rm.setMessage_value(value);
-
 							resourceMessageRepo.save(rm);
 						} else {
 							data.setValid(false);

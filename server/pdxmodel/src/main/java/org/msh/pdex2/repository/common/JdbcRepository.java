@@ -1325,4 +1325,14 @@ public class JdbcRepository {
 		}
 		return list;
 	}
+	/**
+	 * Users of active registered companies
+	 */
+	public void company_users() {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("company_users");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+	}
 }

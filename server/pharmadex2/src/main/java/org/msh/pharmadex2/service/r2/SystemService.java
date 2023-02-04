@@ -45,6 +45,7 @@ public class SystemService {
 	public static final String FINAL_AMEND = "AMEND";
 	public static final String FINAL_DECLINE = "DECLINE";
 	public static final String FINAL_ACCEPT = "ACCEPT";
+	public static final String FINAL_COMPANY="COMPANY";
 	public static final String FINAL_NO = "NO";
 	public static final String DICTIONARY_SYSTEM_FINALIZATION = "dictionary.system.finalization";
 
@@ -167,6 +168,7 @@ public class SystemService {
 		addRoleToDictionary(root, FINAL_DECLINE);
 		addRoleToDictionary(root, FINAL_AMEND);
 		addRoleToDictionary(root, FINAL_DEREGISTRATION);
+		addRoleToDictionary(root, FINAL_COMPANY);
 	}
 
 	/**
@@ -317,7 +319,7 @@ public class SystemService {
 			literalServ.createUpdateLiteral("type", "system", root);
 		}
 		List<Concept> level = literalServ.loadOnlyChilds(root);
-		if (level.size() != 9) {
+		if (level.size() != 10) {
 			// create level
 			systemDictNode(root, "0", messages.get("continue"));
 			systemDictNode(root, "1", messages.get("route_action"));
@@ -328,6 +330,7 @@ public class SystemService {
 			systemDictNode(root, "6", messages.get("reassign"));
 			systemDictNode(root, "7", messages.get("amendment"));
 			systemDictNode(root, "8", messages.get("deregistration"));
+			systemDictNode(root, "9", messages.get("revokepermit"));
 		}
 		ret = dictServ.createDictionary(ret);
 		ret.setMult(false);
@@ -353,8 +356,8 @@ public class SystemService {
 		}
 		List<Concept> level = literalServ.loadOnlyChilds(root);
 		if (level.size() == 0) {
-			systemDictNode(root, AssemblyService.DATAIMPORT_DATA, "XLSX file contains data to import");
-			systemDictNode(root, AssemblyService.DATAIMPORT_DATA_ERROR, "XLSX file contains data import errors");
+			systemDictNode(root, AssemblyService.DATAIMPORT_DATA, "File contains data to import (XLSX)");
+			systemDictNode(root, AssemblyService.DATAIMPORT_DATA_ERROR, "File with data import errors(XLSX)");
 		} else if (level.size() == 1) {
 			Concept c = level.get(0);
 			c.setIdentifier(AssemblyService.DATAIMPORT_DATA);

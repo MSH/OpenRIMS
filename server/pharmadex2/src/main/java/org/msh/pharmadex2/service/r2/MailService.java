@@ -3,6 +3,7 @@ package org.msh.pharmadex2.service.r2;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pharmadex2.dto.AboutDTO;
+import org.msh.pharmadex2.dto.AskForPass;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,14 +30,14 @@ public class MailService {
 	 * create Attention Letter
 	 */
 	public String createAttentionMail(UserDetailsDTO user, String sendTo, String applName, String curActivity, String nextActivity, String textInMail)  {
-		String res = messages.get("mailSentApplicant");
+		String res = "";
 		if(user.getEmail().endsWith("@gmail.com")) {
 			JavaMailSenderImpl impl = (JavaMailSenderImpl) emailSender;
 			if(impl.getUsername() != null) {
 				SimpleMailMessage mailMess = new SimpleMailMessage(); 
 				mailMess.setFrom(impl.getUsername());
 		        mailMess.setTo(sendTo);
-		        //mailMess.setTo("aniri49000@gmail.com");
+		        //mailMess.setTo("khomenska1105@gmail.com");
 		        mailMess.setSubject(messages.get("mailAttentionSubj"));
 		        
 		        String text = "";
@@ -53,13 +54,14 @@ public class MailService {
 		        mailMess.setText(text);
 		        try {
 		        	emailSender.send(mailMess);
+		        	res = messages.get("mailSentApplicant");
 		        }catch(Exception e) {
-		        	res=e.getMessage() + " "+sendTo;
-		        	logger.info(res);
+		        	logger.info(e.getMessage() + " "+sendTo);
+		        	res=messages.get("errorMailServiceSettings");
 		        }
 			}else {
+				logger.info(messages.get("errorPropertyMail"));
 				res=messages.get("errorPropertyMail");
-				logger.info(res);
 			}
 		}
 		return res;
@@ -93,6 +95,26 @@ public class MailService {
 			message.setIdentifier(messages.get("invalid_email")+" "+user.getEmail());
 		}
 		return message;
+	}
+	/**
+	 * Send a password
+	 * @param data
+	 * @return
+	 */
+	public AskForPass temporaryPasswordSend(AskForPass data) {
+		SimpleMailMessage mailMess = new SimpleMailMessage(); 
+		JavaMailSenderImpl impl = (JavaMailSenderImpl) emailSender;
+		mailMess.setFrom(impl.getUsername());
+        mailMess.setTo(data.getEmail());
+        mailMess.setSubject(messages.get("temp_password"));
+        mailMess.setText(data.getTp());
+        try {
+        	emailSender.send(mailMess);
+        	data.setIdentifier(messages.get("send_password_success"));
+        }catch(Exception e) {
+        	data.addError(e.getMessage());
+        }
+		return data;
 	}
 	
 

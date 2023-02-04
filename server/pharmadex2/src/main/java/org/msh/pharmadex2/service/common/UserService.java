@@ -1,18 +1,22 @@
 package org.msh.pharmadex2.service.common;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.Set;
 
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 
+import org.msh.pdex2.dto.table.Headers;
 import org.msh.pdex2.dto.table.TableHeader;
 import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
@@ -22,14 +26,17 @@ import org.msh.pdex2.model.enums.YesNoNA;
 import org.msh.pdex2.model.old.User;
 import org.msh.pdex2.model.old.User_role;
 import org.msh.pdex2.model.r2.Concept;
+import org.msh.pdex2.model.r2.PasswordsTemporary;
 import org.msh.pdex2.model.r2.Thing;
 import org.msh.pdex2.model.r2.ThingDict;
 import org.msh.pdex2.model.r2.UserDict;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.common.UserRepo;
 import org.msh.pdex2.repository.r2.ConceptRepo;
+import org.msh.pdex2.repository.r2.PasswordTempoRepo;
 import org.msh.pdex2.repository.r2.UserDictRepo;
 import org.msh.pdex2.services.r2.ClosureService;
+import org.msh.pharmadex2.dto.AskForPass;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.UserElementDTO;
@@ -40,8 +47,8 @@ import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.service.r2.AssemblyService;
 import org.msh.pharmadex2.service.r2.DictService;
-import org.msh.pharmadex2.service.r2.ImportAService;
 import org.msh.pharmadex2.service.r2.LiteralService;
+import org.msh.pharmadex2.service.r2.MailService;
 import org.msh.pharmadex2.service.r2.SystemService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,12 +74,15 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class UserService implements UserDetailsService {
 
+	private static final int MAX_LOGIN_ATTEMPTS = 5;
 	private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 	@Autowired
 	UserRepo userRepo;
 
 	@Autowired
 	PasswordEncoder password;
+	@Autowired
+	PasswordTempoRepo passwordTempoRepo;
 
 	@Autowired
 	Messages messages;
@@ -94,6 +104,8 @@ public class UserService implements UserDetailsService {
 	AssemblyService assemblyServ;
 	@Autowired
 	SystemService systemServ;
+	@Autowired
+	MailService mailServ;
 
 	@Autowired
 	UserDictRepo userDictRepo;
@@ -117,9 +129,72 @@ public class UserService implements UserDetailsService {
 	 */
 	@Transactional
 	public UserDetailsDTO loadUserDetailsDTO(String login) {
-		User u = loadUserByLogin(login);
-		return userToDTO(u);
+		try {
+			User u = loadUserByLogin(login);
+			return userToDTO(u);
+		} catch (UsernameNotFoundException e) {
+			UserDetailsDTO data = companyUserLogin(login);
+			boolean bool = password.matches("934825", data.getPassword());
+			return data;
+		}
 	}
+	/**
+	 * Load a company user by own email
+	 * @param email
+	 * @return
+	 */
+	@Transactional
+	private UserDetailsDTO companyUserLogin(String email) {
+		UserDetailsDTO ret = new UserDetailsDTO();
+		Optional<PasswordsTemporary> pto = passwordTempoRepo.findByUseremail(email);
+		if(pto.isPresent()) {
+			if(validatePassTemp(pto.get())) {
+				//for company user only "GUEST" role is available
+				UserRoleDto urd = new UserRoleDto();
+				urd.setActive(true);
+				urd.setAuthority("ROLE_GUEST");
+				
+				ret.setActive(true);
+				ret.getAllRoles().add(urd);
+				ret.setEmail(pto.get().getCompanyemail());
+				ret.setExpired(false);
+				ret.getGranted().add(urd);
+				ret.setLocked(false);
+				ret.setLogin(email);
+				ret.setName(pto.get().getUserName());
+				ret.setPassword(pto.get().getPassword());
+				ret.setValid(true);
+			}else {
+				throw new UsernameNotFoundException(email);
+			}
+		}else {
+			throw new UsernameNotFoundException(email);
+		}
+		return ret;
+	}
+	/**
+	 * Validate temporary password, increment counter
+	 * @param pt
+	 * @return not expired, good counter
+	 */
+	@Transactional
+	private boolean validatePassTemp(PasswordsTemporary pt) {
+		boolean ret=true;
+		Date expired = pt.getExpiration();
+		if(expired != null) {
+			LocalDate exp=boilerServ.localDateFromDate(expired);
+			if(exp.isAfter(LocalDate.now())) {
+				ret=pt.getCounter()<=MAX_LOGIN_ATTEMPTS;
+			}else {
+				ret=false;
+			}
+		}else {
+			ret=false;
+		}
+		pt.setCounter(pt.getCounter()+1);
+		return ret;
+	}
+
 	/**
 	 * load a user by login name
 	 * @param login
@@ -128,15 +203,10 @@ public class UserService implements UserDetailsService {
 	@Transactional
 	public User loadUserByLogin(String login) {
 		Optional<User> usero = userRepo.findByUsername(login);
-		if (!usero.isPresent()) {
-			usero = userRepo.findByEmail(login);
-			if(usero.isPresent()) {
-				return usero.get();
-			}else {
-				throw new UsernameNotFoundException(login);
-			}
-		}else {
+		if (usero.isPresent()) {
 			return usero.get();
+		}else {
+			throw new UsernameNotFoundException(login);
 		}
 	}
 	/**
@@ -179,7 +249,6 @@ public class UserService implements UserDetailsService {
 		}
 	}
 
-
 	/**
 	 * User to UserDTO
 	 * @param user
@@ -198,6 +267,9 @@ public class UserService implements UserDetailsService {
 		ret.setAllRoles((userGetAllAuthorities(user)));
 		ret.getGranted().clear();
 		ret.getGranted().addAll(userGetGrantedAuthorities(user));
+		if(ret.getGranted().size()==0) {
+			ret.getGranted().add(UserRoleDto.guestUser());
+		}
 
 		return ret;
 	}
@@ -973,6 +1045,122 @@ public class UserService implements UserDetailsService {
 			}
 		}
 		return ret;
+	}
+	/**
+	 * Create and send by email temporary password
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public AskForPass temporaryPassword(AskForPass data){
+		try {
+			data.clearErrors();
+		} catch (ObjectNotFoundException e) {
+			//nothing to do
+		}
+		data=validationServ.validEmail(data);
+		if(data.isValid()) {
+			data=companyUser(data);
+			if(data.isValid()) {
+				data=temporaryPasswordCreate(data);
+				data=temporaryPasswordStore(data);
+				if(data.isValid()) {
+					data=mailServ.temporaryPasswordSend(data);
+				}
+			}
+		}
+		return data;
+	}
+	/**
+	 * Store a temporary password to the database for future use
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private AskForPass temporaryPasswordStore(AskForPass data) {
+		Concept companyUser;
+		try {
+			companyUser = closureServ.loadConceptById(data.getUserId());
+			if(companyUser.getActive()) {
+				PasswordsTemporary pt = new PasswordsTemporary();
+				Optional<PasswordsTemporary> pto = passwordTempoRepo.findByUseremail(data.getEmail());
+				if(pto.isPresent()) {
+					pt=pto.get();
+				}
+				pt.setCompanyUser(companyUser);
+				pt.setCompanyemail(data.getCompanyemail());
+				pt.setPassword(password.encode(data.getTp()));
+				pt.setUseremail(data.getEmail());
+				pt.setUserName(data.getUserName());
+				pt.setCounter(0);
+				LocalDate ld= LocalDate.now();
+				ld=ld.plusDays(1);
+				pt.setExpiration(boilerServ.localDateToDate(ld));
+				passwordTempoRepo.save(pt);
+			}else {
+				data.addError(messages.get("no_user"));
+			}
+		} catch (ObjectNotFoundException e) {
+			data.addError(messages.get("")+ data.getUserId() +"/"+data.getUserName());
+		}
+
+		return data;
+	}
+
+	/**
+	 * Create a temporary password as 6 digits
+	 * @param
+	 * @return
+	 */
+	private AskForPass temporaryPasswordCreate(AskForPass data) {
+		Random random = new Random();
+		int rand = random.ints(101011, 987675)
+				.findFirst()
+				.getAsInt();
+		data.setTp(rand+"");
+		return data;
+	}
+
+	/**
+	 * Is this user really company user?
+	 * @param data
+	 * @return
+	 */
+	@Transactional
+	private AskForPass companyUser(AskForPass data) {
+		jdbcRepo.company_users();
+		String select="select * from company_users where useremail='"+data.getEmail()+"'";
+		Headers headers= new Headers();
+		headers.getHeaders().addAll(jdbcRepo.headersFromSelect(select, new ArrayList<String>()));
+		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from company_users", "", "useremail='"+data.getEmail()+"'", headers);
+		if(rows.size()==1) {
+			data.setCompanyemail(rows.get(0).getCellByKey("companyemail").getValue());
+			data.setCompanyName(rows.get(0).getCellByKey("companyName").getValue());
+			data.setUserName(rows.get(0).getCellByKey("userName").getValue());
+			data.setUserId((Long)rows.get(0).getCellByKey("userID").getOriginalValue());
+		}else {
+			data.addError(messages.get("no_user")+ "("+data.getEmail()+")/+"+rows.size());
+		}
+		return data;
+	}
+	/**
+	 * Get user's concept if one, otherwise null
+	 * @param user
+	 * @return
+	 */
+	public Concept userConcept(UserDetailsDTO user) {
+		Optional<PasswordsTemporary> pto = passwordTempoRepo.findByUseremail(user.getLogin()); //company user
+		if(pto.isPresent()) {
+			return pto.get().getCompanyUser();
+		}else {
+			//try users table
+			Optional<User> usero = userRepo.findByEmail(user.getEmail());
+			if(usero.isPresent()) {
+				return usero.get().getConcept();
+			}
+		}
+		return null;
 	}
 
 }

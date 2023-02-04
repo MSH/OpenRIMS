@@ -64,8 +64,10 @@ public class AssemblyService {
 	public static final String SYSTEM_IMPORT_ATCCODES = "system.import.atccodes";
 	public static final String SYSTEM_IMPORT_ATCCODES_RELOAD = SYSTEM_IMPORT_ATCCODES + "_reload";
 	public static final String DATAIMPORT_CODES = "dataimport_codes";
-	
+	//dictionary for file import
 	public static final String SYSTEM_IMPORT_DICTIONARY="system.import.dictionary";
+	//electronic form for data configuration import
+	public static final String SYSTEM_IMPORT_DATA_CONFIGURATION="system.import.data.configuration";
 	
 	@Autowired
 	private ClosureService closureServ;
@@ -532,7 +534,8 @@ public class AssemblyService {
 	@Transactional
 	public List<AssemblyDTO> auxDocuments(String url, List<Assembly> assemblies) throws ObjectNotFoundException{
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
-		if(url.equalsIgnoreCase(SYSTEM_IMPORT_ADMINUNITS) || url.equalsIgnoreCase(SYSTEM_IMPORT_ADMINUNITS_RELOAD)) {
+		if(url.equalsIgnoreCase(SYSTEM_IMPORT_ADMINUNITS) 
+				|| url.equalsIgnoreCase(SYSTEM_IMPORT_ADMINUNITS_RELOAD)) {
 			AssemblyDTO assm = new AssemblyDTO();
 			assm.setPropertyName(DATAIMPORT_DATA);
 			assm.setUrl("data.import");
@@ -577,6 +580,16 @@ public class AssemblyService {
 			assm.setRequired(true);
 			assm.setFileTypes(".xlsx");
 			assm.setDictUrl("dictionary.system.import");
+			ret.add(assm);
+		}
+		if(url.equalsIgnoreCase(SYSTEM_IMPORT_DATA_CONFIGURATION)) {
+			AssemblyDTO assm = new AssemblyDTO();
+			assm.setPropertyName("import_electronic_form");
+			assm.setUrl("data.import");
+			assm.setDescription(messages.get("pleaseuploadimportdata"));
+			assm.setRequired(true);
+			assm.setFileTypes(".xlsx");
+			assm.setDictUrl(SystemService.DICTIONARY_SYSTEM_IMPORT_DATA);
 			ret.add(assm);
 		}
 		if(ret.size()==0) {
@@ -815,6 +828,13 @@ public class AssemblyService {
 			LayoutRowDTO row= new LayoutRowDTO();
 			LayoutCellDTO cell1 = new LayoutCellDTO();
 			cell1.getVariables().add(DATAIMPORT_DATA);
+			row.getCells().add(cell1);
+			ret.add(row);
+		}
+		if(url.equalsIgnoreCase(SYSTEM_IMPORT_DATA_CONFIGURATION)) {
+			LayoutRowDTO row= new LayoutRowDTO();
+			LayoutCellDTO cell1 = new LayoutCellDTO();
+			cell1.getVariables().add("import_electronic_form");	//file uploader
 			row.getCells().add(cell1);
 			ret.add(row);
 		}
@@ -1218,13 +1238,13 @@ public class AssemblyService {
 	public AssemblyDTO auxPathConfig(ThingDTO data, long dictNodeId, String varName) throws ObjectNotFoundException {
 		AssemblyDTO ret = new AssemblyDTO();
 		if(dictNodeId>0) {
-			//configuration is in a dictionary
+			//configuration is in a dictionary @DEPRECATED!!!!
 			Concept dictNode = closureServ.loadConceptById(dictNodeId);
 			String urlStr=literalServ.readValue("URL", dictNode);
 			if(urlStr.length()>0) {
 				ret.setUrl(urlStr);
 			}else {
-				throw new ObjectNotFoundException("auxPathConfig. Bad dictionary choice. URL is undefined ", logger);
+				ret.addError(messages.get("emptyauxurl"));
 			}
 		}else {
 			//configuration is in a variable configuration
@@ -1240,7 +1260,7 @@ public class AssemblyService {
 					if(urlStr.length()>0) {
 						ret.setUrl(urlStr);
 					}else {
-						throw new ObjectNotFoundException("auxPathConfig. Please, configure auxDataUrl for "+data+"/"+varName, logger);
+						ret.addError(messages.get("emptyauxurl"));
 					}
 				}
 			}

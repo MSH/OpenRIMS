@@ -8,10 +8,12 @@ import PropTypes from 'prop-types'
  * @property {string} prompt - propmpt to select a file
  * @property {string} error - error message
  * @example <FieldUpload accept=".docx, image/*, .pdf" onChange={this.onFileChange} prompt={this.state.labels.download_attach} error={this.state.data.fileSize.suggest}/>
- */
+ * Broadcast event 'cleanUpAllFileUploaders' will clean up this component and others unmounted uploaders   
+*/
 class FieldUpload extends Component{
     constructor(props){
         super(props)
+        
     }
 
     render(){

@@ -12,6 +12,7 @@ import org.msh.pdex2.dto.i18n.Languages;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pharmadex2.dto.AboutDTO;
+import org.msh.pharmadex2.dto.AskForPass;
 import org.msh.pharmadex2.dto.ContentDTO;
 import org.msh.pharmadex2.dto.SystemImageDTO;
 import org.msh.pharmadex2.dto.UserFormDTO;
@@ -46,7 +47,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 public class PublicAPI{
-	
+
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(PublicAPI.class);
 
@@ -55,19 +56,19 @@ public class PublicAPI{
 
 	@Autowired
 	private UserService userService;
-	
+
 	@Autowired
 	private ContentService contentService;
 	@Autowired
 	private ResourceService resourceServ;
 	@Autowired
 	private ReportService reportServ;
-	
+
 	@Value("${app.buildTime}")
 	private String buildTime;
 	@Value("${app.release}")
 	private String release;
-	
+
 	/**
 	 * Create a context cookie
 	 * @param contextId
@@ -116,7 +117,7 @@ public class PublicAPI{
 				.header("filename","emblem.svg")
 				.body(res);
 	}
-	
+
 	/**
 	 * Load the NMRA logo
 	 * @return
@@ -152,7 +153,7 @@ public class PublicAPI{
 			throw new DataNotFoundException(e);
 		}
 	}
-	
+
 	/**
 	 * About data for the footer etc
 	 * @param data
@@ -165,9 +166,9 @@ public class PublicAPI{
 		data.setRelease(release);
 		return data;
 	}
-	
-	
-	
+
+
+
 	/**
 	 * Get an SVG flag to switch the language
 	 * @return
@@ -197,7 +198,7 @@ public class PublicAPI{
 		ret = userService.userData(auth, ret);
 		return ret;
 	}
-	
+
 	/**
 	 * Get user's details for just authenticated user. For edit/display
 	 * @param user
@@ -214,7 +215,7 @@ public class PublicAPI{
 		}
 		return ret;
 	}
-	
+
 	/**
 	 * Get a list of available languages
 	 * @param List<FlagDTO>
@@ -225,7 +226,7 @@ public class PublicAPI{
 		data=messages.getLanguages();
 		return data;
 	}
-	
+
 	/**
 	 * Tiles for landing page
 	 * @param data
@@ -241,7 +242,7 @@ public class PublicAPI{
 		}
 		return data;
 	}
-	
+
 	@RequestMapping(value="api/public/tileicon", method = RequestMethod.GET)
 	public ResponseEntity<Resource> loadTileIcon(@RequestParam String iconurl) throws DataNotFoundException, IOException {
 		ResponseEntity<Resource> res;
@@ -255,19 +256,19 @@ public class PublicAPI{
 			}else {
 				res = resourceServ.createEmptyResource();
 			}
-			
-			
+
+
 			return res;
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 	}
-	
+
 	@PostMapping("/api/public/report/loadlink")
 	public String reportLoadlink(Authentication auth, @RequestBody String data) {
 		return reportServ.getLinkReport();
 	}
-	
+
 	/* 15.11.2022 khomenska */
 	@RequestMapping(value="api/public/terms", method = RequestMethod.GET)
 	public ResponseEntity<Resource> loadTerms() throws DataNotFoundException, IOException {
@@ -279,7 +280,7 @@ public class PublicAPI{
 			throw new DataNotFoundException(e);
 		}
 	}
-	
+
 	/* 15.11.2022 khomenska */
 	@RequestMapping(value="api/public/privacy", method = RequestMethod.GET)
 	public ResponseEntity<Resource> loadPrivacy() throws DataNotFoundException, IOException {
@@ -290,5 +291,17 @@ public class PublicAPI{
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
+	}
+
+	/**
+	 * ASk for a temporary password
+	 * @return
+	 * @throws DataNotFoundException
+	 * @throws IOException
+	 */
+	@PostMapping(value="/api/public/temporary/password")
+	public AskForPass temporaryPassword(@RequestBody AskForPass data){
+		data=userService.temporaryPassword(data);
+		return data;
 	}
 }

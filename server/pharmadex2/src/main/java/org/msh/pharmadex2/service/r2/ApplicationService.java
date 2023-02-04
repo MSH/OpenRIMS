@@ -397,6 +397,10 @@ public class ApplicationService {
 						List<ActivityToRun> toRun = activitiesToRun(data, applUrl, curHis, nextActs);
 						//finish the current activity and run others
 						if(toRun.size()>0 && data.isValid()) {
+							Concept userConcept = userServ.userConcept(user);
+							if(userConcept != null) {
+								curHis.setExecutor(userConcept);
+							}
 							curHis = closeActivity(curHis, false);
 							// tracking by an applicant
 							activityTrackRun(null, curHis, applUrl, user.getEmail()); 
@@ -481,7 +485,7 @@ public class ApplicationService {
 		}
 		return ret;
 	}
-	
+
 	/**
 	 * check "persons" (in general 1:m)
 	 * @param page
@@ -1131,17 +1135,15 @@ public class ApplicationService {
 			if (curHis.getActConfig() != null) {
 				data.setBackground(validServ.isActivityBackground(curHis.getActConfig()));
 				data.setAttention(validServ.isActivityAttention(curHis.getActConfig()));
-				if(validServ.isActivityFinalAction(curHis, systemServ.FINAL_ACCEPT)) {
+				if(validServ.isActivityFinalAction(curHis, SystemService.FINAL_ACCEPT)) {
 					data.setFinalization(true);
-				}else if(validServ.isActivityFinalAction(curHis, systemServ.FINAL_AMEND)) {
+				}else if(validServ.isActivityFinalAction(curHis, SystemService.FINAL_AMEND)) {
 					data.setFinalization(true); 
-				}else if(validServ.isActivityFinalAction(curHis, systemServ.FINAL_DEREGISTRATION)) {
+				}else if(validServ.isActivityFinalAction(curHis, SystemService.FINAL_DEREGISTRATION)) {
 					data.setFinalization(true);
 				}else {
 					data.setFinalization(false);
 				}
-				//String dictUrl = curHis.getActivity().getLabel();
-				//if (dictUrl != null && dictUrl.toUpperCase().startsWith("DICTIONAR")) {
 				data.setHost(validServ.isHostApplication(curHis.getApplDict()));
 				dto = createActivity(user, curHis, false);
 				ThingDTO dt = createLoadActivityData(data, curHis, user, false);
@@ -1386,6 +1388,7 @@ public class ApplicationService {
 				// systemDictNode(root, "5", messages.get("reject"));
 				// systemDictNode(root, "6", messages.get("reassign"));
 				// systemDictNode(root, "7", messages.get("amendment"))
+				//  9 - revoke the permit
 				data.getScheduled().getRows().clear();
 				switch (selected) {
 				case 0:
@@ -1431,6 +1434,10 @@ public class ApplicationService {
 					data.getExecs().getRows().clear();// ika24062022
 					data = executorsNextChoice(his, user, data, false);
 					break;
+				case 9://TODO
+					data.getExecs().getRows().clear();
+					data = executorsNextChoice(his, user, data, false);//ika26012023
+					data.getNextJob().getRows().clear();
 				default:
 					data.getExecs().getRows().clear();
 					data.getNextJob().getRows().clear();
@@ -1604,7 +1611,9 @@ public class ApplicationService {
 			if (data.isValid()) {
 				allowed.add("6"); // reassign the executor
 			}
-
+			if(validServ.isHostApplication(curHis.getApplDict())) {
+				allowed.add("9"); // revoke the permit
+			}
 		} else {
 			if (data.isApplicant()) {
 				data = validServ.submitNext(curHis, user, data);
@@ -1639,6 +1648,9 @@ public class ApplicationService {
 				data = validServ.submitDeregistration(curHis, user, data);
 				if (data.isValid()) {
 					allowed.add("8"); // implement an amendment
+				}
+				if(validServ.isHostApplication(curHis.getApplDict())) {
+					allowed.add("9"); // revoke the permit
 				}
 			}
 		}
@@ -1896,6 +1908,7 @@ public class ApplicationService {
 	public ActivitySubmitDTO submitSend(UserDetailsDTO user, ActivitySubmitDTO data)
 			throws ObjectNotFoundException, JsonProcessingException {
 		History curHis = boilerServ.historyById(data.getHistoryId());
+		data.clearErrors();
 		if (accServ.isActivityExecutor(curHis.getActivity(), user) || accServ.isSupervisor(user)) {
 			int actCode = data.actionSelected();
 			if (data.isApplicant()) {
@@ -2028,7 +2041,11 @@ public class ApplicationService {
 
 			String attnote = literalServ.readValue("attnote", curHis.getActConfig());
 			String res = mailService.createAttentionMail(user, applicantEmail, applName, curActivity, nextActivity, attnote);
-			data.getNotes().setValue(res);
+			String notes = data.getNotes().getValue();
+			if(notes != null || !notes.isEmpty()) {
+				notes += " (" + res + ")";
+			}else notes = res;
+			data.getNotes().setValue(notes);
 			data.getNotes().setMark(true);
 			data.getNotes().setReadOnly(true);
 			data.getNotes().setTextArea(true);
@@ -2285,11 +2302,32 @@ public class ApplicationService {
 	@Transactional
 	public ActivitySubmitDTO submitGuest(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		if (data.isValid()) {
-			cancellActivities(curHis);
-			data = runScheduledGuestHost(curHis, data);
+			data=verifyScheduledGuestHost(curHis, data);
+			if(data.isValid()) {
+				cancellActivities(curHis);
+				data = runScheduledGuestHost(curHis, data);
+			}
 		}
-
 		return data;
+	}
+	/**
+	 * Verify scheduled applications if ones
+	 * @param curHis
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private ActivitySubmitDTO verifyScheduledGuestHost(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
+			for (TableRow row : data.getScheduled().getRows()) {
+				ThingScheduler ts = boilerServ.thingSchedulerById(row.getDbID());
+				Scheduler sch = boilerServ.schedulerByNode(ts.getConcept());
+				String applUrl=sch.getProcessUrl();
+				Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
+				List<Concept> nextActs = loadActivities(configRoot);
+				data = (ActivitySubmitDTO) validServ.workflowConfig(nextActs, configRoot, data);
+			}
+			return data;
 	}
 
 	/**

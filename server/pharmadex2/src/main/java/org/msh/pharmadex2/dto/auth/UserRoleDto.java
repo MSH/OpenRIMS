@@ -16,7 +16,6 @@ public class UserRoleDto extends AllowValidation implements GrantedAuthority {
 	private long id=0;							//id of the user_role
 	private long conceptId;				//id of the role concept
 	private boolean active=false;
-	
 
 	public void setAuthority(String authority) {
 		this.authority = authority;
@@ -51,6 +50,8 @@ public class UserRoleDto extends AllowValidation implements GrantedAuthority {
 	public void setActive(boolean active) {
 		this.active = active;
 	}
+
+
 	/**
 	 * Observer role
 	 * @return
@@ -66,6 +67,16 @@ public class UserRoleDto extends AllowValidation implements GrantedAuthority {
 	@Override
 	public String toString() {
 		return "UserRoleDto [authority=" + authority + ", id=" + id + ", active=" + active + "]";
+	}
+	/**
+	 * Guest user role
+	 * @return
+	 */
+	public static UserRoleDto guestUser() {
+		UserRoleDto urd = new UserRoleDto();
+		urd.setActive(true);
+		urd.setAuthority("ROLE_GUEST");
+		return urd;
 	}
 
 }

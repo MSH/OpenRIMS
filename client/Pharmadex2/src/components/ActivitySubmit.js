@@ -291,13 +291,7 @@ class ActivitySubmit extends Component{
                         {this.rightBottom()}
                     </Col>
                 </Row>
-                <Row hidden={this.state.data.identifier.length==0}>
-                    <Col>
-                        <Alert className="p-0 m-0">
-                            <small>{this.state.data.identifier}</small>
-                        </Alert>
-                    </Col>
-                </Row>
+               
             </Container>
         )
     }

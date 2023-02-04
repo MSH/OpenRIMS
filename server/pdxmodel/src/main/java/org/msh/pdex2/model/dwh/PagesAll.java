@@ -28,8 +28,8 @@ public class PagesAll implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC222274184AF102BC30E823")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC222274184AF102BC30E823", strategy="native")	
+	@GeneratedValue(generator="VAC2222741860911A18508621")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222741860911A18508621", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	
