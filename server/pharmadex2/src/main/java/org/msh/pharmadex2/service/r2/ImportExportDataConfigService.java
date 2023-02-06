@@ -44,6 +44,8 @@ import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+
 /**
  * Export/Import data configuration from Excel File
  * @author alexk
@@ -346,16 +348,23 @@ public class ImportExportDataConfigService {
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException 
+	 * @throws JsonProcessingException 
 	 */
+	@Transactional
 	public ThingDTO dataConfigurationRunImport(UserDetailsDTO user, ThingDTO data) throws ObjectNotFoundException {
 		data.clearErrors();
-		XSSFWorkbook wb = loadDataConfiguration(data);
-		if(wb != null) {
-			try {
-				wb=importDataConfiguration(wb);
-			} catch (Exception e) {
-				data.addError(e.getMessage());
-				//wb=storeDataConfigurationErrors(wb);
+		Concept parent=closureServ.loadRoot(data.getUrl());
+		data.setParentId(parent.getID());
+		data= thingServ.thingSaveUnderParent(data, user);
+		if(data.isValid()) {
+			XSSFWorkbook wb = loadDataConfiguration(data);
+			if(wb != null) {
+				try {
+					wb=importDataConfiguration(wb);
+				} catch (Exception e) {
+					data.addError(e.getMessage());
+					//wb=storeDataConfigurationErrors(wb);
+				}
 			}
 		}
 		return data;
@@ -367,15 +376,49 @@ public class ImportExportDataConfigService {
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
+	@Transactional
 	private XSSFWorkbook importDataConfiguration(XSSFWorkbook wb) throws ObjectNotFoundException {
 		try {
-			XSSFSheet sheet = wb.getSheetAt(1);
-			String url = sheet.getSheetName().trim();
-			Concept mainRoot = closureServ.loadRoot(SystemService.DATA_COLLECTIONS_ROOT);
+			XSSFSheet sheet = wb.getSheetAt(1);	//the main page configuration should be on the 
+			String url = importUrl(sheet);
+			if(url.length()>0) {
+			url=adjustDataConfigUrl(url);
+			
+			}else {
+				throw new ObjectNotFoundException(mess.get("error_bmpFile"));
+			}
 		} catch (Exception e) {
 			throw new ObjectNotFoundException(mess.get("error_bmpFile"));
 		}
 		return wb;
+	}
+	/**
+	 * Recursive adjust data configuration URL
+	 * @param url
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	private String adjustDataConfigUrl(String url) throws ObjectNotFoundException {
+		Concept root = closureServ.loadRoot(AssemblyService.SYSTEM_IMPORT_DATA_CONFIGURATION);
+		List<Concept> confs = literalServ.loadOnlyChilds(root);
+		url=uniqueDataConfigUrl(confs, url);
+		return url;
+	}
+	private String uniqueDataConfigUrl(List<Concept> confs, String url) {
+		//TODO
+		return url;
+	}
+	/**
+	 * Data URL should be in cell A1
+	 * @param sheet
+	 * @return
+	 */
+	private String importUrl(XSSFSheet sheet) {
+		String url = boilerServ.getStringCellValue(sheet.getRow(0), 0);
+		if(url == null) {
+			return "";
+		}
+		return url;
 	}
 	/**
 	 * Load workbook

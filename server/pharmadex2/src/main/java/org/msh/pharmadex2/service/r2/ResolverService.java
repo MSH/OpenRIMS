@@ -240,12 +240,12 @@ public class ResolverService {
 				YesNoNA v = (YesNoNA)data;
 				ret = messages.get(v.getKey());
 			}
-			
+
 			//the rest are always strings
 			if(data instanceof String) {
 				ret=(String) data;
 			}
-			
+
 			return ret;
 		}else {
 			if(value.size()>0) {
@@ -545,20 +545,22 @@ public class ResolverService {
 		}
 		//droplist
 		FormFieldDTO<OptionDTO> dropList= data.getDroplist().get(varName.toUpperCase());
-if(dropList.getValue().getId()>0) {
-	String code=dropList.getValue().getCode();
-	if(code.isEmpty()|| code==null) {
-		value.put("label"," ");
-	}else {
-		value.put("label", code);
-	}
-	String disc=dropList.getValue().getDescription();
-	if(disc.isEmpty()|| disc==null) {
-		value.put("description"," ");
-	}else {
-		value.put("description", disc);
-	}
-}
+		if(dropList != null) {
+			if(dropList.getValue().getId()>0) {
+				String code=dropList.getValue().getCode();
+				if(code.isEmpty()|| code==null) {
+					value.put("label"," ");
+				}else {
+					value.put("label", code);
+				}
+				String disc=dropList.getValue().getDescription();
+				if(disc.isEmpty()|| disc==null) {
+					value.put("description"," ");
+				}else {
+					value.put("description", disc);
+				}
+			}
+		}
 		return value;
 	}
 	/**
@@ -1028,7 +1030,7 @@ if(dropList.getValue().getId()>0) {
 		renderServ.dictionaryValues(value, selected);
 		return value;
 	}
-	
+
 	/**
 	 * Read selected droplists values
 	 * @param ad 

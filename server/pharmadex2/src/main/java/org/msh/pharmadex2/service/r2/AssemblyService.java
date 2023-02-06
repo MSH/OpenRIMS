@@ -142,6 +142,16 @@ public class AssemblyService {
 	 */
 	public List<AssemblyDTO> auxStrings(String url, List<Assembly> assemblies) throws ObjectNotFoundException {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
+		if(url.equalsIgnoreCase(SYSTEM_IMPORT_DATA_CONFIGURATION)) {
+			AssemblyDTO fld = new AssemblyDTO();
+			fld.setRequired(false);
+			fld.setMin(BigDecimal.ZERO);
+			fld.setMax(BigDecimal.ZERO);
+			fld.setReadOnly(true);
+			fld.setTextArea(true);
+			fld.setPropertyName("description");
+			ret.add(fld);	
+		}
 		if(url.equalsIgnoreCase(ACTIVITY_CONFIGURATION)) {
 			BigDecimal min = BigDecimal.valueOf(3l);
 			BigDecimal max= BigDecimal.valueOf(80l);
@@ -835,6 +845,7 @@ public class AssemblyService {
 			LayoutRowDTO row= new LayoutRowDTO();
 			LayoutCellDTO cell1 = new LayoutCellDTO();
 			cell1.getVariables().add("import_electronic_form");	//file uploader
+			cell1.getVariables().add("description");						//import data diagnostic
 			row.getCells().add(cell1);
 			ret.add(row);
 		}

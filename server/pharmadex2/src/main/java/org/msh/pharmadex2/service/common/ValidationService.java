@@ -1420,7 +1420,7 @@ public class ValidationService {
 			if(required.equals(YesNoNA.YES)) {
 				long min = boilerServ.nullIsZero(data.getMinLen().getValue());
 				long max = boilerServ.nullIsZero(data.getMaxLen().getValue());
-				if(((min==max) && min==0)) {
+				if(!validateMinMax(min, max, clazz)) {
 					suggest(data.getMinLen(),messages.get("valueReq"),strict);
 					suggest(data.getMaxLen(),messages.get("valueReq"),strict);
 					data.setValid(false);
@@ -1436,6 +1436,30 @@ public class ValidationService {
 			}
 		}
 		return data;
+	}
+	/**
+	 * The validatio nresult depends on the clazz
+	 * @param min
+	 * @param max
+	 * @param clazz
+	 * @return
+	 */
+	private boolean validateMinMax(long min, long max, String clazz) {
+		if(clazz.equalsIgnoreCase("intervals")) {
+			if(min>0 && max>0) {	//zero interval is not allowed
+				return true;
+			}else {
+				return false;
+			}
+		}
+		if(clazz.equalsIgnoreCase("schedulers")) {
+			if(min>=0 && min<=max) {	//schedule in a past is not allowed
+				return true;
+			}else {
+				return false;
+			}
+		}
+		return min<=max;
 	}
 
 	/**

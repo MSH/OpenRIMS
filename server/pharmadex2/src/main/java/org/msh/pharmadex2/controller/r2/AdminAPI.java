@@ -37,6 +37,7 @@ import org.msh.pharmadex2.service.common.ValidationService;
 import org.msh.pharmadex2.service.r2.AccessControlService;
 import org.msh.pharmadex2.service.r2.ActuatorService;
 import org.msh.pharmadex2.service.r2.ApplicationService;
+import org.msh.pharmadex2.service.r2.AssemblyService;
 import org.msh.pharmadex2.service.r2.ContentService;
 import org.msh.pharmadex2.service.r2.DWHService;
 import org.msh.pharmadex2.service.r2.DictService;
@@ -1198,6 +1199,7 @@ public class AdminAPI {
 	public ThingDTO dataConfigurationRunImport(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 		try {
+			data.setUrl(AssemblyService.SYSTEM_IMPORT_DATA_CONFIGURATION);
 			data=importExportDataConfigService.dataConfigurationRunImport(user, data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
