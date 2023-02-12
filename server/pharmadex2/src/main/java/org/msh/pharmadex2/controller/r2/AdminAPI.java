@@ -136,8 +136,8 @@ public class AdminAPI {
 	@Autowired
 	ImportExportDataConfigService importExportDataConfigService;
 
-	
-	
+
+
 	/**
 	 * Tiles for landing page
 	 * 
@@ -430,12 +430,12 @@ public class AdminAPI {
 	}
 
 	/*	*//**
-			 * 2011-11-11 DEPRECATED and useless!!! Load activity or user data configuration
-			 * 
-			 * @param data
-			 * @return
-			 * @throws DataNotFoundException
-			 *//*
+	 * 2011-11-11 DEPRECATED and useless!!! Load activity or user data configuration
+	 * 
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 *//*
 						@PostMapping("/api/admin/thing/load")
 						public ThingDTO thingLoad(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
 						if(data.getNodeId()>0) {
@@ -618,7 +618,7 @@ public class AdminAPI {
 		try {
 			String mediaType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 			String fileName = "reportDataStructure.xlsx";
-			Resource res = importExportDataConfigService.dataCollectionVariablesExport(data);
+			Resource res = importExportDataConfigService.variablesExport(data);
 			return ResponseEntity.ok().contentType(MediaType.parseMediaType(mediaType))
 					// .header(HttpHeaders.CONTENT_DISPOSITION, fres.getContentDisp() + ";
 					// filename=\"" + fres.getFileName() + "\"")
@@ -644,7 +644,7 @@ public class AdminAPI {
 		}
 		return data;
 	}
-	
+
 	/**
 	 * Get a simple help
 	 * @param data
@@ -654,7 +654,7 @@ public class AdminAPI {
 	@PostMapping("/api/admin/data/configuration/variable/help")
 	public DataVariableDTO dataCollectionVariableHelp(@RequestBody DataVariableDTO data) throws DataNotFoundException {
 		try {
-			data = validation.variable(data, false);
+			data = validation.variable(data, false, false);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -867,12 +867,12 @@ public class AdminAPI {
 	/*
 	 * We don't need it anymore
 	 * 	*//**
-			 * Keep actual addresses cache etc
-			 * 
-			 * @param data
-			 * @return
-			 * @throws DataNotFoundException
-			 *//*
+	 * Keep actual addresses cache etc
+	 * 
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 *//*
 				@PostMapping("/api/admin/report/parameters/renew")
 				@Deprecated
 				public ReportConfigDTO reportParametersRenew(@RequestBody ReportConfigDTO data) throws DataNotFoundException {
@@ -1069,7 +1069,7 @@ public class AdminAPI {
 		importATCcodesService.importRunAsync(data, user);
 		return data;
 	}
-	
+
 	@PostMapping("/api/admin/workflow/export/excel")
 	public ResponseEntity<Resource> workflowExportExcel(@RequestBody WorkflowDTO data)
 			throws DataNotFoundException {
@@ -1101,7 +1101,7 @@ public class AdminAPI {
 		}
 		return message;
 	}
-	
+
 	/**
 	 * Download or read workflow reference guide
 	 * @return
@@ -1129,7 +1129,7 @@ public class AdminAPI {
 			throw new DataNotFoundException(e);
 		}
 	}
-	
+
 	/**
 	 * Load import admin units feature
 	 * 
@@ -1147,7 +1147,7 @@ public class AdminAPI {
 		}
 		return data;
 	}
-	
+
 	@PostMapping({"/api/admin/dictionary/import/run"})
 	public DictionaryDTO dictionaryImportRun(Authentication auth, @RequestParam("dict") String jsonDict,
 			@RequestParam("file") Optional<MultipartFile> file) throws DataNotFoundException {
@@ -1165,14 +1165,14 @@ public class AdminAPI {
 		}
 		return dict;
 	}
-	
+
 	@RequestMapping(value = {"/api/admin/dictionary/import/errorfile"}, method = RequestMethod.GET)
 	public ResponseEntity<Resource> dictionaryExport()
 			throws DataNotFoundException, ObjectNotFoundException, IOException {
 		ResponseEntity<Resource> resp = dictionaryServ.getFileErrors();
 		return resp;
 	}
-	
+
 	/**
 	 * Load an electronic form to upload the data file in xlsx
 	 * @param data
@@ -1183,7 +1183,7 @@ public class AdminAPI {
 	public ThingDTO dataConfigurationLoadImport(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 		try {
-			data=importExportDataConfigService.dataConfigurationLoadImport(user, data);
+			data=importExportDataConfigService.importLoad(user, data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -1196,15 +1196,18 @@ public class AdminAPI {
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/admin/data/configuration/run/import")
-	public ThingDTO dataConfigurationRunImport(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
+	public ThingDTO dataConfigurationRunImport(Authentication auth, @RequestBody ThingDTO data){
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		data.setUrl(AssemblyService.SYSTEM_IMPORT_DATA_CONFIGURATION);
 		try {
-			data.setUrl(AssemblyService.SYSTEM_IMPORT_DATA_CONFIGURATION);
-			data=importExportDataConfigService.dataConfigurationRunImport(user, data);
+			data.getStrings().get("description").setValue("");
+			data=importExportDataConfigService.importRun(user, data);
 		} catch (ObjectNotFoundException e) {
-			throw new DataNotFoundException(e);
+			data.setValid(false);
+			data.setIdentifier(e.getMessage());
+			data.getStrings().get("description").setValue(data.getIdentifier());
 		}
 		return data;
 	}
-	
+
 }

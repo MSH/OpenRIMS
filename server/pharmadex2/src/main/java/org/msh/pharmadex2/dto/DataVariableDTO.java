@@ -27,7 +27,7 @@ public class DataVariableDTO extends AllowValidation {
 	private FormFieldDTO<String> dictUrl = FormFieldDTO.of("");
 	private FormFieldDTO<String> auxUrl = FormFieldDTO.of("");
 	private FormFieldDTO<String> fileTypes = FormFieldDTO.of("");
-	private FormFieldDTO<OptionDTO> readOnly = new FormFieldDTO<OptionDTO>();
+	private FormFieldDTO<OptionDTO> readOnly = FormFieldDTO.of(new OptionDTO());
 	//Literal, Dictionary, Date, Number, Logical
 	private FormFieldDTO<OptionDTO> clazz = FormFieldDTO.of(new OptionDTO());
 	//validators

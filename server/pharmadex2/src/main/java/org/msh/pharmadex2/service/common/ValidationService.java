@@ -1110,17 +1110,19 @@ public class ValidationService {
 	/**
 	 * Validate a definition of variable
 	 * @param data
+	 * @param isImport TODO
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public DataVariableDTO variable(DataVariableDTO data, boolean strict) throws ObjectNotFoundException {
+	public DataVariableDTO variable(DataVariableDTO data, boolean strict, boolean isImport) throws ObjectNotFoundException {
 		data.clearErrors();
-		// general validation
-		data=variableName(data, strict);
-		data=variableExtName(data,strict);
 		data=variableClazz(data,strict);
-		data=variableScreen(data,strict);
+		if(!isImport) {
+			data=variableName(data, strict);
+			data=variableExtName(data,strict);
+			data=variableScreen(data,strict);
+		}
 		data=variableFileTypes(data);
 		// special validation
 		data=variableMinMaxWhenRequired(data,strict);
@@ -1471,7 +1473,7 @@ public class ValidationService {
 	 * 18.11.2022 khomenska
 	 * add verification with Pattern
 	 */
-	private DataVariableDTO variableName(DataVariableDTO data, boolean strict) throws ObjectNotFoundException {
+	public DataVariableDTO variableName(DataVariableDTO data, boolean strict) throws ObjectNotFoundException {
 		FormFieldDTO<String> vn= data.getVarName();
 		vn.clearValidation();
 		if(vn.getValue().length()<3 || vn.getValue().length()>100) {
@@ -1499,7 +1501,7 @@ public class ValidationService {
 	 * 18.11.2022 khomenska
 	 * add verification with Pattern
 	 */
-	private DataVariableDTO variableExtName(DataVariableDTO data, boolean strict) throws ObjectNotFoundException {
+	public DataVariableDTO variableExtName(DataVariableDTO data, boolean strict) throws ObjectNotFoundException {
 		FormFieldDTO<String> vn= data.getVarNameExt();
 		if(vn.getValue().length() > 0){
 			if(!patternMatchFull(vn.getValue())) {

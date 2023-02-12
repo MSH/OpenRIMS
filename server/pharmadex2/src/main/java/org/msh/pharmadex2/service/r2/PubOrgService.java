@@ -406,6 +406,13 @@ public class PubOrgService {
 		return territoryLevel;
 	}
 
-
-
+	public String getServiceOffice(long adminUnitID) {
+		String name = "";
+		
+		List<TableRow> rows = jdbcRepo.service_office(adminUnitID);
+		if(rows != null && rows.size() > 0) {
+			name = rows.get(0).getCellByKey("orgname").getValue();
+		}
+		return name;
+	}
 }

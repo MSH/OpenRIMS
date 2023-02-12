@@ -72,16 +72,16 @@ class ProjectMarker extends Component{
     }
 
     paint(){//&& this.state.data.id >= 0 
-        if(this.state.data != undefined && this.state.data.loc.lat > 0){
+        // if(this.state.data != undefined && this.state.data.loc.lat > 0){
             if(this.state.marker != undefined){
                 this.state.marker.setPosition(new google.maps.LatLng(this.state.data.loc.lat, this.state.data.loc.lng))
                 this.state.marker.setMap(this.props.map)
             }
-        }else{
+        /* }else{
             if(this.state.marker != undefined){
                 this.state.marker.setMap(null)
             }
-        }
+        } */
     }
 
     render(){

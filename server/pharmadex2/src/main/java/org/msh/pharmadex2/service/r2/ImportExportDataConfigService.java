@@ -4,14 +4,13 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.msh.pdex2.dto.table.Headers;
@@ -21,6 +20,7 @@ import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
+import org.msh.pdex2.model.r2.Assembly;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.FileResource;
 import org.msh.pdex2.repository.common.JdbcRepository;
@@ -28,13 +28,17 @@ import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.controller.r2.ExcelViewMult;
 import org.msh.pharmadex2.dto.DataCollectionDTO;
 import org.msh.pharmadex2.dto.DataConfigDTO;
+import org.msh.pharmadex2.dto.DataVariableDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.FileDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.WorkflowDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
+import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.common.DtoService;
+import org.msh.pharmadex2.service.common.EntityService;
+import org.msh.pharmadex2.service.common.ValidationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,7 +74,12 @@ public class ImportExportDataConfigService {
 	private BoilerService boilerServ;
 	@Autowired
 	private ThingService thingServ;
-
+	@Autowired
+	private SupervisorService superServ;
+	@Autowired
+	private ValidationService validServ;
+	@Autowired
+	private EntityService entityServ;
 
 	/**
 	 * Export Data Configuration to Excel
@@ -79,19 +88,18 @@ public class ImportExportDataConfigService {
 	 * @throws ObjectNotFoundException
 	 * @throws IOException
 	 */
-	public Resource dataCollectionVariablesExport(DataConfigDTO dto) throws ObjectNotFoundException, IOException {
+	public Resource variablesExport(DataConfigDTO dto) throws ObjectNotFoundException, IOException {
 		Map<String, DataCollectionDTO> data = new LinkedHashMap<String, DataCollectionDTO>();
 		Concept node = closureServ.loadConceptById(dto.getNodeId());
-
-		data = dataConfigurations("root", node.getIdentifier(), data);
-
+		data = variablesLoad("root", node.getIdentifier(), data);
+		//(data_url,sheet_data)
 		Map<String, Map<String, DataCollectionDTO>> model = new LinkedHashMap<String, Map<String, DataCollectionDTO>>();
 		model.put("data", data);
 		XSSFWorkbook workbook = new XSSFWorkbook();
 		ExcelViewMult excel = new ExcelViewMult();
 		excel.getProcessor().initWorkbook(workbook);
 		if(dto.isRestricted()) {
-			TableQtb references = dataCollectionReferences(dto);
+			TableQtb references = referencesLoad(dto);
 			excel.dataCollectionReferences(mess.get("menu_references"),references, workbook);
 		}
 		excel.workbookForDataConfiguration(model, mess, workbook);
@@ -110,7 +118,7 @@ public class ImportExportDataConfigService {
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	private TableQtb dataCollectionReferences(DataConfigDTO dto) throws ObjectNotFoundException {
+	private TableQtb referencesLoad(DataConfigDTO dto) throws ObjectNotFoundException {
 		TableQtb ret = new TableQtb();
 		Concept conc = closureServ.loadConceptById(dto.getNodeId());
 		jdbcRepo.data_url_references(conc.getIdentifier());
@@ -134,12 +142,11 @@ public class ImportExportDataConfigService {
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	public Map<String, DataCollectionDTO> dataConfigurations(String varName, String mainUrl,
+	public Map<String, DataCollectionDTO> variablesLoad(String varName, String mainUrl,
 			Map<String, DataCollectionDTO> ret) throws ObjectNotFoundException {
 		// get root by mainUrl
 		logger.trace(varName + "---->" + mainUrl);
 		Concept root = closureServ.loadRoot("configuration.data");
-		//Concept node = closureServ.findConceptInBranchByIdentifier(root, mainUrl);//ik 09122022 add new metod
 		Concept node = closureServ.findActivConceptInBranchByIdentifier(root, mainUrl);
 		DataCollectionDTO dto = new DataCollectionDTO();
 		dto.setNodeId(node.getID());
@@ -150,14 +157,9 @@ public class ImportExportDataConfigService {
 		}
 		dto.getUrl().setValue(mainUrl);
 		dto.setVarName(varName);
-		// variables
-		List<String> excl = new ArrayList<String>();
-		//exclude columns below
-		excl.add("ID");
-		excl.add("conceptID");
-		excl.add("Discriminator");
+		// Query for
 		jdbcRepo.data_config_vars(mainUrl);
-		List<TableHeader> uiHeaders = jdbcRepo.headersFromSelect("select * from data_config_vars where false", excl);
+		List<TableHeader> uiHeaders = headers();
 		dto.getTable().getHeaders().getHeaders().clear();
 		dto.getTable().getHeaders().getHeaders().addAll(uiHeaders);
 		dto.getTable().getHeaders().setPageSize(Integer.MAX_VALUE);
@@ -175,10 +177,10 @@ public class ImportExportDataConfigService {
 			if (clazz.equalsIgnoreCase("things")) {
 				String url = row.getCellByKey("url").getValue();
 				String auxUrl = row.getCellByKey("AuxDataUrl").getValue();
-				ret = dataConfigurations(vn, url, ret);
+				ret = variablesLoad(vn, url, ret);
 				if (auxUrl != null) { // persons
 					if (auxUrl.length() > 0) {
-						ret = dataConfigurations(auxUrl, auxUrl, ret);
+						ret = variablesLoad(auxUrl, auxUrl, ret);
 					}
 				}
 			}
@@ -198,11 +200,24 @@ public class ImportExportDataConfigService {
 						LocaleContextHolder.getLocale().toString().toUpperCase());
 				Concept rNode = closureServ.findConceptInBranchByIdentifier(rLang, rUrl);
 				String dataConfigUrl = rNode.getLabel();
-				ret = dataConfigurations(rUrl, dataConfigUrl, ret);
+				ret = variablesLoad(rUrl, dataConfigUrl, ret);
 			}
 		}
 
 		return ret;
+	}
+	/**
+	 * Create table headers
+	 * @return
+	 */
+	private List<TableHeader> headers() {
+		List<String> excl = new ArrayList<String>();
+		//exclude columns below
+		excl.add("ID");
+		excl.add("conceptID");
+		excl.add("Discriminator");
+		List<TableHeader> uiHeaders = jdbcRepo.headersFromSelect("select * from data_config_vars where false", excl);
+		return uiHeaders;
 	}
 	/**
 	 * Upload a dictionary by URL
@@ -326,7 +341,7 @@ public class ImportExportDataConfigService {
 	 * @param data
 	 * @throws ObjectNotFoundException 
 	 */
-	public ThingDTO dataConfigurationLoadImport(UserDetailsDTO user, ThingDTO data) throws ObjectNotFoundException {
+	public ThingDTO importLoad(UserDetailsDTO user, ThingDTO data) throws ObjectNotFoundException {
 		//load and save only one and only under the root of the tree
 		data.setUrl(AssemblyService.SYSTEM_IMPORT_DATA_CONFIGURATION);	//the root of the tree
 		Concept root = closureServ.loadRoot(data.getUrl());
@@ -350,8 +365,8 @@ public class ImportExportDataConfigService {
 	 * @throws ObjectNotFoundException 
 	 * @throws JsonProcessingException 
 	 */
-	@Transactional
-	public ThingDTO dataConfigurationRunImport(UserDetailsDTO user, ThingDTO data) throws ObjectNotFoundException {
+	@Transactional(rollbackFor = ObjectNotFoundException.class)
+	public ThingDTO importRun(UserDetailsDTO user, ThingDTO data) throws ObjectNotFoundException{
 		data.clearErrors();
 		Concept parent=closureServ.loadRoot(data.getUrl());
 		data.setParentId(parent.getID());
@@ -359,12 +374,7 @@ public class ImportExportDataConfigService {
 		if(data.isValid()) {
 			XSSFWorkbook wb = loadDataConfiguration(data);
 			if(wb != null) {
-				try {
-					wb=importDataConfiguration(wb);
-				} catch (Exception e) {
-					data.addError(e.getMessage());
-					//wb=storeDataConfigurationErrors(wb);
-				}
+				wb=importDataConfiguration(data,wb);
 			}
 		}
 		return data;
@@ -372,25 +382,146 @@ public class ImportExportDataConfigService {
 	/**
 	 * Import data configuration for the primary e-form
 	 * It should be on the second sheet
+	 * Supposed also that the column order in Assembly table is the same as in Assembly table and starts from "Required"
+	 * @param data 
 	 * @param wb
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	@Transactional
-	private XSSFWorkbook importDataConfiguration(XSSFWorkbook wb) throws ObjectNotFoundException {
+	private XSSFWorkbook importDataConfiguration(ThingDTO data, XSSFWorkbook wb) throws ObjectNotFoundException {
+		DataCollectionDTO collDto = new DataCollectionDTO();
 		try {
-			XSSFSheet sheet = wb.getSheetAt(1);	//the main page configuration should be on the 
-			String url = importUrl(sheet);
-			if(url.length()>0) {
-			url=adjustDataConfigUrl(url);
-			
-			}else {
-				throw new ObjectNotFoundException(mess.get("error_bmpFile"));
-			}
+			XSSFSheet sheet = wb.getSheetAt(1);									//configuration of the first data page 
+			collDto = importDataCollection(sheet,0);	// get URL and description
+			collDto=superServ.dataCollectionDefinitionSave(collDto);		// save URL and description
+			//read the Excel sheet into TableQtb rows
+			TableQtb table = new TableQtb();
+			jdbcRepo.data_config_vars(collDto.getUrl().getValue());	//should not be existed :)
+			List<TableHeader> headers = headers();
+			table.getHeaders().getHeaders().addAll(headers);
+			ExcelViewMult excel = new ExcelViewMult();
+			table = excel.readRows(sheet, 3, 0, table);
+			variablesImport(collDto, table);
 		} catch (Exception e) {
-			throw new ObjectNotFoundException(mess.get("error_bmpFile"));
+			if(!(e instanceof ObjectNotFoundException)) {
+				e.printStackTrace();
+			}
+			throw new ObjectNotFoundException(mess.get("error_bmpFile") +": "+e.getMessage(), logger);
 		}
 		return wb;
+	}
+	/**
+	 * It is assumed that the data collection metadata (URL and description) is saved
+	 * Each variable should be saved as a concept and a record in the assemblies table linked to it
+	 * for header's keys please refer to the stored procedure data_config_vars
+	 * @param collDto
+	 * @param table
+	 * @throws ObjectNotFoundException 
+	 */
+	private void variablesImport(DataCollectionDTO collDto, TableQtb table) throws ObjectNotFoundException {
+		List<Assembly> good = new ArrayList<Assembly>();
+		for(TableRow row : table.getRows()) {
+			Concept concept = saveConcept(collDto.getNodeId(),row);
+			Assembly assm=assemblyRender(concept, row);
+			DataVariableDTO dto = new DataVariableDTO();
+			dto.setNodeId(collDto.getNodeId());
+			dto = dtoServ.assemblyToDto(assm, dto);
+			validServ.variable(dto, true, true);
+			if(dto.isValid()) {
+				good.add(assm);
+			}else {
+				throw new ObjectNotFoundException(row.toString(),logger);
+			}
+		}
+		//if all are good, save all
+		for(Assembly assm : good) {
+			assm=boilerServ.assemblySave(assm);
+		}
+	}
+
+	/**
+	 * Render assembly entity from a table row
+	 * It is assumed that headers contains column names exactly as in the database
+	 * @param concept concept to which assembly should be linked
+	 * @param row data to render
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	private Assembly assemblyRender(Concept concept, TableRow row) throws ObjectNotFoundException {
+		Assembly assm = new Assembly();
+		assm.setPropertyName(concept);
+		assm=(Assembly) entityServ.renderFromQtbTable(row, assm);
+		return assm;
+	}
+	/**
+	 * Save a concept and literals based on row data
+	 * @param dataConfigID 
+	 * @param row
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	private Concept saveConcept(long dataConfigID, TableRow row) throws ObjectNotFoundException {
+		Concept parent=closureServ.loadConceptById(dataConfigID);
+		Concept variableConcept = new Concept();
+		String varName= row.getCellByKey("varname").getValue();
+		String varNameExt=row.getCellByKey("varnameext").getValue();
+		String decription=row.getCellByKey("descr").getValue();
+		DataVariableDTO dto = new DataVariableDTO();
+		dto.getVarName().setValue(varName);
+		dto.getVarNameExt().setValue(varNameExt);
+		dto=validServ.variableName(dto, true);
+		if(dto.isValid()) {
+			dto = validServ.variableExtName(dto, true);
+		}
+		dto.propagateValidation();
+		if(dto.isValid()) {
+			variableConcept.setIdentifier(varName);
+			variableConcept.setActive(true);
+			variableConcept.setLabel(varNameExt);
+			variableConcept = closureServ.saveToTree(parent, variableConcept);
+			variableConcept=literalServ.prefAndDescription(decription, decription, variableConcept);
+			return variableConcept;
+		}else {
+			throw new ObjectNotFoundException("varname=["+varName+"],varNAmeExt=["+varNameExt+"]",logger);
+		}
+	}
+	/**
+	 * Search for a field by a name
+	 * Assembly.java is a Hibernate entity, thus names of fields may be the same as in the database, except letters cases
+	 * @param fields
+	 * @param th
+	 * @return null if not found
+	 */
+	private Field fieldByName(Field[] fields, TableHeader th) {
+		for(int i=0; i<fields.length;i++) {
+			if(fields[i].getName().equalsIgnoreCase(th.getKey())) {
+				return fields[i];
+			}
+		}
+		return null;
+	}
+
+
+	/**
+	 * Import data collection definition - URL and description 
+	 * @param sheet
+	 * @param i
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	private DataCollectionDTO importDataCollection(XSSFSheet sheet, int i) throws ObjectNotFoundException {
+		DataCollectionDTO ret= new DataCollectionDTO();
+		String url = importUrl(sheet);
+		if(url.length()>0) {
+			url=adjustDataConfigUrl(url);
+			ret.setUrl(FormFieldDTO.of(url));
+			String description=boilerServ.getStringCellValue(sheet.getRow(1), 0);
+			ret.setDescription(FormFieldDTO.of(description));
+
+		}else {
+			throw new ObjectNotFoundException(mess.get("error_bmpFile"));
+		}
+		return ret;
 	}
 	/**
 	 * Recursive adjust data configuration URL
@@ -399,13 +530,21 @@ public class ImportExportDataConfigService {
 	 * @throws ObjectNotFoundException 
 	 */
 	private String adjustDataConfigUrl(String url) throws ObjectNotFoundException {
-		Concept root = closureServ.loadRoot(AssemblyService.SYSTEM_IMPORT_DATA_CONFIGURATION);
+		Concept root = closureServ.loadRoot(SystemService.DATA_COLLECTIONS_ROOT);
 		List<Concept> confs = literalServ.loadOnlyChilds(root);
 		url=uniqueDataConfigUrl(confs, url);
 		return url;
 	}
 	private String uniqueDataConfigUrl(List<Concept> confs, String url) {
-		//TODO
+		for(Concept conf : confs) {
+			if(conf.getActive()) {
+				if(conf.getIdentifier().equalsIgnoreCase(url)) {
+					url=url+".copy";
+					url=uniqueDataConfigUrl(confs, url);
+					break;
+				}
+			}
+		}
 		return url;
 	}
 	/**
@@ -445,16 +584,19 @@ public class ImportExportDataConfigService {
 						try {
 							ret = new XSSFWorkbook(inputStream);
 						} catch (IOException e) {
-							data.addError(mess.get("upload_xlsx_data"));
+							throw new ObjectNotFoundException(mess.get("upload_xlsx_data"),logger);
 						}
 					}else {
-						data.addError(mess.get("upload_xlsx_data"));
+						throw new ObjectNotFoundException(mess.get("upload_xlsx_data"),logger);
 					}
 				}
 			}
 		}else {
-			data.addError(mess.get("upload_xlsx_data"));
+			throw new ObjectNotFoundException(mess.get("upload_xlsx_data"),logger);
 		}
 		return ret;
 	}
+
+
+
 }

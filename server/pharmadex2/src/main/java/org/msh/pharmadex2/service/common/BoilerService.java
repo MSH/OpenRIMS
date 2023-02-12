@@ -193,6 +193,14 @@ public class BoilerService {
 	 * @return now if parameter is null
 	 */
 	public LocalDate localDateFromDate(Date date) {
+		return BoilerService.dateToLocalDate(date);
+	}
+	/**
+	 * Static implementation for convenience
+	 * @param date
+	 * @return
+	 */
+	public static LocalDate dateToLocalDate(Date date) {
 		if(date== null) {
 			return LocalDate.now();
 		}
@@ -200,6 +208,19 @@ public class BoilerService {
 		SimpleDateFormat format = new SimpleDateFormat(pattern);
 		String dateStr=format.format(date);
 		return LocalDate.parse(dateStr);
+	}
+	/**
+	 * Static implementation of Date to LocalDateTime convertor
+	 * @param date
+	 * @return
+	 */
+	public static LocalDateTime dateAsLocalDateTime(Date date) {
+		if(date== null) {
+			return LocalDateTime.now();
+		}
+		return date.toInstant()
+			      .atZone(ZoneId.systemDefault())
+			      .toLocalDateTime();
 	}
 	/**
 	 * Create display value for all headers

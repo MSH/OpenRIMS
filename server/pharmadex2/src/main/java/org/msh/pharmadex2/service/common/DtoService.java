@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -515,9 +517,27 @@ public class DtoService {
 	 */
 	@Transactional
 	public DataVariableDTO assembly(Assembly assm, Concept node, Concept varNode, DataVariableDTO data) throws ObjectNotFoundException {
+		//concept
+		data.getDescription().setValue(literalServ.readPrefLabel(varNode));
+		data.setNodeId(node.getID());
+		data.getVarName().setValue(stringVal(varNode.getIdentifier()));
+		data.getVarNameExt().setValue(stringVal(varNode.getLabel()));
+		data.setVarNodeId(varNode.getID());
+		//Assembly
+		data=assemblyToDto(assm, data);
+		return data;
+	}
+	
+	/**
+	 * Add data from the Assembly to the DTO
+	 * @param assm
+	 * @param data
+	 */
+	public DataVariableDTO assemblyToDto(Assembly assm, DataVariableDTO data) {
+		data=initializeLogical(data);
+		data=initializeClazz(data);
 		data.getClazz().setValue(optionCodeVal(assm.getClazz(), data.getClazz().getValue()));
 		data.getCol().setValue(new Long(assm.getCol()));
-		data.getDescription().setValue(literalServ.readPrefLabel(varNode));
 		data.getDictUrl().setValue(stringVal(assm.getDictUrl()));
 		data.getFileTypes().setValue(stringVal(assm.getFileTypes()));
 		data.getMaxLen().setValue(new Long(assm.getMax()));
@@ -525,16 +545,59 @@ public class DtoService {
 		data.getMult().setValue(logicalOpt(assm.getMult(),data.getMult().getValue()));
 		data.getUnique().setValue(logicalOpt(assm.getUnique(), data.getUnique().getValue()));
 		data.getPrefLabel().setValue(logicalOpt(assm.getPrefLabel(), data.getPrefLabel().getValue()));
-		data.setNodeId(node.getID());
 		data.getOrd().setValue(new Long(assm.getOrd()));
 		data.getReadOnly().setValue(logicalOpt(assm.getReadOnly(),data.getReadOnly().getValue()));
 		data.getRequired().setValue(logicalOpt(assm.getRequired(),data.getRequired().getValue()));
 		data.getRow().setValue(new Long(assm.getRow()));
 		data.getUrl().setValue(stringVal(assm.getUrl()));
-		data.getVarName().setValue(stringVal(varNode.getIdentifier()));
-		data.getVarNameExt().setValue(stringVal(varNode.getLabel()));
-		data.setVarNodeId(varNode.getID());
 		data.getAuxUrl().setValue(assm.getAuxDataUrl());
+		return data;
+	}
+	/**
+	 * Initialize logical values
+	 * 
+	 * @param data
+	 * @return
+	 */
+	public DataVariableDTO initializeLogical(DataVariableDTO data) {
+		data.getMult().setValue(enumToOptionDTO(YesNoNA.NA, YesNoNA.values()));
+		data.getUnique().setValue(enumToOptionDTO(YesNoNA.NA, YesNoNA.values()));
+		data.getPrefLabel().setValue(enumToOptionDTO(YesNoNA.NA, YesNoNA.values()));
+		data.getRequired().setValue(enumToOptionDTO(YesNoNA.NA, YesNoNA.values()));
+		data.getReadOnly().setValue(enumToOptionDTO(YesNoNA.NA, YesNoNA.values()));
+		return data;
+	}
+	/**
+	 * Add all possible classes of a variable. Default is Literal.
+	 * 
+	 * @param data
+	 * @return
+	 */
+	public DataVariableDTO initializeClazz(DataVariableDTO data) {
+		List<String> possible = ThingDTO.thingClazzesNames();
+		if (possible.size() > 0) {
+			OptionDTO optVal = data.getClazz().getValue();
+			optVal.getOptions().clear();
+			optVal.setId(1);
+			optVal.setCode(possible.get(0));
+			int i = 1;
+			for (String nm : possible) {
+				OptionDTO opt = new OptionDTO();
+				opt.setId(i);
+				opt.setCode(nm);
+				optVal.getOptions().add(opt);
+				i++;
+			}
+			Collections.sort(optVal.getOptions(), new Comparator<OptionDTO>() {
+
+				@Override
+				public int compare(OptionDTO o1, OptionDTO o2) {
+					return o1.getCode().compareTo(o2.getCode());
+				}
+
+			});
+			data.getClazz().setValue(optVal);
+		}
 		return data;
 	}
 	/**

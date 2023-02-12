@@ -18,7 +18,7 @@ public class LegacyDataErrorsDTO {
 	public static final String IMPORT_ERRORS_SHEET = "Import errors";
 	private XSSFSheet sheet;
 	private String message="";
-
+	private boolean hasAddErrorRow = false;
 
 	public LegacyDataErrorsDTO(XSSFWorkbook workbook) {
 		XSSFSheet old = workbook.getSheet(IMPORT_ERRORS_SHEET);
@@ -78,6 +78,7 @@ public class LegacyDataErrorsDTO {
 			newRow.createCell(i).copyCellFrom(row.getCell(i),policy);
 		}
 		newRow.createCell(maxCellIndex+1).setCellValue(url);
+		hasAddErrorRow = true;
 	}
 
 	public void copyHeaderRow(XSSFRow headerRow) {
@@ -87,5 +88,9 @@ public class LegacyDataErrorsDTO {
 		for(int i = 0; i <= headerRow.getLastCellNum(); i++) {
 			newRow.createCell(i).copyCellFrom(headerRow.getCell(i), policy);
 		}
+	}
+	
+	public boolean hasErrorRows() {
+		return hasAddErrorRow;
 	}
 }

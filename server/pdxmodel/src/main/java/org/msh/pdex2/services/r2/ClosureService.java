@@ -293,6 +293,9 @@ public class ClosureService {
 	 */
 	@Transactional
 	public Concept loadRoot(String identifier) throws ObjectNotFoundException {
+		if(identifier== null || identifier.length()==0) {
+			throw new ObjectNotFoundException("Bad URL", logger);
+		}
 		Concept root = new Concept();
 		root.setIdentifier(identifier);
 		root = saveToTreeFast(null, root);

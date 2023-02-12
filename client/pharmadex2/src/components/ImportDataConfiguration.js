@@ -31,6 +31,7 @@ class ImportDataConfiguration extends Component{
         }
         this.eventProcessor=this.eventProcessor.bind(this)
         this.load=this.load.bind(this)
+        this.runImport=this.runImport.bind(this)
     }
 
     /**
@@ -44,7 +45,17 @@ class ImportDataConfiguration extends Component{
                     this.load()
                 }
             }
-
+            if(data.to==this.state.identifier){
+                if(data.subject=="savedByAction"){
+                    if(data.data.valid){
+                        this.state.data=data.data
+                        this.runImport()
+                    }
+                }
+                if(data.subject=="onSelectionChange"){
+                    this.state.data=data
+                }
+            }
         }
     load(){
         Fetchers.postJSON('/api/admin/data/configuration/load/import', this.state.data, (query,result)=>{
@@ -53,6 +64,7 @@ class ImportDataConfiguration extends Component{
                 Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'danger'})
             }
             this.setState(this.state)
+            Navigator.message(this.state.identifier, '*', 'thingReload',this.state.data)
         })
     }
     componentDidMount(){
@@ -63,6 +75,20 @@ class ImportDataConfiguration extends Component{
 
     componentWillUnmount(){
         window.removeEventListener("message",this.eventProcessor)
+    }
+
+    runImport(){
+        Fetchers.postJSON('/api/admin/data/configuration/run/import', this.state.data, (query,result)=>{
+            this.state.data=result
+            if(this.state.data.valid){
+                Navigator.message(this.state.identifier, this.props.recipient,'DataConfigurationImportSuccess',this.state.data)
+                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.success, color:'success'})
+            }else{
+                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'danger'})
+            }
+            this.setState(this.state)
+            Navigator.message(this.state.identifier, '*', 'thingReload',this.state.data)
+        })
     }
 
     render(){
@@ -88,16 +114,7 @@ class ImportDataConfiguration extends Component{
                             <ButtonUni
                                 label={this.state.labels.global_import_short}
                                 onClick={()=>{
-                                    Fetchers.postJSON('/api/admin/data/configuration/run/import', this.state.data, (query,result)=>{
-                                        this.state.data=result
-                                        if(this.state.data.valid){
-                                            Navigator.message(this.state.identifier, this.props.recipient,'DataConfigurationImportSuccess',this.state.data)
-                                            Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.success, color:'success'})
-                                        }else{
-                                            Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'danger'})
-                                        }
-                                        this.setState(this.state)
-                                    })
+                                    Navigator.message(this.state.identifier, "*", "saveAll", {})
                                 }}
                                 color="success"
                             />

@@ -161,12 +161,10 @@ class ApplicationFiles extends Component{
             if(result.valid){
                 this.state.data = result;
                 this.state.data.fileName=''
-                //Navigator.message(this.state.identifier,this.props.recipient, "onSelectionChange", this.state.data)
                 this.state.data.editor = false
                 this.state.file = {}
                 this.tableLoader()
                 Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.saved, color:'success'})
-                Navigator.message(this.state.identifier,this.props.recipient, "onSelectionChange", this.state.data)
             }else{
                 Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:result.identifier, color:'danger'})
             }

@@ -2,20 +2,27 @@ package org.msh.pharmadex2.controller.r2;
 
 import java.io.File;
 import java.math.BigDecimal;
+import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.msh.pdex2.dto.table.TableCell;
 import org.msh.pdex2.dto.table.TableHeader;
 import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
+import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pharmadex2.controller.common.POIProcessor;
 import org.msh.pharmadex2.dto.DataCollectionDTO;
@@ -23,6 +30,10 @@ import org.msh.pharmadex2.dto.LayoutCellDTO;
 import org.msh.pharmadex2.dto.LayoutRowDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.WorkflowDTO;
+import org.msh.pharmadex2.service.common.BoilerService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.web.servlet.view.document.AbstractXlsxView;
 
 
@@ -43,6 +54,8 @@ import org.springframework.web.servlet.view.document.AbstractXlsxView;
  *
  */
 public class ExcelViewMult extends AbstractXlsxView{
+	private static final Logger logger = LoggerFactory.getLogger(ExcelViewMult.class);
+	public static final String LABEL_BOOLEAN_TRUE = "+";
 
 	POIProcessor processor = new POIProcessor(new File("report.xlsx"));
 
@@ -162,7 +175,7 @@ public class ExcelViewMult extends AbstractXlsxView{
 				}
 				if(clazz.contains("Boolean")){
 					if((Boolean) cell.getOriginalValue()){
-						getProcessor().addLabel(i, rowNo, "+");
+						getProcessor().addLabel(i, rowNo, LABEL_BOOLEAN_TRUE);
 						paint = true;
 					}
 				}
@@ -287,5 +300,222 @@ public class ExcelViewMult extends AbstractXlsxView{
 		placeRows(references.getHeaders().getHeaders(), references.getRows(),row);
 	}
 
+	/**
+	 * Read rows from the sheet to the table from the rowNo, i.e., reverse placeRows
+	 * @param sheet
+	 * @param rowNo start from this row
+	 * @param colNo start from this column
+	 * @param table
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public TableQtb readRows(XSSFSheet sheet, int rowNo, int colNo, TableQtb table) throws ObjectNotFoundException {
+		table.getRows().clear();
+		TableRow tr = readRow(sheet,rowNo, colNo, table);
+		while(tr != null) {
+			table.getRows().add(tr);
+			rowNo++;
+			 tr = readRow(sheet,rowNo, colNo, table);
+		}
+		return table;
+	}
+	/**
+	 * Read a row while column in colNo is not empty
+	 * @param sheet
+	 * @param rowNo row number in Excel sheet from 0
+	 * @param colNo column number in Excel sheet from 0. This column must contain a value
+	 * @param table with headers to import into rows
+	 * @return null if row is empty or doesn't exist
+	 * @throws ObjectNotFoundException 
+	 */
+	private TableRow readRow(XSSFSheet sheet, int rowNo, int colNo, TableQtb table) throws ObjectNotFoundException {
+		XSSFRow row = sheet.getRow(rowNo);
+		TableRow tr = TableRow.instanceOf(rowNo);
+		int cellnum=colNo;
+		if(row != null) {
+			XSSFCell cell = row.getCell(colNo);
+			if(cell.getRawValue() != null) {
+				for(TableHeader header : table.getHeaders().getHeaders()) {
+					TableCell tc =readCell(header, row.getCell(cellnum));
+					if(tc!=null) {
+						tr.getRow().add(tc);
+					}else {
+						throw new ObjectNotFoundException("unsupported cell type for export "+header.getColumnType(),logger);
+					}
+					cellnum++;
+				}
+			}
+			return tr;
+		}else {
+			return null;
+		}
+	}
+	/**
+	 * Read a cell from Excel Row to a cell in TableQtb row
+	 * @param header
+	 * @param cell
+	 * @return
+	 */
+	private TableCell readCell(TableHeader th, XSSFCell cell) {
+		TableCell ret = null;
+		switch(th.getColumnType()) {
+		case TableHeader.COLUMN_LONG:
+			ret = TableCell.instanceOf(th.getKey(), getCellValueLong(cell), LocaleContextHolder.getLocale());
+			break;
+		case TableHeader.COLUMN_STRING:
+		case TableHeader.COLUMN_I18:
+		case TableHeader.COLUMN_I18LINK:
+		case TableHeader.COLUMN_LINK:
+			ret=TableCell.instanceOf(th.getKey(), getCellValueString(cell));
+			break;
+		case TableHeader.COLUMN_BOOLEAN_CHECKBOX:
+		case TableHeader.COLUMN_BOOLEAN_RADIO:
+			ret=TableCell.instanceOf(th.getKey(), getCellValueBool(cell));
+			break;
+		case TableHeader.COLUMN_DECIMAL:
+			ret=TableCell.instanceOf(th.getKey(), getCellValueBigDecimal(cell),LocaleContextHolder.getLocale());
+			break;
+		case TableHeader.COLUMN_LOCALDATE:
+			ret=TableCell.instanceOf(th.getKey(), getCellValueLocalDate(cell),LocaleContextHolder.getLocale());
+			break;
+		case TableHeader.COLUMN_LOCALDATETIME:
+			ret=TableCell.instanceOf(th.getKey(), getCellValueLocalDateTime(cell),LocaleContextHolder.getLocale());
+			break;
+		default:
+		}
+		return ret;
+	}
+
+
+	/**
+	 * Get cell vsalue as a LocalDateTime
+	 * @param cell
+	 * @return LocalDateTime.now() if cell is null
+	 */
+	private LocalDateTime getCellValueLocalDateTime(XSSFCell cell) {
+		LocalDateTime ret = LocalDateTime.now();
+		if(cell != null) {
+			Date dt = cell.getDateCellValue();
+			ret = BoilerService.dateAsLocalDateTime(dt);
+		}
+		return ret;
+	}
+
+	/**
+	 * GEt cell value as a local date
+	 * @param cell
+	 * @return now if cell is null
+	 */
+	private LocalDate getCellValueLocalDate(XSSFCell cell) {
+		LocalDate ret = LocalDate.now();
+		if(cell != null) {
+			try {
+				Date dt = cell.getDateCellValue();
+				ret = BoilerService.dateToLocalDate(dt);
+			} catch (Exception e) {
+				//nothing to do
+			}
+		}
+		return ret;
+	}
+
+	/**
+	 * Get a big decimal value from the cell
+	 * @param cell
+	 * @return
+	 */
+	private BigDecimal getCellValueBigDecimal(XSSFCell cell) {
+		BigDecimal ret=BigDecimal.ZERO;
+		if(cell != null) {
+			Double dv = getCellValueDouble(cell);
+			ret= BigDecimal.valueOf(dv);
+		}
+		return ret;
+	}
+
+	/**
+	 * Get boolean value in the cell
+	 * @param row
+	 * @param col
+	 * @return
+	 */
+	private boolean getCellValueBool(XSSFCell cell) {
+		if(cell != null) {
+			String valStr=getCellValueString(cell);
+			if(valStr==null) {
+				return false;
+			}
+			if(valStr.equalsIgnoreCase(ExcelViewMult.LABEL_BOOLEAN_TRUE)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	/**
+	 * GEt cell value as a long number
+	 * @param row
+	 * @param col
+	 * @return
+	 */
+	private Long getCellValueLong(XSSFCell cell) {
+		Double dRet=0.0;
+		if(cell != null) {
+			dRet=getCellValueDouble(cell);
+		}
+		return dRet.longValue();
+	}
+
+	/**
+	 * Get cell value as a string. No exceptions
+	 * @param row
+	 * @param col
+	 * @return
+	 */
+	public String getCellValueString(XSSFCell cell) {
+		String ret="";
+		if(cell != null) {
+			try {
+				ret=cell.getStringCellValue();
+			} catch (Exception e) {
+				double regNod = cell.getNumericCellValue();
+				DecimalFormat df = new DecimalFormat("#");
+				df.setMaximumFractionDigits(0);
+				df.setMinimumFractionDigits(0);
+				ret=df.format(regNod);
+			}
+		}
+		ret=replaceNonPrintCh(ret);
+		return ret.trim();
+	}
+
+	/**
+	 * Get cell value as a string. No exceptions
+	 * Non numeric values will be 0.0
+	 * @param row
+	 * @param col
+	 * @return
+	 */
+	public Double getCellValueDouble(XSSFCell cell) {
+		Double ret = 0.0;
+		if(cell!=null) {
+			try {
+				ret = cell.getNumericCellValue();
+			} catch (Exception e) {
+				//nothing to do
+			}
+		}
+		return ret;
+	}
+
+	/**
+	 *replace non-printable characters
+	 */
+	public String replaceNonPrintCh(String val) {
+		// erases all the ASCII control characters
+		val = val.replaceAll("[\\p{Cntrl}&&[^\r\n\t]]", "");
+		// removes non-printable characters from Unicode
+		val = val.replaceAll("\\p{C}", "");
+		return val;
+	}
 
 }

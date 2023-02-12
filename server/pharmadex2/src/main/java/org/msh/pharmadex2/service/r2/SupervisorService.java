@@ -459,14 +459,14 @@ public class SupervisorService {
 	@Transactional
 	public DataVariableDTO dataCollectionVariableLoad(DataVariableDTO data) throws ObjectNotFoundException {
 		if (data.getNodeId() > 0) {
-			data = initializeClazz(data);
-			data = initializeLogical(data);
-			data.setRequired(FormFieldDTO.of(dtoServ.enumToOptionDTO(YesNoNA.NA, YesNoNA.values())));
 			Concept node = closureServ.loadConceptById(data.getNodeId());
 			if (data.getVarNodeId() > 0) {
 				Concept varNode = closureServ.loadConceptById(data.getVarNodeId());
 				Assembly assm = boilerServ.assemblyByVariable(varNode, true);
 				data = dtoServ.assembly(assm, node, varNode, data);
+			}else {
+				data=dtoServ.initializeLogical(data);
+				data=dtoServ.initializeClazz(data);
 			}
 			return data;
 		} else {
@@ -474,54 +474,9 @@ public class SupervisorService {
 		}
 	}
 
-	/**
-	 * Initialize logical values
-	 * 
-	 * @param data
-	 * @return
-	 */
-	private DataVariableDTO initializeLogical(DataVariableDTO data) {
-		data.getMult().setValue(dtoServ.enumToOptionDTO(YesNoNA.NA, YesNoNA.values()));
-		data.getUnique().setValue(dtoServ.enumToOptionDTO(YesNoNA.NA, YesNoNA.values()));
-		data.getPrefLabel().setValue(dtoServ.enumToOptionDTO(YesNoNA.NA, YesNoNA.values()));
-		data.getRequired().setValue(dtoServ.enumToOptionDTO(YesNoNA.NA, YesNoNA.values()));
-		data.getReadOnly().setValue(dtoServ.enumToOptionDTO(YesNoNA.NA, YesNoNA.values()));
-		return data;
-	}
 
-	/**
-	 * Add all possible classes of a variable. Default is Literal.
-	 * 
-	 * @param data
-	 * @return
-	 */
-	private DataVariableDTO initializeClazz(DataVariableDTO data) {
-		List<String> possible = ThingDTO.thingClazzesNames();
-		if (possible.size() > 0) {
-			OptionDTO optVal = data.getClazz().getValue();
-			optVal.getOptions().clear();
-			optVal.setId(1);
-			optVal.setCode(possible.get(0));
-			int i = 1;
-			for (String nm : possible) {
-				OptionDTO opt = new OptionDTO();
-				opt.setId(i);
-				opt.setCode(nm);
-				optVal.getOptions().add(opt);
-				i++;
-			}
-			Collections.sort(optVal.getOptions(), new Comparator<OptionDTO>() {
 
-				@Override
-				public int compare(OptionDTO o1, OptionDTO o2) {
-					return o1.getCode().compareTo(o2.getCode());
-				}
 
-			});
-			data.getClazz().setValue(optVal);
-		}
-		return data;
-	}
 
 	/**
 	 * Verify and save a definition of variable
@@ -538,7 +493,7 @@ public class SupervisorService {
 				data.getRow().setValue(100l);
 				data.getCol().setValue(100l);
 			}
-			data = validServ.variable(data, true);
+			data = validServ.variable(data, true, false);
 			if (dataCollectionVariableCanBeSaved(data)) {
 				// save a node
 				Concept node = new Concept();

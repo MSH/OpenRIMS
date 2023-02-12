@@ -35,7 +35,7 @@ public class ImportExportDataConfigurationServiceTest {
 	@Test
 	public void dataConfiguration() throws ObjectNotFoundException {
 		Map<String, DataCollectionDTO> ret=new LinkedHashMap<String, DataCollectionDTO>();
-		ret = impExpDCService.dataConfigurations("root","retail.site.owned.persons", ret);
+		ret = impExpDCService.variablesLoad("root","retail.site.owned.persons", ret);
 		ret.get("retail.site.owned.persons");
 	}
 	@Test
@@ -47,7 +47,7 @@ public class ImportExportDataConfigurationServiceTest {
 	@Test
 	public void excelReport() throws ObjectNotFoundException, IOException {
 		Map<String, DataCollectionDTO> data =new LinkedHashMap<String, DataCollectionDTO>();
-		data = impExpDCService.dataConfigurations("root","pharmacy.site", data);
+		data = impExpDCService.variablesLoad("root","pharmacy.site", data);
 		Map<String,Map<String,DataCollectionDTO>> model= new LinkedHashMap<String, Map<String,DataCollectionDTO>>();
 		model.put("data",data);
 		XSSFWorkbook workbook = new XSSFWorkbook();

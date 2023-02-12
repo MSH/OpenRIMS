@@ -476,6 +476,7 @@ public class ImportAdmUnitsService {
 				writeProtocol(messages.get("notFindSheet") + " " + SHEET_NAME_COUNTRY);
 			}
 			
+			if(errors.hasErrorRows()) {
 			String fnameErr = "Error.xlsx";
 			String nfile = fileNode.getLabel();
 			if(nfile.endsWith(".xlsx")) {
@@ -500,6 +501,7 @@ public class ImportAdmUnitsService {
 			fdto.setFileSize(fError.length());
 			fdto.setMediaType(fr.getMediatype());
 			thingServ.fileSave(fdto, user, Files.readAllBytes(fError.toPath()));
+			}
 		}
 		writeProtocol(messages.get("endImport"));
 		writeSystemProtocol("END");
@@ -609,26 +611,33 @@ public class ImportAdmUnitsService {
 				ItemConcept item = itemsTwoLevel.get(i);
 				Concept concept = createChild(item, province, i + 1);
 				List<ItemConcept> children = item.children;
-				createRecursionComcept(children, concept);
+				createRecursionConcept(children, concept);
 			}
 		}
 	}
 
-	private void createRecursionComcept(List<ItemConcept> children, Concept parConcept) throws ObjectNotFoundException {
+	private void createRecursionConcept(List<ItemConcept> children, Concept parConcept) throws ObjectNotFoundException {
 		if(children != null && children.size() > 0) {
 			for(int j = 0; j < children.size(); j++) {
 				ItemConcept it = children.get(j);
-				Concept c = createChild(it, parConcept, j + 1);
-				if(j == 0) {
-					String location = literalServ.readValue(LiteralService.GIS_LOCATION, c);
-
-					Map<String, String> values = new HashMap<String, String>();
-					values.put(langs[0], location);
-					values.put(langs[1], location);
-					parConcept = literalServ.createUpdateLiteral(LiteralService.GIS_LOCATION, parConcept, values);
+				Concept c = null;
+				if(it.data.SN != null && it.data.SN.length() > 0) {// this is last item, where SN=25 (example)
+					c = createLastChild(it, parConcept);
+				}else {
+					c = createChild(it, parConcept, j + 1);
 				}
-				List<ItemConcept> child = it.children;
-				createRecursionComcept(child, c);
+				if(c != null) {
+					if(j == 0) {
+						String location = literalServ.readValue(LiteralService.GIS_LOCATION, c);
+
+						Map<String, String> values = new HashMap<String, String>();
+						values.put(langs[0], location);
+						values.put(langs[1], location);
+						parConcept = literalServ.createUpdateLiteral(LiteralService.GIS_LOCATION, parConcept, values);
+					}
+					List<ItemConcept> child = it.children;
+					createRecursionConcept(child, c);
+				}
 			}
 		}
 	}
@@ -683,8 +692,8 @@ public class ImportAdmUnitsService {
 			root = literalServ.createUpdateLiteral(LiteralService.DESCRIPTION, root, values);
 
 			values = new HashMap<String, String>();
-			String location = data.get(Y_COORDINATE);
-			location += (!location.isEmpty()?";":"") + data.get(X_COORDINATE);
+			String location = data.get(X_COORDINATE);
+			location += (!location.isEmpty()?";":"") + data.get(Y_COORDINATE);
 			values.put(langs[0], location);
 			values.put(langs[1], location);
 			root = literalServ.createUpdateLiteral(LiteralService.GIS_LOCATION, root, values);
@@ -696,12 +705,11 @@ public class ImportAdmUnitsService {
 		}
 
 		if(legacyDataService.validString(data.get(NAME_COUNTRY))) {
-			errors.add(row, rowHdr.getLastCellNum(), root.getIdentifier());
 			return true;
 		}else {
+			errors.add(row, rowHdr.getLastCellNum(), root.getIdentifier());
 			return false; //waiting for threshold
 		}
-
 	}
 
 	@Transactional
@@ -880,7 +888,7 @@ public class ImportAdmUnitsService {
 			String x = String.valueOf(coord);
 			coord = boilerServ.getNumberCellValue(row, column_other[4]);
 			String y = String.valueOf(coord);
-			coordinates = (legacyDataService.validString(y)?(y + ";"):"") + (legacyDataService.validString(x)?x:"");
+			coordinates = (legacyDataService.validString(x)?(x + ";"):"") + (legacyDataService.validString(y)?y:"");
 
 			names = new String[column_names.length];
 			for(int i = 0; i < column_names.length; i++) {

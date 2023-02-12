@@ -814,6 +814,27 @@ public class JdbcRepository {
 		proc.execute(params);
 
 	}
+	
+	/**
+	 * get  office by adminunitID
+	 */
+	public List<TableRow> service_office(long admUnitID) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("service_office");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("admUnitId", admUnitID);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+		TableQtb table = new TableQtb();
+		table.getHeaders().getHeaders().add(TableHeader.instanceOf("nodeid", TableHeader.COLUMN_LONG));
+		Headers headers = new Headers();
+		headers.getHeaders().add(TableHeader.instanceOf("ID", TableHeader.COLUMN_LONG));
+		headers.getHeaders().add(TableHeader.instanceOf("orgname", TableHeader.COLUMN_STRING));
+		List<TableRow> selectQuery = selectQuery("select * from service_office", headers);
+		
+		return selectQuery;
+	}
+	
 	/**
 	 * Select executors by the criteria given
 	 * @param id
@@ -1335,4 +1356,5 @@ public class JdbcRepository {
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 	}
+
 }

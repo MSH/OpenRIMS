@@ -203,7 +203,7 @@ class DataConfigurator extends Component{
                     </Col>
                     <Col xs='12' sm='12' lg='2' xl='2'>
                     </Col>
-                    <Col xs='12' sm='12' lg='2' xl='2' hidden>
+                    <Col xs='12' sm='12' lg='2' xl='2'>
                         <ButtonUni
                         label={this.state.labels.global_import_short}
                         onClick={()=>{
