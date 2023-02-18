@@ -221,6 +221,13 @@ public class DtoService {
 		}
 	}
 
+	/**
+	 * может быть 2 варианта варианта записи в БД
+	 * 1) -15,098470; 48,798399 - более старый
+	 * 2) -15.098470, 48.798399 - новый
+	 * @param loc
+	 * @return
+	 */
 	public LocationDTO createLocationDTO(String loc) {
 		LocationDTO dto = new LocationDTO();
 		if(loc != null && loc.length() > 0) {
@@ -230,6 +237,14 @@ public class DtoService {
 				dto.setLat(l);
 				l = new Double(mas[1].trim());
 				dto.setLng(l);
+			}else {
+				mas = loc.split(",");
+				if(mas.length == 2) {
+					Double l = new Double(mas[0].trim());
+					dto.setLat(l);
+					l = new Double(mas[1].trim());
+					dto.setLng(l);
+				}
 			}
 		}
 		return dto;
@@ -536,6 +551,7 @@ public class DtoService {
 	public DataVariableDTO assemblyToDto(Assembly assm, DataVariableDTO data) {
 		data=initializeLogical(data);
 		data=initializeClazz(data);
+		data.getHidefromapplicant().setValue(logicalOpt(assm.getHidefromapplicant(), data.getHidefromapplicant().getValue()));
 		data.getClazz().setValue(optionCodeVal(assm.getClazz(), data.getClazz().getValue()));
 		data.getCol().setValue(new Long(assm.getCol()));
 		data.getDictUrl().setValue(stringVal(assm.getDictUrl()));
@@ -560,6 +576,7 @@ public class DtoService {
 	 * @return
 	 */
 	public DataVariableDTO initializeLogical(DataVariableDTO data) {
+		data.getHidefromapplicant().setValue(enumToOptionDTO(YesNoNA.NA, YesNoNA.values()));
 		data.getMult().setValue(enumToOptionDTO(YesNoNA.NA, YesNoNA.values()));
 		data.getUnique().setValue(enumToOptionDTO(YesNoNA.NA, YesNoNA.values()));
 		data.getPrefLabel().setValue(enumToOptionDTO(YesNoNA.NA, YesNoNA.values()));
@@ -651,6 +668,7 @@ public class DtoService {
 	@Transactional
 	public AssemblyDTO assemblyDto(Assembly assm) throws ObjectNotFoundException {
 		AssemblyDTO ret = new AssemblyDTO();
+		ret.setHideFromApplicant(assm.getHidefromapplicant());
 		ret.setDictUrl(stringVal(assm.getDictUrl()));
 		ret.setFileTypes(stringVal(assm.getFileTypes()));
 		ret.setMax(new BigDecimal(assm.getMax()));

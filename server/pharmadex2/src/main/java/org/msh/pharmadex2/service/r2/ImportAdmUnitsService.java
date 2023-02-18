@@ -75,13 +75,13 @@ public class ImportAdmUnitsService {
 	@Autowired
 	private SystemService systemService;
 
-	private static String marker_COUNTRY = "country";
+	/*private static String marker_COUNTRY = "country";
 	private static String marker_ENG = "Eng";
 	private static String marker_NATIONAL = "National";
 	private static String marker_NAME = "name";
 	private static String marker_DESCRIPTION = "description";
 	private static String marker_COORDINATE_X = "coordinateX";
-	private static String marker_COORDINATE_Y = "coordinateY";
+	private static String marker_COORDINATE_Y = "coordinateY";*/
 
 	/**Список языков перепишем: первый в списке ОБЯЗАТЕЛЬНО язык по умолчанию (en_US) берем из org.msh.pdex2.i18n.Messages */
 	private String[] langs = new String[2];
@@ -91,13 +91,19 @@ public class ImportAdmUnitsService {
 	private int countSheets = 0;
 	private static int headerNumRow = 0;
 
-	private static String ZOOM_COUTRY = "8";
+	private static int DEFAULT_ZOOM_COUTRY = 7;
 
 	private static String SHEET_NAME_COUNTRY = "country";
 	private static String NAME_COUNTRY = "name_country_eng";
 	private static String NAME_COUNTRY_NATIONAL = "name_country_national";
 	private static String DESCR_COUNTRY = "description_country_eng";
 	private static String DESCR_COUNTRY_NATIONAL = "description_country_national";
+	private static String ZOOM_COUNTRY = "zoom_country";
+	private static String ZOOM_PROVINCE = "zoom_province";
+	private static String ZOOM_DISTRICT = "zoom_district";
+	private static String ZOOM_COMMUNITY = "zoom_community";
+	private static String ZOOM_COMMUNA = "zoom_communa";
+	private static Map<String, Integer> zooms_index = new HashMap<String, Integer>(); 
 
 	private static String SN = "SN";
 	private static String NAME_PROVINCE = "name_province_eng";
@@ -157,7 +163,7 @@ public class ImportAdmUnitsService {
 		}
 		return data;
 	}
-	
+
 	@Transactional
 	public ThingDTO importAdminunitsReload(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		if(data.getNodeId() > 0) {
@@ -191,7 +197,7 @@ public class ImportAdmUnitsService {
 		writeProtocol("Start verify file");
 
 		FileDTO dto = data.getDocuments().get(AssemblyService.DATAIMPORT_DATA);
-		
+
 		Iterator<Long> it = dto.getLinked().keySet().iterator();
 		if(it.hasNext()) {
 			Long dictNodeId = it.next();
@@ -256,6 +262,10 @@ public class ImportAdmUnitsService {
 		return data;
 	}
 
+	/**
+	 * verification Sheet Country
+	 * Sheet must contain 10 columns
+	 */
 	private boolean verySheetCountry(XSSFRow r1) {
 		boolean ver=false;
 		int c=0;
@@ -273,14 +283,26 @@ public class ImportAdmUnitsService {
 				c+=1;
 			}else if(cell.getStringCellValue().equalsIgnoreCase(Y_COORDINATE)) {
 				c+=1;
+			}else if(cell.getStringCellValue().equalsIgnoreCase(ZOOM_COUNTRY)) {
+				c+=1;
+			}else if(cell.getStringCellValue().equalsIgnoreCase(ZOOM_PROVINCE)) {
+				c+=1;
+			}else if(cell.getStringCellValue().equalsIgnoreCase(ZOOM_DISTRICT)) {
+				c+=1;
+			}else if(cell.getStringCellValue().equalsIgnoreCase(ZOOM_COMMUNITY)) {
+				c+=1;
 			}
-			;
 		}//r
-		if(c==6) {
-			ver=true;
+		if(c == 10) {
+			ver = true;
 		}
 		return ver;
 	}
+
+	/**
+	 * verification Sheet of any province
+	 * Sheet must contain 7 or 9 or 11 columns
+	 */
 	private boolean verySheetProvince(XSSFRow r1) {
 		boolean ver=false;
 		int c=0;
@@ -338,7 +360,32 @@ public class ImportAdmUnitsService {
 		if(hasOtherLoc) {
 			LocaleContextHolder.setDefaultLocale(messages.getCurrentLocale());
 		}
+		
+		// ля удобства и понимания последовательности зумов
+		zooms_index.put(ZOOM_COUNTRY, 0);
+		zooms_index.put(ZOOM_PROVINCE, 1);
+		zooms_index.put(ZOOM_DISTRICT, 2);
+		zooms_index.put(ZOOM_COMMUNITY, 3);
+		zooms_index.put(ZOOM_COMMUNA, 4);
+	}
 
+	/**
+	 * Заполним масив значений zoom
+	 * в карте или считанное значение или по-умолчанию
+	 * @param data
+	 * @param countZoom
+	 */
+	private void setDefaultZooms(Map<String, String> data, int countZoom) {
+		// заполним значениями масив zooms
+		zooms = new String[countZoom];
+		Iterator<String> it = data.keySet().iterator();
+		while(it.hasNext()) {
+			String key = it.next();
+			Integer index = zooms_index.get(key);
+			if(index != null && index >= 0) {
+				zooms[index] = data.get(key);
+			}
+		}
 	}
 	
 	//ik 27082022
@@ -383,7 +430,7 @@ public class ImportAdmUnitsService {
 		col=countColRow(row,"_NATIONAL");
 		column_namesNational = new Integer[col];
 		//ik
-		
+
 		XSSFCell cell = null;
 		for(int i = 0; i < row.getLastCellNum(); i++) {
 			cell = row.getCell(i);
@@ -404,15 +451,29 @@ public class ImportAdmUnitsService {
 			}
 		}
 
+		/* сравниваем размеры масивов с zooms и именами, 
+		 * чтоб не было ошибок по индексам 
+		 * в zooms всегда на 1 больше, так как есть для страны*/
+		if(zooms.length < (column_names.length + 1)) {
+			String[] copy = new String[column_names.length + 1];
+			for(int i = 0; i < copy.length; i++) {
+				if(i < zooms.length) {
+					copy[i] = zooms[i];
+				}else {
+					copy[i] = zooms[zooms.length - 1];
+				}
+			}
+			zooms = copy;
+		}
 		// заполним значениями масив zooms
-		zooms = new String[column_names.length];
+		/*zooms = new String[column_names.length];
 		if(column_names.length >= 2) {
 			zooms[0] = "13";
 			zooms[1] = "16";
 			for(int i = 2; i < column_names.length; i++) {
 				zooms[i] = "19";
 			}
-		}
+		}*/
 	}
 
 	/**
@@ -424,23 +485,23 @@ public class ImportAdmUnitsService {
 		List<Concept> child = literalServ.loadOnlyChilds(config);
 		if(child != null && child.size() > 0) {
 			/* получим все записи - отсортируем по order
-			 * все которые с самым маленьким относятся к стране
-			 * 
-			 * 
-			 */
-			/*return true;
+	 * все которые с самым маленьким относятся к стране
+	 * 
+	 * 
+	 */
+	/*return true;
 		}else {
 			return false;
 		}
 	}*/
-	
+
 	@Async
 	public void importAdminunitsRun(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException, IOException{
 		setDefaultValues();
 
 		writeProtocol(messages.get("startImport"));
 		writeSystemProtocol("START");
-		
+
 		Concept rootCountry = archiveDictionary();
 		if(book != null){
 			LegacyDataErrorsDTO errors= new LegacyDataErrorsDTO(book);
@@ -464,7 +525,7 @@ public class ImportAdmUnitsService {
 				// считываем остальные листы
 				sheet = boilerServ.getSheetAt(book, sheetIndex);
 				setNumbersRow(sheet);
-				
+
 				while(!errors.isErrorOrNullSheet(sheet)) {
 					if(!sheet.getSheetName().toLowerCase().equals(SHEET_NAME_COUNTRY)) {
 						importAdminunitsSheet(sheet, errors, rootCountry, sheetIndex);
@@ -475,32 +536,32 @@ public class ImportAdmUnitsService {
 			}else {
 				writeProtocol(messages.get("notFindSheet") + " " + SHEET_NAME_COUNTRY);
 			}
-			
+
 			if(errors.hasErrorRows()) {
-			String fnameErr = "Error.xlsx";
-			String nfile = fileNode.getLabel();
-			if(nfile.endsWith(".xlsx")) {
-				fnameErr = nfile.replace(".xlsx", ".xlsxOut.xlsx");
-			}
-			
-			File fError = new File(fnameErr);
-			FileOutputStream fos = new FileOutputStream(fError);
-			book.write(fos);
-			fos.flush();
-			fos.close();
-			
-			FileDTO dto = data.getDocuments().get(AssemblyService.DATAIMPORT_DATA);
-			FileDTO fdto = new FileDTO();
-			fdto.setThingNodeId(dto.getThingNodeId());
-			fdto.setThingUrl(dto.getThingUrl());
-			fdto.setDictNodeId(loadDictConcept(true).getID());
-			fdto.setDictUrl(dto.getDictUrl());
-			fdto.setUrl(dto.getUrl());
-			fdto.setVarName(dto.getVarName());
-			fdto.setFileName(fError.getName());
-			fdto.setFileSize(fError.length());
-			fdto.setMediaType(fr.getMediatype());
-			thingServ.fileSave(fdto, user, Files.readAllBytes(fError.toPath()));
+				String fnameErr = "Error.xlsx";
+				String nfile = fileNode.getLabel();
+				if(nfile.endsWith(".xlsx")) {
+					fnameErr = nfile.replace(".xlsx", ".xlsxOut.xlsx");
+				}
+
+				File fError = new File(fnameErr);
+				FileOutputStream fos = new FileOutputStream(fError);
+				book.write(fos);
+				fos.flush();
+				fos.close();
+
+				FileDTO dto = data.getDocuments().get(AssemblyService.DATAIMPORT_DATA);
+				FileDTO fdto = new FileDTO();
+				fdto.setThingNodeId(dto.getThingNodeId());
+				fdto.setThingUrl(dto.getThingUrl());
+				fdto.setDictNodeId(loadDictConcept(true).getID());
+				fdto.setDictUrl(dto.getDictUrl());
+				fdto.setUrl(dto.getUrl());
+				fdto.setVarName(dto.getVarName());
+				fdto.setFileName(fError.getName());
+				fdto.setFileSize(fError.length());
+				fdto.setMediaType(fr.getMediatype());
+				thingServ.fileSave(fdto, user, Files.readAllBytes(fError.toPath()));
 			}
 		}
 		writeProtocol(messages.get("endImport"));
@@ -654,6 +715,7 @@ public class ImportAdmUnitsService {
 	private boolean importAdminunitsCountrySheetRow(XSSFRow rowHdr, XSSFRow row, LegacyDataErrorsDTO errors, Concept root) throws ObjectNotFoundException {
 		// заполним мапу с данным для root страны
 		Map<String, String> data = new HashMap<String, String>();
+		int countZoom = 0;
 		for(int i = 0; i < rowHdr.getLastCellNum(); i++) {
 			String headerCellValue = boilerServ.getStringCellValue(rowHdr, i);
 			String value = "";
@@ -677,8 +739,49 @@ public class ImportAdmUnitsService {
 				double d = boilerServ.getNumberCellValue(row, i);
 				value = String.valueOf(d);
 				data.put(Y_COORDINATE, value);
+			}else if(headerCellValue.equals(ZOOM_COUNTRY)) {
+				value = loadZoomCell(row, i);
+				if(value != null && !value.isEmpty()) {
+					data.put(ZOOM_COUNTRY, value);
+				}else {
+					data.put(ZOOM_COUNTRY, String.valueOf(DEFAULT_ZOOM_COUTRY));
+				}
+				countZoom++;
+			}else if(headerCellValue.equals(ZOOM_PROVINCE)) {
+				value = loadZoomCell(row, i);
+				if(value != null && !value.isEmpty()) {
+					data.put(ZOOM_PROVINCE, value);
+				}else {
+					data.put(ZOOM_PROVINCE, String.valueOf(DEFAULT_ZOOM_COUTRY + 1));
+				}
+				countZoom++;
+			}else if(headerCellValue.equals(ZOOM_DISTRICT)) {
+				value = loadZoomCell(row, i);
+				if(value != null && !value.isEmpty()) {
+					data.put(ZOOM_DISTRICT, value);
+				}else {
+					data.put(ZOOM_DISTRICT, String.valueOf(DEFAULT_ZOOM_COUTRY + 2));
+				}
+				countZoom++;
+			}else if(headerCellValue.equals(ZOOM_COMMUNITY)) {
+				value = loadZoomCell(row, i);
+				if(value != null && !value.isEmpty()) {
+					data.put(ZOOM_COMMUNITY, value);
+				}else {
+					data.put(ZOOM_COMMUNITY, String.valueOf(DEFAULT_ZOOM_COUTRY + 3));
+				}
+				countZoom++;
+			}else if(headerCellValue.equals(ZOOM_COMMUNA)) {
+				value = loadZoomCell(row, i);
+				if(value != null && !value.isEmpty()) {
+					data.put(ZOOM_COMMUNA, value);
+				}else {
+					data.put(ZOOM_COMMUNA, String.valueOf(DEFAULT_ZOOM_COUTRY + 4));
+				}
+				countZoom++;
 			}
 		}
+		setDefaultZooms(data, countZoom);
 		// записываем считанные данные
 		if(legacyDataService.validString(data.get(NAME_COUNTRY)) && legacyDataService.validString(data.get(X_COORDINATE)) && legacyDataService.validString(data.get(Y_COORDINATE))) {
 			Map<String, String> values = new HashMap<String, String>();
@@ -692,16 +795,16 @@ public class ImportAdmUnitsService {
 			root = literalServ.createUpdateLiteral(LiteralService.DESCRIPTION, root, values);
 
 			values = new HashMap<String, String>();
-			String location = data.get(X_COORDINATE);
-			location += (!location.isEmpty()?";":"") + data.get(Y_COORDINATE);
+			String location = buildLocationString(data.get(X_COORDINATE), data.get(Y_COORDINATE));
 			values.put(langs[0], location);
 			values.put(langs[1], location);
 			root = literalServ.createUpdateLiteral(LiteralService.GIS_LOCATION, root, values);
 
 			values = new HashMap<String, String>();
-			values.put(langs[0], ZOOM_COUTRY);
-			values.put(langs[1], ZOOM_COUTRY);
+			values.put(langs[0], zooms[0]);
+			values.put(langs[1], zooms[0]);
 			root = literalServ.createUpdateLiteral(LiteralService.ZOMM, root, values);
+			
 		}
 
 		if(legacyDataService.validString(data.get(NAME_COUNTRY))) {
@@ -743,8 +846,8 @@ public class ImportAdmUnitsService {
 		concept = literalServ.createUpdateLiteral(LiteralService.GIS_LOCATION, concept, values);
 
 		values = new HashMap<String, String>();
-		values.put(langs[0], zooms[item.index]);
-		values.put(langs[1], zooms[item.index]);
+		values.put(langs[0], zooms[item.index + 1]);
+		values.put(langs[1], zooms[item.index + 1]);
 		concept = literalServ.createUpdateLiteral(LiteralService.ZOMM, concept, values);
 		return concept;
 	}
@@ -775,8 +878,8 @@ public class ImportAdmUnitsService {
 		child = literalServ.createUpdateLiteral(LiteralService.GIS_LOCATION, child, values);
 
 		values = new HashMap<String, String>();
-		values.put(langs[0], zooms[item.index]);
-		values.put(langs[1], zooms[item.index]);
+		values.put(langs[0], zooms[item.index + 1]);
+		values.put(langs[1], zooms[item.index + 1]);
 		child = literalServ.createUpdateLiteral(LiteralService.ZOMM, child, values);
 		return child;
 	}
@@ -849,12 +952,12 @@ public class ImportAdmUnitsService {
 					break;
 				}
 			}
-			
+
 		}
-		
+
 		return itemDict;
 	}
-	
+
 	private class ItemConcept {
 		String name = "";
 		int index = -1;// это по сути номер имени (Province-0, District-1, Community - 2, Comuna -3)
@@ -883,13 +986,13 @@ public class ImportAdmUnitsService {
 			String website = boilerServ.getStringCellValue(row, column_other[1]);
 			String email = boilerServ.getStringCellValue(row, column_other[2]);
 			description = (legacyDataService.validString(website)?(website + ", "):"") + (legacyDataService.validString(email)?email:"");
-			// тут немного напутали
+			
 			Double coord = boilerServ.getNumberCellValue(row, column_other[3]);
 			String x = String.valueOf(coord);
 			coord = boilerServ.getNumberCellValue(row, column_other[4]);
 			String y = String.valueOf(coord);
-			coordinates = (legacyDataService.validString(x)?(x + ";"):"") + (legacyDataService.validString(y)?y:"");
-
+			coordinates = buildLocationString(x, y);
+			
 			names = new String[column_names.length];
 			for(int i = 0; i < column_names.length; i++) {
 				//if(column_names[i]!=null) {
@@ -924,7 +1027,7 @@ public class ImportAdmUnitsService {
 			return false;
 		}
 	}
-	
+
 	/**
 	 * System Literal 
 	 * monitors import status
@@ -939,11 +1042,30 @@ public class ImportAdmUnitsService {
 		values.put(langs[1], val);
 		protocol = literalServ.createUpdateLiteral(AssemblyService.DATAIMPORT_SYSTEM_RESULT, protocol, values);
 	}
-	
+
 	private String getSystemProtocol() throws ObjectNotFoundException {
 		Concept protocol = protocolConcept(AssemblyService.SYSTEM_IMPORT_ADMINUNITS);
 		String result = literalServ.readValue(AssemblyService.DATAIMPORT_SYSTEM_RESULT, protocol);
 		return result;
 	}
 
+	private String loadZoomCell(XSSFRow row, int i) {
+		Double d = boilerServ.getNumberCellValue(row, i);
+		if(d != null) {
+			int zoom = d.intValue();
+			if(zoom > 0) {
+				return String.valueOf(zoom);
+			}
+		}
+		return null;
+	}
+	
+	private String buildLocationString(String x, String y) {
+		String value = "";
+		x = x.replace(",", ".");
+		y = y.replace(",", ".");
+		
+		value = (legacyDataService.validString(x)?(x + ","):"") + (legacyDataService.validString(y)?y:"");
+		return value;
+	}
 }

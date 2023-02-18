@@ -1260,7 +1260,7 @@ public class BoilerService {
 	}
 	
 	/**
-	 * Get cell value as a string. No exceptions
+	 * Get cell value as a number. No exceptions
 	 * @param row
 	 * @param col
 	 * @return

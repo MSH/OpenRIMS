@@ -232,13 +232,17 @@ hiddenRestricted(){
         if(this.state.data.clazz == undefined || this.state.labels.locale==undefined){
             return []
         }
+
         return(
             <Container fluid className={Pharmadex.settings.activeBorder}>
                 {this.buttons()}
                 {this.helpButton()}
                 <Row>
-                    <Col>
+                    <Col xs='12' sm='12' lg='9' xl='9'>
                         <FieldGuarded mode="text" attribute="varName" component={this} editno={this.hiddenRestricted()}/>
+                    </Col>
+                    <Col xs='12' sm='12' lg='3' xl='3'>
+                        <ViewEditOption attribute="hidefromapplicant" component={this} edit />
                     </Col>
                 </Row>
                 <Row>

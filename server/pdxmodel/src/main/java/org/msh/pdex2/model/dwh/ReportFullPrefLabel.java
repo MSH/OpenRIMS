@@ -28,8 +28,8 @@ public class ReportFullPrefLabel implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC2222741860911A18408620")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC2222741860911A18408620", strategy="native")	
+	@GeneratedValue(generator="VAC22226E1864BE179D20BCB3")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22226E1864BE179D20BCB3", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	

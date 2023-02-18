@@ -213,7 +213,7 @@ public class ResolverServiceRender {
 				table = presonsTable(asm, var, table);
 			}
 		}
-		
+
 		if(clazz.equalsIgnoreCase("links")) {
 			table = linksTable(asm, var, table);
 		}
@@ -240,7 +240,7 @@ public class ResolverServiceRender {
 				}
 			}
 		}
-		
+
 		if(clazz.equalsIgnoreCase("logical")) {
 			String valStr = literalServ.readValue(varName, var);
 			if(valStr.length() > 0) {
@@ -503,7 +503,11 @@ public class ResolverServiceRender {
 				}
 				String item = String.join(",", mChoice);
 				value.put("level"+(all.size()-1), item);
-				choices.add("/"+item);
+				if(choices.size()>0) {
+					choices.add("/"+item);
+				}else {
+					choices.add(item);
+				}
 			}
 			value.put("choice", String.join(", ", choices));
 			//TODO by address

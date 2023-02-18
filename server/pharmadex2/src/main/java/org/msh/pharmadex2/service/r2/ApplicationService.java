@@ -289,45 +289,51 @@ public class ApplicationService {
 	 */
 	@Transactional
 	public CheckListDTO checklistLoad(CheckListDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		data.getQuestions().clear();
+		data.setTitle("");
 		// current activity?
 		if (data.getHistoryId() > 0) {
 			History his = boilerServ.historyById(data.getHistoryId());
 			if (his.getActivity() != null) {
-				data.setActivityNodeId(his.getActivity().getID());
-				data.setApplNodeId(his.getApplication().getID());
-				// determine owner and application's url
-				Concept executor = closureServ.getParent(his.getActivity());
-				// set access
-				data.setReadOnly(!accServ.sameEmail(executor.getIdentifier(), user.getEmail()));
+				if(accessControlServ.checklistAllowed(his.getActConfig(),user)) {
+					data.setActivityNodeId(his.getActivity().getID());
+					data.setApplNodeId(his.getApplication().getID());
+					// determine owner and application's url
+					Concept executor = closureServ.getParent(his.getActivity());
+					// set access
+					data.setReadOnly(!accServ.sameEmail(executor.getIdentifier(), user.getEmail()));
 
-				// dictionary and data, maybe JSON encoded
-				String dictUrl = "";
-				if (his.getActivity().getLabel() != null) {
-					dictUrl = his.getActivity().getLabel();
-					try {
-						WorkflowParamDTO wdto = objectMapper.readValue(dictUrl, WorkflowParamDTO.class);
-						dictUrl = wdto.getChecklistUrl();
-					} catch (JsonProcessingException e) {
-						// nothing to do
+					// dictionary and data, maybe JSON encoded
+					String dictUrl = "";
+					if (his.getActivity().getLabel() != null) {
+						dictUrl = his.getActivity().getLabel();
+						try {
+							WorkflowParamDTO wdto = objectMapper.readValue(dictUrl, WorkflowParamDTO.class);
+							dictUrl = wdto.getChecklistUrl();
+						} catch (JsonProcessingException e) {
+							// nothing to do
+						}
 					}
-				}
-				Concept dictRoot = closureServ.loadRoot(dictUrl);
-				data.setDictUrl(dictUrl);
-				data.setTitle(literalServ.readPrefLabel(dictRoot));
-				List<Checklistr2> stored = checklistRepo.findAllByActivity(his.getActivity());
-				List<Long> dictIds = new ArrayList<Long>();
-				for (Checklistr2 chl : stored) {
-					dictIds.add(chl.getDictItem().getID());
-				}
-				List<OptionDTO> plainDictionary = dictServ.loadPlain(dictUrl);
-				data.getQuestions().clear();
-				for (OptionDTO odto : plainDictionary) {
-					int index = dictIds.indexOf(odto.getId());
-					if (index > -1) {
-						data.getQuestions().add(dtoServ.question(stored.get(index), odto));
-					} else {
-						data.getQuestions().add(QuestionDTO.of(odto));
+					Concept dictRoot = closureServ.loadRoot(dictUrl);
+					data.setDictUrl(dictUrl);
+					data.setTitle(literalServ.readPrefLabel(dictRoot));
+					List<Checklistr2> stored = checklistRepo.findAllByActivity(his.getActivity());
+					List<Long> dictIds = new ArrayList<Long>();
+					for (Checklistr2 chl : stored) {
+						dictIds.add(chl.getDictItem().getID());
 					}
+					List<OptionDTO> plainDictionary = dictServ.loadPlain(dictUrl);
+					data.getQuestions().clear();
+					for (OptionDTO odto : plainDictionary) {
+						int index = dictIds.indexOf(odto.getId());
+						if (index > -1) {
+							data.getQuestions().add(dtoServ.question(stored.get(index), odto));
+						} else {
+							data.getQuestions().add(QuestionDTO.of(odto));
+						}
+					}
+				}else {
+					//checklist is not allowed
 				}
 			} else {
 				throw new ObjectNotFoundException("checkListLoad.Activity not defined in the history", logger);
@@ -335,6 +341,7 @@ public class ApplicationService {
 		} else {
 			throw new ObjectNotFoundException("checkListLoad. History not found. ID is ZERO", logger);
 		}
+
 		return data;
 	}
 
@@ -2319,15 +2326,15 @@ public class ApplicationService {
 	 */
 	@Transactional
 	private ActivitySubmitDTO verifyScheduledGuestHost(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
-			for (TableRow row : data.getScheduled().getRows()) {
-				ThingScheduler ts = boilerServ.thingSchedulerById(row.getDbID());
-				Scheduler sch = boilerServ.schedulerByNode(ts.getConcept());
-				String applUrl=sch.getProcessUrl();
-				Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
-				List<Concept> nextActs = loadActivities(configRoot);
-				data = (ActivitySubmitDTO) validServ.workflowConfig(nextActs, configRoot, data);
-			}
-			return data;
+		for (TableRow row : data.getScheduled().getRows()) {
+			ThingScheduler ts = boilerServ.thingSchedulerById(row.getDbID());
+			Scheduler sch = boilerServ.schedulerByNode(ts.getConcept());
+			String applUrl=sch.getProcessUrl();
+			Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
+			List<Concept> nextActs = loadActivities(configRoot);
+			data = (ActivitySubmitDTO) validServ.workflowConfig(nextActs, configRoot, data);
+		}
+		return data;
 	}
 
 	/**

@@ -151,7 +151,7 @@ public class ResourceService {
 			String select ="select * from resource_read";
 			Concept dictRoot = closureServ.getParent(td.getDictNode());
 			jdbcRepo.resource_read(dictRoot.getID());
-			List<TableRow> rows= jdbcRepo.qtbGroupReport(select, "", "url='"+td.getDocUrl()+"'", table.getHeaders());
+			List<TableRow> rows= jdbcRepo.qtbGroupReport(select, "", "resurl='"+thing.getUrl()+"'", table.getHeaders());
 			TableQtb.tablePage(rows, table);
 			table.setSelectable(false);
 		}

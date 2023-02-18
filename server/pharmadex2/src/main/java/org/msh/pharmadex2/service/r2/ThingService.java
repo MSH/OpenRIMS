@@ -218,7 +218,7 @@ public class ThingService {
 		//dictionaries
 		List<AssemblyDTO> dictionaries = assemblyServ.auxDictionaries(data.getUrl(),assemblies);
 		//logger.trace("dictionaries{");
-		data=createDictonaries(data, dictionaries);
+		data=createDictonaries(data, dictionaries, user);
 		//logger.trace("}");
 		//addresses
 		List<AssemblyDTO> addresses = assemblyServ.auxAddresses(data.getUrl(),assemblies);
@@ -655,13 +655,17 @@ public class ThingService {
 		data.getDocuments().clear();
 		//prepare files
 		for(AssemblyDTO asm : files) {
+			if(accessControlServ.isApplicant(user) && asm.isHideFromApplicant()) {
+				continue;				// do not render hidden components!
+			}
 			FileDTO fdto=new FileDTO();
 			fdto.setAccept(asm.getFileTypes());
 			fdto.setReadOnly(data.isReadOnly());
 			fdto.setUrl(asm.getUrl());
 			fdto.setDictUrl(asm.getDictUrl());
 			fdto.setVarName(asm.getPropertyName());
-			fdto.setThingUrl(data.getUrl());
+			//fdto.setThingUrl(data.getUrl()); 2023-02-13
+			fdto.setThingUrl(asm.getUrl());
 			fdto.setThingNodeId(data.getNodeId());
 			fdto = removeOrphans(fdto, user);
 			fdto = createDocTable(fdto,user);
@@ -725,7 +729,7 @@ public class ThingService {
 			Concept dictRoot = closureServ.loadRoot(data.getDictUrl());
 			th.getHeaders().add(TableHeader.instanceOf("ID", TableHeader.COLUMN_LONG));	//dictNodeId
 			th.getHeaders().add(TableHeader.instanceOf("nodeId", TableHeader.COLUMN_LONG)); //nodeId
-			jdbcRepo.prepareFileList(dictRoot.getID(),0,data.getUrl(), data.getVarName(), user.getEmail());
+			jdbcRepo.filelist(dictRoot.getID(),0,data.getUrl(), data.getVarName(), user.getEmail());
 			List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from _filelist", "", "", th);
 			for(TableRow row : rows) {
 				Long dictNodeId = (Long) row.getRow().get(0).getOriginalValue();
@@ -754,7 +758,7 @@ public class ThingService {
 		Thing thing = new Thing();
 		thing = boilerServ.thingByNode(node, thing);
 		String email="";
-		jdbcRepo.prepareFileList(dict.getID(),thing.getID(),data.getUrl(), data.getVarName(), email);
+		jdbcRepo.filelist(dict.getID(),thing.getID(),data.getUrl(), data.getVarName(), email);
 		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from _filelist", "","", data.getTable().getHeaders());
 		TableQtb.tablePage(rows, data.getTable());
 		for(TableRow row : rows) {
@@ -825,14 +829,18 @@ public class ThingService {
 	/**
 	 * Create a set of dictionaries in the application's activity
 	 * @param data - application's activity
+	 * @param user 
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	private ThingDTO createDictonaries(ThingDTO data, List<AssemblyDTO> dictas) throws ObjectNotFoundException {
+	private ThingDTO createDictonaries(ThingDTO data, List<AssemblyDTO> dictas, UserDetailsDTO user) throws ObjectNotFoundException {
 		data.getDictionaries().clear();
 		//restore dictionaries
 		for(AssemblyDTO dicta : dictas) {
+			if(accessControlServ.isApplicant(user) && dicta.isHideFromApplicant()) {
+				continue;
+			}
 			DictionaryDTO dict = new DictionaryDTO();
 			dict.setUrl(dicta.getUrl());
 			dict.setVarName(dicta.getPropertyName());
@@ -1539,14 +1547,16 @@ public class ThingService {
 	 */
 	@Transactional
 	public ThingDTO storeDictionaries(Thing thing, ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		List<AssemblyDTO> assemblies = assemblyServ.auxByClazz(data.getUrl(), "dictionaries");	//take a configuration
+		// smart cleanup. We should left hidden dictionaries
+		Set<ThingDict> dicts = new HashSet<ThingDict>();
+		dicts.addAll(thing.getDictionaries());
+		thing.getDictionaries().clear();
 		if(thing.getID()>0) {
-			//entityManager.refresh(thing);
-			thing.getDictionaries().clear();
-			//boilerServ.saveThing(thing);
-			//entityManager.flush();
+			if(accessControlServ.isApplicant(user)) {
+				thing=addHiddenDictionaries(assemblies, dicts,thing);
+			}
 		}
-		/*22.09.2022 new version */
-		List<AssemblyDTO> assemblies = assemblyServ.auxByClazz(data.getUrl(), "dictionaries");
 		Set<Long> selected = new HashSet<Long>();
 		for(String key : data.getDictionaries().keySet()) {
 			DictionaryDTO dict = data.getDictionaries().get(key);
@@ -1598,46 +1608,32 @@ public class ThingService {
 				}
 			}			
 		}
-
-		/*boolean isPrefLblAssembly = false;
-
-		if(assemblie != null && assemblie.size() > 0) {
-			for(AssemblyDTO ass:assemblie) {
-				if(key.equals(ass.getPropertyName())) {
-					if(ass.isPrefLabel()) {
-						String prefLabel=literalServ.readPrefLabel(node);
-						prefLabelDTO.setValue(prefLabel);
-						isPrefLblAssembly = true;
-					}
-					break;
-				}
-			}
-		}*/
-
-		/*22.09.2022 old version
-		Set<Long> selected = new HashSet<Long>();
-		for(String key : data.getDictionaries().keySet()) {
-			DictionaryDTO dict = data.getDictionaries().get(key);
-			selected.clear();
-			selected.addAll(dict.getPrevSelected());
-			if(selected.size()==0 && dict.getSelection().getValue().getId()>0) {
-				selected.add(dict.getSelection().getValue().getId());
-			}
-			for(Long id : selected) {
-				if(id != 0) {
-					Concept dictItem = closureServ.loadConceptById(id);
-					ThingDict thingDict = new ThingDict();
-					thingDict.setUrl(dict.getUrl());
-					thingDict.setConcept(dictItem);
-					thingDict.setVarname(dict.getVarName());
-					thing.getDictionaries().add(thingDict);
-				}
-			}
-		}
-		 */
 		return data;
 	}
-
+	/**
+	 * Add hidden dictionary links to avoid losses
+	 * Presumed that the thing.getDictionaries is clean
+	 * @param assemblies
+	 * @param dicts
+	 * @param thing 
+	 * @return
+	 */
+	private Thing addHiddenDictionaries(List<AssemblyDTO> assemblies, Set<ThingDict> dicts, Thing thing) {
+		List<String> vars = new ArrayList<String>();
+		// determine hiddens
+		for(AssemblyDTO assm : assemblies) {
+			if(assm.isHideFromApplicant()) {
+				vars.add(assm.getPropertyName().toUpperCase());
+			}
+		}
+		//add hiddens
+		for(ThingDict td : dicts) {
+			if(vars.contains(td.getVarname().toUpperCase())) {
+				thing.getDictionaries().add(td);
+			}
+		}
+		return thing;
+	}
 	@Transactional
 	public ThingDTO storeDates(Concept node, ThingDTO data) throws ObjectNotFoundException {
 		DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE;

@@ -10,6 +10,7 @@ import javax.mail.internet.InternetAddress;
 
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
+import org.msh.pdex2.model.enums.YesNoNA;
 import org.msh.pdex2.model.old.User;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
@@ -21,7 +22,10 @@ import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.auth.UserRoleDto;
+import org.msh.pharmadex2.dto.form.FormFieldDTO;
+import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
+import org.msh.pharmadex2.service.common.DtoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +46,8 @@ public class AccessControlService {
 	private LiteralService literalServ;
 	@Autowired
 	private BoilerService boilerServ;
+	@Autowired
+	private DtoService dtoServ;
 
 	/**
 	 * Can this user create the thing
@@ -468,6 +474,21 @@ public class AccessControlService {
 	public boolean isApplicantRole(Concept role) {
 		return role.getIdentifier().equalsIgnoreCase(SystemService.ROLE_APPLICANT);
 	}
-
+	/**
+	 * Is this checklist allowed for a user given?
+	 * @param actConf
+	 * @param user
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public boolean checklistAllowed(Concept actConf, UserDetailsDTO user) throws ObjectNotFoundException {
+		if(isApplicant(user)) {
+			YesNoNA value = dtoServ.readLogicalLiteral(AssemblyService.HIDECHECKLIST_FLD, actConf);
+			return !value.equals(YesNoNA.YES);
+		}else {
+			return true;
+		}
+	}
 
 }

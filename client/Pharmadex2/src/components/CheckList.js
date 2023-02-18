@@ -167,35 +167,37 @@ class CheckList extends Component{
     render(){
         if(this.state.data.questions == undefined || this.state.labels.locale==undefined){
             return []
-        }else{
-            return(
-                <Container fluid className={Pharmadex.settings.activeBorder}>
-                    <Card key={this.state.data.id+this.state.data.prevStatusId} style={{fontSize:"0.8rem"}}>
-                        <CardHeader>
-                            <Row>
-                                <Col xs='12' sm='12' lg='12' xl='12'>
-                                    <h6>{this.state.data.title}</h6>
-                                </Col>
-                            </Row>
-                            <Row hidden={this.validCheckList()}>
-                                <Col>
-                                    <Alert color="danger" className="p-0 m-0">
-                                        <small>{this.state.labels.requiredvalue}</small>
-                                    </Alert>
-                                </Col>
-                            </Row>
-                        </CardHeader>
-                        <CardBody>
-                            <Row>
-                                <Col xs='12' sm='12' lg='12' xl='12'>
-                                    {this.checkList()}
-                                </Col>
-                            </Row>
-                        </CardBody>
-                    </Card>
-                </Container>
-            )
         }
+        if(this.state.data.questions.length==0){
+            return []
+        }
+        return(
+            <Container fluid className={Pharmadex.settings.activeBorder}>
+                <Card key={this.state.data.id+this.state.data.prevStatusId} style={{fontSize:"0.8rem"}}>
+                    <CardHeader>
+                        <Row>
+                            <Col xs='12' sm='12' lg='12' xl='12'>
+                                <h6>{this.state.data.title}</h6>
+                            </Col>
+                        </Row>
+                        <Row hidden={this.validCheckList()}>
+                            <Col>
+                                <Alert color="danger" className="p-0 m-0">
+                                    <small>{this.state.labels.requiredvalue}</small>
+                                </Alert>
+                            </Col>
+                        </Row>
+                    </CardHeader>
+                    <CardBody>
+                        <Row>
+                            <Col xs='12' sm='12' lg='12' xl='12'>
+                                {this.checkList()}
+                            </Col>
+                        </Row>
+                    </CardBody>
+                </Card>
+            </Container>
+            )
     }
 
 

@@ -416,7 +416,7 @@ public class JdbcRepository {
 	 * @param varName name of variable
 	 * @param email user's email
 	 */
-	public void prepareFileList(long dictRootId, long thingId, String docUrl, String varName, String email) {
+	public void filelist(long dictRootId, long thingId, String docUrl, String varName, String email) {
 		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
 		proc.withProcedureName("filelist");
 		MapSqlParameterSource params = new MapSqlParameterSource();

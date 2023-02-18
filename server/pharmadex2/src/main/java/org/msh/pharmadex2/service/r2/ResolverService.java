@@ -6,6 +6,8 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -971,7 +973,17 @@ public class ResolverService {
 		List<String> preflabels = new ArrayList<String>();
 		List<String> descr = new ArrayList<String>();
 		List<Long> ids=new ArrayList<Long>();
-		for(ThingDoc td:thing.getDocuments()) {
+		List<ThingDoc> sortedDocuments = new ArrayList<ThingDoc>();
+		sortedDocuments.addAll(thing.getDocuments());
+		Collections.sort(sortedDocuments, new Comparator<ThingDoc>() {
+			@Override
+			public int compare(ThingDoc o1, ThingDoc o2) {
+				Long id1= new Long(o1.getDictNode().getID());
+				Long id2=new Long(o2.getDictNode().getID());
+				return id1.compareTo(id2);
+			}
+		});
+		for(ThingDoc td:sortedDocuments) {
 			if(td.getVarName().equalsIgnoreCase(varName)) {
 				Concept c = td.getConcept();
 				String fname = c.getLabel();
@@ -1008,6 +1020,10 @@ public class ResolverService {
 		}
 
 		return value;
+	}
+	private Comparator Comparable() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 	/**
 	 * Read selected dictionary values

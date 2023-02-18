@@ -43,6 +43,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AssemblyService {
 
+	public static final String HIDECHECKLIST_FLD = "hidechecklist";
 	public static final String DATAIMPORT_ADDRESS = "dataimport_address";
 	public static final String DATAIMPORT_RESULT = "dataimport_result";
 	public static final String DATAIMPORT_SYSTEM_RESULT = "dataimport_system_result";
@@ -522,6 +523,11 @@ public class AssemblyService {
 				assm.setPropertyName("attention");
 				ret.add(assm);
 			}
+			{
+				AssemblyDTO assm = new AssemblyDTO();
+				assm.setPropertyName(HIDECHECKLIST_FLD);
+				ret.add(assm);
+			}
 		}
 		//*********************************** read from configuration ***************************************************
 		if(ret.size()==0) {
@@ -708,6 +714,7 @@ public class AssemblyService {
 				cell1.getVariables().add("description");
 				cell1.getVariables().add("activityurl");
 				cell1.getVariables().add("checklisturl");
+				cell1.getVariables().add(HIDECHECKLIST_FLD);	//2023-02-13
 				cell1.getVariables().add("dataurl");
 				cell1.getVariables().add("addressurl");
 				cell1.getVariables().add("attention");
@@ -1523,7 +1530,6 @@ public class AssemblyService {
 	
 	public AssemblyDTO auxAssemblyDTOByClazz(List<AssemblyDTO> ret, String key) throws ObjectNotFoundException {
 		AssemblyDTO dto = null;
-		
 		if(ret != null && ret.size() > 0) {
 			for(AssemblyDTO ass:ret) {
 				if(key.equals(ass.getPropertyName())) {

@@ -28,8 +28,8 @@ public class OrgAdmin implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC2222741860911A17108615")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC2222741860911A17108615", strategy="native")	
+	@GeneratedValue(generator="VAC22226E1864BE179C20BCA8")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22226E1864BE179C20BCA8", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	

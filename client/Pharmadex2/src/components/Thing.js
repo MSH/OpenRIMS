@@ -813,7 +813,7 @@ class Thing extends Component{
                 )
             }
         }
-        return(<h6>No components to display</h6>)
+        return([])
     }
      /**
      * Place components inside a cell in rows

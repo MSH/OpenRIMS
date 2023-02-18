@@ -427,7 +427,7 @@ public class ImportExportDataConfigService {
 			dto.setNodeId(collDto.getNodeId());
 			dto = dtoServ.assemblyToDto(assm, dto);
 			validServ.variable(dto, true, true);
-			if(dto.isValid()) {
+			if(dto.isValid() || !dto.isStrict()) {
 				good.add(assm);
 			}else {
 				throw new ObjectNotFoundException(row.toString(),logger);

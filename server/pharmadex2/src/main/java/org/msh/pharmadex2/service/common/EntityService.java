@@ -96,6 +96,7 @@ public class EntityService {
 	 */
 	@Transactional
 	public Assembly assembly(DataVariableDTO data, Concept node, Assembly assm) {
+		assm.setHidefromapplicant(data.getHidefromapplicant().getValue().getId()==1);
 		assm.setClazz(data.getClazz().getValue().getCode());
 		assm.setCol(data.getCol().getValue().intValue());
 		assm.setDictUrl(data.getDictUrl().getValue());
