@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.reflect.FieldUtils;
+import org.msh.pdex2.dto.table.TableHeader;
 import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pharmadex2.dto.form.AllowValidation;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
@@ -70,8 +71,7 @@ public class ThingDTO extends AllowValidation {
 	private Map<String, LegacyDataDTO> legacy = new LinkedHashMap<String, LegacyDataDTO>();										//list of legacy applications to import
 	private Map<String, IntervalDTO> intervals = new LinkedHashMap<String, IntervalDTO>();
 	private Map<String, LinksDTO> links = new LinkedHashMap<String, LinksDTO>();	
-	private Map<String, FormFieldDTO<OptionDTO>> droplist = new LinkedHashMap<String, FormFieldDTO<OptionDTO>>();// dropdown list Dictionary
-	private ActionBarDTO actionBar= new ActionBarDTO();																										//action bar for it @depricated
+	private Map<String, FormFieldDTO<OptionDTO>> droplist = new LinkedHashMap<String, FormFieldDTO<OptionDTO>>();// dropdown list Dictionary																									//action bar for it @depricated
 	
 	//The main static path - things that should be filled
 	private List<ThingDTO> path = new ArrayList<ThingDTO>();								//all things path
@@ -309,12 +309,6 @@ public class ThingDTO extends AllowValidation {
 	public void setRegisters(Map<String, RegisterDTO> registers) {
 		this.registers = registers;
 	}
-	public ActionBarDTO getActionBar() {
-		return actionBar;
-	}
-	public void setActionBar(ActionBarDTO actionBar) {
-		this.actionBar = actionBar;
-	}
 	
 	public Map<String, AtcDTO> getAtc() {
 		return atc;
@@ -470,6 +464,20 @@ public class ThingDTO extends AllowValidation {
 	}
 	public void setDroplist(Map<String, FormFieldDTO<OptionDTO>> droplist) {
 		this.droplist = droplist;
+	}
+	/**
+	 * Type of TableQtb header for import/export
+	 * @param varName name of electronic form variable
+	 * @return
+	 */
+	public int tableHeaderType(String varName) {
+		if(getNumbers().get(varName)!=null) {
+			return TableHeader.COLUMN_LONG;
+		}
+		if(getDates().get(varName) != null) {
+			return TableHeader.COLUMN_LOCALDATE;
+		}
+		return TableHeader.COLUMN_STRING;
 	}
 
 	

@@ -301,40 +301,7 @@ public class ImportExportDataConfigService {
 		ret = boilerServ.translateHeaders(ret);
 		return ret;
 	}
-	/**
-	 * Export workflow configuration to MS Excel
-	 * @param data
-	 * @return
-	 * @throws IOException 
-	 * @throws ObjectNotFoundException 
-	 */
-	@Transactional
-	public Resource workflowExportExcel(WorkflowDTO dto) throws IOException, ObjectNotFoundException {
-		//restore literals and dictionaries
-		for(ThingDTO tdto : dto.getPath()) {
-			Concept node=closureServ.loadConceptById(tdto.getNodeId());
-			tdto.setStrings(dtoServ.readAllStrings(tdto.getStrings(),node));
-			tdto.setLiterals(dtoServ.readAllLiterals(tdto.getLiterals(), node));
-			tdto.setDates(dtoServ.readAllDates(tdto.getDates(),node));
-			tdto.setNumbers(dtoServ.readAllNumbers(tdto.getNumbers(),node));
-			tdto.setLogical(dtoServ.readAllLogical(tdto.getLogical(), node));
-			Set<String> dicts = tdto.getDictionaries().keySet();
-			if(dicts!=null) {
-				for(String key : dicts) {
-					DictionaryDTO ddto = tdto.getDictionaries().get(key);
-					ddto = dictServ.createCurrentSelections(ddto);
-				}
-			}
-		}
-		ExcelViewMult excel = new ExcelViewMult();
-		XSSFWorkbook workbook=excel.workbookForWorkflowConfiguration(dto, mess);
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		workbook.write(out);
-		byte[] arr = out.toByteArray();
-		workbook.close();
-		out.close();
-		return new ByteArrayResource(arr);
-	}
+
 	/**
 	 * Load data import thing
 	 * @param user
@@ -485,23 +452,6 @@ public class ImportExportDataConfigService {
 			throw new ObjectNotFoundException("varname=["+varName+"],varNAmeExt=["+varNameExt+"]",logger);
 		}
 	}
-	/**
-	 * Search for a field by a name
-	 * Assembly.java is a Hibernate entity, thus names of fields may be the same as in the database, except letters cases
-	 * @param fields
-	 * @param th
-	 * @return null if not found
-	 */
-	private Field fieldByName(Field[] fields, TableHeader th) {
-		for(int i=0; i<fields.length;i++) {
-			if(fields[i].getName().equalsIgnoreCase(th.getKey())) {
-				return fields[i];
-			}
-		}
-		return null;
-	}
-
-
 	/**
 	 * Import data collection definition - URL and description 
 	 * @param sheet

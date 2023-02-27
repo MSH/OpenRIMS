@@ -36,6 +36,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.web.servlet.view.document.AbstractXlsxView;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 
 /**
  * Allows multi sheets Excel workbook creation
@@ -54,6 +57,7 @@ import org.springframework.web.servlet.view.document.AbstractXlsxView;
  *
  */
 public class ExcelViewMult extends AbstractXlsxView{
+	private static final int START_THING_CONTENT_ROW = 2;
 	private static final Logger logger = LoggerFactory.getLogger(ExcelViewMult.class);
 	public static final String LABEL_BOOLEAN_TRUE = "+";
 
@@ -264,16 +268,17 @@ public class ExcelViewMult extends AbstractXlsxView{
 	 * @param td
 	 * @param title 
 	 * @param mess 
+	 * @param objectMapper 
+	 * @throws JsonProcessingException 
 	 */
-	private void placeThingSheet(ThingDTO td, String title, Messages mess) {
+	private void placeThingSheet(ThingDTO td, String title, Messages mess)  {
 		getProcessor().createSheet(td.getTitle(),1000);
 		getProcessor().addCaption(0, 0, title, 40);
-		int rowNo=2;
+		int rowNo=START_THING_CONTENT_ROW;
 		int colNo=0;
 		for(LayoutRowDTO row : td.getLayout()) {
 			for(LayoutCellDTO cell : row.getCells()) {
 				for(String varName :cell.getVariables()) {
-					//TODO other types
 					getProcessor().addSubChapter(colNo, rowNo, mess.get(varName), 40);
 					getProcessor().addLabel(colNo+1, rowNo, td.variableByName(varName).toString(), 60);
 					rowNo++;				//order

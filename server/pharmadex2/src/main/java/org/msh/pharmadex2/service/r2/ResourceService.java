@@ -280,7 +280,7 @@ public class ResourceService {
 	}
 
 	/**
-	 * Из картинки в рабочей папке создаем пустую палитурку по умрлчанию
+	 * Create image by default
 	 * @return
 	 * @throws ObjectNotFoundException
 	 * @throws IOException
@@ -337,6 +337,16 @@ public class ResourceService {
 	@Transactional
 	public ResponseEntity<Resource> adminHelpWfrGuide() throws ObjectNotFoundException, IOException {
 		return downloadFile("resources.help.wfrguide","wfrguide.pdf");
+	}
+	
+	@Transactional
+	public ResponseEntity<Resource> adminElreferenceGuide() throws ObjectNotFoundException, IOException {
+		return downloadFile("resources.elreference","CreationPrintableElectronicDocumentsOpenRIMS.pdf");
+	}
+	
+	@Transactional
+	public ResponseEntity<Resource> adminHelpDictionaries() throws ObjectNotFoundException, IOException {
+		return downloadFile("resources.help.dictionaries","DictionaryCreationMaintenance.pdf");
 	}
 	
 	/* 15.11.2022 khomenska */

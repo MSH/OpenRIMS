@@ -6,7 +6,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -123,10 +122,11 @@ public class ImportExportDictionaryService {
 
 		Concept levelNode = closureServ.loadConceptById(currentId);
 		List<Concept> child = literalServ.loadOnlyChilds(levelNode);
+		int numRow = 1;
 		for(int i = 1; i <= child.size(); i++) {
 			Concept item = child.get(i - 1);
 			if(item.getActive()) {
-				XSSFRow row = sheet.createRow(i);
+				XSSFRow row = sheet.createRow(numRow);
 				Map<String, String> literals = literalServ.literals(item);
 
 				Iterator<String> it = literals.keySet().iterator();
@@ -140,6 +140,7 @@ public class ImportExportDictionaryService {
 					cell.setCellValue(literals.get(header));
 					cell.setCellStyle(cellStyle());
 				}
+				numRow++;
 			}
 		}
 
@@ -152,7 +153,13 @@ public class ImportExportDictionaryService {
 		return file;
 	}
 
-
+	/**
+	 * Prepare electronic form to start import
+	 * @param data
+	 * @param user
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
 	public ThingDTO importLoad(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		//load and save only one and only under the root of the tree
 		data.setUrl(AssemblyService.SYSTEM_IMPORT_DICTIONARY);

@@ -76,12 +76,16 @@ class Workflows extends Component{
         }
         return(
             <Col xs='12' sm='12' lg='6' xl='6'>
-                <Dictionary
-                    identifier={this.state.data.slaveDict.url}
-                    recipient={this.state.identifier}
-                    data={this.state.data.slaveDict}
-                    display
-                />
+                <Row>
+                    <Col>
+                        <Dictionary
+                            identifier={this.state.data.slaveDict.url}
+                            recipient={this.state.identifier}
+                            data={this.state.data.slaveDict}
+                            display
+                        />
+                    </Col>
+                </Row>
             </Col>
         )
     }

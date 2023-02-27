@@ -42,6 +42,7 @@ import org.msh.pharmadex2.service.r2.ContentService;
 import org.msh.pharmadex2.service.r2.DWHService;
 import org.msh.pharmadex2.service.r2.DictService;
 import org.msh.pharmadex2.service.r2.ImportExportDictionaryService;
+import org.msh.pharmadex2.service.r2.ImportExportWorkflowService;
 import org.msh.pharmadex2.service.r2.ImportATCcodesService;
 import org.msh.pharmadex2.service.r2.ImportAdmUnitsService;
 import org.msh.pharmadex2.service.r2.ImportBService;
@@ -135,6 +136,8 @@ public class AdminAPI {
 	ImportExportDictionaryService dictionaryServ;
 	@Autowired
 	ImportExportDataConfigService importExportDataConfigService;
+	@Autowired
+	ImportExportWorkflowService importExportWorkflowService;
 
 
 
@@ -1076,7 +1079,7 @@ public class AdminAPI {
 		try {
 			String mediaType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 			String fileName = "reportDataStructure.xlsx";
-			Resource res = importExportDataConfigService.workflowExportExcel(data);
+			Resource res = importExportWorkflowService.workflowExportExcel(data);
 			return ResponseEntity.ok().contentType(MediaType.parseMediaType(mediaType))
 					// .header(HttpHeaders.CONTENT_DISPOSITION, fres.getContentDisp() + ";
 					// filename=\"" + fres.getFileName() + "\"")
@@ -1100,6 +1103,40 @@ public class AdminAPI {
 			throw new DataNotFoundException(e);
 		}
 		return message;
+	}
+
+	/**
+	 * Download or read "EL Reference instruction
+	 * @return
+	 * @throws DataNotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value="/api/admin/elreference", method = RequestMethod.GET)
+	public ResponseEntity<Resource> loadElreference() throws DataNotFoundException, IOException {
+		ResponseEntity<Resource> res;
+		try {
+			res = resourceServ.adminElreferenceGuide();
+			return res;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+
+	/**
+	 * Download or read DictionaryCreationMaintenance
+	 * @return
+	 * @throws DataNotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value="/api/admin/help/dictionaries", method = RequestMethod.GET)
+	public ResponseEntity<Resource> loadDictionariesGuide() throws DataNotFoundException, IOException {
+		ResponseEntity<Resource> res;
+		try {
+			res = resourceServ.adminHelpDictionaries();
+			return res;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
 	}
 
 	/**

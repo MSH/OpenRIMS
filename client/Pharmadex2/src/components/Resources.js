@@ -35,6 +35,7 @@ class Resources extends Component{
                 url:'',
                 configUrl:'',
                 description:'',
+                global_elreference:'',
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -273,8 +274,17 @@ class Resources extends Component{
         return(
             <Container fluid>
                 <Row>
-                    <Col xs='12' sm='12' lg='10' xl='10'/>
-                    <Col xs='12' sm='12' lg='1' xl='1'>
+                    <Col xs='12' sm='12' lg='8' xl='8'/>
+                    <Col xs='12' sm='12' lg='2' xl='2'>
+                        <ButtonUni
+                            label={this.state.labels.global_elreference}
+                            onClick={()=>{
+                                window.open('/api/admin/elreference','_blank').focus()
+                            }}
+                            color="info"
+                        />
+                    </Col>
+                    <Col xs='12' sm='12' lg='2' xl='2'>
                         <div hidden={!this.state.thing}>
                             <ButtonUni
                                 label={this.state.labels.save}
@@ -284,19 +294,6 @@ class Resources extends Component{
                                 }}
                             />
                         </div>
-                    </Col>
-                    <Col className="d-flex justify-content-end" xs='12' sm='12' lg='1' xl='1'>
-                        <ButtonUni
-                            label={this.state.labels.global_cancel}
-                            onClick={()=>{
-                                if(this.state.thing){
-                                    this.closeThing()
-                                }else{
-                                    window.location="/"+Navigator.tabSetName()+"#"+Navigator.tabName()
-                                }
-                            }}
-                            color="info"
-                        />
                     </Col>
                 </Row>
                 <Row>

@@ -26,7 +26,8 @@ class Dictionaries extends Component{
                 newdictionary:'',
                 dictionaries:"",
                 search:"",
-                global_cancel:""
+                global_cancel:"",
+                global_help:''
             }
         }
         this.load=this.load.bind(this)
@@ -187,8 +188,17 @@ class Dictionaries extends Component{
             </Container>*/
             <Container fluid>
                 <Row>
-                    <Col xs='12'sm='12' lg='11' xl='11' className="d-flex justify-content-center">
+                    <Col xs='12'sm='12' lg='10' xl='10' className="d-flex justify-content-center">
                         <h6>{this.state.labels.dictionaries}</h6>
+                    </Col>
+                    <Col xs='12' sm='12' lg='1' xl='1'>
+                        <ButtonUni
+                            label={this.state.labels.global_help}
+                            onClick={()=>{
+                                window.open('/api/admin/help/dictionaries','_blank').focus()
+                            }}
+                            color="info"
+                        />
                     </Col>
                     <Col xs='12'sm='12' lg='1' xl='1'>
                         <ButtonUni
