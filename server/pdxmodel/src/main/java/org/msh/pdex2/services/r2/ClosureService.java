@@ -238,15 +238,10 @@ public class ClosureService {
 		List<Concept> ret = new ArrayList<Concept>();
 		if(parent!=null) {
 			try {
-				parent = loadConceptById(parent.getID());
-
+				//parent = loadConceptById(parent.getID());
 				List<Closure> childs = closureRepo.findByParentAndLevel(parent, 1);
 				for(Closure clos :childs) {
-
-					//for(Closure clos : parent.getChilds()) {
-					//if(clos.getLevel()==1) {
 					ret.add(clos.getChild());
-					//}
 				}
 			} catch (Exception e) {
 				//nothing to do;

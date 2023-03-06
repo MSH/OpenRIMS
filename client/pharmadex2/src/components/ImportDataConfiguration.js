@@ -58,7 +58,7 @@ class ImportDataConfiguration extends Component{
             }
         }
     load(){
-        Fetchers.postJSON('/api/admin/data/configuration/load/import', this.state.data, (query,result)=>{
+        Fetchers.postJSON(this.props.loadapi, this.state.data, (query,result)=>{
             this.state.data=result
             if(!this.state.data.valid){
                 Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'danger'})
@@ -78,7 +78,7 @@ class ImportDataConfiguration extends Component{
     }
 
     runImport(){
-        Fetchers.postJSON('/api/admin/data/configuration/run/import', this.state.data, (query,result)=>{
+        Fetchers.postJSON(this.props.importapi, this.state.data, (query,result)=>{
             this.state.data=result
             if(this.state.data.valid){
                 Navigator.message(this.state.identifier, this.props.recipient,'DataConfigurationImportSuccess',this.state.data)
@@ -138,4 +138,6 @@ class ImportDataConfiguration extends Component{
 export default ImportDataConfiguration
 ImportDataConfiguration.propTypes={
     recipient:PropTypes.string.isRequired,      //recipient for messages
+    loadapi:PropTypes.string.isRequired,        //api to load a thing with file uploader
+    importapi:PropTypes.string.isRequired,      //api to run import 
 }

@@ -20,13 +20,15 @@ class ActivityManager extends Component{
     constructor(props){
         super(props)
         this.state={
+            execEmail:'',                       //executor's email
             historyId:0,                        //history record has been selected
             reassign:false,                     //reassign the executor
             reject:false,                       //return to an applicant
             saveCounter:1,                      //by default we wait saved only for checklist, however, sometaimes from data block
             conclude:false,                    //only for alive checklist!
             send:false,                        //display breadcrumb "send"
-            hist:false,                        //initially closed
+            hist:false,                        //initially closed history
+            histEvent:false,                        //initially closed next event
             reloadData:true,                     //initialy reload data
             supervisor:false,                   //action has been initiated by the supervisor
             pathIndex:0,                        //activity index
@@ -46,6 +48,7 @@ class ActivityManager extends Component{
                 return_action:'',
                 save_error:'',
                 backDlg_war:'',
+                application_nextEv:''
             },
             history:{ //history table
                 historyId:this.props.historyId
@@ -69,6 +72,8 @@ class ActivityManager extends Component{
         this.activityHistory=this.activityHistory.bind(this)
         this.toggle=this.toggle.bind(this)
         this.thingComp=this.thingComp.bind(this)
+        this.createBreadCrumbAndExecutorName=this.createBreadCrumbAndExecutorName.bind(this)
+        this.nextEvent=this.nextEvent.bind(this)
     }
 
     /**
@@ -92,6 +97,7 @@ class ActivityManager extends Component{
                 if(data.subject=='activityHistoryClose'){
                     this.state.historyId=0
                     this.state.hist=false
+                    this.state.histEvent=false
                     this.setState(this.state)
                 }
                 if(data.subject=='submitClose'){
@@ -172,6 +178,7 @@ class ActivityManager extends Component{
     loadData(){
         Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName()+"/activity/load", this.state.data, (query, result)=>{
             this.state.data=result
+            this.state.execEmail=this.state.data.executors[this.state.pathIndex]
             this.state.color = "success"
             this.loadHistory()
         })        
@@ -190,6 +197,7 @@ class ActivityManager extends Component{
                             <div className="btn btn-link p-0 border-0"
                         onClick={()=>{
                             this.state.pathIndex=index
+                            this.state.execEmail=this.state.data.executors[this.state.pathIndex]
                             this.state.send=false
                             this.state.return=false
                             this.state.reassign=false
@@ -218,6 +226,23 @@ class ActivityManager extends Component{
             }
         }
         return ret
+    }
+       /**
+     * Create a row with the breadcrumb and executor name
+     */
+    createBreadCrumbAndExecutorName(){
+        return(
+            <Row className="mb-2">
+                <Col xs='12' sm='12' lg='10' xl='10'>
+                    <Breadcrumb>
+                        {this.createBreadCrumb()}
+                    </Breadcrumb>
+                </Col>
+                <Col xs='12' sm='12' lg='2' xl='2' className='breadcrumb'>
+                    {this.state.execEmail}
+                </Col>
+            </Row>
+        )
     }
     /**
      * Display an application
@@ -308,7 +333,7 @@ class ActivityManager extends Component{
                         recipient={this.state.identifier}
                         readOnly={!this.state.conclude}
                         narrow
-                        noload={noreload}
+                        
                     />
                 )
             }else{
@@ -518,6 +543,57 @@ class ActivityManager extends Component{
             return []
         }
     }
+    nextEvent(){
+        return(
+        <CollectorTable
+                                tableData={this.state.history.tableEv}
+                                loader={this.loadHistory}
+                                headBackground={Pharmadex.settings.tableHeaderBackground}
+                                styleCorrector={(header)=>{
+                                    if(header=='days'){
+                                        return {width:'10%'}
+                                    }
+                                }}
+                                linkProcessor={(rowNo, cell)=>{
+                                    this.state.historyId=this.state.history.tableEv.rows[rowNo].dbID
+                                    this.setState(this.state)
+                                }}
+                                selectRow={(rowNo)=>{
+                                    let rows= this.state.history.tableEv.rows
+                                    rows.forEach((element,index) => {
+                                        if(index!=rowNo){
+                                            element.selected=false
+                                        }
+                                    });
+                                    rows[rowNo].selected=!rows[rowNo].selected
+                                    if(rows[rowNo].selected){
+                                        this.state.data.historyId=rows[rowNo].dbID
+                                        Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName()+"/activity/history/is/monitoring",
+                                            this.state.data,(query,result)=>{
+                                            this.state.data=result
+                                            if(this.state.data.valid){
+                                                this.state.historyId=this.state.history.tableEv.rows[rowNo].dbID
+                                                this.state.supervisor=true
+                                                this.state.send=true
+                                            }else{
+                                                this.state.historyId=0
+                                                this.state.supervisor=false
+                                                this.state.send=false
+                                                rows[rowNo].selected=false
+                                                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'warning'})
+                                            }
+                                            this.setState(this.state)
+                                        })
+                                    }else{
+                                        this.state.supervisor=false
+                                        this.state.send=false
+                                        this.setState(this.state)
+                                    }
+                                    
+                                }}
+                            />
+        )
+    }
     render(){
         if(this.state.history.table == undefined
             || this.state.labels.locale==undefined
@@ -596,29 +672,27 @@ class ActivityManager extends Component{
                                     {this.activityHistory()}
                                 </Col>
                             </Row>
+                            <Row>
+                                <Col className="btn btn-link p-0 border-0 d-flex justify-content-start">
+                                    <h6 className="ml-3">{this.state.labels.application_nextEv}</h6>
+                                </Col>
+                            </Row>
+                            <Row>
+                                <Col>
+                                 {this.nextEvent()}
+                                </Col>
+                            </Row>
                         </Collapse>
                     </Col>
                 </Row>
+                
                 <Row>
                     <Col>
-                    <Collapse isOpen={!this.state.hist}>
-                        {this.headerFooter()}
-
-                            <Row className="mb-2">
-                                <Col>
-                                <Breadcrumb>
-                                        {this.createBreadCrumb()}
-                                    </Breadcrumb>
-                                </Col>
-                            </Row>
+                        <Collapse isOpen={!this.state.hist}>
+                            {this.headerFooter()}
+                            {this.createBreadCrumbAndExecutorName()}
                             {this.content()}
-                            <Row className="mt-2">
-                                <Col>
-                                <Breadcrumb>
-                                        {this.createBreadCrumb()}
-                                    </Breadcrumb>
-                                </Col>
-                            </Row>
+                            {this.createBreadCrumbAndExecutorName()}
                             {this.headerFooter()}
                         </Collapse>
                     </Col>

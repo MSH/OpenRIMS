@@ -31,6 +31,7 @@ public class ActivitySubmitDTO extends AllowValidation{
 		private boolean reload=false;				//reload all unconditionally
 		private boolean reassign=false;			//re-assign and cancel only
 		private boolean reject=false;				//reject and return to user for clarification
+		private boolean revokepermit = false;// revokepermit state
 		private String colorAlert = "info"; // color Alert message
 		
 		public String getColorAlert() {
@@ -159,5 +160,10 @@ public class ActivitySubmitDTO extends AllowValidation{
 		public void setReject(boolean reject) {
 			this.reject = reject;
 		}
-			
+		public boolean isRevokepermit() {
+			return revokepermit;
+		}
+		public void setRevokepermit(boolean revokepermit) {
+			this.revokepermit = revokepermit;
+		}
 }

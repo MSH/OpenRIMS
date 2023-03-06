@@ -26,6 +26,7 @@ public class ActivityDTO extends AllowValidation{
 	private List<ThingDTO> application = new ArrayList<ThingDTO>();
 	//all completed activities. The last activity is the current!
 	private List<ThingDTO> path = new ArrayList<ThingDTO>();
+	private List<String> executors=new ArrayList<String>();
 	//activity data
 	private List<ThingDTO> data=new ArrayList<ThingDTO>();
 	//notes from the previous step
@@ -35,7 +36,6 @@ public class ActivityDTO extends AllowValidation{
 	private boolean background=false;
 	//current activity has been done successfully
 	private boolean done=false;
-	
 	private boolean attention = false;
 	private boolean  finalization= false;
 	
@@ -76,6 +76,12 @@ public class ActivityDTO extends AllowValidation{
 	}
 	public void setPath(List<ThingDTO> path) {
 		this.path = path;
+	}
+	public List<String> getExecutors() {
+		return executors;
+	}
+	public void setExecutors(List<String> executors) {
+		this.executors = executors;
 	}
 	public List<ThingDTO> getData() {
 		return data;

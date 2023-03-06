@@ -34,10 +34,10 @@ class About extends Component{
         return(
             <Container fluid className="pl-0 ml-0 bg-light d-print-none">
                 <Row  className="pl-0 ml-0" >
-                    <Col xs="12" sm="12" lg="4" xl="3" className="pl-0 ml-0">
+                    <Col xs="12" sm="12" lg="5" xl="4" className="pl-0 ml-0">
                         <a href="https://usaid.gov" target="_blank"><img src="/img/USAIDMTASP.svg" height="60" className="pl-0 ml-0" /> </a>
                     </Col>
-                    <Col xs="12" sm="12" lg="6" xl="7" style={{borderLeftWidth:'5px !important'}}>
+                    <Col xs="12" sm="12" lg="5" xl="6" style={{borderLeftWidth:'5px !important'}}>
                         <Row xs="12" sm="12" lg="12" xl="12" >
                             <Col xs='12' sm='12' lg='9' xl='10' className={"pl-0 ml-0"}>
                                 <small>{this.state.labels.footermessage}</small>

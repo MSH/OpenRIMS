@@ -1,11 +1,6 @@
 package org.msh.pharmadex2.service.r2;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -14,26 +9,19 @@ import java.util.Map;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
-import org.msh.pdex2.dto.i18n.Language;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
-import org.msh.pdex2.model.enums.YesNoNA;
 import org.msh.pdex2.model.r2.Closure;
 import org.msh.pdex2.model.r2.Concept;
-import org.msh.pdex2.repository.r2.ClosureRepo;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
-import org.msh.pharmadex2.dto.form.OptionDTO;
-import org.msh.pharmadex2.service.common.DtoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateDeserializer;
 /**
  * Languages related set of services
  * @author alexk
@@ -45,6 +33,7 @@ public class LiteralService {
 	public static final String DESCRIPTION = "description";
 	public static final String PREF_NAME = "prefLabel";
 	public static final String URL = "URL";
+	public static final String APPLICATION_URL = "applicationurl";
 
 	public static final String ICON_URL = "iconurl";
 	public static final String MORE_URL = "moreurl";

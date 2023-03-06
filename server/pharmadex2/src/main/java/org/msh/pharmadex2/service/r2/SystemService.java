@@ -535,6 +535,16 @@ public class SystemService {
 	}
 
 	/**
+	 * Is it shutdown application?
+	 * 
+	 * @param curHis
+	 * @return
+	 */
+	public boolean isShutdown(History curHis) {
+		Concept thisDictRoot = closureServ.getParent(curHis.getApplDict());
+		return thisDictRoot.getIdentifier().equalsIgnoreCase(DICTIONARY_SHUTDOWN_APPLICATIONS);
+	}
+	/**
 	 * Recognize host dictionary node by host process URL
 	 * 
 	 * @param processUrl
@@ -546,7 +556,7 @@ public class SystemService {
 		Concept root = closureServ.loadRoot(DICTIONARY_HOST_APPLICATIONS);
 		List<Concept> level = literalServ.loadOnlyChilds(root);
 		for (Concept conc : level) {
-			String aurl = literalServ.readValue("applicationurl", conc);
+			String aurl = literalServ.readValue(LiteralService.APPLICATION_URL, conc);
 			if (aurl.equalsIgnoreCase(processUrl) && conc.getActive()) {
 				return conc;
 			}
@@ -554,6 +564,26 @@ public class SystemService {
 		throw new ObjectNotFoundException("dictionary node for host process not found. URL is" + processUrl, logger);
 	}
 
+	/**
+	 * Recognize revokepermit dictionary node by revokepermit process URL
+	 * 
+	 * @param processUrl
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	@Transactional
+	public Concept revokepermitDictNode(String processUrl) throws ObjectNotFoundException {
+		Concept root = closureServ.loadRoot(DICTIONARY_SHUTDOWN_APPLICATIONS);
+		List<Concept> level = literalServ.loadOnlyChilds(root);
+		for (Concept conc : level) {
+			String aurl = literalServ.readValue(LiteralService.URL, conc);
+			if (aurl.equalsIgnoreCase(processUrl) && conc.getActive()) {
+				return conc;
+			}
+		}
+		throw new ObjectNotFoundException("dictionary node for shutdown process not found. URL is  " + processUrl, logger);
+	}
+	
 	/**
 	 * Return report configuration dictionary depends on the user category
 	 * <ul>

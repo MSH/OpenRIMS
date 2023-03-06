@@ -23,6 +23,8 @@ public class ApplicationHistoryDTO extends AllowValidation {
 	//table for a history
 	private TableQtb table = new TableQtb();
 	private TableQtb table1 = new TableQtb();
+	//table next events
+	private TableQtb tableEv = new TableQtb();
 	//current activity ID
 	private String url="";
 	//application title
@@ -94,6 +96,12 @@ public class ApplicationHistoryDTO extends AllowValidation {
 	}
 	public void setNotes(String notes) {
 		this.notes = notes;
+	}
+	public TableQtb getTableEv() {
+		return tableEv;
+	}
+	public void setTableEv(TableQtb tableEv) {
+		this.tableEv = tableEv;
 	}
 	
 }

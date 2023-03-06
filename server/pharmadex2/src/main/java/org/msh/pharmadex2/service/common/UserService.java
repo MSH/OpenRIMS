@@ -153,7 +153,7 @@ public class UserService implements UserDetailsService {
 				UserRoleDto urd = new UserRoleDto();
 				urd.setActive(true);
 				urd.setAuthority("ROLE_GUEST");
-				
+
 				ret.setActive(true);
 				ret.getAllRoles().add(urd);
 				ret.setEmail(pto.get().getCompanyemail());
@@ -1161,6 +1161,26 @@ public class UserService implements UserDetailsService {
 			}
 		}
 		return null;
+	}
+	/**
+	 * Get user name by email, if possible
+	 * @param email
+	 * @return user name for NMRA users, email for the rest
+	 */
+	@Transactional
+	public String nameByEmail(String email) {
+		String ret=email;
+		User user =findByEmail(email);
+		if(user!=null) {
+			if(user.getConcept()!=null) {
+				try {
+					ret=literalServ.readPrefLabel(user.getConcept());
+				} catch (ObjectNotFoundException e) {
+					// nothing to do
+				}
+			}
+		}
+		return ret;
 	}
 
 }

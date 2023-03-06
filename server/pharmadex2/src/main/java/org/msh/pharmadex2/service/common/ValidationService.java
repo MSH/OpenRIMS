@@ -1786,7 +1786,7 @@ public class ValidationService {
 			if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {
 				if(isActivityForeground(curHis.getActConfig())) {
 					if(curHis.getGo()==null) {
-						if(isActivityFinalAction(curHis, SystemService.FINAL_ACCEPT) || isActivityFinalAction(curHis, SystemService.FINAL_COMPANY)) {
+						if(isActivitySubmitApprove(curHis)) {
 							return data;
 							/*	if(nextActs != null) {//TODO khomenska 09112022
 									if(validateConfigurationRegister(nextActs)) {
@@ -1811,6 +1811,10 @@ public class ValidationService {
 		data.setIdentifier(messages.get("error_activityfinal"));
 		data.setValid(false);
 		return data;
+	}
+
+	public boolean isActivitySubmitApprove(History curHis) throws ObjectNotFoundException {
+		return isActivityFinalAction(curHis, SystemService.FINAL_ACCEPT) || isActivityFinalAction(curHis, SystemService.FINAL_COMPANY);
 	}
 
 	/**
@@ -2075,6 +2079,42 @@ public class ValidationService {
 		error(data, messages.get("error_nextactivitydata"), true);
 		return data;
 	}
+	
+	/**
+	 * Is it RevokePermit action. Is RevokePermit action is allowed
+	 * @param curHis
+	 * @param user
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public ActivitySubmitDTO submitRevokePermit(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
+		data.clearErrors();
+		if(!data.isRevokepermit()) {
+			data.setValid(false);
+			data.setIdentifier(messages.get("error_revokepermit"));
+		}
+		return data;
+	}
+	
+	/**
+	 * RevokePermit to the  user
+	 * @param curHis
+	 * @param user
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public ActivitySubmitDTO submitRevokePermitData(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
+		List<Long> executors = data.executors();
+		if(executors.size() == 1) {
+			data = submitNotesIsMandatory(curHis, data);
+			return data;
+		}
+		error(data, messages.get("error_execs"), true);
+		return data;
+	}
+	
 	/**
 	 * For some submits notes field is mandatory
 	 * @param curHis

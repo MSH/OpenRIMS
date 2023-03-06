@@ -212,9 +212,19 @@ public class ApplicationService {
 			}
 			Concept objectData = boilerServ.initialApplicationNode(his.getApplicationData());
 			jdbcRepo.application_history(objectData.getID());
-			table = historyTableRows(user, table, manager);
+			table = historyTableRows(user, table, manager, false);
 			table.setSelectable(accServ.isSupervisor(user));
 			data.setTable(table);
+			//build table events ika30012023
+			TableQtb tableEv = data.getTableEv();
+			if (tableEv.getHeaders().getHeaders().size() == 0) {
+				tableEv.setHeaders(historyHeaders(tableEv.getHeaders(), user, manager));
+			}
+			//---Concept objectData = boilerServ.initialApplicationNode(his.getApplicationData());
+			//--jdbcRepo.application_history(objectData.getID());
+			tableEv = historyTableRows(user, tableEv, manager, true);
+			tableEv.setSelectable(accServ.isSupervisor(user));
+			data.setTableEv(tableEv);
 			return data;
 		}
 		return data;
@@ -226,10 +236,16 @@ public class ApplicationService {
 	 * @param user
 	 * @param table
 	 * @param manager
+	 * @param event for query records next evets ika0012023
 	 */
 	@Transactional
-	public TableQtb historyTableRows(UserDetailsDTO user, TableQtb table, boolean manager) {
-		String where = "come<(curdate() + Interval 1 day)";
+	public TableQtb historyTableRows(UserDetailsDTO user, TableQtb table, boolean manager, boolean event) {
+		String where = "";
+		if(event) {
+			where = "come>= curdate()";
+		}else {
+			where = "come<(curdate() + Interval 1 day)";
+		}
 		if (!manager) {
 			where = where + " and go is not null";
 		}
@@ -902,32 +918,39 @@ public class ApplicationService {
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	public void activityCreate(Date scheduled, Concept actConf, History curHis, String email, String notes)
+	public History activityCreate(Date scheduled, Concept actConf, History curHis, String email, String notes)
 			throws ObjectNotFoundException {
-		// cancel all activities with the same configuration and executor
+		// search for unfinished activity with the same configuration and executor
 		List<History> allHis = boilerServ.historyAllByApplication(curHis.getApplication());
+		boolean found=false;
 		if (allHis != null) {
 			for (History h : allHis) {
 				if (h.getActConfig() != null) {
 					if (h.getActConfig().getID() == actConf.getID()) {
 						Concept exec = closureServ.getParent(h.getActivity());
 						boolean sameExec = accServ.sameEmail(exec.getIdentifier(), email);
-						if (h.getActivityData() != null || sameExec) {
-							closeActivity(h, true);
+						//if (h.getActivityData() != null || sameExec) {
+						if (h.getGo() == null && sameExec) {
+							found=true;
+							break;
 						}
 					}
 				}
 			}
 		}
-		// create an activity
-		String actUrlConf = literalServ.readValue("activityurl", actConf);
-		Concept activity = createActivityNode("activity." + actUrlConf, email);
-		String checkListDict = literalServ.readValue("checklisturl", actConf);
-		activity.setLabel(checkListDict);
-		activity = closureServ.save(activity);
-		// open a history record
-		openHistory(scheduled, curHis, actConf, activity, null, notes); // activity data will be created, when the
-		// activity will be open
+		if(!found) {
+			// create an activity
+			String actUrlConf = literalServ.readValue("activityurl", actConf);
+			Concept activity = createActivityNode("activity." + actUrlConf, email);
+			String checkListDict = literalServ.readValue("checklisturl", actConf);
+			activity.setLabel(checkListDict);
+			activity = closureServ.save(activity);
+			// open a history record
+			return openHistory(scheduled, curHis, actConf, activity, null, notes); // activity data will be created, when the
+			// activity will be open
+		}else {
+			return null;
+		}
 	}
 
 	/**
@@ -1032,7 +1055,7 @@ public class ApplicationService {
 
 	/**
 	 * Close this history record de-activate the current activity
-	 * 
+	 * and possibly extra first NMRA activities
 	 * @param curHis
 	 * @param cancelled
 	 * @return
@@ -1040,16 +1063,74 @@ public class ApplicationService {
 	 */
 	@Transactional
 	public History closeActivity(History curHis, boolean cancelled) throws ObjectNotFoundException {
+		//TODO
+		/*	List<History> extraActs = extraActivities(curHis);
+			for(History h :extraActs) {
+				stopOneActivity(h,true);
+			}*/
+		return stopOneActivity(curHis, cancelled);
+	}
+	/**
+	 * Extra first time NMRA activities that can't be concurrent
+	 * The first time NMRA activity is the first activity or any activity after applicant's activity
+	 * @param curHis
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	private List<History> extraActivities(History curHis) throws ObjectNotFoundException {
+		List<History> ret = new ArrayList<History>();
+		if(!validServ.isActivityBackground(curHis.getActConfig())) {
+			boolean hasExtra=false;
+			Concept parent = closureServ.getParent(curHis.getActConfig());
+			Thing thing = new Thing();
+			thing=boilerServ.thingByNode(parent, thing);
+			if(thing.getID()>0) {
+				//the parent is the configuration of the previous activity is applicant's actiity
+				hasExtra=isApplicantActivity(parent);
+			}else {
+				//the current activity is the first
+				hasExtra=true;
+			}
+			if(hasExtra) {
+				List<History> applHis = boilerServ.historyAllByApplication(curHis.getApplication());
+				for(History his : applHis) {
+					if(his.getActConfig().getID()==curHis.getActConfig().getID() && his.getGo()==null) {
+						ret.add(his);
+					}
+				}
+			}
+		}
+		return ret;
+	}
+
+	/**
+	 * Is this activity managed by an applicant
+	 * @param actConfig
+	 * @return
+	 */
+	private boolean isApplicantActivity(Concept actConfig) {
+		try {
+			Concept role = assmServ.activityExecutorRole(actConfig);
+			return role.getIdentifier().equalsIgnoreCase(SystemService.ROLE_APPLICANT);
+		} catch (ObjectNotFoundException e) {
+			return false;
+		}
+		
+	}
+
+	/**
+	 * Close or cancel a single activity
+	 * @param curHis
+	 * @param cancelled
+	 * @return
+	 */
+	public History stopOneActivity(History curHis, boolean cancelled) {
 		Date come = curHis.getCome();
 		Date go = new Date();
 		if (come.after(go)) {
 			curHis.setCome(go);
 		}
 		curHis.setGo(new Date());
-		/*if(cancelled) {
-			closureServ.removeNode(curHis.getActivityData());
-			curHis.setActivityData(null);
-		}*/
 		curHis.setCancelled(cancelled);
 		curHis = boilerServ.saveHistory(curHis);
 		return curHis;
@@ -1129,6 +1210,10 @@ public class ApplicationService {
 					ThingDTO dt = createLoadActivityData(data, his, user, true);
 					data.getPath().add(dto);
 					data.getData().add(dt);
+					if(his.getActivity()!=null) {
+						Concept exec=closureServ.getParent(his.getActivity());
+						data.getExecutors().add(userServ.nameByEmail(exec.getIdentifier()));
+					}
 					// notes from the previous step
 					String psn = "";
 					if (his.getPrevNotes() != null) {
@@ -1156,6 +1241,8 @@ public class ApplicationService {
 				ThingDTO dt = createLoadActivityData(data, curHis, user, false);
 				data.getPath().add(dto);
 				data.getData().add(dt);
+				Concept exec=closureServ.getParent(curHis.getActivity());
+				data.getExecutors().add(userServ.nameByEmail(exec.getIdentifier()));
 				// notes from the previous step
 				String psn = "";
 				if (curHis.getPrevNotes() != null) {
@@ -1196,15 +1283,15 @@ public class ApplicationService {
 			if (history.getActivityData() != null) {
 				dto.setNodeId(history.getActivityData().getID());
 			}
-			dto = thingServ.createContent(dto, user);
-			if (dto.getNodeId() > 0) {
+			//dto = thingServ.createContent(dto, user);
+			/*if (dto.getNodeId() > 0) {
 				Concept node = closureServ.loadConceptById(dto.getNodeId());
 				dto.setStrings(dtoServ.readAllStrings(dto.getStrings(), node));
 				dto.setLiterals(dtoServ.readAllLiterals(dto.getLiterals(), node));
 				dto.setDates(dtoServ.readAllDates(dto.getDates(), node));
 				dto.setNumbers(dtoServ.readAllNumbers(dto.getNumbers(), node));
 				dto.setLogical(dtoServ.readAllLogical(dto.getLogical(), node));
-			}
+			}*/
 			dto.setReadOnly(readOnly);
 		}
 		return dto;
@@ -1441,10 +1528,11 @@ public class ApplicationService {
 					data.getExecs().getRows().clear();// ika24062022
 					data = executorsNextChoice(his, user, data, false);
 					break;
-				case 9://TODO
+				case 9:
 					data.getExecs().getRows().clear();
-					data = executorsNextChoice(his, user, data, false);//ika26012023
 					data.getNextJob().getRows().clear();
+					data = executorsThisChoice(his, user, data);
+					break;
 				default:
 					data.getExecs().getRows().clear();
 					data.getNextJob().getRows().clear();
@@ -1931,7 +2019,8 @@ public class ApplicationService {
 			systemDictNode(root, "5", messages.get("reject"));
 			systemDictNode(root, "6", messages.get("reassign"));
 			systemDictNode(root, "7", messages.get("amendment"));
-			systemDictNode(root, "8", messages.get("deregistration"));*/
+			systemDictNode(root, "8", messages.get("deregistration"));
+			systemDictNode(root, "9", messages.get("revokepermit"));*/
 			switch (actCode) {
 			case 0: // NMRA executor continue workflow from the activity selected
 				data = validServ.submitNext(curHis, user, data);
@@ -1999,6 +2088,13 @@ public class ApplicationService {
 				if (data.isValid()) {
 					sendEmailAttention(user, curHis, data);
 					data = submitDeregistration(curHis, user, data);
+				}
+				return data;
+			case 9:
+				//data = validServ.submitRevokePermit(curHis, user, data);
+				data = validServ.submitRevokePermitData(curHis, user, data);
+				if(data.isValid()) {
+					data = submitRevokePermit(curHis, user, data);
 				}
 				return data;
 			default:
@@ -2182,6 +2278,55 @@ public class ApplicationService {
 	}
 
 	/**
+	 * RevokePermit an application and move it to the NMRA users
+	 * dictionary.shutdown.applications
+	 * @param curHis
+	 * @param user
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 * @throws JsonProcessingException
+	 */
+	@Transactional
+	private ActivitySubmitDTO submitRevokePermit(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
+			throws ObjectNotFoundException, JsonProcessingException {
+		
+		//data=verifyScheduledGuestHost(curHis, data);
+		//if(data.isValid()) {	
+			cancellActivities(curHis);
+			//closeActivity(curHis, false);
+			cancelUsersActivities(user, curHis);
+			//Concept deregData = amendmentServ.amendedConcept(curHis.getApplicationData());
+			//cancelDataActivities(deregData, true); // cancel all activities, include monitoring
+			
+			//String processUrl = curHis.getApplConfig().getIdentifier().replace("configuration.", "");
+			//Concept dictConc = systemServ.revokepermitDictNode(processUrl);
+			
+			Concept nodeApplData = curHis.getApplicationData();
+			Thing thing = new Thing();
+			thing = boilerServ.thingByNode(nodeApplData, thing);
+			String processUrl = thing.getUrl();
+			Concept dictConc = systemServ.revokepermitDictNode(processUrl);
+			
+			// close previous scheduled
+			Concept appldata = amendmentServ.initialApplicationData(curHis.getApplicationData());
+			List<History> prevActivities = boilerServ.activities(processUrl, appldata);
+			for (History act : prevActivities) {
+				closeActivity(act, true);
+			}
+			
+			processUrl = literalServ.readValue(LiteralService.APPLICATION_URL, dictConc);
+			data = createRevokePermitApplication(curHis, processUrl, dictConc, data);
+			if (!data.isValid()) {
+				return data;
+			}
+		//}
+
+		//TODO sendEmailAttention(user, curHis, data);
+		return data;
+	}
+	
+	/**
 	 * Reject the current application
 	 * 
 	 * @param curHis
@@ -2216,7 +2361,7 @@ public class ApplicationService {
 		his.setPrevNotes(data.getNotes().getValue());
 		his = boilerServ.saveHistory(his);
 	}
-
+	
 	/**
 	 * Cancel all opened activities in this workflow
 	 * 
@@ -2264,6 +2409,11 @@ public class ApplicationService {
 		if (systemServ.isDeregistration(curHis)) {
 			data.clearErrors();
 			cancellActivities(curHis);
+			return data;
+		}
+		if(systemServ.isShutdown(curHis)) {
+			data.clearErrors();
+			closeActivity(curHis, true);
 			return data;
 		}
 		data.setIdentifier(messages.get("invalidstage"));
@@ -2326,16 +2476,44 @@ public class ApplicationService {
 	 */
 	@Transactional
 	private ActivitySubmitDTO verifyScheduledGuestHost(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
-		for (TableRow row : data.getScheduled().getRows()) {
-			ThingScheduler ts = boilerServ.thingSchedulerById(row.getDbID());
-			Scheduler sch = boilerServ.schedulerByNode(ts.getConcept());
-			String applUrl=sch.getProcessUrl();
-			Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
-			List<Concept> nextActs = loadActivities(configRoot);
-			data = (ActivitySubmitDTO) validServ.workflowConfig(nextActs, configRoot, data);
+		if(isGuestOrHostFinalize(curHis)) {
+			if(data.getScheduled().getRows().size()>0) {
+				for (TableRow row : data.getScheduled().getRows()) {
+					ThingScheduler ts = boilerServ.thingSchedulerById(row.getDbID());
+					Scheduler sch = boilerServ.schedulerByNode(ts.getConcept());
+					String applUrl=sch.getProcessUrl();
+					Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
+					List<Concept> nextActs = loadActivities(configRoot);
+					data = (ActivitySubmitDTO) validServ.workflowConfig(nextActs, configRoot, data);
+				}
+			}else {
+				data.addError(messages.get("scheduled_requerd"));
+			}
 		}
 		return data;
 	}
+	/**
+	 * Is it guest or host application?
+	 * @param curHis
+	 * @return
+	 */
+	private boolean isGuestOrHostFinalize(History curHis) {
+		boolean ret=false;
+		try {
+			if(validServ.isActivitySubmitApprove(curHis)) {
+				Concept dictItem = curHis.getApplDict();
+				if(dictItem!=null) {
+					Concept dict=closureServ.getParent(dictItem);
+					ret = dict.getIdentifier().equalsIgnoreCase(SystemService.DICTIONARY_GUEST_APPLICATIONS) || 
+							dict.getIdentifier().equalsIgnoreCase(SystemService.DICTIONARY_HOST_APPLICATIONS);
+				}
+			}
+		} catch (ObjectNotFoundException e) {
+			//nothing to do
+		}
+		return ret;
+	}
+
 
 	/**
 	 * Run scheduled activities as well as related trace and monitoring ones Close
@@ -2426,6 +2604,71 @@ public class ApplicationService {
 	}
 
 	/**
+	 * 
+	 * @param prevHis
+	 * @param sch
+	 * @param dictConc
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	private ActivitySubmitDTO createRevokePermitApplication(History prevHis, String applUrl, Concept dictConc,
+			ActivitySubmitDTO data) throws ObjectNotFoundException {
+		Concept applRoot = closureServ.loadRoot(applUrl);
+		
+		Concept owner = new Concept();
+		List<Long> executors = data.executors();
+		if (executors.size() > 0) {
+			Concept userConc = closureServ.loadConceptById(executors.get(0));
+			owner.setIdentifier(userConc.getIdentifier());
+		}
+		
+		owner = closureServ.saveToTree(applRoot, owner);
+		Concept applConc = new Concept();
+		applConc = closureServ.save(applConc);
+		applConc.setIdentifier(applConc.getID() + "");
+		applConc = closureServ.saveToTree(owner, applConc);
+		//run activities
+		Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
+		List<Concept> nextActs = loadActivities(configRoot);
+		data = (ActivitySubmitDTO) validServ.workflowConfig(nextActs, configRoot, data);
+		if (data.isValid()) {
+			if (nextActs.size() > 0) {
+				Concept actConfig = nextActs.get(0);
+				History curHis = createHostHistorySample(prevHis, applConc, dictConc, configRoot);
+				activityCreate(null, actConfig, curHis, owner.getIdentifier(), data.getNotes().getValue());
+				
+				
+				//List<ActivityToRun> toRun = activitiesToRun(data, applUrl, prevHis, nextActs);
+				//if(toRun.size()>0 && data.isValid()) {
+				//History curHis = createHostHistorySample(prevHis, applConc, dictConc, configRoot);
+				//activityTrackRun(null, curHis, applUrl, applicantEmail); // tracking by an applicant
+				//activityMonitoringRun(null, curHis, applUrl); // monitoring by the all supervisors
+				// run activities
+				/*for(ActivityToRun act :toRun ) {
+						for (String email : act.getExecutors()) {
+							activityCreate(null, act.getConfig(), curHis, email, String.join(",",act.getFallBack()));
+						}
+					}
+				}else {
+					if(data.isValid()) {
+						data.setValid(false);
+						data.setIdentifier(messages.get("badconfiguration")+" "+applUrl);
+					}
+				}*/
+			} else {
+				String mess= messages.get("badconfiguration") +" "+applUrl;
+				logger.error(mess);
+				data.setValid(false);
+				data.setIdentifier(mess);
+			}
+		} else {
+			logger.error(applUrl + " " + data.getIdentifier());
+		}
+		return data;
+	}
+
+	/**
 	 * Create a sample for history in host stage It is a sample for the real history
 	 * records
 	 * 
@@ -2491,20 +2734,35 @@ public class ApplicationService {
 	@Transactional
 	public ActivitySubmitDTO submitReAssign(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
 			throws ObjectNotFoundException {
-		if (data.isValid()) {
+		if (data.isValid() && curHis.getActConfig() != null) { // wrong, monitoring and trace can`t be reassigned
 			// determine activity configuration
 			Concept actConfig = curHis.getActConfig();
 			if (actConfig == null) {
 				actConfig = curHis.getApplConfig();
 			}
 			List<Long> executors = data.executors();
-			// create activities
+			// create activities, the first will contain the reference to the data of the reassigned one
+			boolean moveData=true;
 			for (Long execId : executors) {
 				Concept userConc = closureServ.loadConceptById(execId);
-				activityCreate(null, actConfig, curHis, userConc.getIdentifier(), data.getNotes().getValue());
-			}
-			if (curHis.getActConfig() != null) { // monitoring should be left intact!
-				closeActivity(curHis, true);
+				History newHis=activityCreate(null, actConfig, curHis, userConc.getIdentifier(), data.getNotes().getValue());
+				if(newHis !=null) {		//not reassign to the same executor
+					//the first activity will inherit the data if one
+					if(moveData && curHis.getActivityData()!=null) {
+						newHis.setActivityData(curHis.getActivityData());
+						moveData=false;
+					}
+					//previous notes may be added too
+					if(curHis.getPrevNotes()!=null) {
+						String prevNotes=curHis.getPrevNotes();
+						if(newHis.getPrevNotes()!=null) {
+							prevNotes=prevNotes+"/ "+newHis.getPrevNotes();
+						}
+						newHis.setPrevNotes(prevNotes);
+					}
+					newHis= boilerServ.saveHistory(newHis);
+					closeActivity(curHis, true);
+				}
 			}
 		}
 		return data;
@@ -2550,7 +2808,7 @@ public class ApplicationService {
 	public ActivitySubmitDTO submitAddActivity(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
 			throws ObjectNotFoundException {
 		if (data.isValid()) {
-			cancelUsersActivities(user, curHis);
+			//cancelUsersActivities(user, curHis); 2023-03-01
 			List<Long> executors = data.executors();
 			long actConfId = data.nextActivity();
 			Concept actConf = closureServ.loadConceptById(actConfId);

@@ -157,7 +157,7 @@ public class SupervisorService {
 		if (activityNode.getActive()) {
 			dto.setUrl("activity.configuration");
 			dto.setNodeId(activityNode.getID());
-			dto = thingServ.createContent(dto, user);
+			//dto = thingServ.createContent(dto, user);
 			path.add(dto);
 		}
 		List<Concept> nextLevel = literalServ.loadOnlyChilds(activityNode);

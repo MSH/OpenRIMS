@@ -230,7 +230,9 @@ class DataConfigurator extends Component{
                 <Row hidden={!this.state.showimport}>
                     <Col xs='12' sm='12' lg='12' xl='12' >
                         <ImportDataConfiguration
-                            recipient={this.state.identifier} 
+                            recipient={this.state.identifier}
+                            loadapi='/api/admin/data/configuration/load/import'
+                            importapi='/api/admin/data/configuration/run/import' 
                         />
                     </Col>
                 </Row>
