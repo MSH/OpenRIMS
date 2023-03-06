@@ -279,10 +279,13 @@ public class DtoService {
 	 * @return 
 	 * @return
 	 */
-	public <T extends ThingDTO> T createLiterals(T data, List<AssemblyDTO> literals) {
+	public <T extends ThingDTO> T createLiterals(T data, List<AssemblyDTO> literals, boolean thisApplicant) {
 		data.getLiterals().clear();
 		if(literals != null) {
 			for(AssemblyDTO ad : literals) {
+				if(thisApplicant && ad.isHideFromApplicant()) {
+					continue;
+				}
 				FormFieldDTO<String> fld = FormFieldDTO.of("", ad.isReadOnly(), ad.isTextArea());
 				data.getLiterals().put(ad.getPropertyName(), fld);
 			}
@@ -295,10 +298,13 @@ public class DtoService {
 	 * @param strings
 	 * @return
 	 */
-	public  <T extends ThingDTO> T createStrings(T data, List<AssemblyDTO> strings) {
+	public  <T extends ThingDTO> T createStrings(T data, List<AssemblyDTO> strings, boolean thisApplicant) {
 		data.getStrings().clear();
 		if(strings != null) {
 			for(AssemblyDTO ad : strings) {
+				if(thisApplicant && ad.isHideFromApplicant()) {
+				continue;
+			}
 				FormFieldDTO<String> fld = FormFieldDTO.of("", ad.isReadOnly(), ad.isTextArea());
 				data.getStrings().put(ad.getPropertyName(), fld);
 			}
@@ -313,10 +319,13 @@ public class DtoService {
 	 * @param dates
 	 * @return
 	 */
-	public ThingDTO createDates(ThingDTO data, List<AssemblyDTO> dates) {
+	public ThingDTO createDates(ThingDTO data, List<AssemblyDTO> dates, boolean thisApplicant) {
 		data.getDates().clear();
 		if(dates != null) {
 			for(AssemblyDTO date :dates) {
+				if(thisApplicant && date.isHideFromApplicant()) {
+					continue;
+				}
 				FormFieldDTO<LocalDate> fld = FormFieldDTO.of(LocalDate.now());
 				fld.setReadOnly(date.isReadOnly());
 				fld.setDetail(getCalendarType(date));

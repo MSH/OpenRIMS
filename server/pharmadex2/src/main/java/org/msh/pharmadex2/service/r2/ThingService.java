@@ -198,16 +198,21 @@ public class ThingService {
 		}
 		//logger.trace("literals{");
 		List<String> exts=boilerServ.variablesExtensions(data);
+		//Applicant user?
+		boolean thisApplicant=accessControlServ.isApplicant(user);
 
 		data.getStrings().clear();
 		List<AssemblyDTO> strings = assemblyServ.auxStrings(data.getUrl(),assemblies);
-		data=dtoServ.createStrings(data,strings);
+		/*if(accessControlServ.isApplicant(user) && strings.isHideFromApplicant()) {
+			continue;
+		}*/
+		data=dtoServ.createStrings(data,strings, thisApplicant);
 
 		List<AssemblyDTO> literals = assemblyServ.auxLiterals(data.getUrl());
-		data=dtoServ.createLiterals(data, literals);
+		data=dtoServ.createLiterals(data, literals, thisApplicant);
 		//dates
 		List<AssemblyDTO> dates=assemblyServ.auxDates(data.getUrl(),assemblies);
-		data=dtoServ.createDates(data, dates);
+		data=dtoServ.createDates(data, dates, thisApplicant);
 		//numbers
 		List<AssemblyDTO> numbers=assemblyServ.auxNumbers(data.getUrl(),assemblies);
 		data=dtoServ.createNumbers(data,numbers);
