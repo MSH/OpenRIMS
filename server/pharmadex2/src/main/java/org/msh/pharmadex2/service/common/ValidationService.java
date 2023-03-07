@@ -1480,13 +1480,15 @@ public class ValidationService {
 			suggest(vn,3,100,strict);
 			return data;
 		}
-		if(!patternMatchFull(vn.getValue())) {
-			data.setValid(false);
-			data.setStrict(data.getNodeId()>0);	// Temporarily relaxed
-			if(strict) {
-				data.setIdentifier(messages.get("error"));
+		if(!patternMatchFull(vn.getValue().trim())) {
+			//TODO relaxed temporarily
+			//data.setValid(false);
+			data.setValid(data.getVarNodeId()!=0 && data.isValid());
+			//TODO relaxed temporarily
+			if(strict && !data.isValid()) {
+				data.setIdentifier(messages.get("error")+ "! "+vn.getValue());
 			}else {
-				data.setIdentifier(messages.get("warning"));
+				data.setIdentifier(messages.get("warning")+ "! "+vn.getValue());
 			}
 		}
 		return data;
@@ -2079,7 +2081,7 @@ public class ValidationService {
 		error(data, messages.get("error_nextactivitydata"), true);
 		return data;
 	}
-	
+
 	/**
 	 * Is it RevokePermit action. Is RevokePermit action is allowed
 	 * @param curHis
@@ -2096,7 +2098,7 @@ public class ValidationService {
 		}
 		return data;
 	}
-	
+
 	/**
 	 * RevokePermit to the  user
 	 * @param curHis
@@ -2114,7 +2116,7 @@ public class ValidationService {
 		error(data, messages.get("error_execs"), true);
 		return data;
 	}
-	
+
 	/**
 	 * For some submits notes field is mandatory
 	 * @param curHis

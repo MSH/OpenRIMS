@@ -494,15 +494,15 @@ public class SupervisorService {
 				data.getCol().setValue(100l);
 			}
 			data = validServ.variable(data, true, false);
-			if (dataCollectionVariableCanBeSaved(data)) {
+			if(data.isValid()) {
 				// save a node
 				Concept node = new Concept();
 				if (data.getVarNodeId() > 0) {
 					node = closureServ.loadConceptById(data.getVarNodeId());
 				}
 
-				node.setIdentifier(data.getVarName().getValue()+data.getVarNameExt().getValue());	//deprecated 2023-01-13
-				node.setLabel(data.getVarNameExt().getValue()); //deprecated 2023-01-1
+				node.setIdentifier(data.getVarName().getValue().trim()+data.getVarNameExt().getValue());	//deprecated 2023-01-13
+				node.setLabel(data.getVarNameExt().getValue().trim()); //deprecated 2023-01-1
 
 				Concept root = closureServ.loadConceptById(data.getNodeId());
 				node = closureServ.saveToTree(root, node);
@@ -516,22 +516,6 @@ public class SupervisorService {
 			return data;
 		} else {
 			throw new ObjectNotFoundException("dataCollectionVariableSave. Data collection node id is ZERO", logger);
-		}
-	}
-	/**
-	 * Allow saving logic
-	 * @param data
-	 * @return
-	 */
-	private boolean dataCollectionVariableCanBeSaved(DataVariableDTO data) {
-		if(data.isValid()) {
-			return true;
-		}else {
-			if(!data.isStrict()) {
-				return data.getNodeId()>0;	// Temporarily we allow relaxed validation for already saved items 2023-01-04
-			}else {
-				return false;
-			}
 		}
 	}
 

@@ -31,6 +31,7 @@ class DataVarForm extends Component{
                 cancel:'',
                 screenposition:'',
                 auxiliarydata:'',
+                success:'',
             },
             color:"warning"
         }
@@ -110,18 +111,24 @@ class DataVarForm extends Component{
                                 color='primary'
                                 onClick={()=>{
                                     Fetchers.postJSONNoSpinner("/api/admin/data/configuration/variable/save", this.state.data, (query,result)=>{
+                                        this.state.data=result
                                         if(result.valid){
                                             Navigator.message(this.state.identifier, this.props.recipient,"formCancel",{})
+                                            if(this.state.data.identifier.length==0){
+                                                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.success,
+                                                 color:'success'})
+                                            }else{
+                                                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:result.identifier, color:'warning'})
+                                            }
                                         }else{
                                             if(result.strict){
-                                                this.state.data=result
                                                 this.state.color='danger'
                                                 this.setState(this.state)
                                             }else{
                                                 this.state.color='warning'
-                                                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:result.identifier, color:'warning'})
                                                 Navigator.message(this.state.identifier, this.props.recipient,"formCancel",{})
                                             }
+                                            Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:result.identifier, color:this.state.color})
                                         }
                                     })
                                 }}
