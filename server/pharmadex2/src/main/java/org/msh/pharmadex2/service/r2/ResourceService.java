@@ -29,6 +29,7 @@ import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.PersonSelectorDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
 import org.msh.pharmadex2.dto.SystemImageDTO;
+import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -208,12 +209,13 @@ public class ResourceService {
 	/**
 	 * Real process a file from resources and downlaod it
 	 * @param fres
+	 * @param user 
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 * @throws IOException 
 	 */
 	@Transactional
-	public Resource fileResolve(ResourceDTO fres) throws ObjectNotFoundException, IOException {
+	public Resource fileResolve(ResourceDTO fres, UserDetailsDTO user) throws ObjectNotFoundException, IOException {
 		FileResource file = boilerServ.fileResourceById(fres.getFileId());
 		if(fres.getFileName().toUpperCase().endsWith(".DOCX")) {
 			InputStream stream = new ByteArrayInputStream(file.getFile());
@@ -221,7 +223,7 @@ public class ResourceService {
 			logger.trace("init model");
 			Map<String,Object> model = dx.initModel();
 			logger.trace("resolve model");
-			model = resolverServ.resolveModel(model,fres);
+			model = resolverServ.resolveModel(model,fres, user);
 			stream.reset();
 			DocxView px = new DocxView(stream,boilerServ);
 			logger.trace("resolve document");

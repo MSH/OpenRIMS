@@ -69,6 +69,8 @@ public class AssemblyService {
 	public static final String SYSTEM_IMPORT_DICTIONARY="system.import.dictionary";
 	//electronic form for data configuration import
 	public static final String SYSTEM_IMPORT_DATA_CONFIGURATION="system.import.data.configuration";
+	//electronic form for data workflows import
+		public static final String SYSTEM_IMPORT_DATA_WORKFLOW="system.import.data.workflow";
 	
 	@Autowired
 	private ClosureService closureServ;
@@ -498,6 +500,14 @@ public class AssemblyService {
 				ret.add(fld);	
 			}
 		}
+		if(url.equalsIgnoreCase(SYSTEM_IMPORT_DATA_WORKFLOW)) {
+			AssemblyDTO fld = new AssemblyDTO();
+			fld.setRequired(false);
+			fld.setReadOnly(true);
+			fld.setTextArea(false);
+			fld.setPropertyName("dataID");
+			ret.add(fld);	
+		}
 		if(ret.size()==0) {
 			//List<Assembly> assms = loadDataConfiguration(url);
 			for(Assembly assm : assemblies) {
@@ -598,7 +608,7 @@ public class AssemblyService {
 			assm.setDictUrl("dictionary.system.import");
 			ret.add(assm);
 		}
-		if(url.equalsIgnoreCase(SYSTEM_IMPORT_DATA_CONFIGURATION)) {
+		if(url.equalsIgnoreCase(SYSTEM_IMPORT_DATA_CONFIGURATION) || url.equalsIgnoreCase(SYSTEM_IMPORT_DATA_WORKFLOW)) {
 			AssemblyDTO assm = new AssemblyDTO();
 			assm.setPropertyName("import_electronic_form");
 			assm.setUrl("data.import");
@@ -848,11 +858,12 @@ public class AssemblyService {
 			row.getCells().add(cell1);
 			ret.add(row);
 		}
-		if(url.equalsIgnoreCase(SYSTEM_IMPORT_DATA_CONFIGURATION)) {
+		if(url.equalsIgnoreCase(SYSTEM_IMPORT_DATA_CONFIGURATION)|| url.equalsIgnoreCase(SYSTEM_IMPORT_DATA_WORKFLOW) ) {
 			LayoutRowDTO row= new LayoutRowDTO();
 			LayoutCellDTO cell1 = new LayoutCellDTO();
 			cell1.getVariables().add("import_electronic_form");	//file uploader
 			cell1.getVariables().add("description");						//import data diagnostic
+			cell1.getVariables().add("dataID");
 			row.getCells().add(cell1);
 			ret.add(row);
 		}

@@ -36,6 +36,7 @@ import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.controller.common.CustomXWPFDocument;
 import org.msh.pharmadex2.controller.common.DocxView;
 import org.msh.pharmadex2.dto.ResourceDTO;
+import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.r2.ResolverService;
 import org.msh.pharmadex2.service.r2.ResourceService;
@@ -79,7 +80,7 @@ public class DoxViewTest {
 		Map<String,Object> model = dx.initModel();
 		ResourceDTO td = new ResourceDTO();
 		td.setHistoryId(318);
-		model = resolverServ.resolveModel(model,td);
+		model = resolverServ.resolveModel(model,td, new UserDetailsDTO());
 		for(String key :model.keySet()) {
 			System.out.println(key+"=>"+model.get(key));
 		}
@@ -278,7 +279,7 @@ public class DoxViewTest {
 		Map<String, Object> model = dx.initModel();
 		ResourceDTO fres = new ResourceDTO();
 		fres.setHistoryId(2889);
-		model=resolverServ.resolveModel(model, fres);
+		model=resolverServ.resolveModel(model,fres,new UserDetailsDTO());
 		//fill out EL
 		stream = new FileInputStream(file);
 		dx = new DocxView(stream,boilerServ);
@@ -320,7 +321,7 @@ public class DoxViewTest {
 		//fres.setHistoryId(3603);			//implemented capital
 		//fres.setHistoryId(5293);			//implemented name
 		//fres.setHistoryId(5296);				//implement qualif
-		model=resolverServ.resolveModel(model, fres);
+		model=resolverServ.resolveModel(model, fres, new UserDetailsDTO());
 		//fill out EL
 		stream = new FileInputStream(file);
 		dx = new DocxView(stream,boilerServ);
@@ -352,7 +353,7 @@ public class DoxViewTest {
 		ResourceDTO fres = new ResourceDTO();
 		fres.setHistoryId(2889); //pharmacist
 		//fres.setHistoryId(3847);     //pharmacist qualif
-		model=resolverServ.resolveModel(model, fres);
+		model=resolverServ.resolveModel(model, fres, new UserDetailsDTO());
 		//fill out EL
 		stream = new FileInputStream(file);
 		dx = new DocxView(stream,boilerServ);

@@ -154,7 +154,24 @@ public class GuestAPI {
 		}
 		return data;
 	}
-
+	/**
+	 * List of guest applications in state revokepermit
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/guest/applications/revokes")
+	public ApplicationsDTO applicatonsRevokesTable(Authentication auth, @RequestBody ApplicationsDTO data) throws DataNotFoundException {
+		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
+		try {
+			data=applServ.applicatonsRevokes(data, user);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
 	/**
 	 * submit an application after checklist
 	 * @param auth
@@ -175,14 +192,16 @@ public class GuestAPI {
 
 	/**
 	 * Will we start an application or work in an activity?
+	 * Calculate historyId for the most appropriate history record
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException 
 	 */
 	@PostMapping("/api/*/application/or/activity")
-	public ApplicationOrActivityDTO applicationOrActivity(@RequestBody ApplicationOrActivityDTO data) throws DataNotFoundException{
+	public ApplicationOrActivityDTO applicationOrActivity(Authentication auth,@RequestBody ApplicationOrActivityDTO data) throws DataNotFoundException{
+		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
 		try {
-			data=applServ.applOrAct(data);
+			data=applServ.applOrAct(user,data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}

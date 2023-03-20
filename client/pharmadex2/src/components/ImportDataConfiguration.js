@@ -78,16 +78,31 @@ class ImportDataConfiguration extends Component{
     }
 
     runImport(){
+        if(this.props.dataID){
+            this.state.data.numbers.dataID.value=  this.props.dataID
+        }
         Fetchers.postJSON(this.props.importapi, this.state.data, (query,result)=>{
             this.state.data=result
-            if(this.state.data.valid){
-                Navigator.message(this.state.identifier, this.props.recipient,'DataConfigurationImportSuccess',this.state.data)
-                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.success, color:'success'})
+            if(this.props.dataID){
+                if(this.state.data.valid){
+                    Navigator.message(this.state.identifier, this.props.recipient,'DataConfigurationImportSuccess',this.state.data)
+                    Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.success, color:'success'})
+                    this.setState(this.state)
+                    Navigator.message(this.state.identifier, this.props.recipient,'DataConfigurationImportCancel',this.state.data)
+                }else{
+                    Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'danger'})
+                    this.setState(this.state)
+                }
             }else{
-                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'danger'})
+                if(this.state.data.valid){
+                    Navigator.message(this.state.identifier, this.props.recipient,'DataConfigurationImportSuccess',this.state.data)
+                    Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.success, color:'success'})
+                }else{
+                    Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'danger'})
+                }
+                this.setState(this.state)
+                Navigator.message(this.state.identifier, '*', 'thingReload',this.state.data)
             }
-            this.setState(this.state)
-            Navigator.message(this.state.identifier, '*', 'thingReload',this.state.data)
         })
     }
 
@@ -140,4 +155,5 @@ ImportDataConfiguration.propTypes={
     recipient:PropTypes.string.isRequired,      //recipient for messages
     loadapi:PropTypes.string.isRequired,        //api to load a thing with file uploader
     importapi:PropTypes.string.isRequired,      //api to run import 
+    dataID:PropTypes.number,          //additional ID  parameter
 }

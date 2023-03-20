@@ -38,6 +38,7 @@ import org.msh.pharmadex2.dto.RegisterDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
 import org.msh.pharmadex2.dto.SchedulerDTO;
 import org.msh.pharmadex2.dto.ThingValuesDTO;
+import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
@@ -73,11 +74,12 @@ public class ResolverService {
 	/**
 	 * Resolve model to values map for using in DocxView
 	 * @param model
+	 * @param user 
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public Map<String, Object> resolveModel(Map<String, Object> model, ResourceDTO fres) throws ObjectNotFoundException {
+	public Map<String, Object> resolveModel(Map<String, Object> model, ResourceDTO fres, UserDetailsDTO user) throws ObjectNotFoundException {
 		boolean hasTable=false;			//should we resolve @form or @changes
 		for(String key : model.keySet()) {
 			if(key.toUpperCase().contains("@FORM") || key.toUpperCase().contains("@CHANGES")){
@@ -87,12 +89,15 @@ public class ResolverService {
 		}
 		Map<String, Object> errors = new LinkedHashMap<String, Object>();
 		Map<String, List<AssemblyDTO>> assemblies = new HashMap<String, List<AssemblyDTO>>();
+		if(!model.containsKey("_ERROR_")) {
+			model.put("_ERROR_", new String());
+		}
 		for(String key :model.keySet()) {
 			if(model.get(key).getClass().getName().contains("Object")) {
 				logger.trace("resolve key "+key);
 				String[] expr = key.split("@");
 				if(expr.length==2) {
-					Map<String, Object> value = resolve(expr[0],fres, assemblies, hasTable);	//first change here in READVARIABLE
+					Map<String, Object> value = resolve(expr[0],fres, assemblies, hasTable, user);	//first change here in READVARIABLE
 					model.put(key, valueToString(value, expr[1]));				//second there
 					errors = resolveError(value, errors);
 				}else {
@@ -181,7 +186,7 @@ public class ResolverService {
 
 
 			if(dataType.equalsIgnoreCase("date") || dataType.equalsIgnoreCase("registered") || dataType.equalsIgnoreCase("expired")
-					||  dataType.equalsIgnoreCase("from") ||  dataType.equalsIgnoreCase("to")) {
+					||  dataType.equalsIgnoreCase("from") ||  dataType.equalsIgnoreCase("to") || dataType.equalsIgnoreCase("today")) {
 				if(data instanceof LocalDate) {
 					LocalDate ld = (LocalDate) data;
 					String ldStr = ld.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM));
@@ -189,7 +194,7 @@ public class ResolverService {
 				}
 			}
 
-			if(dataType.equalsIgnoreCase("dateBS")) {
+			if(dataType.equalsIgnoreCase("dateBS") || dataType.equalsIgnoreCase("todayBS")) {
 				if(data instanceof LocalDate) {
 					LocalDate ld = (LocalDate) data;
 					String ldStr = boilerServ.localDateToNepali(ld, true);
@@ -197,7 +202,7 @@ public class ResolverService {
 				}
 			}
 
-			if(dataType.equalsIgnoreCase("dateBS1")) {
+			if(dataType.equalsIgnoreCase("dateBS1") || dataType.equalsIgnoreCase("todayBS1")) {
 				if(data instanceof LocalDate) {
 					LocalDate ld = (LocalDate) data;
 					String ldStr = boilerServ.localDateToNepali(ld, false);
@@ -270,20 +275,21 @@ public class ResolverService {
 	 * @param fres - the template with EL expressions
 	 * @param assemblies 
 	 * @param hasTable - should we call ObjectToTable?
+	 * @param user 
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public Map<String, Object> resolve(String expr,  ResourceDTO fres, Map<String, List<AssemblyDTO>> assemblies, boolean hasTable) throws ObjectNotFoundException{
+	public Map<String, Object> resolve(String expr,  ResourceDTO fres, Map<String, List<AssemblyDTO>> assemblies, boolean hasTable, UserDetailsDTO user) throws ObjectNotFoundException{
 		//System.out.println(new Date());
 		Map<String, Object> ret = new LinkedHashMap<String, Object>();
 		long historyId=fres.getHistoryId();
 		if(expr!=null && expr.length()>0) {
 			if(historyId>0) {
 				List<String> urls = Arrays.asList(expr.split("/"));
-				// {/@form} and {/@changes}
+				// the whole document {/@form}, {/@changes} {/@today} {/@todayBS} {/@todayBS1} {@author}
 				if(urls.size()==0) {																	
-					return renderServ.root(fres, historyId, assemblies, ret);
+					return renderServ.root(fres, historyId, assemblies, hasTable, user, ret);
 				}
 				//The current electronic form
 				if(urls.get(0).equalsIgnoreCase("this")) {								

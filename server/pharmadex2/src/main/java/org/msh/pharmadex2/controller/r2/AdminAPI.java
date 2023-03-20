@@ -1074,12 +1074,13 @@ public class AdminAPI {
 	}
 
 	@PostMapping("/api/admin/workflow/export/excel")
-	public ResponseEntity<Resource> workflowExportExcel(@RequestBody WorkflowDTO data)
+	public ResponseEntity<Resource> workflowExportExcel(Authentication auth,@RequestBody WorkflowDTO data)
 			throws DataNotFoundException {
 		try {
 			String mediaType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 			String fileName = "reportDataStructure.xlsx";
-			Resource res = importExportWorkflowService.workflowExportExcel(data);
+			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+			Resource res = importExportWorkflowService.workflowExportExcel(user,data);
 			return ResponseEntity.ok().contentType(MediaType.parseMediaType(mediaType))
 					// .header(HttpHeaders.CONTENT_DISPOSITION, fres.getContentDisp() + ";
 					// filename=\"" + fres.getFileName() + "\"")
@@ -1226,6 +1227,23 @@ public class AdminAPI {
 		}
 		return data;
 	}
+	
+	/**
+	 * Load an electronic form to upload the data file in xlsx
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/data/workflow/load/import")
+	public ThingDTO dataWorkflowLoadImport(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		try {
+			data=importExportWorkflowService.importWorkflow(user, data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
 	/**
 	 * Import data configuration from the XLSX file uploaded
 	 * @param data
@@ -1246,5 +1264,22 @@ public class AdminAPI {
 		}
 		return data;
 	}
-
+	/**
+	 * Import data configuration from the XLSX file uploaded
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/data/workflow/run/import")
+	public ThingDTO dataWorkflowRunImport(Authentication auth, @RequestBody ThingDTO data){
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		data.setUrl(AssemblyService.SYSTEM_IMPORT_DATA_WORKFLOW);
+		try {
+			data=importExportWorkflowService.importRun(user, data);
+		} catch (ObjectNotFoundException e) {
+			data.setValid(false);
+			data.setIdentifier(e.getMessage());
+		}
+		return data;
+	}
 }

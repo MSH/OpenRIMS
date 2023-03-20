@@ -90,21 +90,22 @@ class ApplicationList extends Component{
                                 if(header=='come'){
                                     return {width:'15%'}
                                 }
-                                if(header=='days'){
+                                if(header=='term'){
                                     return {width:'5%'}
                                 }
-                                if(header=='activityurl'){
-                                    return {width:'15%'}
+                                if(header=='prefLabel'){
+                                    return {width:'60%'}
                                 }
                             }}
                             linkProcessor={(row,col)=>{
                                 let data={
                                     url:this.state.data.url,
                                     applDictNodeId:this.state.data.dictItemId,
-                                    historyId:this.state.data.table.rows[row].dbID,
+                                    historyId:0,    //unknown yet, will be resolved by application_or_activity
+                                    dataId:this.state.data.table.rows[row].dbID,    //since 2023-03-17 application data node ID
                                 }
-                                let param = JSON.stringify(data)
                                 Fetchers.postJSONNoSpinner("/api/guest/application/or/activity", data, (query,result)=>{
+                                    let param = JSON.stringify(result)
                                     if(result.application){
                                         Navigator.navigate(Navigator.tabName(),"applicationstart",param) 
                                     }else{

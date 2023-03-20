@@ -33,6 +33,8 @@ import org.msh.pharmadex2.dto.LinkDTO;
 import org.msh.pharmadex2.dto.LinksDTO;
 import org.msh.pharmadex2.dto.RegisterDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
+import org.msh.pharmadex2.dto.UserFormDTO;
+import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.common.DtoService;
 import org.msh.pharmadex2.service.common.ValidationService;
@@ -548,21 +550,42 @@ public class ResolverServiceRender {
 	 * @param fres
 	 * @param historyId 
 	 * @param assemblies 
+	 * @param hasTable 
+	 * @param user 
 	 * @param value
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
 	public Map<String, Object> root(ResourceDTO fres, long historyId, Map<String, List<AssemblyDTO>> assemblies, 
-			Map<String, Object> value) throws ObjectNotFoundException {
-		History his=boilerServ.historyById(historyId);
-		if(validServ.isAmendmentWorkflow(his)) {
-			value=rootAmendment(fres, his, assemblies, value);
-		}else {
-			value = rootApplication(fres, historyId, assemblies, value);
+			boolean hasTable, UserDetailsDTO user, Map<String, Object> value) throws ObjectNotFoundException {
+		value=resolveAttributes(user,value);
+		if(hasTable) {
+			History his=boilerServ.historyById(historyId);
+			if(validServ.isAmendmentWorkflow(his)) {
+				value=rootAmendment(fres, his, assemblies, value);
+			}else {
+				value = rootApplication(fres, historyId, assemblies, value);
+			}
 		}
 		return value;
 	}
+	/**
+	 * Resolve attributes for a whole document
+	 * @param user 
+	 * @param value 
+	 * @return
+	 */
+	private Map<String, Object> resolveAttributes(UserDetailsDTO user, Map<String, Object> value) {
+		//today
+		value.put("today", LocalDate.now());
+		value.put("todayBS", boilerServ.localDateToNepali(LocalDate.now(),false));
+		value.put("todayBS1", boilerServ.localDateToNepali(LocalDate.now(),true));
+		value.put("author", user.getName());
+		return value;
+	}
+
+
 	/**
 	 * Amendment application data
 	 * @param fres

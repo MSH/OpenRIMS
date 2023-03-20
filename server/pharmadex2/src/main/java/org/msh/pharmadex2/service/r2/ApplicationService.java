@@ -40,6 +40,7 @@ import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.CheckListDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.QuestionDTO;
+import org.msh.pharmadex2.dto.SubmitRecieptDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.WorkflowParamDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
@@ -130,6 +131,29 @@ public class ApplicationService {
 	}
 
 	/**
+	 * applications in status REVOKE PERMIT
+	 * 
+	 * @param data
+	 * @param user
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	@Transactional
+	public ApplicationsDTO applicatonsRevokes(ApplicationsDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		if (data.getDictItemId() > 0) {
+			Concept dictItem = closureServ.loadConceptById(data.getDictItemId());
+			String dataUrl = literalServ.readValue("dataurl", dictItem);
+
+			// find dictItem by revokeProcess
+			Concept dictRevoke = systemServ.revokepermitDictNode(dataUrl);
+			String appUrl = literalServ.readValue(LiteralService.APPLICATION_URL, dictRevoke);
+
+			data.setTable(createApplicationsTable(appUrl, dataUrl, user.getEmail(), data.getTable()));
+		}
+		return data;
+	}
+
+	/**
 	 * Create a table with list of applications
 	 * 
 	 * @param appUrl
@@ -142,16 +166,52 @@ public class ApplicationService {
 	private TableQtb createApplicationsTable(String appUrl, String dataUrl, String email, TableQtb table)
 			throws ObjectNotFoundException {
 		if (table.getHeaders().getHeaders().size() == 0) {
-			table.setHeaders(createHeaders(table.getHeaders(), true));
+			table.setHeaders(createApplicationsTableHeaders(table.getHeaders()));
 		}
-		String select = "select * from activity_data";
-		String where = "go is null and applurl='" + appUrl + "' and dataurl='" + dataUrl + "'" + "  and executive='"
-				+ email + "' and lang='" + LocaleContextHolder.getLocale().toString().toUpperCase() + "'";
-		List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", where, table.getHeaders());
+		jdbcRepo.applications_applicant(dataUrl,email);
+		String select = "select * from applications_applicant";
+		List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", "", table.getHeaders());
 		TableQtb.tablePage(rows, table);
 		table = boilerServ.translateRows(table);
 		table.setSelectable(false);
+		//paint color
+		for(TableRow row : table.getRows()) {
+			for(TableCell cell :row.getRow()) {
+				if(cell.getKey().equalsIgnoreCase("term")) {
+					if(cell.getIntValue()<0) {
+						cell.setStyleClass("text-danger");
+					}
+				}
+			}
+		}
 		return table;
+	}
+	/**
+	 * Create headers for applicant applications table
+	 * @param headers
+	 * @return
+	 */
+	private Headers createApplicationsTableHeaders(Headers headers) {
+		headers.getHeaders().add(TableHeader.instanceOf(
+				"come",
+				"scheduled",
+				true, true, true, TableHeader.COLUMN_LOCALDATE, 0));
+		headers.getHeaders().add(TableHeader.instanceOf(
+				"term",
+				"days",
+				true, true, true, TableHeader.COLUMN_LONG, 0));
+		headers.getHeaders().add(TableHeader.instanceOf(
+				"prefLabel",
+				"prefLabel",
+				true, true, true, TableHeader.COLUMN_LINK, 0));
+		headers.getHeaders().add(TableHeader.instanceOf(
+				"tcategory",
+				"category",
+				true, true, true, TableHeader.COLUMN_STRING, 0));
+		headers.getHeaders().get(0).setSortValue(TableHeader.SORT_DESC);
+		headers = boilerServ.translateHeaders(headers);
+		headers.setPageSize(20);
+		return headers;
 	}
 
 	/**
@@ -200,6 +260,7 @@ public class ApplicationService {
 		}
 		if (data.getHistoryId() > 0) {
 			History his = boilerServ.historyById(data.getHistoryId());
+			data.setCurrentHistoryActive(his.getGo()==null);
 			if (his.getPrevNotes() != null) {
 				data.setNotes(his.getPrevNotes());
 			}
@@ -213,19 +274,30 @@ public class ApplicationService {
 			Concept objectData = boilerServ.initialApplicationNode(his.getApplicationData());
 			jdbcRepo.application_history(objectData.getID());
 			table = historyTableRows(user, table, manager, false);
-			table.setSelectable(accServ.isSupervisor(user));
+			//table.setSelectable(accServ.isSupervisor(user));
 			data.setTable(table);
 			//build table events ika30012023
 			TableQtb tableEv = data.getTableEv();
+			boolean applicant=accessControlServ.isApplicant(user);
 			if (tableEv.getHeaders().getHeaders().size() == 0) {
 				tableEv.setHeaders(historyHeaders(tableEv.getHeaders(), user, manager));
+				//eliminate links for applicants
+				if(applicant) {
+					for(TableHeader h : tableEv.getHeaders().getHeaders()){
+						if(h.getColumnType()==TableHeader.COLUMN_LINK) {
+							h.setColumnType(TableHeader.COLUMN_STRING);
+						}
+					}
+				}
 			}
 			//---Concept objectData = boilerServ.initialApplicationNode(his.getApplicationData());
 			//--jdbcRepo.application_history(objectData.getID());
 			tableEv = historyTableRows(user, tableEv, manager, true);
-			tableEv.setSelectable(accServ.isSupervisor(user));
+			//tableEv.setSelectable(accServ.isSupervisor(user));
 			data.setTableEv(tableEv);
 			return data;
+		}else {
+			data.setCurrentHistoryActive(true);		//for new ones
 		}
 		return data;
 	}
@@ -242,17 +314,20 @@ public class ApplicationService {
 	public TableQtb historyTableRows(UserDetailsDTO user, TableQtb table, boolean manager, boolean event) {
 		String where = "";
 		if(event) {
-			where = "come>= curdate()";
+			//where = "come>= curdate()";
+			where = "go is null";
 		}else {
-			where = "come<(curdate() + Interval 1 day)";
+			//where = "come<(curdate() + Interval 1 day)";
+			where = "go is not null";
 		}
 		if (!manager) {
-			where = where + " and go is not null";
+			//where = where + " and go is not null";
 		}
 		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from application_history", "", where,
 				table.getHeaders());
 		TableQtb.tablePage(rows, table);
 		boilerServ.translateRows(table);
+		table.setSelectable(false);
 		return table;
 	}
 
@@ -1063,11 +1138,10 @@ public class ApplicationService {
 	 */
 	@Transactional
 	public History closeActivity(History curHis, boolean cancelled) throws ObjectNotFoundException {
-		//TODO
-		/*	List<History> extraActs = extraActivities(curHis);
-			for(History h :extraActs) {
-				stopOneActivity(h,true);
-			}*/
+		List<History> extraActs = extraActivities(curHis);
+		for(History h :extraActs) {
+			stopOneActivity(h,true);
+		}
 		return stopOneActivity(curHis, cancelled);
 	}
 	/**
@@ -1079,23 +1153,25 @@ public class ApplicationService {
 	 */
 	private List<History> extraActivities(History curHis) throws ObjectNotFoundException {
 		List<History> ret = new ArrayList<History>();
-		if(!validServ.isActivityBackground(curHis.getActConfig())) {
-			boolean hasExtra=false;
-			Concept parent = closureServ.getParent(curHis.getActConfig());
-			Thing thing = new Thing();
-			thing=boilerServ.thingByNode(parent, thing);
-			if(thing.getID()>0) {
-				//the parent is the configuration of the previous activity is applicant's actiity
-				hasExtra=isApplicantActivity(parent);
-			}else {
-				//the current activity is the first
-				hasExtra=true;
-			}
-			if(hasExtra) {
-				List<History> applHis = boilerServ.historyAllByApplication(curHis.getApplication());
-				for(History his : applHis) {
-					if(his.getActConfig().getID()==curHis.getActConfig().getID() && his.getGo()==null) {
-						ret.add(his);
+		if(curHis.getActConfig()!=null) {		//is it initial application, monitoring, or trace?
+			if(!validServ.isActivityBackground(curHis.getActConfig())) {
+				boolean hasExtra=false;
+				Concept parent = closureServ.getParent(curHis.getActConfig());
+				if(parent==null) {
+					hasExtra=true;			//the first activity
+				}else {
+					hasExtra=isApplicantActivity(parent);	//the previous activity is applicant's activity
+				}
+				if(hasExtra) {
+					List<History> applHis = boilerServ.historyAllByApplication(curHis.getApplication());
+					for(History his : applHis) {
+						if(his.getActConfig()!=null && his.getGo()==null) {
+							if(his.getActConfig().getID()==curHis.getActConfig().getID()) {
+								if(his.getID()!=curHis.getID()) {
+									ret.add(his);
+								}
+							}
+						}
 					}
 				}
 			}
@@ -1115,7 +1191,7 @@ public class ApplicationService {
 		} catch (ObjectNotFoundException e) {
 			return false;
 		}
-		
+
 	}
 
 	/**
@@ -1163,18 +1239,56 @@ public class ApplicationService {
 
 	/**
 	 * Application or workflow activity?
-	 * 
+	 * Determine the history as well
+	 * @param user 
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	public ApplicationOrActivityDTO applOrAct(ApplicationOrActivityDTO data) throws ObjectNotFoundException {
-		History his = boilerServ.historyById(data.getHistoryId());
-		if (his.getActivityData() != null) {
-			data.setApplication(his.getActivityData().getID() == his.getApplicationData().getID());
-		} else {
-			data.setApplication(false);
+	public ApplicationOrActivityDTO applOrAct(UserDetailsDTO user, ApplicationOrActivityDTO data) throws ObjectNotFoundException {
+		History his = new History();
+		if(data.getHistoryId()>0) {
+			his = boilerServ.historyById(data.getHistoryId());
+		}else {
+			//get the most appropriate history using dataId
+			if(data.getDataId()>0) {
+				Concept applData= closureServ.loadConceptById(data.getDataId());
+				List<History> allHis = boilerServ.historyAll(applData);
+				//search for opened initial application record 
+				for(History h : allHis) {
+					if(h.getActivityData()!=null && h.getApplicationData()!=null &&
+							h.getActivityData().getID()==h.getApplicationData().getID() && h.getActConfig()==null && h.getGo()==null) {
+						data.setHistoryId(h.getID());
+						data.setApplication(true);
+						return data;
+					}
+				}
+
+				//search for any opened history record assigned 
+				for(History h : allHis) {
+					his=h;	//suppose..
+					if(h.getGo()==null ) {
+						Concept worker = closureServ.getParent(h.getActivity());
+						if(accessControlServ.sameEmail(user.getEmail(), worker.getIdentifier())){
+							data.setHistoryId(h.getID());
+							data.setApplication(false);
+							return data;
+						}
+					}
+				}
+
+			}else {
+				throw new ObjectNotFoundException("applicationOrActivity History and/or data are not defined "+
+						data.toString(),logger);
+			}
+		}
+		//the latest one or existing history
+		data.setHistoryId(his.getID());
+		data.setApplication(false);
+		if(his.getActivityData()!=null && his.getApplicationData()!=null &&
+				his.getActivityData().getID()==his.getApplicationData().getID() && his.getActConfig()==null && his.getGo()==null) {
+			data.setApplication(true);
 		}
 		return data;
 	}
@@ -1243,6 +1357,11 @@ public class ApplicationService {
 				data.getData().add(dt);
 				Concept exec=closureServ.getParent(curHis.getActivity());
 				data.getExecutors().add(userServ.nameByEmail(exec.getIdentifier()));
+				//2023-03-17 data edit condition 
+				boolean writable = accessControlServ.sameEmail(user.getEmail(), exec.getIdentifier()) && curHis.getGo()==null;
+				dt.setReadOnly(!writable);
+				dto.setReadOnly(!writable);
+				//2023-03-17
 				// notes from the previous step
 				String psn = "";
 				if (curHis.getPrevNotes() != null) {
@@ -1278,20 +1397,9 @@ public class ApplicationService {
 			dto.setUrl(history.getDataUrl());
 			dto.setActivityId(history.getActivity().getID());
 			dto.setHistoryId(history.getID());
-			/*Concept root = closureServ.loadRoot(dto.getUrl());
-			dto.setParentId(root.getID());*/
 			if (history.getActivityData() != null) {
 				dto.setNodeId(history.getActivityData().getID());
 			}
-			//dto = thingServ.createContent(dto, user);
-			/*if (dto.getNodeId() > 0) {
-				Concept node = closureServ.loadConceptById(dto.getNodeId());
-				dto.setStrings(dtoServ.readAllStrings(dto.getStrings(), node));
-				dto.setLiterals(dtoServ.readAllLiterals(dto.getLiterals(), node));
-				dto.setDates(dtoServ.readAllDates(dto.getDates(), node));
-				dto.setNumbers(dtoServ.readAllNumbers(dto.getNumbers(), node));
-				dto.setLogical(dtoServ.readAllLogical(dto.getLogical(), node));
-			}*/
 			dto.setReadOnly(readOnly);
 		}
 		return dto;
@@ -1531,7 +1639,7 @@ public class ApplicationService {
 				case 9:
 					data.getExecs().getRows().clear();
 					data.getNextJob().getRows().clear();
-					data = executorsThisChoice(his, user, data);
+					data = executorsNMRA(his, user, data);
 					break;
 				default:
 					data.getExecs().getRows().clear();
@@ -1628,6 +1736,34 @@ public class ApplicationService {
 			// the activity is first
 			actConfig = his.getApplConfig();
 		}
+		data.setExecs(executorsTable(his, actConfig, data.getExecs(), false));
+		return data;
+	}
+
+	/**
+	 * create executor's choice for this activity. To revokePermit
+	 * 
+	 * @param his
+	 * @param user
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	private ActivitySubmitDTO executorsNMRA(History his, UserDetailsDTO user, ActivitySubmitDTO data)
+			throws ObjectNotFoundException {
+		/*we need to get a concept of process configuration RevokePermit*/
+		Concept nodeApplData = his.getApplicationData();
+		Thing thing = new Thing();
+		thing = boilerServ.thingByNode(nodeApplData, thing);
+		String processUrl = thing.getUrl();
+		Concept dictConc = systemServ.revokepermitDictNode(processUrl);
+		processUrl = literalServ.readValue(LiteralService.APPLICATION_URL, dictConc);
+
+		Concept actConfig = closureServ.loadRoot("configuration." + processUrl);
+		if (actConfig == null) {
+			return data;
+		}
+
 		data.setExecs(executorsTable(his, actConfig, data.getExecs(), false));
 		return data;
 	}
@@ -1743,9 +1879,6 @@ public class ApplicationService {
 				data = validServ.submitDeregistration(curHis, user, data);
 				if (data.isValid()) {
 					allowed.add("8"); // implement an amendment
-				}
-				if(validServ.isHostApplication(curHis.getApplDict())) {
-					allowed.add("9"); // revoke the permit
 				}
 			}
 		}
@@ -2091,8 +2224,7 @@ public class ApplicationService {
 				}
 				return data;
 			case 9:
-				//data = validServ.submitRevokePermit(curHis, user, data);
-				data = validServ.submitRevokePermitData(curHis, user, data);
+				data = validServ.submitRevokePermit(curHis, user, data);
 				if(data.isValid()) {
 					data = submitRevokePermit(curHis, user, data);
 				}
@@ -2110,8 +2242,9 @@ public class ApplicationService {
 	/**
 	 * 10.11.2022 khomenska
 	 *  Approve action
+	 * @throws JsonProcessingException 
 	 */
-	private ActivitySubmitDTO submitSendApprove(ActivitySubmitDTO data, UserDetailsDTO user, History curHis) throws ObjectNotFoundException{
+	private ActivitySubmitDTO submitSendApprove(ActivitySubmitDTO data, UserDetailsDTO user, History curHis) throws ObjectNotFoundException, JsonProcessingException{
 		Concept applRoot = closureServ.loadParents(curHis.getApplication()).get(0);
 		String applUrl = applRoot.getIdentifier();
 		Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
@@ -2184,6 +2317,17 @@ public class ApplicationService {
 				}
 			}
 		}
+		return data;
+	}
+
+	@Transactional
+	private ActivitySubmitDTO submitApproveRevoke(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
+			throws ObjectNotFoundException, JsonProcessingException {
+		Concept applicant = closureServ.getParent(curHis.getApplicationData());
+		rejectApplication(curHis, applicant.getIdentifier(), data);
+
+		sendEmailAttention(user, curHis, data);
+
 		return data;
 	}
 
@@ -2290,42 +2434,30 @@ public class ApplicationService {
 	@Transactional
 	private ActivitySubmitDTO submitRevokePermit(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
 			throws ObjectNotFoundException, JsonProcessingException {
-		
-		//data=verifyScheduledGuestHost(curHis, data);
-		//if(data.isValid()) {	
-			cancellActivities(curHis);
-			//closeActivity(curHis, false);
-			cancelUsersActivities(user, curHis);
-			//Concept deregData = amendmentServ.amendedConcept(curHis.getApplicationData());
-			//cancelDataActivities(deregData, true); // cancel all activities, include monitoring
-			
-			//String processUrl = curHis.getApplConfig().getIdentifier().replace("configuration.", "");
-			//Concept dictConc = systemServ.revokepermitDictNode(processUrl);
-			
-			Concept nodeApplData = curHis.getApplicationData();
-			Thing thing = new Thing();
-			thing = boilerServ.thingByNode(nodeApplData, thing);
-			String processUrl = thing.getUrl();
-			Concept dictConc = systemServ.revokepermitDictNode(processUrl);
-			
-			// close previous scheduled
-			Concept appldata = amendmentServ.initialApplicationData(curHis.getApplicationData());
-			List<History> prevActivities = boilerServ.activities(processUrl, appldata);
-			for (History act : prevActivities) {
-				closeActivity(act, true);
-			}
-			
-			processUrl = literalServ.readValue(LiteralService.APPLICATION_URL, dictConc);
-			data = createRevokePermitApplication(curHis, processUrl, dictConc, data);
-			if (!data.isValid()) {
-				return data;
-			}
-		//}
+		// close previous scheduled
+		List<History> hisAllScheduled = boilerServ.historyAllByApplData(curHis.getApplicationData());
+		for (History act : hisAllScheduled) {
+			closeActivity(act, (act.getActConfig() != null));
+		}
 
-		//TODO sendEmailAttention(user, curHis, data);
+		closeActivity(curHis, true);
+		//cancellActivities(curHis);
+		//cancelUsersActivities(user, curHis);
+
+		Concept nodeApplData = curHis.getApplicationData();
+		Thing thing = new Thing();
+		thing = boilerServ.thingByNode(nodeApplData, thing);
+		String processUrl = thing.getUrl();
+		Concept dictConc = systemServ.revokepermitDictNode(processUrl);
+
+		processUrl = literalServ.readValue(LiteralService.APPLICATION_URL, dictConc);
+		data = createRevokePermitApplication(curHis, processUrl, dictConc, data);
+		if (!data.isValid()) {
+			return data;
+		}
 		return data;
 	}
-	
+
 	/**
 	 * Reject the current application
 	 * 
@@ -2361,7 +2493,7 @@ public class ApplicationService {
 		his.setPrevNotes(data.getNotes().getValue());
 		his = boilerServ.saveHistory(his);
 	}
-	
+
 	/**
 	 * Cancel all opened activities in this workflow
 	 * 
@@ -2390,10 +2522,11 @@ public class ApplicationService {
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException
+	 * @throws JsonProcessingException 
 	 */
 	@Transactional
 	public ActivitySubmitDTO submitApprove(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
-			throws ObjectNotFoundException {
+			throws ObjectNotFoundException, JsonProcessingException {
 		if (systemServ.isGuest(curHis)) {
 			data = submitGuest(curHis, data);
 			return data;
@@ -2413,7 +2546,7 @@ public class ApplicationService {
 		}
 		if(systemServ.isShutdown(curHis)) {
 			data.clearErrors();
-			closeActivity(curHis, true);
+			submitApproveRevoke(curHis, user, data);
 			return data;
 		}
 		data.setIdentifier(messages.get("invalidstage"));
@@ -2615,14 +2748,14 @@ public class ApplicationService {
 	private ActivitySubmitDTO createRevokePermitApplication(History prevHis, String applUrl, Concept dictConc,
 			ActivitySubmitDTO data) throws ObjectNotFoundException {
 		Concept applRoot = closureServ.loadRoot(applUrl);
-		
+
 		Concept owner = new Concept();
 		List<Long> executors = data.executors();
 		if (executors.size() > 0) {
 			Concept userConc = closureServ.loadConceptById(executors.get(0));
 			owner.setIdentifier(userConc.getIdentifier());
 		}
-		
+
 		owner = closureServ.saveToTree(applRoot, owner);
 		Concept applConc = new Concept();
 		applConc = closureServ.save(applConc);
@@ -2637,8 +2770,8 @@ public class ApplicationService {
 				Concept actConfig = nextActs.get(0);
 				History curHis = createHostHistorySample(prevHis, applConc, dictConc, configRoot);
 				activityCreate(null, actConfig, curHis, owner.getIdentifier(), data.getNotes().getValue());
-				
-				
+
+
 				//List<ActivityToRun> toRun = activitiesToRun(data, applUrl, prevHis, nextActs);
 				//if(toRun.size()>0 && data.isValid()) {
 				//History curHis = createHostHistorySample(prevHis, applConc, dictConc, configRoot);

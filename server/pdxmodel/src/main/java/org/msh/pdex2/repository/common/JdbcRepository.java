@@ -1356,5 +1356,20 @@ public class JdbcRepository {
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 	}
+	/**
+	 * Applications list for applicant
+	 * @param dataUrl
+	 * @param email 
+	 */
+	public void applications_applicant(String dataUrl, String email) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("applications_applicant");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("email", email);
+		params.addValue("url", dataUrl);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+		
+	}
 
 }

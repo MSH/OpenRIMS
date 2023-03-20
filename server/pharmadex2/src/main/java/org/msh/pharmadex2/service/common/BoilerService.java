@@ -172,9 +172,14 @@ public class BoilerService {
 	 * @return
 	 */
 	public Date localDateTimeToDate(LocalDateTime dateToConvert) {
-		return java.util.Date
+		/*return java.util.Date
 				.from(dateToConvert.atZone(ZoneId.of("UTC"))
-						.toInstant());
+						.toInstant());*/
+		if(dateToConvert != null) {
+			return java.sql.Timestamp.valueOf(dateToConvert);
+		}else {
+			return new Date();
+		}
 	}
 	/**
 	 * local date to date
@@ -185,7 +190,7 @@ public class BoilerService {
 		if(dateToConvert==null) {
 			return new Date();
 		}
-		return java.util.Date.from(dateToConvert.atStartOfDay(ZoneId.of("UTC")).toInstant());
+		return java.util.Date.from(dateToConvert.atStartOfDay(ZoneId.systemDefault()).toInstant());
 	}
 	/**
 	 * Date to local date
@@ -396,6 +401,18 @@ public class BoilerService {
 		List<History> ret = historyRepo.findAllByApplicationOrderByCome(application);
 		return ret;
 	}
+	
+	/**
+	 * load all history for application. Sort by Come
+	 * @param application
+	 * @return empty list if no
+	 */
+	@Transactional
+	public List<History> historyAllByApplData(Concept applData) {
+		List<History> ret = historyRepo.findAllByApplicationDataAndGo(applData, null);
+		return ret;
+	}
+	
 	/**
 	 * Extract application or data url using appropriative node
 	 * @param application

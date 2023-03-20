@@ -23,6 +23,7 @@ import org.msh.pharmadex2.service.common.UserService;
 import org.msh.pharmadex2.service.r2.ContentService;
 import org.msh.pharmadex2.service.r2.ReportService;
 import org.msh.pharmadex2.service.r2.ResourceService;
+import org.msh.pharmadex2.service.r2.SystemService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,6 +64,8 @@ public class PublicAPI{
 	private ResourceService resourceServ;
 	@Autowired
 	private ReportService reportServ;
+	@Autowired
+	private SystemService systemServ;
 
 	@Value("${app.buildTime}")
 	private String buildTime;
@@ -135,6 +138,7 @@ public class PublicAPI{
 			throw new DataNotFoundException(e);
 		}
 	}
+
 
 	/**
 	 * Load the NMRA footer

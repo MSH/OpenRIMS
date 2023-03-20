@@ -30,7 +30,7 @@ class EmptyComponent extends Component{
 
     componentDidMount(){
         window.addEventListener("message",this.eventProcessor)
-        Locales.resolveLabels(this)
+        Locales.createLabels(this)
     }
 
     componentWillUnmount(){

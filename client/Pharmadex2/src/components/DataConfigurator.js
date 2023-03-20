@@ -230,6 +230,7 @@ class DataConfigurator extends Component{
                 <Row hidden={!this.state.showimport}>
                     <Col xs='12' sm='12' lg='12' xl='12' >
                         <ImportDataConfiguration
+                        // data={undefined}
                             recipient={this.state.identifier}
                             loadapi='/api/admin/data/configuration/load/import'
                             importapi='/api/admin/data/configuration/run/import' 
@@ -369,5 +370,5 @@ class DataConfigurator extends Component{
 export default DataConfigurator
 DataConfigurator.propTypes={
     nodeId:PropTypes.number.isRequired,  //selected data collection, zero is nothing to select
-    vars:PropTypes.bool.isRequired       //show vars table 
+    vars:PropTypes.bool.isRequired,     //show vars table 
 }

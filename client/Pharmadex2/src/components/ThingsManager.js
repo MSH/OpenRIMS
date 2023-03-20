@@ -87,7 +87,6 @@ class ThingsManager extends Component{
      * byAction - saved by the button Save, otherwise saved by "next" or "conclude" 
      */
     afterSave(data, byAction){
-        
         if(data.valid){
             if(this.state.data.auxPath.length>0){
                 this.state.data.auxPath[this.state.data.auxPathIndex]=data
@@ -99,18 +98,7 @@ class ThingsManager extends Component{
                         this.propagateMaster(pt,data,this.state.data.auxPathIndex)
                     })
                 }
-              
-                //movement forward or backward, next has been pressed
-                if(byAction){
-                    //button Save has been pressed
-                    /*0412if(this.state.data.auxPathIndex>0){
-                        this.state.data.auxPathIndex--
-                    }else{
-                        this.state.data.auxPath=[]
-                        this.state.data.auxPathIndex=0
-                    }*/
-
-                }else{
+                if(!byAction){
                     //NEXT has been pressed
                     if(this.state.data.auxPathIndex<(auxLength-1)){
                         this.state.data.auxPathIndex++
@@ -124,28 +112,19 @@ class ThingsManager extends Component{
             }else{
                 ////////////////// REGULAR PATH ////////////////////////////////////////////
                 this.state.data.path[this.state.data.pathIndex]=data
-                if(this.state.conclude){
-                    //message to ApplicaionStart
-                    Navigator.message(this.state.identifier, this.props.recipient, "conclude", this.state.data.path[0])
-                    return
-                }
-                if(data.pathIndex==0){
+                if(this.state.data.pathIndex==0){
                     this.state.data.path.forEach((pt, index)=>{
-                    //propagate master to the rest of path
+                        //propagate master to the rest of path
                         this.propagateMaster(pt,data,this.state.data.pathIndex)
                     })
                 }
-                if(byAction){
-                //movement backward,save has been pressed
-                    if(this.state.data.pathIndex>0){
-                        //0412this.state.data.pathIndex--
-                        this.setState(this.state)
-                    }else{
-                        Navigator.message(this.state.identifier, this.props.recipient,"cancelThing",{})
-                    }
-                }else{
+                if(!byAction){
                     //movement forward, next has been pressed
-                    this.state.data.pathIndex++
+                    if(this.state.data.pathIndex<(this.state.data.path.length-1)){
+                        this.state.data.pathIndex++
+                    }else{
+                        Navigator.message(this.state.identifier, this.props.recipient,"conclude",this.state.data)
+                    }
                 }
             }
             this.setState(this.state)
@@ -224,7 +203,7 @@ class ThingsManager extends Component{
         SpinnerMain.show()
         Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/activity/path", this.state.data, (query,result)=>{
             this.state.data=result
-
+            SpinnerMain.hide()
             this.state.fullcollapse = []
             if(Fetchers.isGoodArray(this.state.data.path)){
                 this.state.data.path.forEach((thing, index)=>{
@@ -278,7 +257,7 @@ class ThingsManager extends Component{
                     />
                 </Col>
             </Row>
-                )
+            )
     }
     /**
      * Paint things from this.state.things
@@ -293,11 +272,6 @@ class ThingsManager extends Component{
                         <h4 className='btn-link' key={index+1000} style={{cursor:"pointer"}} 
                             onClick={()=>{this.toggle(index)}}>{thing.title}</h4>
                     )
-                    /* ret.push(
-                        <Collapse key={index+500} isOpen={this.state.fullcollapse[index].collapse} >
-                            {this.thingComp(index, thing)}
-                        </Collapse>
-                    ) */
                     if(this.state.fullcollapse[index].collapse){
                         ret.push(
                             <Thing key={index+"_thing"}

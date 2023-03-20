@@ -121,4 +121,25 @@ public class DeregistrationService {
 			return false;
 		}
 	}
+	
+	/**
+	 * Is the current activity should be Revokepermit?
+	 * @param curHis
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public boolean isRevokeActivity(History curHis) throws ObjectNotFoundException {
+		if(curHis.getActConfig()!=null) {
+			Thing thing = boilerServ.thingByNode(curHis.getActConfig());
+			for(ThingDict  dict : thing.getDictionaries()) {
+				if(dict.getUrl().equalsIgnoreCase(SystemService.DICTIONARY_SYSTEM_FINALIZATION)){
+					if(dict.getConcept().getIdentifier().equalsIgnoreCase("revokepermit")){
+						return true;
+					}
+				}
+			}
+		}
+		return false;
+	}
 }

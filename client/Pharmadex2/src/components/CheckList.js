@@ -106,7 +106,7 @@ class CheckList extends Component{
                         this.state.data=result
                         if(this.state.data.valid){
                             Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.success, color:'success'})
-                            Navigator.message(this.state.identifier, this.props.recipient, "cancelThing", {})
+                            //Navigator.message(this.state.identifier, this.props.recipient, "cancelThing", {})
                             Navigator.message(this.state.identifier, this.props.recipient, "afterSubmit", {})
                         }else{
                             Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'danger'})
@@ -114,7 +114,8 @@ class CheckList extends Component{
                         }
                     })
                 }else{
-                    Navigator.message(this.state.identifier, this.props.recipient, "cancelThing", {})
+                    //Navigator.message(this.state.identifier, this.props.recipient, "cancelThing", {}) 2023-03-13 AK to avoid close
+                    Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.success, color:'success'})
                 }
             }else{
                 this.state.data=result

@@ -73,7 +73,8 @@ class ActivityManager extends Component{
         this.toggle=this.toggle.bind(this)
         this.thingComp=this.thingComp.bind(this)
         this.createBreadCrumbAndExecutorName=this.createBreadCrumbAndExecutorName.bind(this)
-        this.nextEvent=this.nextEvent.bind(this)
+        this.scheduledHistoryTable=this.scheduledHistoryTable.bind(this)
+        this.completedHistoryTable=this.completedHistoryTable.bind(this)
     }
 
     /**
@@ -108,7 +109,7 @@ class ActivityManager extends Component{
                     this.state.reject=false
                     this.setState(this.state)
                 }
-                if(data.subject=="savedByAction" || data.subject=="cancelThing"){
+                if(data.subject=="savedByAction" || data.subject=="cancelThing" || data.subject=="checklist_saved"){
                         this.state.saveCounter--
                         if(this.state.saveCounter==0){
                             if(data.subject=="savedByAction"){
@@ -543,57 +544,53 @@ class ActivityManager extends Component{
             return []
         }
     }
-    nextEvent(){
+    /**
+     * 
+     * @returns table with completed history records
+     */
+    completedHistoryTable(){
         return(
-        <CollectorTable
-                                tableData={this.state.history.tableEv}
-                                loader={this.loadHistory}
-                                headBackground={Pharmadex.settings.tableHeaderBackground}
-                                styleCorrector={(header)=>{
-                                    if(header=='days'){
-                                        return {width:'10%'}
-                                    }
-                                }}
-                                linkProcessor={(rowNo, cell)=>{
-                                    this.state.historyId=this.state.history.tableEv.rows[rowNo].dbID
-                                    this.setState(this.state)
-                                }}
-                                selectRow={(rowNo)=>{
-                                    let rows= this.state.history.tableEv.rows
-                                    rows.forEach((element,index) => {
-                                        if(index!=rowNo){
-                                            element.selected=false
-                                        }
-                                    });
-                                    rows[rowNo].selected=!rows[rowNo].selected
-                                    if(rows[rowNo].selected){
-                                        this.state.data.historyId=rows[rowNo].dbID
-                                        Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName()+"/activity/history/is/monitoring",
-                                            this.state.data,(query,result)=>{
-                                            this.state.data=result
-                                            if(this.state.data.valid){
-                                                this.state.historyId=this.state.history.tableEv.rows[rowNo].dbID
-                                                this.state.supervisor=true
-                                                this.state.send=true
-                                            }else{
-                                                this.state.historyId=0
-                                                this.state.supervisor=false
-                                                this.state.send=false
-                                                rows[rowNo].selected=false
-                                                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'warning'})
-                                            }
-                                            this.setState(this.state)
-                                        })
-                                    }else{
-                                        this.state.supervisor=false
-                                        this.state.send=false
-                                        this.setState(this.state)
-                                    }
-                                    
-                                }}
-                            />
+            <CollectorTable
+            tableData={this.state.history.table}
+            loader={this.loadHistory}
+            headBackground={Pharmadex.settings.tableHeaderBackground}
+            styleCorrector={(header)=>{
+                if(header=='days'){
+                    return {width:'10%'}
+                }
+            }}
+            linkProcessor={(rowNo, cell)=>{
+                this.state.historyId=this.state.history.table.rows[rowNo].dbID
+                this.setState(this.state)
+            }}
+            />
         )
     }
+    /**
+     * 
+     * @returns table with not completed history records
+     */
+    scheduledHistoryTable(){
+        return(
+            <CollectorTable
+                tableData={this.state.history.tableEv}
+                loader={this.loadHistory}
+                headBackground={Pharmadex.settings.tableHeaderBackground}
+                styleCorrector={(header)=>{
+                    if(header=='days'){
+                        return {width:'10%'}
+                    }
+                }}
+                linkProcessor={(rowNo, cell)=>{
+                    this.state.hist=!this.state.hist
+                    this.state.send=true
+                    this.state.historyId=this.state.history.tableEv.rows[rowNo].dbID
+                    this.setState(this.state)
+                }}
+            />
+        )
+    }
+
     render(){
         if(this.state.history.table == undefined
             || this.state.labels.locale==undefined
@@ -606,6 +603,10 @@ class ActivityManager extends Component{
         if(this.state.data.path.length>0){
             this.state.conclude=!this.state.data.path[this.state.pathIndex].readOnly
         }
+        let awe="fas fa-caret-right"
+        if(this.state.hist){
+            awe="fas fa-caret-down"
+        }
         return(
             <Container fluid>
                 <Row>
@@ -614,62 +615,20 @@ class ActivityManager extends Component{
                             this.state.hist=!this.state.hist
                             this.setState(this.state)
                         }}>
-                        <h4 className="ml-3">{this.state.labels.application_info}</h4>
+                        <Row>
+                            <Col>
+                                <h4 className="ml-3"><i className={awe}></i>{this.state.labels.application_info}</h4>
+                            </Col>
+                        </Row>
+                        
                     </Col>
                 </Row>
                 <Row>
                     <Col>
                         <Collapse isOpen={this.state.hist}>
-                            <CollectorTable
-                                tableData={this.state.history.table}
-                                loader={this.loadHistory}
-                                headBackground={Pharmadex.settings.tableHeaderBackground}
-                                styleCorrector={(header)=>{
-                                    if(header=='days'){
-                                        return {width:'10%'}
-                                    }
-                                }}
-                                linkProcessor={(rowNo, cell)=>{
-                                    this.state.historyId=this.state.history.table.rows[rowNo].dbID
-                                    this.setState(this.state)
-                                }}
-                                selectRow={(rowNo)=>{
-                                    let rows= this.state.history.table.rows
-                                    rows.forEach((element,index) => {
-                                        if(index!=rowNo){
-                                            element.selected=false
-                                        }
-                                    });
-                                    rows[rowNo].selected=!rows[rowNo].selected
-                                    if(rows[rowNo].selected){
-                                        this.state.data.historyId=rows[rowNo].dbID
-                                        Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName()+"/activity/history/is/monitoring",
-                                            this.state.data,(query,result)=>{
-                                            this.state.data=result
-                                            if(this.state.data.valid){
-                                                this.state.historyId=this.state.history.table.rows[rowNo].dbID
-                                                this.state.supervisor=true
-                                                this.state.send=true
-                                            }else{
-                                                this.state.historyId=0
-                                                this.state.supervisor=false
-                                                this.state.send=false
-                                                rows[rowNo].selected=false
-                                                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'warning'})
-                                            }
-                                            this.setState(this.state)
-                                        })
-                                    }else{
-                                        this.state.supervisor=false
-                                        this.state.send=false
-                                        this.setState(this.state)
-                                    }
-                                    
-                                }}
-                            />
                             <Row>
                                 <Col>
-                                    {this.activityHistory()}
+                                   {this.completedHistoryTable()}
                                 </Col>
                             </Row>
                             <Row>
@@ -679,7 +638,12 @@ class ActivityManager extends Component{
                             </Row>
                             <Row>
                                 <Col>
-                                 {this.nextEvent()}
+                                 {this.scheduledHistoryTable()}
+                                </Col>
+                            </Row>
+                            <Row>
+                                <Col>
+                                    {this.activityHistory()}
                                 </Col>
                             </Row>
                         </Collapse>

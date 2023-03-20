@@ -375,6 +375,11 @@ public class UserService implements UserDetailsService {
 		return urd;
 	}
 
+	/**
+	 * Get user details by email
+	 * @param email
+	 * @return null if not found
+	 */
 	@Transactional
 	public UserDetailsDTO loadByEmail(String email) {
 		User user = findByEmail(email);

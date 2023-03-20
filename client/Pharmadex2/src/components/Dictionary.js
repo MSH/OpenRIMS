@@ -148,6 +148,9 @@ class Dictionary extends Component{
                this.state.data=this.props.data
                this.setState(this.state)
             }
+            if(data.subject=="selectdictrow"){
+                this.selectRow(1)
+            }
         }
     }
 

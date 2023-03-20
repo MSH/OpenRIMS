@@ -121,7 +121,7 @@ public class RegisterService {
 	/**
 	 * load all registers for an application data given and 
 	 * @param applicationData
-	 * @return
+	 * @return empty map if not found
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional

@@ -8,8 +8,9 @@ import CollectorTable from './utils/CollectorTable'
 import Pharmadex from './Pharmadex'
 import ThingsManager from './ThingsManager'
 import CheckList from './CheckList'
-import AlertFloat from './utils/AlertFloat'
 import ActivityHistoryData from './ActivityHistoryData'
+import SubmitReciept from './SubmitReciept'
+
 /**
  * Starts an application
  * Contains component's display logic and nothing else
@@ -23,10 +24,10 @@ class ApplicationStart extends Component{
             next:true,
             hist:false,
             notes:false,
-            submit:false,
             identifier:Date.now().toString(),
             title:'',
-            reference:false,
+            conclude:false,
+            submitted:false,
             labels:{
                 next:'',
                 application_info:'',
@@ -61,14 +62,16 @@ class ApplicationStart extends Component{
                     this.state.title=data.data.title
                     this.setState(this.state)
                 }
-                if(data.subject=="cancelThing"){
-                    //window.location="/"+Navigator.tabSetName()+"#"+Navigator.tabName()
+                if(data.subject=="cancelThing" || data.subject=='submit_reciept'){
                     window.history.back()
                 }
+                if(data.subject=="afterSubmit"){    //from CheckList
+                    this.state.submitted=true
+                    this.setState(this.state)
+                }
                 if(data.subject=="conclude"){
-                    this.state.submit=true
+                    this.state.conclude=true
                     this.state.data=data.data
-                    this.state.reference=true
                     this.setState(this.state)
                 }
                 if(data.subject=="activityHistoryClose"){
@@ -79,7 +82,6 @@ class ApplicationStart extends Component{
                     if(this.state.btnname == "" || this.state.btnname != data.data.btnname){
                         this.state.nextlabel = data.data.label
                         this.state.btnname = data.data.btnname
-                        this.state.submit=false
                         this.state.next=true
                         this.setState(this.state)
                     }
@@ -102,6 +104,10 @@ class ApplicationStart extends Component{
         this.state.history.applDictNodeId=this.props.data.applDictNodeId
         Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName()+"/application/history", this.state.history, (query,result)=>{
             this.state.history=result
+            if(!result.currentHistoryActive){
+                this.state.data.historyId=this.state.history.historyId
+                this.state.submitted=true
+            }
             this.setState(this.state)
         })
     }
@@ -110,50 +116,38 @@ class ApplicationStart extends Component{
      * How to display content - only main column or reference column + main column
      */
     content(){
-        if(this.state.reference){
+        if(this.state.conclude){
             return(
-            <Row>
-                <Col xs='12' sm='12' lg='6' xl='6'>
-                    <Row >
-                        <Col>
-                            <Button close
-                                onClick={()=>{
-                                    this.state.reference=false
-                                    this.state.submit=false
-                                    this.setState(this.state)
-                                }} 
-                            />
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col className="overflow-auto" style={{maxHeight:'70vh'}}>
-                        <ThingsManager applicationUrl={this.state.data.url} 
-                                        applDictNodeId={this.state.data.applDictNodeId}
-                                        historyId={this.state.data.historyId}
-                                        application
-                                        recipient={this.state.identifier}
-                                        narrow
-                                        readOnly/>
-                        </Col>
-                    </Row>
-                </Col>
-                <Col xs='12' sm='12' lg='6' xl='6' className="overflow-auto" style={{maxHeight:'70vh'}}>
-                    <Row>
-                        <Col className={Pharmadex.settings.activeBorder}>
-                            <CheckList
-                                historyId={this.state.data.historyId}
-                                recipient={this.state.identifier} 
-                            />
-                        </Col>
-                    </Row>
-                </Col>
-            </Row>
+                <Row>
+                    <Col xs='12' sm='12' lg='6' xl='6'>
+                        <Row>
+                            <Col className="overflow-auto" style={{maxHeight:'70vh'}}>
+                            <ThingsManager applicationUrl={this.state.data.url} 
+                                            applDictNodeId={this.state.data.applDictNodeId}
+                                            historyId={this.state.data.historyId}
+                                            application
+                                            recipient={this.state.identifier}
+                                            narrow
+                                            readOnly/>
+                            </Col>
+                        </Row>
+                    </Col>
+                    <Col xs='12' sm='12' lg='6' xl='6' className="overflow-auto" style={{maxHeight:'70vh'}}>
+                        <Row>
+                            <Col className={Pharmadex.settings.activeBorder}>
+                                <CheckList
+                                    historyId={this.state.data.path[0].historyId}
+                                    recipient={this.state.identifier} 
+                                />
+                            </Col>
+                        </Row>
+                    </Col>
+                </Row>
             )
         }else{
             return(
                 <Row className={Pharmadex.settings.activeBorder}>
                     <Col xs='12' sm='12' lg='12' xl='12'>
-                    <Row><Col><AlertFloat /></Col></Row>
                     <Row><Col>
                     <ThingsManager  applicationUrl={this.props.data.url} 
                                     applDictNodeId={this.props.data.applDictNodeId}
@@ -162,7 +156,6 @@ class ApplicationStart extends Component{
                                     modiUnitId={this.props.data.modiUnitId}                      // id of data unit selected to modify
                                     prefLabel={this.props.data.prefLabel}                        // preflabel by default
                                            />
-                    <Row><Col><AlertFloat /></Col></Row>
                     </Col></Row>
                     </Col>
                 </Row>
@@ -184,7 +177,7 @@ class ApplicationStart extends Component{
                 </Col>
                 <Col>
                     <div className="mb-1 d-flex justify-content-end">
-                                <Button size="sm" hidden={this.state.submit}
+                                <Button size="sm" hidden={this.state.conclude}
                                     className="mr-1" color="primary"
                                     onClick={()=>{
                                         Navigator.message(this.state.identifier, "*", "nextButtonPressed", {btnname:this.state.btnname})
@@ -205,10 +198,10 @@ class ApplicationStart extends Component{
                                     {this.state.labels.global_showPrint}
                                 </Button>{' '}
                                 <Button size="sm"
-                                className="mr-1" color="success"
-                                onClick={()=>{
-                                    Navigator.message(this.state.identifier,"*","saveAllGuest",{})
-                                }}
+                                    className="mr-1" color="success"
+                                    onClick={()=>{
+                                        Navigator.message(this.state.identifier,"*","saveAllGuest",{})
+                                    }}
                             
                                 >{this.state.labels.global_save}</Button>{' '}
                             <Button size="sm"
@@ -218,7 +211,7 @@ class ApplicationStart extends Component{
                             }}
                             >{this.state.labels.global_cancel}</Button>{' '}
 
-                            <Button size="sm" hidden={!this.state.submit}
+                            <Button size="sm" hidden={!this.state.conclude}
                             className="mr-1" color="primary"
                             onClick={()=>{
                                 Navigator.message(this.state.identifier,"*","submit",{})    //PROCESSED BY CHECKLIST!!!!
@@ -332,11 +325,18 @@ class ApplicationStart extends Component{
         )       
 
     }
+
     render(){
         if(this.state.labels.locale == undefined || this.state.history.table==undefined){
             return []
         }
-        
+         // after submit screen
+         if(this.state.submitted){
+            return(
+                <SubmitReciept recipient={this.state.identifier} historyId={this.state.data.historyId}/>
+            )
+        }
+        // regular screens, page or conclude
         return(
             <Container fluid style={{fontSize:"0.8rem"}}>
                 {this.historyTable()}
@@ -356,7 +356,8 @@ ApplicationStart.propTypes={
         {
             url:PropTypes.string.isRequired,            //url of an application, i.e. application.guest
             applDictNodeId:PropTypes.number,            //id of dictionary node that describes an application
-            historyId:PropTypes.number.isRequired,      //id of the histry record to determine activity and data. Zero means new
+            historyId:PropTypes.number.isRequired,      //id of the histry record to determine activity and data. Zero means new or unknown yet
+            dataId:PropTypes.number.isRequired,         //id of application data
             modiUnitId:PropTypes.number,                //id of data unit selected to modify
             prefLabel:PropTypes.string,                 //preflabel by default, if needed
         }

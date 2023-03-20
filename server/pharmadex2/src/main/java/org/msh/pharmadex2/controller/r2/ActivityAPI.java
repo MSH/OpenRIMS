@@ -23,6 +23,7 @@ import org.msh.pharmadex2.dto.PersonDTO;
 import org.msh.pharmadex2.dto.PersonSpecialDTO;
 import org.msh.pharmadex2.dto.RegisterDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
+import org.msh.pharmadex2.dto.SubmitRecieptDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.ThingValuesDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
@@ -34,6 +35,7 @@ import org.msh.pharmadex2.service.r2.IrkaServices;
 import org.msh.pharmadex2.service.r2.LinkService;
 import org.msh.pharmadex2.service.r2.MonitoringService;
 import org.msh.pharmadex2.service.r2.PdfService;
+import org.msh.pharmadex2.service.r2.RecieptService;
 import org.msh.pharmadex2.service.r2.ResourceService;
 import org.msh.pharmadex2.service.r2.SupervisorService;
 import org.msh.pharmadex2.service.r2.ThingService;
@@ -91,6 +93,8 @@ public class ActivityAPI {
 	private IrkaServices irkaServ;
 	@Autowired
 	private LinkService linkServ;
+	@Autowired
+	private RecieptService receiptServ;
 
 	@PostMapping({ "/api/*/my/activities"})
 	public ApplicationsDTO myActivities(Authentication auth, @RequestBody ApplicationsDTO data)
@@ -239,8 +243,8 @@ public class ActivityAPI {
 	}
 
 	/**
-	 * Reload history
-	 * 
+	 * Reload history for application.
+	 * Also, checks the current history ID
 	 * @param auth
 	 * @param data
 	 * @return
@@ -538,7 +542,7 @@ public class ActivityAPI {
 		try {
 			ResourceDTO resDto = objectMapper.readValue(jsonStr, ResourceDTO.class);
 			ResourceDTO fres = resourceServ.prepareResourceDownload(resDto);
-			Resource res = resourceServ.fileResolve(fres);
+			Resource res = resourceServ.fileResolve(fres,null);
 			return ResponseEntity.ok().contentType(MediaType.parseMediaType(fres.getMediaType()))
 
 					.header(HttpHeaders.CONTENT_DISPOSITION,
@@ -555,12 +559,13 @@ public class ActivityAPI {
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/*/resource/download/form")
-	public ResponseEntity<Resource> resourceDownloadForm(@RequestBody ResourceDTO data)
+	public ResponseEntity<Resource> resourceDownloadForm(@RequestBody ResourceDTO data,Authentication auth)
 			throws DataNotFoundException {
 		try {
+			UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 			ResourceDTO fres = resourceServ.prepareResourceDownload(data);
 			logger.trace("start "+fres.getFileName());
-			Resource res = resourceServ.fileResolve(fres);
+			Resource res = resourceServ.fileResolve(fres, user);
 			logger.trace("finish "+fres.getFileName());
 			return ResponseEntity.ok().contentType(MediaType.parseMediaType(fres.getMediaType()))
 					.header(HttpHeaders.CONTENT_DISPOSITION, fres.getContentDisp() + "; filename=\"" + fres.getFileName() + "\"")
@@ -848,6 +853,24 @@ public class ActivityAPI {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data=linkServ.dictionarySelect(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
+	/**
+	 * Get data submit reciept
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping({ "/api/*/submit/reciept" })
+	public SubmitRecieptDTO submitReciept(Authentication auth, @RequestBody SubmitRecieptDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		try {
+			data=receiptServ.submitReciept(user, data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}

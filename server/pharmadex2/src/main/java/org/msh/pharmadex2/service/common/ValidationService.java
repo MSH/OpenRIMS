@@ -1720,18 +1720,20 @@ public class ValidationService {
 	public ActivitySubmitDTO submitNext(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		data.clearErrors();
 		if(!deregServ.isDeregistrationActivity(curHis)) {//1
-			if(!data.isReject()) {
-				if(!data.isReassign()) {//2
-
-					Concept exec = closureServ.getParent(curHis.getActivity());
-					if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {
-						if(isActivityForeground(curHis.getActConfig())) {
-							if(curHis.getGo()==null) {
-								return data;
+			if(!deregServ.isRevokeActivity(curHis)) {
+				if(!data.isReject()) {
+					if(!data.isReassign()) {//2
+						
+						Concept exec = closureServ.getParent(curHis.getActivity());
+						if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {
+							if(isActivityForeground(curHis.getActConfig())) {
+								if(curHis.getGo()==null) {
+									return data;
+								}
 							}
 						}
-					}
-				}//2
+					}//2
+				}
 			}
 		}//1
 		data.setIdentifier(messages.get("error_sendsent"));
@@ -2092,22 +2094,6 @@ public class ValidationService {
 	 */
 	public ActivitySubmitDTO submitRevokePermit(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		data.clearErrors();
-		if(!data.isRevokepermit()) {
-			data.setValid(false);
-			data.setIdentifier(messages.get("error_revokepermit"));
-		}
-		return data;
-	}
-
-	/**
-	 * RevokePermit to the  user
-	 * @param curHis
-	 * @param user
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	public ActivitySubmitDTO submitRevokePermitData(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		List<Long> executors = data.executors();
 		if(executors.size() == 1) {
 			data = submitNotesIsMandatory(curHis, data);
@@ -2116,6 +2102,7 @@ public class ValidationService {
 		error(data, messages.get("error_execs"), true);
 		return data;
 	}
+
 
 	/**
 	 * For some submits notes field is mandatory

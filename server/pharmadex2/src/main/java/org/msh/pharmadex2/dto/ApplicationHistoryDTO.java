@@ -14,6 +14,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class ApplicationHistoryDTO extends AllowValidation {
 	//current history ID, mandatory
 	private long historyId=0;
+	// the current history is active
+	private boolean currentHistoryActive=false;
 	//application data node ID
 	private long nodeId=0l;
 	//application dictionary node id, mandatory
@@ -102,6 +104,12 @@ public class ApplicationHistoryDTO extends AllowValidation {
 	}
 	public void setTableEv(TableQtb tableEv) {
 		this.tableEv = tableEv;
+	}
+	public boolean isCurrentHistoryActive() {
+		return currentHistoryActive;
+	}
+	public void setCurrentHistoryActive(boolean currentHistoryActive) {
+		this.currentHistoryActive = currentHistoryActive;
 	}
 	
 }

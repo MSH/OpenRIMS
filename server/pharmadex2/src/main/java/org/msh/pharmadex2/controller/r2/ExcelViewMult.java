@@ -24,12 +24,18 @@ import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
+import org.msh.pdex2.model.enums.YesNoNA;
+import org.msh.pdex2.model.r2.Concept;
+import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.controller.common.POIProcessor;
 import org.msh.pharmadex2.dto.DataCollectionDTO;
+import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.LayoutCellDTO;
 import org.msh.pharmadex2.dto.LayoutRowDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.WorkflowDTO;
+import org.msh.pharmadex2.dto.form.FormFieldDTO;
+import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,7 +63,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  *
  */
 public class ExcelViewMult extends AbstractXlsxView{
-	private static final int START_THING_CONTENT_ROW = 2;
+	public static final int START_THING_CONTENT_ROW = 2;
 	private static final Logger logger = LoggerFactory.getLogger(ExcelViewMult.class);
 	public static final String LABEL_BOOLEAN_TRUE = "+";
 
@@ -254,10 +260,10 @@ public class ExcelViewMult extends AbstractXlsxView{
 	 * @param mess 
 	 * @return
 	 */
-	public XSSFWorkbook workbookForWorkflowConfiguration(WorkflowDTO dto, Messages mess) {
+	public XSSFWorkbook workbookForWorkflowConfiguration(WorkflowDTO dto, Messages mess, ClosureService closureServ) {
 		getProcessor().initWorkbook(new XSSFWorkbook());
 		for(ThingDTO td : dto.getPath()) {
-			placeThingSheet(td,dto.getTitle(),mess);
+			placeThingSheet(td,dto.getTitle(),mess, closureServ);
 		}
 		return getProcessor().getWorkbook();
 	}
@@ -271,7 +277,7 @@ public class ExcelViewMult extends AbstractXlsxView{
 	 * @param objectMapper 
 	 * @throws JsonProcessingException 
 	 */
-	private void placeThingSheet(ThingDTO td, String title, Messages mess)  {
+	private void placeThingSheet(ThingDTO td, String title, Messages mess, ClosureService closureServ)  {
 		getProcessor().createSheet(td.getTitle(),1000);
 		getProcessor().addCaption(0, 0, title, 40);
 		int rowNo=START_THING_CONTENT_ROW;
@@ -280,7 +286,32 @@ public class ExcelViewMult extends AbstractXlsxView{
 			for(LayoutCellDTO cell : row.getCells()) {
 				for(String varName :cell.getVariables()) {
 					getProcessor().addSubChapter(colNo, rowNo, mess.get(varName), 40);
-					getProcessor().addLabel(colNo+1, rowNo, td.variableByName(varName).toString(), 60);
+					Object obj=td.variableByName(varName);
+					String val=obj.toString();
+					if(obj instanceof FormFieldDTO<?>) {
+						FormFieldDTO<?> fld = (FormFieldDTO<?>) obj;
+						Object objVal = fld.getValue();
+						if(objVal instanceof OptionDTO) {
+							//here we do use OptionDTO only for logical
+							OptionDTO odto= (OptionDTO) objVal;
+							Long lid =  odto.getId()-1;
+							val=YesNoNA.values()[lid.intValue()].toString();
+						}
+						
+					}
+					if(obj instanceof DictionaryDTO) {
+						DictionaryDTO ddto=(DictionaryDTO) obj;
+						if(ddto.getPrevSelected().size()==1) {
+							try {
+								Concept con=closureServ.loadConceptById(ddto.getPrevSelected().get(0));
+							val=con.getIdentifier();
+							} catch (ObjectNotFoundException e) {
+								
+							}
+							
+						}
+					}
+					getProcessor().addLabel(colNo+1, rowNo, val, 60);
 					rowNo++;				//order
 				}
 				colNo++;				//columns for label and value
