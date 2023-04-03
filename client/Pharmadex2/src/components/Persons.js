@@ -27,6 +27,7 @@ class Persons extends Component{
                 search:'',
                 next:'',
                 marktoremove:'',
+                warningRemove:''
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -236,10 +237,12 @@ class Persons extends Component{
                             <div hidden={this.state.selected==0}>
                                 <ButtonUni
                                     onClick={()=>{
-                                        Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/person/suspend", this.state.data, (query,result)=>{
-                                            this.state.data=result
-                                            this.loader()
-                                        })
+                                        Fetchers.alerts(this.state.labels.warningRemove, ()=>{
+                                            Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/person/suspend", this.state.data, (query,result)=>{
+                                                this.state.data=result
+                                                this.loader()
+                                            })
+                                        }, null)
                                     }}
                                     label={this.state.labels.global_suspend}
                                     color="warning"

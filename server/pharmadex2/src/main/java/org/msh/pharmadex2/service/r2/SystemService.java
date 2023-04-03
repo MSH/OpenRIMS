@@ -85,9 +85,7 @@ public class SystemService {
 	private LiteralService literalServ;
 	@Autowired
 	private Messages messages;
-	@Autowired
-	private BoilerService boilerServ;
-
+	
 	/**
 	 * Add role to roles dictionary
 	 * 
@@ -566,16 +564,24 @@ public class SystemService {
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	public Concept revokepermitDictNode(String processUrl) throws ObjectNotFoundException {
-		Concept root = closureServ.loadRoot(DICTIONARY_SHUTDOWN_APPLICATIONS);
+	public Concept revokepermitDictNode(String processUrl) throws ObjectNotFoundException  {
+		
+		Concept root= new Concept();
+		
+		try {
+			root = closureServ.loadRoot(DICTIONARY_SHUTDOWN_APPLICATIONS);
+		} catch (ObjectNotFoundException e) {
+			throw new ObjectNotFoundException("No dictionary DICTIONARY_SHUTDOWN_APPLICATIONS "+e,logger);
+		}
 		List<Concept> level = literalServ.loadOnlyChilds(root);
+		Concept conDict=null;
 		for (Concept conc : level) {
 			String aurl = literalServ.readValue(LiteralService.URL, conc);
 			if (aurl.equalsIgnoreCase(processUrl) && conc.getActive()) {
-				return conc;
+				conDict= conc;
 			}
 		}
-		throw new ObjectNotFoundException("dictionary node for shutdown process not found. URL is  " + processUrl, logger);
+		return conDict;
 	}
 	
 	/**

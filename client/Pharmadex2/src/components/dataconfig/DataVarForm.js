@@ -32,6 +32,7 @@ class DataVarForm extends Component{
                 screenposition:'',
                 auxiliarydata:'',
                 success:'',
+                warningRemove:''
             },
             color:"warning"
         }
@@ -140,14 +141,16 @@ class DataVarForm extends Component{
                                 label={this.state.labels.global_suspend}
                                 color="warning"
                                 onClick={()=>{
-                                    Fetchers.postJSONNoSpinner("/api/admin/data/configuration/variable/suspend", this.state.data, (query,result)=>{
-                                        if(result.valid){
-                                            Navigator.message(this.state.identifier, this.props.recipient,"formCancel",{})
-                                        }else{
-                                            this.state.data=result
-                                            this.setState(this.state)
-                                        }
-                                    })
+                                    Fetchers.alerts(this.state.labels.warningRemove, ()=>{
+                                        Fetchers.postJSONNoSpinner("/api/admin/data/configuration/variable/suspend", this.state.data, (query,result)=>{
+                                            if(result.valid){
+                                                Navigator.message(this.state.identifier, this.props.recipient,"formCancel",{})
+                                            }else{
+                                                this.state.data=result
+                                                this.setState(this.state)
+                                            }
+                                        }) 
+                                    }, null)
                                 }}
                             />
                         </Col>

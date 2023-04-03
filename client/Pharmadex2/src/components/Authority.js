@@ -35,7 +35,8 @@ class Authority extends Component{
                 cancel:'',
                 global_details:'',
                 global_suspend:'',
-                arearesponsibility:''
+                arearesponsibility:'',
+                warningRemove:''
             }
         }
         this.createBreadCrumb=this.createBreadCrumb.bind(this)
@@ -132,14 +133,16 @@ class Authority extends Component{
                     <ButtonUni
                             label={this.state.labels.global_suspend}
                             onClick={()=>{
-                            Fetchers.postJSONNoSpinner("/api/admin/organization/suspend", this.state.data,(query,result)=>{
-                                if(this.state.data.valid){
-                                    this.cancel()
-                                }else{
-                                    this.state.data=result
-                                    this.setState(this.state)
-                                }
-                            })
+                                Fetchers.alerts(this.state.labels.warningRemove, ()=>{
+                                    Fetchers.postJSONNoSpinner("/api/admin/organization/suspend", this.state.data,(query,result)=>{
+                                        if(this.state.data.valid){
+                                            this.cancel()
+                                        }else{
+                                            this.state.data=result
+                                            this.setState(this.state)
+                                        }
+                                    })
+                                }, null)
                             }}
                             color="warning"
                             disabled={!this.state.data.node.leaf}

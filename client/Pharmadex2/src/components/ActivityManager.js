@@ -21,7 +21,7 @@ class ActivityManager extends Component{
         super(props)
         this.state={
             execEmail:'',                       //executor's email
-            historyId:0,                        //history record has been selected
+            historyId:0,     //history record has been selected
             reassign:false,                     //reassign the executor
             reject:false,                       //return to an applicant
             saveCounter:1,                      //by default we wait saved only for checklist, however, sometaimes from data block
@@ -584,7 +584,7 @@ class ActivityManager extends Component{
                 linkProcessor={(rowNo, cell)=>{
                     this.state.hist=!this.state.hist
                     this.state.send=true
-                    this.state.historyId=this.state.history.tableEv.rows[rowNo].dbID
+                    this.state.data.historyId=this.state.history.tableEv.rows[rowNo].dbID
                     this.setState(this.state)
                 }}
             />
@@ -632,20 +632,22 @@ class ActivityManager extends Component{
                                 </Col>
                             </Row>
                             <Row>
+                                <Col>
+                                    {this.activityHistory()}
+                                </Col>
+                            </Row>
+                            <Row>
                                 <Col className="btn btn-link p-0 border-0 d-flex justify-content-start">
                                     <h6 className="ml-3">{this.state.labels.application_nextEv}</h6>
                                 </Col>
                             </Row>
+                            
                             <Row>
                                 <Col>
                                  {this.scheduledHistoryTable()}
                                 </Col>
                             </Row>
-                            <Row>
-                                <Col>
-                                    {this.activityHistory()}
-                                </Col>
-                            </Row>
+                           
                         </Collapse>
                     </Col>
                 </Row>

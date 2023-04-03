@@ -199,7 +199,7 @@ public class ReportService {
 		}
 		String where = "";
 		//05012023 add control - applicant should see only own
-		if(accessControl.isApplicant(user)) {
+		if(accessControl.isApplicant(user) && !user.getEmail().isEmpty()) {
 			where="email='"+user.getEmail()+"'";
 		}
 		jdbcRepo.report_deregister(repConf.getAddressUrl(), repConf.getRegisterAppUrl());
@@ -671,7 +671,7 @@ public class ReportService {
 				table.setHeaders(applServ.historyHeaders(table.getHeaders(), user, false));
 			}
 			jdbcRepo.application_history(data.getNodeId());
-			table = applServ.historyTableRows(user, table, false, false);
+			table = applServ.historyTableRows(table, false);
 			table.setSelectable(false);
 		}
 		return data;

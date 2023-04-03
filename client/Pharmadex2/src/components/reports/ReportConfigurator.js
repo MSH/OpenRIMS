@@ -29,6 +29,7 @@ class ReportConfigurator extends Component{
                 global_add:'',
                 success:'',
                 global_renewExternal:'',
+                warningRemove:''
             },
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -110,7 +111,9 @@ class ReportConfigurator extends Component{
                         label={this.state.labels.global_suspend}
                         color="warning"
                         onClick={()=>{
-                           
+                            Fetchers.alerts(this.state.labels.warningRemove, ()=>{
+                                    
+                            }, null)
                         }}
                     />
                 </Col>

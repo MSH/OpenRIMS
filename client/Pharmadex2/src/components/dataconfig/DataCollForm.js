@@ -25,6 +25,7 @@ class DataCollForm extends Component{
                 global_suspend:'',
                 cancel:'',
                 duplicate:'',
+                warningRemove:''
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -89,9 +90,11 @@ class DataCollForm extends Component{
                         label={this.state.labels.global_suspend}
                         color="warning"
                         onClick={()=>{
-                            Fetchers.postJSONNoSpinner("/api/admin/data/collection/definition/suspend", this.state.data, (query,result)=>{
-                                Navigator.message(this.state.identifier, this.props.recipient,"formCollCancel",{})
-                            })
+                            Fetchers.alerts(this.state.labels.warningRemove, ()=>{
+                                Fetchers.postJSONNoSpinner("/api/admin/data/collection/definition/suspend", this.state.data, (query,result)=>{
+                                    Navigator.message(this.state.identifier, this.props.recipient,"formCollCancel",{})
+                                })     
+                            }, null)
                         }}
                     />
                 </Col>

@@ -37,9 +37,7 @@ public class MailService {
 				SimpleMailMessage mailMess = new SimpleMailMessage(); 
 				mailMess.setFrom(impl.getUsername());
 		        mailMess.setTo(sendTo);
-		        //mailMess.setTo("khomenska1105@gmail.com");
 		        mailMess.setSubject(messages.get("mailAttentionSubj"));
-		        
 		        String text = "";
 		        if(textInMail != null && textInMail.length() > 0) {
 		        	text = textInMail;

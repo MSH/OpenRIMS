@@ -33,6 +33,7 @@ class WorkflowConfigurator extends Component{
                 next:'',
                 insertbefore:'',
                 exportExcel:'',
+                warningRemove:''
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -271,14 +272,16 @@ loader(){
                             <ButtonUni
                                 label={this.state.labels.global_suspend}
                                 onClick={()=>{
-                                    Fetchers.postJSON("/api/admin/workflow/activity/suspend", this.state.data, (query,result)=>{
-                                        this.state.data=result
-                                        this.state.data.selected=0
-                                        this.state.data.path.forEach(element=>{
-                                            element.repaint=true
+                                    Fetchers.alerts(this.state.labels.warningRemove, ()=>{
+                                        Fetchers.postJSON("/api/admin/workflow/activity/suspend", this.state.data, (query,result)=>{
+                                            this.state.data=result
+                                            this.state.data.selected=0
+                                            this.state.data.path.forEach(element=>{
+                                                element.repaint=true
+                                            })
+                                            this.setState(this.state)
                                         })
-                                        this.setState(this.state)
-                                    })
+                                    }, null)
                                 }}
                                 color="warning"
                             />

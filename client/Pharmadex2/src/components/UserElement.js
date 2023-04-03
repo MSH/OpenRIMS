@@ -34,7 +34,8 @@ class UserElement extends Component{
                 cancel:'',
                 executor_roles:'',
                 appl_responsibility:'',
-                save_error:''
+                save_error:'',
+                warningRemove:''
             }
         }
         this.loadData=this.loadData.bind(this)
@@ -185,13 +186,15 @@ class UserElement extends Component{
                     <ButtonUni
                          label={this.state.labels.global_suspend}
                          onClick={()=>{
-                            Fetchers.postJSONNoSpinner("/api/admin/user/suspend", this.state.data, (query, result)=>{
-                                Fetchers.setJustLoaded(result,false)
-                                this.state.data=result
-                                this.setState(this.state)
-                                let caller=this.props.caller
-                                Navigator.navigate(caller.tab,caller.component,caller.parameter)
-                            })
+                            Fetchers.alerts(this.state.labels.warningRemove, ()=>{
+                                Fetchers.postJSONNoSpinner("/api/admin/user/suspend", this.state.data, (query, result)=>{
+                                    Fetchers.setJustLoaded(result,false)
+                                    this.state.data=result
+                                    this.setState(this.state)
+                                    let caller=this.props.caller
+                                    Navigator.navigate(caller.tab,caller.component,caller.parameter)
+                                })
+                            }, null)
                          }}
                          color="warning"
                     /> 

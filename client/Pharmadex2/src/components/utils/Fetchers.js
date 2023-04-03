@@ -8,6 +8,30 @@ import Alerts from './Alerts'
 class Fetchers{
 
     /**
+     * Show Alert question, after answer YES send request
+     * ansfer NO - nothing
+     */
+    static alerts(alert, ansYES, ansNO){
+        if(alert != undefined && alert.length > 0){
+            Alerts.warning(alert,
+                ()=>{   //yes
+                    ansYES()
+                },
+                ()=>{   //no
+                    if(ansNO != null){
+                        ansNO()
+                    }
+                })
+        }else{
+
+        }
+    }
+
+    
+
+
+
+    /**
      * Post a JSON Query to server with or a spinner
      * set justloaded=true for any object loaded - deep
      * @param {String} api API URL, like "/api/countryDetails"

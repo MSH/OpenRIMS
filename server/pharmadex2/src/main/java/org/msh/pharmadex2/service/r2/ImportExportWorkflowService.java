@@ -4,28 +4,18 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-
-import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.msh.pdex2.dto.table.TableCell;
-import org.msh.pdex2.dto.table.TableHeader;
-import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.enums.YesNoNA;
-import org.msh.pdex2.model.r2.Assembly;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.FileResource;
-import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.controller.r2.ExcelViewMult;
-import org.msh.pharmadex2.dto.DataCollectionDTO;
-import org.msh.pharmadex2.dto.DataVariableDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.FileDTO;
 import org.msh.pharmadex2.dto.LayoutCellDTO;
@@ -37,8 +27,6 @@ import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.common.DtoService;
-import org.msh.pharmadex2.service.common.EntityService;
-import org.msh.pharmadex2.service.common.ValidationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,9 +34,7 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Export ThingDTO into Excel table
@@ -64,8 +50,6 @@ public class ImportExportWorkflowService {
 	@Autowired
 	private ClosureService closureServ;
 	@Autowired
-	private DictService dictServ;
-	@Autowired
 	private Messages mess;
 	@Autowired
 	private ThingService thingServ;
@@ -73,12 +57,6 @@ public class ImportExportWorkflowService {
 	private BoilerService boilerServ;
 	@Autowired
 	private LiteralService literalServ;;
-	@Autowired
-	private JdbcRepository jdbcRepo;
-	@Autowired
-	private ValidationService validServ;
-	@Autowired
-	private EntityService entityServ;
 	/**
 	 * Export workflow configuration to MS Excel
 	 * @param user 
@@ -299,8 +277,6 @@ public class ImportExportWorkflowService {
 			for(LayoutCellDTO cell : row.getCells()) {
 				for(String varName :cell.getVariables()) {
 					String str=boilerServ.getStringCellValue(sheet0.getRow(rowNo), colNo);
-					//System.out.println(str +" vn="+varName+ " col="+colNo+ " row="+rowNo);
-					FormFieldDTO<String> lit= act.getLiterals().get(varName);
 					if(act.getLiterals().get(varName)!=null) {
 						act.getLiterals().get(varName).setValue(str);
 					}else if(act.getStrings().get(varName)!=null){
@@ -312,24 +288,23 @@ public class ImportExportWorkflowService {
 					}else if(act.getDictionaries().get(varName)!=null) {
 						DictionaryDTO dic=act.getDictionaries().get(varName);
 						List <TableRow> trs=dic.getTable().getRows();
-						for(TableRow tr:trs) {
-							List <TableCell> cells=tr.getRow();
-							for(TableCell c:cells) {
-								tr.setSelected(false);
-								if(((String) c.getOriginalValue()).equalsIgnoreCase(str)) {
-									tr.setSelected(true);
-								}
-							}
-						}
+						
 						dic.getPrevSelected().clear();
 						Concept root = closureServ.loadRoot(dic.getUrl());
 						List<Concept> listCon=literalServ.loadOnlyChilds(root);
+						long idCon=0;
 						for(Concept con:listCon) {
 							if(con.getIdentifier().equalsIgnoreCase(str)){
 								dic.getPrevSelected().add(con.getID());
+								idCon=con.getID();
 							}
 						}
-						
+						for(TableRow tr:trs) {
+							tr.setSelected(false);
+							if(tr.getDbID()==idCon) {
+								tr.setSelected(true);
+							}
+						}
 					}
 					rowNo++;
 				}
@@ -343,149 +318,5 @@ public class ImportExportWorkflowService {
 		act=thingServ.thingSaveUnderParent(act, user);
 		return act;
 	}
-	/**
-	 * Import data collection definition - URL and description 
-	 * @param sheet
-	 * @param i
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	private DataCollectionDTO importDataCollection(XSSFSheet sheet, int i) throws ObjectNotFoundException {
-		DataCollectionDTO ret= new DataCollectionDTO();
-		String url = importUrl(sheet);
-		if(url.length()>0) {
-			url=adjustDataConfigUrl(url);
-			ret.setUrl(FormFieldDTO.of(url));
-			String description=boilerServ.getStringCellValue(sheet.getRow(1), 0);
-			ret.setDescription(FormFieldDTO.of(description));
 
-		}else {
-			throw new ObjectNotFoundException(mess.get("error_bmpFile"));
-		}
-		return ret;
-	}
-	/**
-	 * Data URL should be in cell A1
-	 * @param sheet
-	 * @return
-	 */
-	private String importUrl(XSSFSheet sheet) {
-		String url = boilerServ.getStringCellValue(sheet.getRow(0), 0);
-		if(url == null) {
-			return "";
-		}
-		return url;
-	}
-	/**
-	 * Recursive adjust data configuration URL
-	 * @param url
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	private String adjustDataConfigUrl(String url) throws ObjectNotFoundException {
-		Concept root = closureServ.loadRoot(SystemService.DATA_COLLECTIONS_ROOT);
-		List<Concept> confs = literalServ.loadOnlyChilds(root);
-		url=uniqueDataConfigUrl(confs, url);
-		return url;
-	}
-	private String uniqueDataConfigUrl(List<Concept> confs, String url) {
-		for(Concept conf : confs) {
-			if(conf.getActive()) {
-				if(conf.getIdentifier().equalsIgnoreCase(url)) {
-					url=url+".copy";
-					url=uniqueDataConfigUrl(confs, url);
-					break;
-				}
-			}
-		}
-		return url;
-	}
-	/**
-	 * Create table headers
-	 * @return
-	 */
-	private List<TableHeader> headers() {
-		List<String> excl = new ArrayList<String>();
-		//exclude columns below
-		excl.add("ID");
-		excl.add("conceptID");
-		excl.add("Discriminator");
-		List<TableHeader> uiHeaders = jdbcRepo.headersFromSelect("select * from data_config_vars where false", excl);
-		return uiHeaders;
-	}
-	/**
-	 * It is assumed that the data collection metadata (URL and description) is saved
-	 * Each variable should be saved as a concept and a record in the assemblies table linked to it
-	 * for header's keys please refer to the stored procedure data_config_vars
-	 * @param collDto
-	 * @param table
-	 * @throws ObjectNotFoundException 
-	 */
-	private void variablesImport(DataCollectionDTO collDto, TableQtb table) throws ObjectNotFoundException {
-		List<Assembly> good = new ArrayList<Assembly>();
-		for(TableRow row : table.getRows()) {
-			Concept concept = saveConcept(collDto.getNodeId(),row);
-			Assembly assm=assemblyRender(concept, row);
-			DataVariableDTO dto = new DataVariableDTO();
-			dto.setNodeId(collDto.getNodeId());
-			dto = dtoServ.assemblyToDto(assm, dto);
-			validServ.variable(dto, true, true);
-			if(dto.isValid() || !dto.isStrict()) {
-				good.add(assm);
-			}else {
-				throw new ObjectNotFoundException(row.toString(),logger);
-			}
-		}
-		//if all are good, save all
-		for(Assembly assm : good) {
-			assm=boilerServ.assemblySave(assm);
-		}
-	}
-	/**
-	 * Save a concept and literals based on row data
-	 * @param dataConfigID 
-	 * @param row
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	private Concept saveConcept(long dataConfigID, TableRow row) throws ObjectNotFoundException {
-		Concept parent=closureServ.loadConceptById(dataConfigID);
-		Concept variableConcept = new Concept();
-		String varName= row.getCellByKey("varname").getValue();
-		String varNameExt=row.getCellByKey("varnameext").getValue();
-		String decription=row.getCellByKey("descr").getValue();
-		DataVariableDTO dto = new DataVariableDTO();
-		dto.getVarName().setValue(varName);
-		dto.getVarNameExt().setValue(varNameExt);
-		dto=validServ.variableName(dto, true);
-		if(dto.isValid()) {
-			dto = validServ.variableExtName(dto, true);
-		}
-		dto.propagateValidation();
-		if(dto.isValid()) {
-			variableConcept.setIdentifier(varName);
-			variableConcept.setActive(true);
-			variableConcept.setLabel(varNameExt);
-			variableConcept = closureServ.saveToTree(parent, variableConcept);
-			variableConcept=literalServ.prefAndDescription(decription, decription, variableConcept);
-			return variableConcept;
-		}else {
-			throw new ObjectNotFoundException("varname=["+varName+"],varNAmeExt=["+varNameExt+"]",logger);
-		}
-	}
-	/**
-	 * Render assembly entity from a table row
-	 * It is assumed that headers contains column names exactly as in the database
-	 * @param concept concept to which assembly should be linked
-	 * @param row data to render
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	private Assembly assemblyRender(Concept concept, TableRow row) throws ObjectNotFoundException {
-		Assembly assm = new Assembly();
-		assm.setPropertyName(concept);
-		assm=(Assembly) entityServ.renderFromQtbTable(row, assm);
-		return assm;
-	}
-	
 }

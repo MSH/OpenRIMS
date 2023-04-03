@@ -273,7 +273,7 @@ public class ApplicationService {
 			}
 			Concept objectData = boilerServ.initialApplicationNode(his.getApplicationData());
 			jdbcRepo.application_history(objectData.getID());
-			table = historyTableRows(user, table, manager, false);
+			table = historyTableRows( table,  false);
 			//table.setSelectable(accServ.isSupervisor(user));
 			data.setTable(table);
 			//build table events ika30012023
@@ -292,7 +292,7 @@ public class ApplicationService {
 			}
 			//---Concept objectData = boilerServ.initialApplicationNode(his.getApplicationData());
 			//--jdbcRepo.application_history(objectData.getID());
-			tableEv = historyTableRows(user, tableEv, manager, true);
+			tableEv = historyTableRows(tableEv, true);
 			//tableEv.setSelectable(accServ.isSupervisor(user));
 			data.setTableEv(tableEv);
 			return data;
@@ -305,13 +305,13 @@ public class ApplicationService {
 	/**
 	 * Rows for history table
 	 * 
-	 * @param user
+	 * @param user OLD params
 	 * @param table
-	 * @param manager
+	 * @param manager OLD param
 	 * @param event for query records next evets ika0012023
 	 */
 	@Transactional
-	public TableQtb historyTableRows(UserDetailsDTO user, TableQtb table, boolean manager, boolean event) {
+	public TableQtb historyTableRows( TableQtb table,  boolean event) {
 		String where = "";
 		if(event) {
 			//where = "come>= curdate()";
@@ -320,9 +320,9 @@ public class ApplicationService {
 			//where = "come<(curdate() + Interval 1 day)";
 			where = "go is not null";
 		}
-		if (!manager) {
-			//where = where + " and go is not null";
-		}
+		/*if (!manager) {
+			where = where + " and go is not null";
+		}*/
 		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from application_history", "", where,
 				table.getHeaders());
 		TableQtb.tablePage(rows, table);
@@ -726,7 +726,7 @@ public class ApplicationService {
 
 	/**
 	 * It is impossible running more than one modification and/or de-registration against the same object
-	 * in addition it is impossible running modification and de-registration if any host application is running
+	 * in addition it is possible running modification and de-registration only if any host application is running
 	 * Guest may be running without any condition
 	 * Host runs automatically
 	 * @param curHis
@@ -744,7 +744,7 @@ public class ApplicationService {
 			List<TableRow> rowsHost= jdbcRepo.qtbGroupReport("select * from guestPlusHost", "", "", headers);
 			jdbcRepo.dregPlusModi(applData.getID());
 			List<TableRow> rowsModi= jdbcRepo.qtbGroupReport("select * from dregPlusModi", "", "", headers);
-			return rowsHost.size()==0 && rowsModi.size()==0;
+			return rowsHost.size()!=0 && rowsModi.size()==0;
 		}else {
 			return true;
 		}
@@ -1200,15 +1200,18 @@ public class ApplicationService {
 	 * @param cancelled
 	 * @return
 	 */
+	@Transactional
 	public History stopOneActivity(History curHis, boolean cancelled) {
-		Date come = curHis.getCome();
-		Date go = new Date();
-		if (come.after(go)) {
-			curHis.setCome(go);
+		if(curHis.getGo() == null) {
+			Date come = curHis.getCome();
+			Date go = new Date();
+			if (come.after(go)) {
+				curHis.setCome(go);
+			}
+			curHis.setGo(new Date());
+			curHis.setCancelled(cancelled);
+			curHis = boilerServ.saveHistory(curHis);
 		}
-		curHis.setGo(new Date());
-		curHis.setCancelled(cancelled);
-		curHis = boilerServ.saveHistory(curHis);
 		return curHis;
 	}
 
@@ -1311,7 +1314,7 @@ public class ApplicationService {
 		List<History> allHis = boilerServ.historyAllByApplication(curHis.getApplication()); // suppose right sort order
 		// by Come
 
-		if (accServ.applicationAllowed(allHis, user)) {
+		if (accServ.applicationAllowed(allHis, user) || true) {
 			// application is compiled as a list of data items
 			ThingDTO applDTO = createApplication(curHis);
 			applDTO = thingServ.path(applDTO);
@@ -1582,15 +1585,16 @@ public class ApplicationService {
 						selected = ls.intValue();
 					}
 				}
-				// systemDictNode(root, "0", messages.get("continue"));
-				// systemDictNode(root, "1", messages.get("route_action"));
-				// systemDictNode(root, "2", messages.get("newactivity"));
-				// systemDictNode(root, "3", messages.get("cancel"));
-				// systemDictNode(root, "4", messages.get("approve"));
-				// systemDictNode(root, "5", messages.get("reject"));
-				// systemDictNode(root, "6", messages.get("reassign"));
-				// systemDictNode(root, "7", messages.get("amendment"))
-				//  9 - revoke the permit
+//				systemDictNode(root, "0", messages.get("continue"));
+//				systemDictNode(root, "1", messages.get("route_action"));
+//				systemDictNode(root, "2", messages.get("newactivity"));
+//				systemDictNode(root, "3", messages.get("cancel"));
+//				systemDictNode(root, "4", messages.get("approve"));
+//				systemDictNode(root, "5", messages.get("reject"));
+//				systemDictNode(root, "6", messages.get("reassign"));
+//				systemDictNode(root, "7", messages.get("amendment"));
+//				systemDictNode(root, "8", messages.get("deregistration"));
+//				systemDictNode(root, "9", messages.get("revokepermit"));
 				data.getScheduled().getRows().clear();
 				switch (selected) {
 				case 0:
@@ -1763,8 +1767,9 @@ public class ApplicationService {
 		if (actConfig == null) {
 			return data;
 		}
+		TableQtb exec=executorsTable(his, actConfig, data.getExecs(), true);
 
-		data.setExecs(executorsTable(his, actConfig, data.getExecs(), false));
+		data.setExecs(exec);
 		return data;
 	}
 
@@ -1828,9 +1833,13 @@ public class ApplicationService {
 	public ActivitySubmitDTO createActions(UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		History curHis = boilerServ.historyById(data.getHistoryId());
 		List<String> allowed = new ArrayList<String>();
-		if (data.isSupervisor()) {
-			// NMRA supervisor
-			data = validServ.actionCancel(curHis, data);
+		if (accessControlServ.isSupervisor(user)) {
+			// NMRA supervisor ------------------------------------------------------------
+			data = validServ.submitNext(curHis, user, data);
+			if (data.isValid()) {
+				allowed.add("0"); // supervisor next activiti workflow ika27.03.2023			}
+				data = validServ.actionCancel(curHis, data);
+			}
 			if (data.isValid()) {
 				allowed.add("3"); // cancel
 			}
@@ -1842,9 +1851,19 @@ public class ApplicationService {
 			if (data.isValid()) {
 				allowed.add("6"); // reassign the executor
 			}
-			if(validServ.isHostApplication(curHis.getApplDict())) {
+			if(hasShutdown(curHis,amendmentServ.initialApplicationData(curHis.getApplicationData()))) {
 				allowed.add("9"); // revoke the permit
 			}
+			//like any other user ---------------------------------------------------
+			data = validServ.submitApprove(curHis, user, data, null); 
+			if (data.isValid()){ 
+				allowed.add("4"); 
+			}
+			data = validServ.submitDeregistration(curHis, user, data);
+			if (data.isValid()) {
+				allowed.add("8"); // implement a deregistration
+			}
+			
 		} else {
 			if (data.isApplicant()) {
 				data = validServ.submitNext(curHis, user, data);
@@ -2304,6 +2323,9 @@ public class ApplicationService {
 			closeActivity(curHis, false);
 			cancelUsersActivities(user, curHis);
 			Concept deregData = amendmentServ.amendedConcept(curHis.getApplicationData());
+			if(deregData.getID()==0) {
+				deregData=amendmentServ.initialApplicationData(curHis.getApplicationData());
+			}
 			cancelDataActivities(deregData, true); // cancel all activities, include monitoring
 			List<Long> executors = data.executors();
 			long actConfId = data.nextActivity();
@@ -2323,12 +2345,12 @@ public class ApplicationService {
 	@Transactional
 	private ActivitySubmitDTO submitApproveRevoke(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
 			throws ObjectNotFoundException, JsonProcessingException {
-		Concept applicant = closureServ.getParent(curHis.getApplicationData());
-		rejectApplication(curHis, applicant.getIdentifier(), data);
+		/*	Concept applicant = closureServ.getParent(curHis.getApplicationData());
+			rejectApplication(curHis, applicant.getIdentifier(), data);
+		
+			sendEmailAttention(user, curHis, data);*/
 
-		sendEmailAttention(user, curHis, data);
-
-		return data;
+		return submitReject(curHis, user, data);
 	}
 
 	/**
@@ -2338,6 +2360,7 @@ public class ApplicationService {
 	 * @param all             - remove all activities
 	 * @throws ObjectNotFoundException
 	 */
+	@Transactional
 	private void cancelDataActivities(Concept applicationData, boolean all) throws ObjectNotFoundException {
 		List<History> hisList = boilerServ.historyAll(applicationData);
 		for (History his : hisList) {
@@ -2434,28 +2457,28 @@ public class ApplicationService {
 	@Transactional
 	private ActivitySubmitDTO submitRevokePermit(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
 			throws ObjectNotFoundException, JsonProcessingException {
-		// close previous scheduled
+		/*close previous scheduled REJECT THIS CODE 31/03/2023 IKA
 		List<History> hisAllScheduled = boilerServ.historyAllByApplData(curHis.getApplicationData());
 		for (History act : hisAllScheduled) {
 			closeActivity(act, (act.getActConfig() != null));
 		}
-
 		closeActivity(curHis, true);
-		//cancellActivities(curHis);
-		//cancelUsersActivities(user, curHis);
-
+		 */
 		Concept nodeApplData = curHis.getApplicationData();
 		Thing thing = new Thing();
 		thing = boilerServ.thingByNode(nodeApplData, thing);
 		String processUrl = thing.getUrl();
 		Concept dictConc = systemServ.revokepermitDictNode(processUrl);
-
-		processUrl = literalServ.readValue(LiteralService.APPLICATION_URL, dictConc);
-		data = createRevokePermitApplication(curHis, processUrl, dictConc, data);
-		if (!data.isValid()) {
+		if(dictConc!=null) {
+			processUrl = literalServ.readValue(LiteralService.APPLICATION_URL, dictConc);
+			data = createRevokePermitApplication(curHis, processUrl, dictConc, data);
+			if (!data.isValid()) {
+				return data;
+			}
 			return data;
+		} else {
+			throw new ObjectNotFoundException("submitRevokePermit. revokepermitDictNode("+processUrl+") is NULL", logger);
 		}
-		return data;
 	}
 
 	/**
@@ -2541,12 +2564,13 @@ public class ApplicationService {
 		}
 		if (systemServ.isDeregistration(curHis)) {
 			data.clearErrors();
-			cancellActivities(curHis);
+			//cancellActivities(curHis); This danger operation
+			data=submitDeregistration(curHis, user, data);
 			return data;
 		}
 		if(systemServ.isShutdown(curHis)) {
 			data.clearErrors();
-			submitApproveRevoke(curHis, user, data);
+			data=submitApproveRevoke(curHis, user, data);
 			return data;
 		}
 		data.setIdentifier(messages.get("invalidstage"));
@@ -2874,6 +2898,7 @@ public class ApplicationService {
 				actConfig = curHis.getApplConfig();
 			}
 			List<Long> executors = data.executors();
+
 			// create activities, the first will contain the reference to the data of the reassigned one
 			boolean moveData=true;
 			for (Long execId : executors) {
@@ -2894,7 +2919,8 @@ public class ApplicationService {
 						newHis.setPrevNotes(prevNotes);
 					}
 					newHis= boilerServ.saveHistory(newHis);
-					closeActivity(curHis, true);
+					//closeActivity(curHis, true); 24032023 ika
+					stopOneActivity(curHis, true);
 				}
 			}
 		}
@@ -3148,5 +3174,36 @@ public class ApplicationService {
 		}
 		return data;
 	}
-
+	/**
+	 * Can I revoke my permission?
+	 * @param curHis 
+	 * @param applData 
+	 * @return yes|no
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public boolean hasShutdown( History curHis, Concept applData) throws ObjectNotFoundException {
+		Concept root=boilerServ.getRootTree(applData);
+		Concept conDict=systemServ.revokepermitDictNode(root.getIdentifier());
+		if(conDict!=null) {
+			//curHis.getApplicationData()
+			//Concept objectData = boilerServ.initialApplicationNode(applData);
+			jdbcRepo.application_history(applData.getID());
+			TableQtb table=new TableQtb();
+			table.getHeaders().setPageSize(Integer.MAX_VALUE);
+			table = historyTableRows(table, true);
+			if(table.getRows().size()>0) {
+				List<TableRow> rows =table.getRows();
+				for(TableRow row:rows) {
+					History h=boilerServ.historyById(row.getDbID());
+					if(systemServ.isGuest(h) || systemServ.isDeregistration(h) || systemServ.isShutdown(h)) {
+						return false;
+					}
+				}
+				return true;
+			}
+			return true;
+		}
+		return false;
+	}
 }

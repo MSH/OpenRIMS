@@ -17,6 +17,7 @@ class Tile extends Component{
             picture:true,
         }
         this.featureStates = this.featureStates.bind(this)
+        this.onMoreClick = this.onMoreClick.bind(this)
     }
 
     featureStates(){
@@ -26,6 +27,15 @@ class Tile extends Component{
             )
         }else{
             return <h5>---------------</h5>
+        }
+    }
+
+    onMoreClick(){
+        var more = this.props.content.more
+        if(more.startsWith("https:") || more.startsWith("http:")){
+            window.open(more, "_blank")
+        }else{
+            window.location=more
         }
     }
 
@@ -93,9 +103,7 @@ class Tile extends Component{
                         </Button>
                         <Button hidden={!hasMore} color={hasMore?"success":"info"} size="sm"
                             onClick={()=>{
-                                window.location=this.props.content.more
-                                }
-                            }>
+                                this.onMoreClick()}}>
                                 {hasMore?
                                     this.props.content.moreLbl:this.props.labels.more}
                         </Button>{' '}

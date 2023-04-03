@@ -36,6 +36,7 @@ class Resources extends Component{
                 configUrl:'',
                 description:'',
                 global_elreference:'',
+                warningRemove:''
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -133,15 +134,17 @@ class Resources extends Component{
                         label={this.state.labels.global_suspend}
                         color="warning"
                         onClick={()=>{
-                            Fetchers.postJSONNoSpinner("/api/admin/resource/definition/suspend", this.state.data, (query, result)=>{
-                                this.state.data=result
-                                if(this.state.data.valid){
-                                    this.state.form=false
-                                    this.loader()
-                                }else{
-                                    this.setState(this.state)
-                                }
-                            })
+                            Fetchers.alerts(this.state.labels.warningRemove, ()=>{
+                                Fetchers.postJSONNoSpinner("/api/admin/resource/definition/suspend", this.state.data, (query, result)=>{
+                                    this.state.data=result
+                                    if(this.state.data.valid){
+                                        this.state.form=false
+                                        this.loader()
+                                    }else{
+                                        this.setState(this.state)
+                                    }
+                                })
+                            }, null)
                         }}
                     />
                 </Col>

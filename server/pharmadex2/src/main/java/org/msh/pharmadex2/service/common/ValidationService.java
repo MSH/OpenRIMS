@@ -31,10 +31,8 @@ import org.msh.pdex2.model.r2.Assembly;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.model.r2.Register;
-import org.msh.pdex2.model.r2.Scheduler;
 import org.msh.pdex2.model.r2.Thing;
 import org.msh.pdex2.model.r2.ThingDict;
-import org.msh.pdex2.model.r2.ThingScheduler;
 import org.msh.pdex2.model.r2.ThingThing;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.common.UserRepo;
@@ -47,7 +45,6 @@ import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.AtcDTO;
 import org.msh.pharmadex2.dto.CheckListDTO;
 import org.msh.pharmadex2.dto.DataCollectionDTO;
-import org.msh.pharmadex2.dto.DataPreviewDTO;
 import org.msh.pharmadex2.dto.DataVariableDTO;
 import org.msh.pharmadex2.dto.DictNodeDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
@@ -57,7 +54,6 @@ import org.msh.pharmadex2.dto.LegacyDataDTO;
 import org.msh.pharmadex2.dto.LinksDTO;
 import org.msh.pharmadex2.dto.MessageDTO;
 import org.msh.pharmadex2.dto.PersonDTO;
-import org.msh.pharmadex2.dto.PersonSpecialDTO;
 import org.msh.pharmadex2.dto.PublicOrgDTO;
 import org.msh.pharmadex2.dto.QuestionDTO;
 import org.msh.pharmadex2.dto.RegisterDTO;
@@ -110,6 +106,7 @@ public class ValidationService {
 	private JdbcRepository jdbcRepo;
 	@Autowired
 	private DeregistrationService deregServ;
+	
 
 	/**
 	 * ^[a-z]{1,} - первый символ всегда буква
@@ -273,7 +270,8 @@ public class ValidationService {
 			dict.clearErrors();
 			dict.setStrict(strict);
 			if(dict.isRequired()) {
-				long sumIds=dict.getSelection().getValue().getId() * dict.getSelection().getValue().getOptions().size();		//value exists, list is empty
+				// 22.03.2023 by issue 1561 khomka
+				/*long sumIds=dict.getSelection().getValue().getId() * dict.getSelection().getValue().getOptions().size();		//value exists, list is empty
 				for(Long id : dict.getPrevSelected()) {
 					sumIds+=id;
 				}
@@ -281,6 +279,22 @@ public class ValidationService {
 					dict.setValid(false);
 					dict.setStrict(strict);
 					dict.setIdentifier(messages.get("error_dictionaryempty") +". "+ description);
+				}else {
+					dict.clearErrors();
+				}*/
+				if(dict.getTable().getRows().size() > 0) {
+					boolean isHasSelect = false;
+					for(TableRow r:dict.getTable().getRows()) {
+						if(r.getSelected()) {
+							isHasSelect = true;
+						break;
+						}
+					}
+					if(!isHasSelect) {
+						dict.setValid(false);
+						dict.setStrict(strict);
+						dict.setIdentifier(messages.get("error_dictionaryempty") +". "+ description);
+					}
 				}else {
 					dict.clearErrors();
 				}
@@ -522,7 +536,7 @@ public class ValidationService {
 				}
 				if(interval.getMax().longValue()>0 && dto.isValid()) {
 					LocalDate maxDt = LocalDate.now().plusMonths(interval.getMax().longValue());
-					if(to.isBefore(maxDt)) {
+					if(!to.isBefore(maxDt)) {
 						//the left border of the interval 
 						dto.setValid(false);
 						dto.setStrict(strict);
@@ -2205,6 +2219,7 @@ public class ValidationService {
 		}
 		return false;
 	}
+	
 	/**
 	 * Validate file uploaded
 	 * Read the configuration and check min/max size for non-images or width/height for images 

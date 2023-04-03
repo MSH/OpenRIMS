@@ -1415,5 +1415,15 @@ public class BoilerService {
 			val = val.replaceAll("\\p{C}", "");
 		return val;
 	}
-	
+	/** 
+	 * Get the root of a given concept tree
+	 * @param child
+	 * @return concept root
+	 */
+	@Transactional
+	public Concept getRootTree(Concept child) {
+		Concept root=closureServ.getParent(child);
+		root=closureServ.getParent(root);
+		return root;
+	}
 }
