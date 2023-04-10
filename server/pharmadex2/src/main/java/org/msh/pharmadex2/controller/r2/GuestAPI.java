@@ -155,6 +155,24 @@ public class GuestAPI {
 		return data;
 	}
 	/**
+	 * List of amendment applications
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/guest/applications/table/amendments")
+	public ApplicationsDTO applicatonsTableAmendment(Authentication auth, @RequestBody ApplicationsDTO data) throws DataNotFoundException {
+		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
+		try {
+			data.setAmendment(true);
+			data=applServ.applicatonsTable(data, user);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	/**
 	 * List of guest applications in state revokepermit
 	 * @param auth
 	 * @param data

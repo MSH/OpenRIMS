@@ -1372,4 +1372,20 @@ public class JdbcRepository {
 		
 	}
 
+	/**
+	 * Amendments or De-registration list for applicant
+	 * @param dataUrl
+	 * @param email 
+	 */
+	public void amendments_applicant(String dataUrl, String email) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("amendments_applicant");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("email", email);
+		params.addValue("url", dataUrl);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+		
+	}
+
 }

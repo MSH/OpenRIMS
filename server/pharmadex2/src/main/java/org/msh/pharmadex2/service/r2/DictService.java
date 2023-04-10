@@ -14,9 +14,7 @@ import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
-import org.msh.pdex2.model.enums.YesNoNA;
 import org.msh.pdex2.model.old.Query;
-import org.msh.pdex2.model.r2.Assembly;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.Thing;
 import org.msh.pdex2.model.r2.ThingDict;
@@ -754,17 +752,11 @@ public class DictService {
 
 		if(data.getSelectId() > 0) {
 			DictionaryDTO dict = new DictionaryDTO();
-			// ika if(data.isEditor()) {//edit fields dictionary
-				Concept root = closureServ.loadConceptById(data.getSelectId());
-				dict.setUrlId(root.getID());
-				dict.setUrl(root.getIdentifier());
+			Concept root = closureServ.loadConceptById(data.getSelectId());
+			dict.setUrlId(root.getID());
+			dict.setUrl(root.getIdentifier());
 
-			/*ika }else {//show list item dictionary
-				Concept root = closureServ.loadConceptById(data.getSelectId());
-				dict.setUrlId(root.getID());
-				dict.setUrl(root.getIdentifier());
-			}*/
-				dict.setSystem(checkSystem(root));//ika
+			dict.setSystem(checkSystem(root));//ika
 			data.setSelect(createDictionaryFromRoot(dict, root));
 			reloadTable = false;
 		}else if(data.getSelectId() == 0 && data.isEditor()) {//create new fields dictionary
@@ -776,53 +768,7 @@ public class DictService {
 
 		if(reloadTable)
 			loadTableAllDictionaries(data);
-		/*
-		boolean showForm = (data.getSelectId() >= 0);
-		data.getTable().setSelectable(true);
-
-		if(showForm) {
-			//if(data.getTable().getHeaders().getHeaders().size() == 0)
-				data.getTable().setHeaders(createHeadersAllDictShort(data.getTable().getHeaders()));
-		}else {
-			//if(data.getTable().getHeaders().getHeaders().size() == 0)
-				data.getTable().setHeaders(createHeadersAllDict(data.getTable().getHeaders()));
-		}
-		Optional<Query> optional = queryRep.findByKey("alldictionary");
-		if(optional.isPresent()) {
-			Query query = optional.get();
-			String lang = messages.getCurrentLocaleStr().toUpperCase();
-			String where = "url LIKE 'dictionary.%' and lang like '" + lang + "'";
-
-			List<TableRow> rows = jdbcRepo.qtbGroupReport(query.getSql(), "", where, data.getTable().getHeaders());
-			data.getTable().getHeaders().setPageSize(100);
-			TableQtb.tablePage(rows, data.getTable());
-			data.setTable(boilerServ.translateRows(data.getTable()));
-
-			if(showForm) {
-				DictionaryDTO dict = new DictionaryDTO();
-				if(data.getSelectId() > 0) {
-					Concept root = closureServ.loadConceptById(data.getSelectId());
-					dict.setUrlId(root.getID());
-					dict.setUrl(root.getIdentifier());
-					data.setSelect(createDictionaryFromRoot(dict));
-				}else if(data.getSelectId() == 0) {
-					dict.setUrl("");
-					data.setSelect(dict);
-				}
-
-				for(TableRow row : data.getTable().getRows()) {
-					if(row.getDbID()==data.getSelectId()) {
-						row.setSelected(true);
-					}else {
-						row.setSelected(false);
-					}
-				}
-			}else {
-				data.setSelect(null);
-				data.setSelectId(-1);
-			}
-		}
-		 */
+		
 		return data;
 	}
 
@@ -1217,9 +1163,9 @@ public class DictService {
 	public ThingDTO createDropList(ThingDTO data, List<AssemblyDTO> droplist) throws ObjectNotFoundException {
 		data.getDroplist().clear();		
 		if(droplist != null) {
-			OptionDTO ret = new OptionDTO();
 			for(AssemblyDTO list : droplist) {
 				//???
+				OptionDTO ret = new OptionDTO();
 				List<OptionDTO> plainDictionary = loadPlain(list.getUrl());
 				if(plainDictionary!=null) {
 					for(OptionDTO opt:plainDictionary) {
@@ -1231,19 +1177,19 @@ public class DictService {
 				}
 			}
 			if(data.getNodeId()>0) {
-			Concept node = closureServ.loadConceptById(data.getNodeId());
-			Thing thing = new Thing();
-			thing= boilerServ.thingByNode(node,thing);
-			for(ThingDict th:thing.getDictionaries()) {
-				FormFieldDTO<OptionDTO> dl=data.getDroplist().get(th.getVarname());
-				if(dl!=null){
-					dl.getValue().setId(th.getConcept().getID());
-					dl.getValue().setCode(literalServ.readPrefLabel(th.getConcept()));
-					dl.getValue().setOriginalCode(literalServ.readPrefLabel(th.getConcept()));
-					dl.getValue().setDescription(literalServ.readDescription(th.getConcept()));
-					dl.getValue().setOriginalDescription(literalServ.readDescription(th.getConcept()));
+				Concept node = closureServ.loadConceptById(data.getNodeId());
+				Thing thing = new Thing();
+				thing= boilerServ.thingByNode(node,thing);
+				for(ThingDict th:thing.getDictionaries()) {
+					FormFieldDTO<OptionDTO> dl=data.getDroplist().get(th.getVarname());
+					if(dl!=null){
+						dl.getValue().setId(th.getConcept().getID());
+						dl.getValue().setCode(literalServ.readPrefLabel(th.getConcept()));
+						dl.getValue().setOriginalCode(literalServ.readPrefLabel(th.getConcept()));
+						dl.getValue().setDescription(literalServ.readDescription(th.getConcept()));
+						dl.getValue().setOriginalDescription(literalServ.readDescription(th.getConcept()));
+					}
 				}
-			}
 			}
 		}
 		return data;

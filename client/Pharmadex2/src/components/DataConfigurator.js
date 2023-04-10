@@ -89,11 +89,14 @@ class DataConfigurator extends Component{
      * Load a list of data collections
      */
     loader(){
-        Fetchers.postJSONNoSpinner("/api/admin/data/collections/load", this.state.data, (query,result)=>{
+        let srch = Fetchers.readLocaly("dataconfig_search", null);
+        let api = "/api/admin/data/collections/load/search=" + srch
+        Fetchers.postJSONNoSpinner(api, this.state.data, (query,result)=>{
             this.state.data=result
             if(this.state.data.nodeId==0){
                 this.state.vars=false
             }
+            Fetchers.writeLocaly("dataconfig_search", null)
             this.setState(this.state)
         })
     }
@@ -140,6 +143,7 @@ class DataConfigurator extends Component{
                                    nodeId:this.state.data.nodeId
                                }
                                 let param=JSON.stringify(data)
+                                Fetchers.writeLocaly("dataconfig_search", this.state.data.table.headers.headers[0].generalCondition)
                                 Navigator.navigate("administrate", "dataformpreview",param) 
                             }}
                             color="success"

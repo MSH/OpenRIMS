@@ -1,22 +1,16 @@
 package org.msh.pharmadex2.service.r2;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Type;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
-import org.apache.commons.lang3.reflect.FieldUtils;
 import org.msh.pdex2.dto.table.Headers;
 import org.msh.pdex2.dto.table.TableHeader;
 import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
-import org.msh.pdex2.model.enums.YesNoNA;
 import org.msh.pdex2.model.i18n.ResourceBundle;
 import org.msh.pdex2.model.i18n.ResourceMessage;
 import org.msh.pdex2.model.r2.Assembly;
@@ -37,7 +31,6 @@ import org.msh.pharmadex2.dto.TileDTO;
 import org.msh.pharmadex2.dto.WorkflowDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
-import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.common.DtoService;
 import org.msh.pharmadex2.service.common.EntityService;
@@ -270,7 +263,7 @@ public class SupervisorService {
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
-	public DataConfigDTO dataCollectionsLoad(DataConfigDTO data) throws ObjectNotFoundException {
+	public DataConfigDTO dataCollectionsLoad(DataConfigDTO data, String searchStr) throws ObjectNotFoundException {
 		Concept root = closureServ.loadRoot(SystemService.DATA_COLLECTIONS_ROOT);
 		if (data.getTable().getHeaders().getHeaders().size() == 0) {
 			data.getTable().setHeaders(headersDataCollections(data.getTable().getHeaders()));
@@ -282,6 +275,13 @@ public class SupervisorService {
 				data.setVarTable(new TableQtb());
 			}
 		}
+		
+		if(searchStr != null && !searchStr.equals("null") && searchStr.length() > 2) {
+			for(TableHeader th:data.getTable().getHeaders().getHeaders()) {
+				th.setGeneralCondition(searchStr);
+			}
+		}
+		
 		//load a table
 		jdbcRepo.prepareDictionaryLevel(root.getID());
 		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from _dictlevel", "", "active=true", data.getTable().getHeaders());
@@ -400,10 +400,10 @@ public class SupervisorService {
 			if (table.getHeaders().getHeaders().size() == 0) {
 				table.setHeaders(headersVariables(table.getHeaders()));
 			}
-			String where = "av.Active=true and av.nodeID='" + data.getNodeId() + "' and av.lang='"
+			String where = "p.Active=true and p.nodeID='" + data.getNodeId() + "' and p.lang='"
 					+ LocaleContextHolder.getLocale().toString().toUpperCase() + "'";
-			String select="select distinct av.*, c.Label as 'ext' from assm_var av "
-					+ "join assembly a on a.ID=av.assemblyID join concept c on c.ID=a.conceptID";
+			String select="select * from(select distinct av.*, c.Label as 'ext' from assm_var av "
+					+ "join assembly a on a.ID=av.assemblyID join concept c on c.ID=a.conceptID) p";
 			List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", where, table.getHeaders());
 			TableQtb.tablePage(rows, table);
 			table.setSelectable(false);

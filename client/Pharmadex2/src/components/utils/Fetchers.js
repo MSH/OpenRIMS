@@ -270,9 +270,16 @@ class Fetchers{
         let str = window.localStorage.getItem(containerName+"_Pharmadex2")
         if(str!=null){
             return JSON.parse(str)
-        }else{
+        }else {
             this.writeLocaly(containerName,state)
             return state
+        }
+    }
+
+    static removeLocaly(containerName){
+        let str = window.localStorage.getItem(containerName+"_Pharmadex2")
+        if(str!=null){
+            window.localStorage.removeItem(containerName+"_Pharmadex2")
         }
     }
     /**

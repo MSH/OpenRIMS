@@ -516,10 +516,10 @@ public class AdminAPI {
 	 * @return
 	 * @throws DataNotFoundException
 	 */
-	@PostMapping("/api/admin/data/collections/load")
-	public DataConfigDTO dataCollectionsLoad(@RequestBody DataConfigDTO data) throws DataNotFoundException {
+	@PostMapping("/api/admin/data/collections/load/search={s}")
+	public DataConfigDTO dataCollectionsLoad(@RequestBody DataConfigDTO data, @PathVariable(value = "s") String s) throws DataNotFoundException {
 		try {
-			data = superVisServ.dataCollectionsLoad(data);
+			data = superVisServ.dataCollectionsLoad(data, s);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}

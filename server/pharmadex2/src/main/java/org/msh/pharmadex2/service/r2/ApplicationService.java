@@ -125,7 +125,11 @@ public class ApplicationService {
 			Concept dictItem = closureServ.loadConceptById(data.getDictItemId());
 			String appUrl = literalServ.readValue("applicationurl", dictItem);
 			String dataUrl = literalServ.readValue("dataurl", dictItem);
-			data.setTable(createApplicationsTable(appUrl, dataUrl, user.getEmail(), data.getTable()));
+			if(data.isAmendment()) {
+				data.setTable(createAmendmentsTable(appUrl, dataUrl, user.getEmail(), data.getTable()));
+			}else {
+				data.setTable(createApplicationsTable(appUrl, dataUrl, user.getEmail(), data.getTable()));
+			}
 		}
 		return data;
 	}
@@ -186,6 +190,41 @@ public class ApplicationService {
 		}
 		return table;
 	}
+	
+	/**
+	 * Create a table with list of amendments
+	 * 
+	 * @param appUrl
+	 * @param email
+	 * @param string
+	 * @param table
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	private TableQtb createAmendmentsTable(String appUrl, String dataUrl, String email, TableQtb table)
+			throws ObjectNotFoundException {
+		if (table.getHeaders().getHeaders().size() == 0) {
+			table.setHeaders(createApplicationsTableHeaders(table.getHeaders()));
+		}
+		jdbcRepo.amendments_applicant(dataUrl,email);
+		String select = "select * from amendments_applicant";
+		List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", "", table.getHeaders());
+		TableQtb.tablePage(rows, table);
+		table = boilerServ.translateRows(table);
+		table.setSelectable(false);
+		//paint color
+		for(TableRow row : table.getRows()) {
+			for(TableCell cell :row.getRow()) {
+				if(cell.getKey().equalsIgnoreCase("term")) {
+					if(cell.getIntValue()<0) {
+						cell.setStyleClass("text-danger");
+					}
+				}
+			}
+		}
+		return table;
+	}
+	
 	/**
 	 * Create headers for applicant applications table
 	 * @param headers

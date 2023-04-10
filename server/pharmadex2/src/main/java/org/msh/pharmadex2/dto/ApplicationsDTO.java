@@ -26,6 +26,7 @@ public class ApplicationsDTO extends AllowValidation {
 	private TableQtb fullsearch = new TableQtb();
 	private ThingDTO thing= new ThingDTO();
 	private FormFieldDTO<LocalDateTime> dateactual=new FormFieldDTO(LocalDateTime.now()) ;
+	private boolean amendment=false;
 
 	public String getUrl() {
 		return url;
@@ -97,6 +98,14 @@ public class ApplicationsDTO extends AllowValidation {
 
 	public void setDateactual(FormFieldDTO<LocalDateTime> dateactual) {
 		this.dateactual = dateactual;
+	}
+
+	public boolean isAmendment() {
+		return amendment;
+	}
+
+	public void setAmendment(boolean amendment) {
+		this.amendment = amendment;
 	}
 	
 }

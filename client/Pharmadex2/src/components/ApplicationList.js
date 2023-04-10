@@ -43,7 +43,11 @@ class ApplicationList extends Component{
      * Load a table only
      */
     loadTable(){
-        Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/applications/table", this.state.data, (query,result)=>{
+        let api="/api/guest/applications/table"
+        if(this.props.amend){
+            api="/api/guest/applications/table/amendments"
+        }
+        Fetchers.postJSON(api, this.state.data, (query,result)=>{
             this.state.data=result
             this.setState(this.state)
         })
@@ -128,4 +132,5 @@ ApplicationList.propTypes={
     dictItemId:PropTypes.number.isRequired,         //id of dict item selected
     recipient:PropTypes.string.isRequired,          //the recipient of messages
     noadd:PropTypes.bool,                           //disable "add" button
+    amend:PropTypes.bool,                           //it is amendment, see loadTable()
 }

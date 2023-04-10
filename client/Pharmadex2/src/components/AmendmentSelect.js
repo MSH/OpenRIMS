@@ -61,7 +61,7 @@ class AmendmentSelect extends Component{
             });
         }
         if(amdTypeId>0){
-            return <ApplicationList dictItemId={amdTypeId} recipient={this.state.identifier} noadd /> 
+            return <ApplicationList dictItemId={amdTypeId} recipient={this.state.identifier} amend noadd /> 
         }else{
             return []
         }
