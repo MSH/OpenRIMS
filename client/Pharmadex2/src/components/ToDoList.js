@@ -7,7 +7,7 @@ import Pharmadex from './Pharmadex'
 import CollectorTable from './utils/CollectorTable'
 import ButtonUni from './form/ButtonUni'
 import ActivityManager from './ActivityManager'
-import SearchControl from './utils/SearchControl'
+import SearchControlNew from './utils/SearchControlNew'
 
 /**
  * Responsible for assigned activities. Any user, except an applicant
@@ -70,7 +70,7 @@ class ToDoList extends Component{
                 <Col>
                     <Row className="mb-3">
                         <Col xs='12' sm='12' lg='4' xl='4'>
-                            <SearchControl key="2" label={this.state.labels.search} table={this.state.data.table} loader={this.loadData}/>
+                            <SearchControlNew key="2" label={this.state.labels.search} table={this.state.data.table} loader={this.loadData}/>
                         </Col>
                     <Col xs='12' sm='12' lg='8' xl='8'/>
                     </Row>
@@ -114,7 +114,7 @@ class ToDoList extends Component{
                 <Col>
                     <Row className="mb-3">
                         <Col xs='12' sm='12' lg='4' xl='4'>
-                            <SearchControl key="1" label={this.state.labels.search} table={this.state.data.scheduled} loader={this.loadData}/>
+                            <SearchControlNew key="1" label={this.state.labels.search} table={this.state.data.scheduled} loader={this.loadData}/>
                         </Col>
                     <Col xs='12' sm='12' lg='8' xl='8'/>
                     </Row>

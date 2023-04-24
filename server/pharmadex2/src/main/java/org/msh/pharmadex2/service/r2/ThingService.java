@@ -762,8 +762,8 @@ public class ThingService {
 		}
 		Thing thing = new Thing();
 		thing = boilerServ.thingByNode(node, thing);
-		String email="";
-		jdbcRepo.filelist(dict.getID(),thing.getID(),data.getUrl(), data.getVarName(), email);
+		//String email="";
+		jdbcRepo.filelist(dict.getID(),thing.getID(),data.getUrl(), data.getVarName(),user.getEmail());        //  email);
 		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from _filelist", "","", data.getTable().getHeaders());
 		TableQtb.tablePage(rows, data.getTable());
 		for(TableRow row : rows) {

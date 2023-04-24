@@ -3,7 +3,7 @@ import {Container, Row, Col, Label, Alert} from 'reactstrap'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
 import ButtonUni from './form/ButtonUni'
-import SearchControl from './utils/SearchControl'
+import SearchControlNew from './utils/SearchControlNew'
 import CollectorTable from './utils/CollectorTable'
 import Pharmadex from './Pharmadex'
 import FieldInput from './form/FieldInput'
@@ -79,7 +79,7 @@ class Messages extends Component{
                 <Col>
                     <Row>
                             <Col xs='12' sm='12' lg='6' xl='6'>
-                                <SearchControl label={this.state.labels.search} table={this.state.data.table} loader={this.load}/>
+                                <SearchControlNew label={this.state.labels.search} table={this.state.data.table} loader={this.load}/>
                             </Col>
                             <Col xs='12' sm='12' lg='4' xl='4'>
                             </Col>

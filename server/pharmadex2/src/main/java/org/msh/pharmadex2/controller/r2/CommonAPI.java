@@ -18,6 +18,7 @@ import org.msh.pharmadex2.service.r2.PubOrgService;
 import org.msh.pharmadex2.service.r2.ThingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -79,10 +80,10 @@ public class CommonAPI {
 	 * @return
 	 * @throws DataNotFoundException 
 	 */
-	@PostMapping("/api/common/dictionary/level/load")
-	public DictNodeDTO dictionaryLevelLoad(@RequestBody DictNodeDTO data) throws DataNotFoundException {
+	@PostMapping("/api/common/dictionary/level/load/search={s}")
+	public DictNodeDTO dictionaryLevelLoad(@RequestBody DictNodeDTO data, @PathVariable(value = "s") String s) throws DataNotFoundException {
 		try {
-			data=dictServ.loadLevel(data);
+			data=dictServ.loadLevel(data, s);
 			return data;
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);

@@ -10,7 +10,7 @@ import Pharmadex from './Pharmadex'
 import FieldsComparator from './form/FieldsComparator'
 import DictNode from './DictNode'
 import Navigator from'./utils/Navigator'
-import SearchControl from './utils/SearchControl'
+import SearchControlNew from './utils/SearchControlNew'
 import FieldUpload from './form/FieldUpload'
 
 /**
@@ -585,7 +585,7 @@ class Dictionary extends Component{
                 <Row hidden={this.state.data.readOnly}>
                     <Col xs='12' sm='12' lg='12' xl='4'>
                         <div hidden={hideControls}>
-                        <SearchControl label={this.state.labels.search} table={this.state.data.table} loader={this.tableLoader}/>
+                        <SearchControlNew label={this.state.labels.search} table={this.state.data.table} loader={this.tableLoader}/>
                         </div>
                         <div hidden={!this.canAdd()}>
                             <ButtonUni

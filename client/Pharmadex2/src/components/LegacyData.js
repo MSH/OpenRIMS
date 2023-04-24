@@ -5,7 +5,7 @@ import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
 import Navigator from './utils/Navigator'
 import Pharmadex from './Pharmadex'
-import SearchControl from './utils/SearchControl'
+import SearchControlNew from './utils/SearchControlNew'
 import CollectorTable from './utils/CollectorTable'
 
 
@@ -104,7 +104,7 @@ class LegacyData extends Component{
             <Container fluid>
                 <Row>
                     <Col xs='12' sm='12' lg='6' xl='6'>
-                        <SearchControl label={this.state.labels.search} table={this.state.data.table} loader={this.loadTable} />
+                        <SearchControlNew label={this.state.labels.search} table={this.state.data.table} loader={this.loadTable} />
                     </Col>
                     <Col xs='12' sm='12' lg='6' xl='6'>
 

@@ -38,7 +38,6 @@ class ApplicationSelect extends Component{
         if(data.subject=="onSelectionChange" && data.from==this.dictionary){
             this.state.data=data.data
             this.setState(this.state)
-            //this.loadData()
         }
     }
     componentDidMount(){
@@ -52,7 +51,8 @@ class ApplicationSelect extends Component{
         Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName() +"/applications", this.state.data, (query,result)=>{
             this.state.data=result
             let selected_row=Fetchers.readLocaly("application_selected_row",1);
-            this.state.data.table.rows[selected_row].selected=true
+            if(this.state.data.table.rows.length > 0)
+                this.state.data.table.rows[selected_row].selected=true
             this.setState(this.state)
         })
     }

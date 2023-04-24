@@ -28,8 +28,8 @@ public class ThingLink implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22226E1864BE179C60BCAB")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22226E1864BE179C60BCAB", strategy="native")	
+	@GeneratedValue(generator="VAC222277187B38344430A601")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC222277187B38344430A601", strategy="native")	
 	private long ID;
 	
 	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	

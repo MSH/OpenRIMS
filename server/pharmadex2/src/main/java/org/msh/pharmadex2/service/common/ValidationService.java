@@ -228,6 +228,15 @@ public class ValidationService {
 			data.getRoles().setValid(false);
 			data.getRoles().setIdentifier(messages.get("error_rolemandatory"));
 		}
+		//20230419 check roles, not Applicant
+		for(Long id :data.getRoles().getPrevSelected()) {
+			Concept item=closureServ.loadConceptById(id);
+			if(item.getIdentifier().equalsIgnoreCase("APPLICANT")) {
+				data.getRoles().setValid(false);
+				data.getRoles().setIdentifier(messages.get("error_roleapplicant"));
+				break;
+			}
+		}
 		data.propagateValidation();
 		return data;
 	}

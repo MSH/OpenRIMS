@@ -5,7 +5,7 @@ import Fetchers from './utils/Fetchers'
 import ButtonUni from './form/ButtonUni'
 import Dictionary from './Dictionary'
 import RootNode from './RootNode'
-import SearchControl from './utils/SearchControl'
+import SearchControlNew from './utils/SearchControlNew'
 import CollectorTable from './utils/CollectorTable'
 import Pharmadex from './Pharmadex'
 import Navigator from './utils/Navigator'
@@ -65,7 +65,7 @@ class Dictionaries extends Component{
                 <Col>
                     <Row>
                         <Col xs='12' sm='12' lg='6' xl='6'>
-                            <SearchControl label={this.state.labels.search} table={this.state.data.table} loader={this.load}/>
+                            <SearchControlNew label={this.state.labels.search} table={this.state.data.table} loader={this.load}/>
                         </Col>
                         <Col xs='12' sm='12' lg='3' xl='3'>
                         </Col>

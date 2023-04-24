@@ -35,10 +35,10 @@ class AmendmentAdd extends Component{
      * Listen messages from other components
      * @param {Window Event} event 
      */
-        eventProcessor(event){
-            let data=event.data
+    eventProcessor(event){
+        let data=event.data
            
-        }
+    }
 
     componentDidMount(){
         window.addEventListener("message",this.eventProcessor)
@@ -61,11 +61,15 @@ class AmendmentAdd extends Component{
      * load/reload AmendmentNewDTO
      */
     loadTable(){
+        let selected_row=Fetchers.readLocaly("amendmentsadd_dataNodeId", 0);
+        this.state.data.dataNodeId = selected_row
         Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/amendment/propose/add", this.state.data, (query,result)=>{
             this.state.data=result
+            
             this.setState(this.state)
         })
     }
+
     /**
      * Run a new amendment using AmendmentNewDTO
      * @param rowNo - row selected in dataUnits table
@@ -140,10 +144,12 @@ class AmendmentAdd extends Component{
                                     headBackground={Pharmadex.settings.tableHeaderBackground}
                                     selectRow={(rowNo)=>{
                                         this.state.data.dataNodeId=this.state.data.applications.rows[rowNo].dbID
+                                        Fetchers.writeLocaly("amendmentsadd_dataNodeId", this.state.data.dataNodeId);
                                         this.loadTable()
                                     }}
                                     linkProcessor={(rowNo, cell)=>{
                                         this.state.data.dataNodeId=this.state.data.applications.rows[rowNo].dbID
+                                        Fetchers.writeLocaly("amendmentsadd_dataNodeId", this.state.data.dataNodeId);
                                         this.loadTable()
                                     }}
                                 />

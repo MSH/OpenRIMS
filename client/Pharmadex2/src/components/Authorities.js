@@ -86,18 +86,21 @@ class Authorities extends Component{
             if(selectedId==undefined){
                 selectedId=0
             }
+            
             ret.push(
                 <Row key={index} className="pb-3">
                     <Col xs='12' sm='12' lg='6' xl='6' className="p-0">
                         <DictLevel  identifier={"org_"+element}
                                     url='organization.authority'
                                     parentId={element}
-                                    selectedId={selectedId}/>
+                                    selectedId={selectedId}
+                                    keycomp={index}/>
                     </Col>
                     <Col xs='12' sm='12' lg='6' xl='6' hidden={this.state.parentIds.length<2}>
                         <UserLevel 
                                     identifier={"user_"+element}
-                                    conceptId={this.state.parentIds[index+1]}/>
+                                    conceptId={this.state.parentIds[index+1]}
+                                    keycomp={index}/>
                     </Col>
                 </Row>
             )

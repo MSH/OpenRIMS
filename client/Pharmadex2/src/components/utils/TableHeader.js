@@ -44,6 +44,9 @@ class TableHeader extends Component{
         this.headColor = this.props.headColor
     }
 
+    componentDidUpdate(){
+        this.state.headerWithFilter = this.props.header
+    }
     /**
      * 
      * @param {string} key - column header key
@@ -274,7 +277,7 @@ class TableHeader extends Component{
                 style={{backgroundColor:'lightgoldenrodyellow'}} >
                     <PopoverBody className="ml-4 mr-4">
                         <Row>
-                            <Col className="m-0 p-0" className="text-center">
+                            <Col className="m-0 p-0 text-center">
                             {this.createSortArrows()}
                             </Col>
                         </Row>

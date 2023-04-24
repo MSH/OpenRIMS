@@ -104,17 +104,45 @@ public class ActivityAPI {
 		return data;
 	}
 
-	@PostMapping({ "/api/*/my/monitoring"})
-	public ApplicationsDTO myMonitoring(Authentication auth, @RequestBody ApplicationsDTO data)
+	/**
+	 * t - type - "actual", "scheduled", "fullsearch"
+	 * @param auth
+	 * @param data
+	 * @param t
+	 * @param s
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping({ "/api/*/my/monitoring/type={t}&search={s}"})
+	public ApplicationsDTO myMonitoringActual(Authentication auth, @RequestBody ApplicationsDTO data, @PathVariable(value = "t") String t, @PathVariable(value = "s") String s)
 			throws DataNotFoundException {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
-			data = monitoringServ.myMonitoring(data, user);
+			data = monitoringServ.myMonitoring(data, user, t, s);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
 	}
+	
+	
+	/**
+	 * Get the latest history ID by the application data ID
+	 * @param auth
+	 * @param applID
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping({ "/api/*/my/monitoring/convinient/history"})
+	public Long myMonitoring(Authentication auth, @RequestBody Long applID)
+			throws DataNotFoundException {
+			try {
+				return monitoringServ.convinientHistory(applID);
+			} catch (ObjectNotFoundException e) {
+				throw new DataNotFoundException(e);
+			}
+	}
+	
 	@PostMapping("/api/*/my/monitoring/application")
 	public ApplicationsDTO application(Authentication auth, @RequestBody ApplicationsDTO data) throws DataNotFoundException {
 		userServ.userData(auth, new UserDetailsDTO());
@@ -133,7 +161,7 @@ public class ActivityAPI {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		data.getTable().getHeaders().setPageSize(Integer.MAX_VALUE);
 		try {
-			data = monitoringServ.myMonitoring(data, user);
+			data = monitoringServ.myMonitoring(data, user, "actual", "");
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -158,7 +186,7 @@ public class ActivityAPI {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		data.getScheduled().getHeaders().setPageSize(Integer.MAX_VALUE);
 		try {
-			data = monitoringServ.myMonitoring(data, user);
+			data = monitoringServ.myMonitoring(data, user, "scheduled", "");
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -183,7 +211,7 @@ public class ActivityAPI {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		data.getScheduled().getHeaders().setPageSize(Integer.MAX_VALUE);
 		try {
-			data = monitoringServ.myMonitoring(data, user);
+			data = monitoringServ.myMonitoring(data, user, "fullsearch", "");
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}

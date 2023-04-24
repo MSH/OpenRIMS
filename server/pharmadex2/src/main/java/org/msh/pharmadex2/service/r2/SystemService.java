@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.r2.Concept;
@@ -387,10 +388,26 @@ public class SystemService {
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	public Dict2DTO stagesWorkflow(Dict2DTO data) throws ObjectNotFoundException {
+	public Dict2DTO stagesWorkflow(Dict2DTO data, Long selid) throws ObjectNotFoundException {
 		if (data.getMasterDict().getUrl().length() == 0) {
 			data.setMasterDict(stagesDictionary());
 		}
+		if(selid != null && selid > 0) {
+			data.getMasterDict().getPrevSelected().clear();
+			data.getMasterDict().getPrevSelected().add(selid);
+			for(TableRow tr:data.getMasterDict().getTable().getRows()) {
+				if(tr.getDbID() == selid) {
+					tr.setSelected(true);
+				}
+			}
+		}else {
+			data.getMasterDict().getPrevSelected().clear();
+			for(TableRow tr:data.getMasterDict().getTable().getRows()) {
+				tr.setSelected(false);
+			}
+		}
+		
+		
 		Set<Long> stageNodeIds = dictServ.selectedItems(data.getMasterDict());
 		if (stageNodeIds.size() == 1) {
 			Concept stageNode = closureServ.loadConceptById(stageNodeIds.iterator().next());

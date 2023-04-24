@@ -6,7 +6,7 @@ import Pharmadex from './Pharmadex'
 import CollectorTable from './utils/CollectorTable'
 import Fetchers from './utils/Fetchers'
 import Navigator from './utils/Navigator'
-import SearchControl from './utils/SearchControl'
+import SearchControlNew from './utils/SearchControlNew'
 
 /**
  *ATCCodes component
@@ -223,7 +223,7 @@ class ATCCodes extends Component{
                 <Col>
                     <Row>
                         <Col>
-                            <SearchControl label={this.state.labels.search} table={this.state.data.table} loader={this.tableLoader}/>
+                            <SearchControlNew label={this.state.labels.search} table={this.state.data.table} loader={this.tableLoader}/>
                         </Col>
                     </Row>
                     <Row>

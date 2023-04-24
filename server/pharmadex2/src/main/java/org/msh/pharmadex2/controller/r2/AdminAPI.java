@@ -232,10 +232,10 @@ public class AdminAPI {
 		return data;
 	}
 
-	@PostMapping("/api/admin/list/users")
-	public UserElementDTO listUsers(@RequestBody UserElementDTO data) throws DataNotFoundException {
+	@PostMapping("/api/admin/list/users/search={s}")
+	public UserElementDTO listUsers(@RequestBody UserElementDTO data, @PathVariable(value = "s") String s) throws DataNotFoundException {
 		try {
-			data = userService.listUsers(data);
+			data = userService.listUsers(data, s);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -402,10 +402,10 @@ public class AdminAPI {
 	 * @return
 	 * @throws DataNotFoundException
 	 */
-	@PostMapping("/api/admin/stages/workflow")
-	public Dict2DTO stagesWorkflow(@RequestBody Dict2DTO data) throws DataNotFoundException {
+	@PostMapping("/api/admin/stages/workflow/selid={selid}")
+	public Dict2DTO stagesWorkflow(@RequestBody Dict2DTO data, @PathVariable(value = "selid") Long selid) throws DataNotFoundException {
 		try {
-			data = systemServ.stagesWorkflow(data);
+			data = systemServ.stagesWorkflow(data, selid);
 			return data;
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
@@ -516,10 +516,10 @@ public class AdminAPI {
 	 * @return
 	 * @throws DataNotFoundException
 	 */
-	@PostMapping("/api/admin/data/collections/load/search={s}")
-	public DataConfigDTO dataCollectionsLoad(@RequestBody DataConfigDTO data, @PathVariable(value = "s") String s) throws DataNotFoundException {
+	@PostMapping("/api/admin/data/collections/load/search={s}/svars={svars}")
+	public DataConfigDTO dataCollectionsLoad(@RequestBody DataConfigDTO data, @PathVariable(value = "s") String s, @PathVariable(value = "svars") String svars) throws DataNotFoundException {
 		try {
-			data = superVisServ.dataCollectionsLoad(data, s);
+			data = superVisServ.dataCollectionsLoad(data, s, svars);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -608,7 +608,7 @@ public class AdminAPI {
 	@PostMapping("/api/admin/data/collection/variables/load")
 	public DataConfigDTO dataCollectionVariablesLoad(@RequestBody DataConfigDTO data) throws DataNotFoundException {
 		try {
-			data = superVisServ.dataCollectionVariablesLoad(data);
+			data = superVisServ.dataCollectionVariablesLoad(data, "");
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}

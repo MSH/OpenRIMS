@@ -263,10 +263,18 @@ public class SupervisorService {
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
-	public DataConfigDTO dataCollectionsLoad(DataConfigDTO data, String searchStr) throws ObjectNotFoundException {
+	public DataConfigDTO dataCollectionsLoad(DataConfigDTO data, String searchStr, String searchStrVars) throws ObjectNotFoundException {
 		Concept root = closureServ.loadRoot(SystemService.DATA_COLLECTIONS_ROOT);
 		if (data.getTable().getHeaders().getHeaders().size() == 0) {
 			data.getTable().setHeaders(headersDataCollections(data.getTable().getHeaders()));
+
+			// только когда снова создаем заголовки, только тогда проверяем был ли текст в строке поиска
+			if(searchStr != null && !searchStr.equals("null") && searchStr.length() > 2) {
+				for(TableHeader th:data.getTable().getHeaders().getHeaders()) {
+					th.setGeneralCondition(searchStr);
+				}
+				data.getTable().setGeneralSearch(searchStr);
+			}
 		}else {
 			//change page should deselect all
 			if(data.getTable().getHeaders().getPage()!=data.getPageNo()) {
@@ -275,13 +283,7 @@ public class SupervisorService {
 				data.setVarTable(new TableQtb());
 			}
 		}
-		
-		if(searchStr != null && !searchStr.equals("null") && searchStr.length() > 2) {
-			for(TableHeader th:data.getTable().getHeaders().getHeaders()) {
-				th.setGeneralCondition(searchStr);
-			}
-		}
-		
+
 		//load a table
 		jdbcRepo.prepareDictionaryLevel(root.getID());
 		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from _dictlevel", "", "active=true", data.getTable().getHeaders());
@@ -302,7 +304,7 @@ public class SupervisorService {
 		}
 		TableQtb.tablePage(rows, data.getTable());				//set the right page
 		// reload variables table, if some selected
-		data = dataCollectionVariablesLoad(data);
+		data = dataCollectionVariablesLoad(data, searchStrVars);
 		data.setPageNo(data.getTable().getHeaders().getPage());
 		return data;
 	}
@@ -392,13 +394,20 @@ public class SupervisorService {
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	public DataConfigDTO dataCollectionVariablesLoad(DataConfigDTO data) throws ObjectNotFoundException {
+	public DataConfigDTO dataCollectionVariablesLoad(DataConfigDTO data, String searchStr) throws ObjectNotFoundException {
 		data.setRestricted(true);
 		if (data.getNodeId() > 0) {
 			// variables
 			TableQtb table = data.getVarTable();
 			if (table.getHeaders().getHeaders().size() == 0) {
 				table.setHeaders(headersVariables(table.getHeaders()));
+				// только когда снова создаем заголовки, только тогда проверяем был ли текст в строке поиска
+				if(searchStr != null && !searchStr.equals("null") && searchStr.length() > 2) {
+					for(TableHeader th:table.getHeaders().getHeaders()) {
+						th.setGeneralCondition(searchStr);
+					}
+					table.setGeneralSearch(searchStr);
+				}
 			}
 			String where = "p.Active=true and p.nodeID='" + data.getNodeId() + "' and p.lang='"
 					+ LocaleContextHolder.getLocale().toString().toUpperCase() + "'";
@@ -873,7 +882,7 @@ public class SupervisorService {
 		List<DataVariableDTO> variables = new ArrayList<DataVariableDTO>();
 		DataConfigDTO datas = new DataConfigDTO();
 		datas.setNodeId(data.getNodeId());
-		datas = dataCollectionVariablesLoad(datas);
+		datas = dataCollectionVariablesLoad(datas, "");
 		for (TableRow row : datas.getVarTable().getRows()) {
 			DataVariableDTO dvar = new DataVariableDTO();
 			dvar.setNodeId(datas.getNodeId());
@@ -889,7 +898,7 @@ public class SupervisorService {
 		data = dataCollectionDefinitionSave(data);
 		// new root
 		datas.setNodeId(data.getNodeId());
-		datas = dataCollectionVariablesLoad(datas);
+		datas = dataCollectionVariablesLoad(datas, "");
 		// duplicate a collection
 		for (DataVariableDTO dv : variables) {
 			dv.setNodeId(data.getNodeId());

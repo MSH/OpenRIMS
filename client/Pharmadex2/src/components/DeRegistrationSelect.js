@@ -29,19 +29,23 @@ class DeRegistrationSelect extends Component{
      * Listen messages from other components
      * @param {Window Event} event 
      */
-        eventProcessor(event){
-            let data=event.data
-            if(data.subject=="onSelectionChange" && data.from==this.state.identifier+"_dict"){
-                this.state.data=data.data
-                this.setState(this.state)
-            }
+    eventProcessor(event){
+        let data=event.data
+        if(data.subject=="onSelectionChange" && data.from==this.state.identifier+"_dict"){
+            this.state.data=data.data
+            this.setState(this.state)
         }
+    }
 
     componentDidMount(){
         window.addEventListener("message",this.eventProcessor)
         Locales.resolveLabels(this)
+
         Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/deregistration", this.state.data, (query,result)=>{
             this.state.data=result
+            let selected_row=Fetchers.readLocaly("deregistr_selected_row", 0);
+            if(this.state.data.table.rows.length > 0)
+                this.state.data.table.rows[selected_row].selected=true
             this.setState(this.state)
         })
     }
@@ -55,9 +59,10 @@ class DeRegistrationSelect extends Component{
     applications(){
         let amdTypeId=0
         if(this.state.data.table != undefined && Fetchers.isGoodArray(this.state.data.table.rows)){
-            this.state.data.table.rows.forEach(row => {
+            this.state.data.table.rows.forEach((row,index) => {
                 if(row.selected){
                     amdTypeId=row.dbID
+                    Fetchers.writeLocaly("deregistr_selected_row",index);
                 }
             });
         }

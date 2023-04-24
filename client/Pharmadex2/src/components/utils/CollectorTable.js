@@ -487,7 +487,7 @@ let j=-1
                     </Pagination>
                     </Col>
                     <Col xs="auto">
-                    <Row  className="m-0 p-0" className={"justify-content-center"} >
+                    <Row className="m-0 p-0 justify-content-center" >
                     <Col xs="auto" style={{fontSize:'1rem', paddingRight:'0px', paddingLeft:'15px',color:'#007bff'}}>
                     <i className="fa fa-list"  aria-hidden="true"></i></Col>
                     <Col xs="auto">

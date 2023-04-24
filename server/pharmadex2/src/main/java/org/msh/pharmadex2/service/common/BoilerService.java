@@ -392,7 +392,17 @@ public class BoilerService {
 	}
 
 	/**
-	 * load all history for application. Sort by Come
+	 * Get all history records by application data. Order by Come
+	 * @param application data
+	 * @return
+	 */
+	@Transactional
+	public List<History> historyAllOrderByCome(Concept applData) {
+		List<History> ret = historyRepo.findAllByApplicationDataOrderByCome(applData);
+		return ret;
+	}
+	/**
+	 * load all history for application (not application data). Sort by Come
 	 * @param application
 	 * @return empty list if no
 	 */
@@ -408,7 +418,7 @@ public class BoilerService {
 	 * @return empty list if no
 	 */
 	@Transactional
-	public List<History> historyAllByApplData(Concept applData) {
+	public List<History> historyOpenedByApplData(Concept applData) {
 		List<History> ret = historyRepo.findAllByApplicationDataAndGo(applData, null);
 		return ret;
 	}
@@ -1426,4 +1436,5 @@ public class BoilerService {
 		root=closureServ.getParent(root);
 		return root;
 	}
+
 }

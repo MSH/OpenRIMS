@@ -40,7 +40,6 @@ import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.CheckListDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.QuestionDTO;
-import org.msh.pharmadex2.dto.SubmitRecieptDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.WorkflowParamDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
@@ -120,39 +119,16 @@ public class ApplicationService {
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	public ApplicationsDTO applicatonsTable(ApplicationsDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+	public ApplicationsDTO applicatonsTable(ApplicationsDTO data, UserDetailsDTO user, String searchStr) throws ObjectNotFoundException {
 		if (data.getDictItemId() > 0) {
 			Concept dictItem = closureServ.loadConceptById(data.getDictItemId());
 			String appUrl = literalServ.readValue("applicationurl", dictItem);
 			String dataUrl = literalServ.readValue("dataurl", dictItem);
 			if(data.isAmendment()) {
-				data.setTable(createAmendmentsTable(appUrl, dataUrl, user.getEmail(), data.getTable()));
+				data.setTable(createAmendmentsTable(appUrl, dataUrl, user.getEmail(), data.getTable(), searchStr));
 			}else {
-				data.setTable(createApplicationsTable(appUrl, dataUrl, user.getEmail(), data.getTable()));
+				data.setTable(createApplicationsTable(appUrl, dataUrl, user.getEmail(), data.getTable(), searchStr));
 			}
-		}
-		return data;
-	}
-
-	/**
-	 * applications in status REVOKE PERMIT
-	 * 
-	 * @param data
-	 * @param user
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	@Transactional
-	public ApplicationsDTO applicatonsRevokes(ApplicationsDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
-		if (data.getDictItemId() > 0) {
-			Concept dictItem = closureServ.loadConceptById(data.getDictItemId());
-			String dataUrl = literalServ.readValue("dataurl", dictItem);
-
-			// find dictItem by revokeProcess
-			Concept dictRevoke = systemServ.revokepermitDictNode(dataUrl);
-			String appUrl = literalServ.readValue(LiteralService.APPLICATION_URL, dictRevoke);
-
-			data.setTable(createApplicationsTable(appUrl, dataUrl, user.getEmail(), data.getTable()));
 		}
 		return data;
 	}
@@ -167,11 +143,30 @@ public class ApplicationService {
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
-	private TableQtb createApplicationsTable(String appUrl, String dataUrl, String email, TableQtb table)
+	private TableQtb createApplicationsTable(String appUrl, String dataUrl, String email, TableQtb table, String searchStr)
 			throws ObjectNotFoundException {
 		if (table.getHeaders().getHeaders().size() == 0) {
 			table.setHeaders(createApplicationsTableHeaders(table.getHeaders()));
+			// только когда снова создаем заголовки, только тогда проверяем был ли текст в строке поиска
+			if(searchStr != null && !searchStr.equals("null") && searchStr.length() > 2) {
+				for(TableHeader th:table.getHeaders().getHeaders()) {
+					th.setGeneralCondition(searchStr);
+				}
+				table.setGeneralSearch(searchStr);
+			}
+		}else {
+			if(table.getGeneralSearch().equals("onSelDict")) {
+				table.setGeneralSearch("");
+				for(TableHeader th:table.getHeaders().getHeaders()) {
+					th.setGeneralCondition(table.getGeneralSearch());
+					if(th.getConditionS().length() > 0) {
+						th.setConditionS("");
+						th.setFilterActive(false);
+					}
+				}
+			}
 		}
+		
 		jdbcRepo.applications_applicant(dataUrl,email);
 		String select = "select * from applications_applicant";
 		List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", "", table.getHeaders());
@@ -201,11 +196,30 @@ public class ApplicationService {
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
-	private TableQtb createAmendmentsTable(String appUrl, String dataUrl, String email, TableQtb table)
+	private TableQtb createAmendmentsTable(String appUrl, String dataUrl, String email, TableQtb table, String searchStr)
 			throws ObjectNotFoundException {
 		if (table.getHeaders().getHeaders().size() == 0) {
 			table.setHeaders(createApplicationsTableHeaders(table.getHeaders()));
+			// только когда снова создаем заголовки, только тогда проверяем был ли текст в строке поиска
+			if(searchStr != null && !searchStr.equals("null") && searchStr.length() > 2) {
+				for(TableHeader th:table.getHeaders().getHeaders()) {
+					th.setGeneralCondition(searchStr);
+				}
+				table.setGeneralSearch(searchStr);
+			}
+		}else {
+			if(table.getGeneralSearch().equals("onSelDict")) {
+				table.setGeneralSearch("");
+				for(TableHeader th:table.getHeaders().getHeaders()) {
+					th.setGeneralCondition(table.getGeneralSearch());
+					if(th.getConditionS().length() > 0) {
+						th.setConditionS("");
+						th.setFilterActive(false);
+					}
+				}
+			}
 		}
+		
 		jdbcRepo.amendments_applicant(dataUrl,email);
 		String select = "select * from amendments_applicant";
 		List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", "", table.getHeaders());

@@ -35,7 +35,8 @@ class UserElement extends Component{
                 executor_roles:'',
                 appl_responsibility:'',
                 save_error:'',
-                warningRemove:''
+                warningRemove:'',
+                saved:'',
             }
         }
         this.loadData=this.loadData.bind(this)
@@ -171,6 +172,7 @@ class UserElement extends Component{
                                     //return to the caller
                                     let caller=this.props.caller
                                     Navigator.navigate(caller.tab,caller.component,caller.parameter)
+                                    Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.saved, color:'success'})
                                 }else{
                                     //send to components validation results
                                     this.state.data=result

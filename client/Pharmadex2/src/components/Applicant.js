@@ -9,7 +9,7 @@ import Dictionary from './Dictionary'
 import ViewEdit from './form/ViewEdit'
 import FormLayout from './FormLayout'
 import CollectorTable from './utils/CollectorTable'
-import SearchControl from './utils/SearchControl'
+import SearchControlNew from './utils/SearchControlNew'
 import ButtonUni from './form/ButtonUni'
 import Pharmadex from './Pharmadex'
 
@@ -100,7 +100,7 @@ class Applicant extends Component{
             <Row>
                 <Col xs='12' sm='12' lg='8' xl='8'>
                     <div hidden={this.state.data.table.rows==0}>
-                        <SearchControl label={this.state.labels.search} table={this.state.data.table} loader={this.tableLoader}/>
+                        <SearchControlNew label={this.state.labels.search} table={this.state.data.table} loader={this.tableLoader}/>
                     </div>
                 </Col>
                 <Col  xs='12' sm='12' lg='4' xl='4'>

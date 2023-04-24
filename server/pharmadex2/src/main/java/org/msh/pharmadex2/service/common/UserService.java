@@ -1,7 +1,6 @@
 package org.msh.pharmadex2.service.common;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -562,8 +561,8 @@ public class UserService implements UserDetailsService {
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public UserElementDTO listUsers(UserElementDTO data) throws ObjectNotFoundException {
-		if(data.getNode().getTable().getHeaders().getHeaders().size()==0) {
+	public UserElementDTO listUsers(UserElementDTO data, String searchStr) throws ObjectNotFoundException {
+		if(data.getNode().getTable().getHeaders().getHeaders().size() == 0) {
 			data.getNode().getTable().getHeaders().getHeaders().add(
 					TableHeader.instanceOf(
 							"pref",
@@ -588,6 +587,14 @@ public class UserService implements UserDetailsService {
 					);
 			data.getNode().getTable().getHeaders().getHeaders().get(0).setSortValue(TableHeader.SORT_ASC);
 			data.getNode().getTable().setHeaders(boilerServ.translateHeaders(data.getNode().getTable().getHeaders()));
+			
+			// только когда снова создаем заголовки, только тогда проверяем был ли текст в строке поиска
+			if(searchStr != null && !searchStr.equals("null") && searchStr.length() > 2) {
+				for(TableHeader th:data.getNode().getTable().getHeaders().getHeaders()) {
+					th.setGeneralCondition(searchStr);
+				}
+				data.getNode().getTable().setGeneralSearch(searchStr);
+			}
 		}
 		TableQtb table = data.getNode().getTable();
 		jdbcRepo.userByOrganization(data.getConceptId());

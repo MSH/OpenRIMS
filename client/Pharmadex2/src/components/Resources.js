@@ -4,7 +4,7 @@ import PropTypes from 'prop-types'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
 import Navigator from './utils/Navigator'
-import SearchControl from './utils/SearchControl'
+import SearchControlNew from './utils/SearchControlNew'
 import ButtonUni from './form/ButtonUni'
 import Pharmadex from './Pharmadex'
 import CollectorTable from './utils/CollectorTable'
@@ -187,7 +187,7 @@ class Resources extends Component{
                     <Col>
                         <Row>
                             <Col xs='12' sm='12' lg='6' xl='6'>
-                                <SearchControl label={this.state.labels.search} table={this.state.data.table} loader={this.loader}/>
+                                <SearchControlNew label={this.state.labels.search} table={this.state.data.table} loader={this.loader}/>
                             </Col>
                             <Col xs='12' sm='12' lg='4' xl='4'>
                             </Col>

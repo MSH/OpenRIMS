@@ -3,7 +3,7 @@ import {Row, Col, Container} from 'reactstrap'
 import PropTypes from 'prop-types'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
-import SearchControl from './utils/SearchControl'
+import SearchControlNew from './utils/SearchControlNew'
 import CollectorTable from './utils/CollectorTable'
 import ButtonUni from './form/ButtonUni'
 import Navigator from './utils/Navigator'
@@ -35,6 +35,7 @@ class ApplicationList extends Component{
     componentDidUpdate(){
         if(this.state.data.dictItemId!=this.props.dictItemId){
             this.state.data.dictItemId=this.props.dictItemId
+            this.state.data.table.generalSearch = "onSelDict"
             this.loadTable()
         }
     }
@@ -47,11 +48,16 @@ class ApplicationList extends Component{
         if(this.props.amend){
             api="/api/guest/applications/table/amendments"
         }
+        let srch = Fetchers.readLocaly("applicationlist_search", "");
+        api += "/search=" + srch
+
         Fetchers.postJSON(api, this.state.data, (query,result)=>{
             this.state.data=result
+            Fetchers.writeLocaly("applicationlist_search", "");
             this.setState(this.state)
         })
     }
+
     render(){
         if(this.state.data.table==undefined){
             return []
@@ -65,7 +71,7 @@ class ApplicationList extends Component{
                 </Row>
                 <Row>
                     <Col xs='12' sm='12' lg='10' xl='10'>
-                        <SearchControl label={this.state.labels.search} table={this.state.data.table} loader={this.loadTable} />
+                        <SearchControlNew label={this.state.labels.search} table={this.state.data.table} loader={this.loadTable} />
                     </Col>
                     <Col xs='12' sm='12' lg='2' xl='2' hidden={Navigator.tabSetName()!='guest' || this.props.noadd}>
                         <ButtonUni
@@ -108,6 +114,7 @@ class ApplicationList extends Component{
                                     historyId:0,    //unknown yet, will be resolved by application_or_activity
                                     dataId:this.state.data.table.rows[row].dbID,    //since 2023-03-17 application data node ID
                                 }
+                                Fetchers.writeLocaly("applicationlist_search", this.state.data.table.generalSearch)
                                 Fetchers.postJSONNoSpinner("/api/guest/application/or/activity", data, (query,result)=>{
                                     let param = JSON.stringify(result)
                                     if(result.application){

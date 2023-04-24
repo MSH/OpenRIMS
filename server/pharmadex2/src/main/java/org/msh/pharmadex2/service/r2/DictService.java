@@ -374,16 +374,48 @@ public class DictService {
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public DictNodeDTO loadLevel( DictNodeDTO data) throws ObjectNotFoundException {
+	public DictNodeDTO loadLevel(DictNodeDTO data, String searchStr) throws ObjectNotFoundException {
 		TableQtb table = data.getTable();
 		Concept parentNode = parentNode(data);
 		if(parentNode != null) {
-			table=loadTable(parentNode, table,new ArrayList<Long>(),false, false);
+			if(table.getHeaders().getHeaders().size() == 0) {
+				table.setHeaders(createHeaders(table.getHeaders(), false));
+				// только когда снова создаем заголовки, только тогда проверяем был ли текст в строке поиска
+				if(searchStr != null && !searchStr.equals("null") && searchStr.length() > 2) {
+					for(TableHeader th:table.getHeaders().getHeaders()) {
+						th.setGeneralCondition(searchStr);
+					}
+					table.setGeneralSearch(searchStr);
+				}
+			}
+			
+			table = loadTable(parentNode, table,new ArrayList<Long>(),false, false);
 			data.setTable(table);
 		}
 		data.getTitle().clear();
 		data.getTitle().addAll(createTitle(data));
 		return data;
+		/*if (table.getHeaders().getHeaders().size() == 0) {
+			table.setHeaders(createApplicationsTableHeaders(table.getHeaders()));
+			// только когда снова создаем заголовки, только тогда проверяем был ли текст в строке поиска
+			if(searchStr != null && !searchStr.equals("null") && searchStr.length() > 2) {
+				for(TableHeader th:table.getHeaders().getHeaders()) {
+					th.setGeneralCondition(searchStr);
+				}
+				table.setGeneralSearch(searchStr);
+			}
+		}else {
+			if(table.getGeneralSearch().equals("onSelDict")) {
+				table.setGeneralSearch("");
+				for(TableHeader th:table.getHeaders().getHeaders()) {
+					th.setGeneralCondition(table.getGeneralSearch());
+					if(th.getConditionS().length() > 0) {
+						th.setConditionS("");
+						th.setFilterActive(false);
+					}
+				}
+			}
+		}*/
 	}
 	/**
 	 * Load dictionary level as a list of OptionDTO

@@ -30,24 +30,34 @@ class Workflows extends Component{
      * Listen messages from other components
      * @param {Window Event} event 
      */
-        eventProcessor(event){
-            let data=event.data
-            if(data.subject=='onSelectionChange' && data.to==this.state.identifier){
-                if(data.from==this.state.data.masterDict.url){
-                    this.state.data.masterDict=data.data
-                    this.loader()
-                }
-                if(data.from==this.state.data.slaveDict.url){
-                        let param={
-                            dictNodeId:data.data.prevSelected[0]
+    eventProcessor(event){
+        let data=event.data
+        if(data.subject=='onSelectionChange' && data.to==this.state.identifier){
+            if(data.from==this.state.data.masterDict.url){
+                this.state.data.masterDict=data.data
+                let dictId=0
+                if(this.state.data.masterDict.table != undefined && Fetchers.isGoodArray(this.state.data.masterDict.table.rows)){
+                    this.state.data.masterDict.table.rows.forEach((row,index) => {
+                        if(row.selected){
+                            dictId=row.dbID
+                            
                         }
-                        let paramStr=JSON.stringify(param)
-                        if(paramStr.length>2){
-                            Navigator.navigate("administrate", "workflowconfigurator",paramStr)
-                        } 
-                    }
+                    });
                 }
+                Fetchers.writeLocaly("workflow_selected_id", dictId);
+                this.loader()
+            }
+            if(data.from==this.state.data.slaveDict.url){
+                let param={
+                    dictNodeId:data.data.prevSelected[0]
+                }
+                let paramStr=JSON.stringify(param)
+                if(paramStr.length>2){
+                    Navigator.navigate("administrate", "workflowconfigurator",paramStr)
+                } 
+            }
         }
+    }
 
     componentDidMount(){
         window.addEventListener("message",this.eventProcessor)
@@ -60,7 +70,10 @@ class Workflows extends Component{
     }
 
     loader(){
-        Fetchers.postJSONNoSpinner("/api/admin/stages/workflow", this.state.data, (query,result)=>{
+        var api = "/api/admin/stages/workflow/selid="
+        let selected_row=Fetchers.readLocaly("workflow_selected_id", 0);
+        api += selected_row
+        Fetchers.postJSONNoSpinner(api, this.state.data, (query,result)=>{
             this.state.data=result
             Locales.resolveLabels(this)
             this.setState(this.state)

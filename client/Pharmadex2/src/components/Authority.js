@@ -7,7 +7,7 @@ import ButtonUni from './form/ButtonUni'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
 import CollectorTable from './utils/CollectorTable'
-import SearchControl from './utils/SearchControl'
+import SearchControlNew from './utils/SearchControlNew'
 import Pharmadex from './Pharmadex'
 
 /**
@@ -196,7 +196,7 @@ class Authority extends Component{
                     </Row>
                     <Row className='mt-1 mb-1'>
                         <Col xs='12' sm='12' lg='8' xl='8'>
-                            <SearchControl label={this.state.labels.search} table={this.state.data.table} loader={this.loadTable} />
+                            <SearchControlNew label={this.state.labels.search} table={this.state.data.table} loader={this.loadTable} />
                         </Col>
                         <Col xs='12' sm='12' lg='4' xl='4'>
                             <ButtonGroup size="sm">

@@ -6,7 +6,7 @@ import Pharmadex from './Pharmadex'
 import CollectorTable from './utils/CollectorTable'
 import Fetchers from './utils/Fetchers'
 import Navigator from './utils/Navigator'
-import SearchControl from './utils/SearchControl'
+import SearchControlNew from './utils/SearchControlNew'
 import FieldInput from './form/FieldInput'
 import ButtonUni from './form/ButtonUni'
 
@@ -131,7 +131,7 @@ class Excipients extends Component{
                             <Row hidden={this.state.data.readOnly}>
                                 <Col xs='12' sm='12' lg='5' xl='5'>
                                     <div>
-                                        <SearchControl label={this.state.labels.search} table={this.state.data.table} loader={this.tableLoader}/>
+                                        <SearchControlNew label={this.state.labels.search} table={this.state.data.table} loader={this.tableLoader}/>
                                     </div>
                                 </Col>
                                 <Col xs='12' sm='12' lg='7' xl='7' className="d-flex justify-content-end">

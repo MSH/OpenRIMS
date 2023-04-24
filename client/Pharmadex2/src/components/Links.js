@@ -4,7 +4,7 @@ import PropTypes from 'prop-types'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
 import Navigator from './utils/Navigator'
-import SearchControl from './utils/SearchControl'
+import SearchControlNew from './utils/SearchControlNew'
 import CollectorTable from './utils/CollectorTable'
 import Dictionary from './Dictionary'
 import ApplicationData from './ApplicationData'
@@ -275,7 +275,7 @@ class Links extends Component{
                 <Container fluid className={Pharmadex.settings.activeBorder}>
                     <Row hidden={!this.state.objects} className='m-2'>
                         <Col>
-                            <SearchControl label={this.state.labels.search} table={this.state.data.table} loader={this.loadObjects}/>
+                            <SearchControlNew label={this.state.labels.search} table={this.state.data.table} loader={this.loadObjects}/>
                         </Col>
                         <Col>
                             {this.allSelected()}

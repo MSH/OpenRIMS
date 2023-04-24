@@ -4,7 +4,7 @@ import PropTypes from 'prop-types'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
 import Navigator from './utils/Navigator'
-import SearchControl from './utils/SearchControl'
+import SearchControlNew from './utils/SearchControlNew'
 import CollectorTable from './utils/CollectorTable'
 import Pharmadex from './Pharmadex'
 import ButtonUni from './form/ButtonUni'
@@ -91,12 +91,15 @@ class DataConfigurator extends Component{
     loader(){
         let srch = Fetchers.readLocaly("dataconfig_search", null);
         let api = "/api/admin/data/collections/load/search=" + srch
+
+        srch = Fetchers.readLocaly("dataconfig_vars_search", null);
+        api += "/svars=" + srch
+
         Fetchers.postJSONNoSpinner(api, this.state.data, (query,result)=>{
             this.state.data=result
             if(this.state.data.nodeId==0){
                 this.state.vars=false
             }
-            Fetchers.writeLocaly("dataconfig_search", null)
             this.setState(this.state)
         })
     }
@@ -120,7 +123,7 @@ class DataConfigurator extends Component{
                 <Container fluid>
                     <Row>
                         <Col xs='12' sm='12' lg='12' xl='6'>
-                            <SearchControl label={this.state.labels.search} table={this.state.data.varTable} loader={this.loader}/>
+                            <SearchControlNew label={this.state.labels.search} table={this.state.data.varTable} loader={this.loader}/>
                         </Col>
                        
                         <Col xs='12' sm='12' lg='12' xl='2'>
@@ -143,7 +146,8 @@ class DataConfigurator extends Component{
                                    nodeId:this.state.data.nodeId
                                }
                                 let param=JSON.stringify(data)
-                                Fetchers.writeLocaly("dataconfig_search", this.state.data.table.headers.headers[0].generalCondition)
+                                Fetchers.writeLocaly("dataconfig_search", this.state.data.table.generalSearch)
+                                Fetchers.writeLocaly("dataconfig_vars_search", this.state.data.varTable.generalSearch)
                                 Navigator.navigate("administrate", "dataformpreview",param) 
                             }}
                             color="success"
@@ -203,7 +207,7 @@ class DataConfigurator extends Component{
             <Container fluid>
                 <Row hidden={this.state.showimport}>
                     <Col xs='12' sm='12' lg='6' xl='6'>
-                        <SearchControl label={this.state.labels.search} table={this.state.data.table} loader={this.loader}/>
+                        <SearchControlNew label={this.state.labels.search} table={this.state.data.table} loader={this.loader}/>
                     </Col>
                     <Col xs='12' sm='12' lg='2' xl='2'>
                     </Col>
@@ -271,6 +275,11 @@ class DataConfigurator extends Component{
                                     this.state.vars=true
                                     this.state.form=false
                                     this.state.data.nodeId=row.dbID
+
+                                    this.state.data.varTable.generalSearch = ""
+                                    this.state.data.varTable.headers.headers.forEach((th) =>{
+                                        th.generalCondition = ""
+                                    })
                                     this.loaderVar()
                                 }else{
                                     this.state.vars=false

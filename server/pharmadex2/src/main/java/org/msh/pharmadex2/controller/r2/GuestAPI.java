@@ -25,6 +25,7 @@ import org.msh.pharmadex2.service.r2.SystemService;
 import org.msh.pharmadex2.service.r2.ThingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -144,11 +145,11 @@ public class GuestAPI {
 	 * @return
 	 * @throws DataNotFoundException
 	 */
-	@PostMapping("/api/guest/applications/table")
-	public ApplicationsDTO applicatonsTable(Authentication auth, @RequestBody ApplicationsDTO data) throws DataNotFoundException {
+	@PostMapping("/api/guest/applications/table/search={s}")
+	public ApplicationsDTO applicatonsTable(Authentication auth, @RequestBody ApplicationsDTO data, @PathVariable(value = "s") String s) throws DataNotFoundException {
 		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
 		try {
-			data=applServ.applicatonsTable(data, user);
+			data=applServ.applicatonsTable(data, user, s);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -161,29 +162,12 @@ public class GuestAPI {
 	 * @return
 	 * @throws DataNotFoundException
 	 */
-	@PostMapping("/api/guest/applications/table/amendments")
-	public ApplicationsDTO applicatonsTableAmendment(Authentication auth, @RequestBody ApplicationsDTO data) throws DataNotFoundException {
+	@PostMapping("/api/guest/applications/table/amendments/search={s}")
+	public ApplicationsDTO applicatonsTableAmendment(Authentication auth, @RequestBody ApplicationsDTO data, @PathVariable(value = "s") String s) throws DataNotFoundException {
 		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data.setAmendment(true);
-			data=applServ.applicatonsTable(data, user);
-		} catch (ObjectNotFoundException e) {
-			throw new DataNotFoundException(e);
-		}
-		return data;
-	}
-	/**
-	 * List of guest applications in state revokepermit
-	 * @param auth
-	 * @param data
-	 * @return
-	 * @throws DataNotFoundException
-	 */
-	@PostMapping("/api/guest/applications/revokes")
-	public ApplicationsDTO applicatonsRevokesTable(Authentication auth, @RequestBody ApplicationsDTO data) throws DataNotFoundException {
-		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
-		try {
-			data=applServ.applicatonsRevokes(data, user);
+			data=applServ.applicatonsTable(data, user, s);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
