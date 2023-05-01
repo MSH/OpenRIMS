@@ -75,6 +75,7 @@ import org.msh.pharmadex2.service.common.ValidationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -145,6 +146,9 @@ public class ThingService {
 	@PersistenceContext
 	EntityManager entityManager;
 
+	@Value("${spring.servlet.multipart.max-file-size}" )
+	String maxFileSize;
+	
 	/**
 	 * Create a new thing
 	 * @param data
@@ -1939,7 +1943,10 @@ public class ThingService {
 		}else {
 			//amendment related
 			if(data.getModiUnitId()>0) {
-				data.getLiterals().put("prefLabel", FormFieldDTO.of(data.getPrefLabel()));
+				Concept conc=closureServ.loadConceptById(data.getModiUnitId());
+				String prefLabel=literalServ.readPrefLabel(conc);
+				data.setPrefLabel(prefLabel);
+				data.getLiterals().put("prefLabel", FormFieldDTO.of(prefLabel));
 			}
 		}
 		//breadcrumb related things
@@ -2034,6 +2041,12 @@ public class ThingService {
 				throw new ObjectNotFoundException("fileLoad File Resource by concept is not found. Concept id is "+data.getNodeId(),logger);
 			}
 		}
+		String s = "1";
+		if(maxFileSize.length() > 2) {
+			s = maxFileSize.substring(0, maxFileSize.length() - 2);
+		}
+		Long maxsize = new Long(s) * 1048576l;
+		data.setMaxFileSize(maxsize);
 		return data;
 	}
 

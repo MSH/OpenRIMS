@@ -3,7 +3,6 @@ package org.msh.pharmadex2.controller.r2;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -67,7 +66,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  *
  */
 @RestController
-public class ActivityAPI {
+public class ActivityAPI{
 	private static final Logger logger = LoggerFactory.getLogger(ActivityAPI.class);
 	@Autowired
 	private UserService userServ;
@@ -442,25 +441,25 @@ public class ActivityAPI {
 	 */
 	@PostMapping({ "/api/*/thing/file/save"})
 	public FileDTO thingFileSave(Authentication auth, @RequestParam("dto") String jsonDto,
-			@RequestParam("file") Optional<MultipartFile> file) throws DataNotFoundException {
+			@RequestParam("file") MultipartFile file) throws DataNotFoundException {
 		FileDTO data = new FileDTO();
 		try {
 			UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 			data = objectMapper.readValue(jsonDto, FileDTO.class);
 			byte[] fileBytes = new byte[0];
-			if (file.isPresent()) {
-				fileBytes = file.get().getBytes();
-				data.setFileSize(file.get().getSize());
-				data.setFileName(file.get().getOriginalFilename());
-				data.setMediaType(file.get().getContentType());
+			//if (file.isPresent()) {
+				fileBytes = file.getBytes();
+				data.setFileSize(file.getSize());
+				data.setFileName(file.getOriginalFilename());
+				data.setMediaType(file.getContentType());
 				data = thingServ.fileSave(data, user, fileBytes);
-			}
+			//}
 		} catch (ObjectNotFoundException | IOException e) {
-			throw new DataNotFoundException(e);
+			throw new DataNotFoundException();
 		}
 		return data;
 	}
-
+    
 	/**
 	 * load a table with files
 	 * 
@@ -904,5 +903,4 @@ public class ActivityAPI {
 		}
 		return data;
 	}
-	
 }

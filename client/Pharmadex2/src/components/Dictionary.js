@@ -17,6 +17,14 @@ import FieldUpload from './form/FieldUpload'
  * Allows:
  * - establish/remove relations to the nodes on a level of a dictionary tree.
  * - add nodes to the level if not "display"
+ * @Usage
+  <Dictionary
+    identifier={this.state.identifier+'mydict'}     //address of this dictionary for messages, if needed
+    data={this.state.data.mydict}                   //DictionaryDTO
+    recipient={this.state.identifier}               //recipient of messages
+    display                                        //display only
+    noborder                                        //will not show a border around 
+  />
  * @event
  * incoming 
  *  askData             ask data user selected

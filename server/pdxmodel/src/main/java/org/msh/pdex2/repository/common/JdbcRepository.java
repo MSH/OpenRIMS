@@ -1387,5 +1387,20 @@ public class JdbcRepository {
 		proc.execute(params);
 		
 	}
+	/**
+	 * Host processes schedule
+	 * @param dictURL
+	 * @param email
+	 */
+	public void host_schedule(String dictURL, String email) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("host_schedule");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("email", email);
+		params.addValue("dictURL", dictURL);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+		
+	}
 
 }

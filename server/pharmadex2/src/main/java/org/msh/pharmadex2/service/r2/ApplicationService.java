@@ -2493,7 +2493,7 @@ public class ApplicationService {
 			throws ObjectNotFoundException, JsonProcessingException {
 		Concept applicant = closureServ.getParent(curHis.getApplicationData());
 		rejectApplication(curHis, applicant.getIdentifier(), data);
-		sendEmailAttention(user, curHis, data);
+		//sendEmailAttention(user, curHis, data);
 		return data;
 	}
 

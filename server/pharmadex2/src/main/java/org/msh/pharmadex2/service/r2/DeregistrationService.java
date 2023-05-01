@@ -51,13 +51,15 @@ public class DeregistrationService {
 		if (table.getHeaders().getHeaders().size() == 0) {
 			table.setHeaders(headersApplications(table.getHeaders()));
 		}
+		Concept item = closureServ.loadConceptById(data.getDictItemId());
+		data.setPermitType(literalServ.readPrefLabel(item));
 		if(data.getDictItemId()>0) {
 			Concept dictNode = closureServ.loadConceptById(data.getDictItemId());
 			String url = literalServ.readValue("url", dictNode);
 			jdbcRepo.applications_hosted_inactive(url, user.getEmail(), true);
 			List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from applications_hosted_inactive", "", "", table.getHeaders());
 			TableQtb.tablePage(rows, table);
-			table.setSelectable(true);
+			table.setSelectable(false);
 			for (TableRow row : table.getRows()) {
 				if (row.getDbID() == data.getDataNodeId()) {
 					row.setSelected(true);

@@ -49,8 +49,11 @@ public class SystemService {
 	public static final String DICTIONARY_GUEST_AMENDMENTS = "dictionary.guest.amendments";
 	public static final String DICTIONARY_GUEST_APPLICATIONS = "dictionary.guest.applications";
 	public static final String DICTIONARY_GUEST_RENEWAL = "dictionary.guest.renewal";
+	public static final String DICTIONARY_GUEST_INSPECTIONS = "dictionary.guest.inspections";
 	public static final String DICTIONARY_SHUTDOWN_APPLICATIONS = "dictionary.shutdown.applications";
 	public static final String DICTIONARY_HOST_APPLICATIONS = "dictionary.host.applications";
+	public static final String DICTIONARY_HOST_INSPECTIONS = "dictionary.host.inspections";
+	public static final String DICTIONARY_INSPECTIONS="dictionary.inspections";
 	public static final String DICTIONARY_SYSTEM_LIFECYCLE = "dictionary.system.lifecycle";
 	public static final String DICTIONARY_SYSTEM_SUBMIT = "dictionary.system.submit";
 	public static final String ROOT_SYSTEM_TILES = "dictionary.system.tiles";
@@ -69,6 +72,7 @@ public class SystemService {
 	public static final String FILE_STORAGE_BUSINESS = "file.storage.business";
 	public static final String DATA_COLLECTIONS_ROOT = "configuration.data";
 	public static final String RECYCLE = "system.recycle.bin";
+	
 
 	// *************************** ROLES
 	// ******************************************************************
@@ -178,22 +182,23 @@ public class SystemService {
 
 	/**
 	 * New applications dictionary
+	 * @param url 
 	 * 
 	 * @param data
 	 * @param user
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
-	public DictionaryDTO applicationsDictionary(DictionaryDTO data) throws ObjectNotFoundException {
-		data.setUrl(DICTIONARY_GUEST_APPLICATIONS);
+	public DictionaryDTO applicationsDictionary(String url, DictionaryDTO data) throws ObjectNotFoundException {
+		data.setUrl(url);
 		Concept root = closureServ.loadRoot(data.getUrl());
 		String prefLabel = literalServ.readPrefLabel(root);
 		String descr = literalServ.readDescription(root);
 		if (prefLabel.length() == 0) {
 			prefLabel = messages.get("newapplications");
 			descr = "";
+			literalServ.prefAndDescription(prefLabel, descr, root);
 		}
-		literalServ.prefAndDescription(prefLabel, descr, root);
 		data = dictServ.createDictionary(data);
 		return data;
 	}
@@ -684,7 +689,27 @@ public class SystemService {
 		checkLifeCycleDicts();
 		submitActionDictionary();
 		uploadImportDataDictionary();
+		inspectionDictionaries();
 		finalizeDict();
+	}
+	/**
+	 * inspection's guest, host and inspection
+	 * @throws ObjectNotFoundException 
+	 */
+	private void inspectionDictionaries() throws ObjectNotFoundException {
+		List<String> appl = inspectionDictUrs();
+		for (String url : appl) {
+			dictServ.checkDictionary(url);
+		}
+		
+	}
+
+	private List<String> inspectionDictUrs() {
+		List<String> ret = new ArrayList<String>();
+		ret.add(SystemService.DICTIONARY_GUEST_INSPECTIONS);
+		ret.add(SystemService.DICTIONARY_HOST_INSPECTIONS);
+		ret.add(SystemService.DICTIONARY_INSPECTIONS);
+		return ret;
 	}
 
 	/**

@@ -270,7 +270,10 @@ public class AssemblyService {
 
 		}
 
-		if(url.equalsIgnoreCase(SystemService.DICTIONARY_HOST_APPLICATIONS)) {
+		if(url.equalsIgnoreCase(SystemService.DICTIONARY_HOST_APPLICATIONS)
+				|| url.equalsIgnoreCase(SystemService.DICTIONARY_HOST_INSPECTIONS)
+				|| url.equalsIgnoreCase(SystemService.DICTIONARY_INSPECTIONS)
+				) {
 			{
 				AssemblyDTO fld = new AssemblyDTO();
 				fld.setRequired(true);
@@ -295,6 +298,7 @@ public class AssemblyService {
 				|| url.equalsIgnoreCase(SystemService.DICTIONARY_GUEST_AMENDMENTS)
 				|| url.equalsIgnoreCase(SystemService.DICTIONARY_GUEST_RENEWAL)
 				|| url.equalsIgnoreCase(SystemService.DICTIONARY_GUEST_DEREGISTRATION)
+				|| url.equalsIgnoreCase(SystemService.DICTIONARY_GUEST_INSPECTIONS)
 				) {
 			{
 				AssemblyDTO fld = new AssemblyDTO();

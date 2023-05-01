@@ -60,10 +60,7 @@ public class ReportService {
 	private RegisterService registerServ;
 	@Autowired
 	private DWHService dwhServ;
-	@Autowired
-	private DictService dictServ;
-	@Autowired
-	private DtoService dtoServ;
+
 
 	@Value("${link.report.datastudio.pharms:\"\"}")
 	public String linkReport;

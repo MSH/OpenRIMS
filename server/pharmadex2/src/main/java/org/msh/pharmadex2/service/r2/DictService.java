@@ -1139,7 +1139,7 @@ public class DictService {
 		Concept root = closureServ.loadRoot(url);
 		String prefLabel = literalServ.readPrefLabel(root);
 		if(prefLabel.length()==0) {
-			literalServ.createUpdatePrefLabel(messages.get("aminunits"), root);
+			literalServ.createUpdatePrefLabel(url, root);
 		}
 		String description=literalServ.readDescription(root);
 		if(description == null || description.length()==0) {
