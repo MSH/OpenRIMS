@@ -2,7 +2,7 @@ import React , {Component} from 'react'
 import {Row, Col, Alert} from 'reactstrap'
 
 /**
- * Place an alert and show it 2 sec
+ * Place an alert and show it 15 sec
  * Accepts message show.alert.pharmadex.2
  * @example
  * Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:'Saved', color:'success'})
@@ -40,7 +40,7 @@ class AlertFloat extends Component{
                 setTimeout(() => {
                     this.state.data=''
                     this.setState(this.state)
-                }, 10000);
+                }, 15000);
                 this.setState(this.state)
             }
            

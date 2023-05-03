@@ -91,7 +91,7 @@ public class DictionariesTest {
 		//test it
 		DictNodeDTO level = new DictNodeDTO();
 		level.setUrl("dict.fiction.test");
-		level = dictServ.loadLevel(level);
+		level = dictServ.loadLevel(level, "");
 		assertEquals(2, level.getTable().getRows().size());
 		DictNodeDTO dictEl = dictServ.loadNodeById(level.getTable().getRows().get(0).getDbID());
 		assertEquals("irka", dictEl.fetchPrefLabel().getValue());
@@ -120,7 +120,7 @@ public class DictionariesTest {
 		//selection was on a client
 		DictNodeDTO nextLevel = new DictNodeDTO();
 		nextLevel.setParentId(level.getTable().getRows().get(0).getDbID());
-		nextLevel = dictServ.loadLevel(nextLevel);
+		nextLevel = dictServ.loadLevel(nextLevel, "");
 		//should be empty yet
 		assertEquals(0, nextLevel.getTable().getRows().size());
 
@@ -135,7 +135,7 @@ public class DictionariesTest {
 		opt2 = dictServ.save(opt2);
 		DictNodeDTO thirdLevel = new DictNodeDTO();
 		thirdLevel.setParentId(selectedNode.getID());
-		thirdLevel = dictServ.loadLevel(thirdLevel);
+		thirdLevel = dictServ.loadLevel(thirdLevel, "");
 		//should be only just added
 		assertEquals(1, thirdLevel.getTable().getRows().size());
 

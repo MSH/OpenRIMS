@@ -158,5 +158,23 @@ public abstract class AllowValidation{
 		setValid(true);
 		setIdentifier("");
 	}
+	
+	/**
+	 * Mark DTO as invalid and add an error message to it
+	 * @param mess
+	 */
+	public void addError(String mess) {
+		setValid(false);
+		String err= getIdentifier();
+		if(err==null) {
+			setIdentifier(mess);
+		}
+		if(err.length()==0) {
+			setIdentifier(mess);
+		}else {
+			setIdentifier(getIdentifier()+", "+mess);
+		}
+		
+	}
 }
 

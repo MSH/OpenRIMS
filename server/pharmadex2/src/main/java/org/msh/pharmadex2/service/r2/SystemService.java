@@ -6,26 +6,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
-import org.msh.pdex2.model.r2.Thing;
-import org.msh.pdex2.model.r2.ThingDict;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.Dict2DTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
-import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.auth.UserRoleDto;
-import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
-import org.msh.pharmadex2.service.common.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,10 +36,11 @@ public class SystemService {
 	// public static final String DICTIONARY_SYSTEM_IMPORT_LEGACY_DATA =
 	// "dictionary.system.import.legacy.data";
 	// Finalization activity related
-	private static final String FINAL_DEREGISTRATION = "deregistration";
+	public static final String FINAL_DEREGISTRATION = "deregistration";
 	public static final String FINAL_AMEND = "AMEND";
 	public static final String FINAL_DECLINE = "DECLINE";
 	public static final String FINAL_ACCEPT = "ACCEPT";
+	public static final String FINAL_COMPANY="COMPANY";
 	public static final String FINAL_NO = "NO";
 	public static final String DICTIONARY_SYSTEM_FINALIZATION = "dictionary.system.finalization";
 
@@ -53,8 +49,11 @@ public class SystemService {
 	public static final String DICTIONARY_GUEST_AMENDMENTS = "dictionary.guest.amendments";
 	public static final String DICTIONARY_GUEST_APPLICATIONS = "dictionary.guest.applications";
 	public static final String DICTIONARY_GUEST_RENEWAL = "dictionary.guest.renewal";
+	public static final String DICTIONARY_GUEST_INSPECTIONS = "dictionary.guest.inspections";
 	public static final String DICTIONARY_SHUTDOWN_APPLICATIONS = "dictionary.shutdown.applications";
 	public static final String DICTIONARY_HOST_APPLICATIONS = "dictionary.host.applications";
+	public static final String DICTIONARY_HOST_INSPECTIONS = "dictionary.host.inspections";
+	public static final String DICTIONARY_INSPECTIONS="dictionary.inspections";
 	public static final String DICTIONARY_SYSTEM_LIFECYCLE = "dictionary.system.lifecycle";
 	public static final String DICTIONARY_SYSTEM_SUBMIT = "dictionary.system.submit";
 	public static final String ROOT_SYSTEM_TILES = "dictionary.system.tiles";
@@ -73,6 +72,7 @@ public class SystemService {
 	public static final String FILE_STORAGE_BUSINESS = "file.storage.business";
 	public static final String DATA_COLLECTIONS_ROOT = "configuration.data";
 	public static final String RECYCLE = "system.recycle.bin";
+	
 
 	// *************************** ROLES
 	// ******************************************************************
@@ -90,9 +90,7 @@ public class SystemService {
 	private LiteralService literalServ;
 	@Autowired
 	private Messages messages;
-	@Autowired
-	private BoilerService boilerServ;
-
+	
 	/**
 	 * Add role to roles dictionary
 	 * 
@@ -167,6 +165,7 @@ public class SystemService {
 		addRoleToDictionary(root, FINAL_DECLINE);
 		addRoleToDictionary(root, FINAL_AMEND);
 		addRoleToDictionary(root, FINAL_DEREGISTRATION);
+		addRoleToDictionary(root, FINAL_COMPANY);
 	}
 
 	/**
@@ -183,22 +182,23 @@ public class SystemService {
 
 	/**
 	 * New applications dictionary
+	 * @param url 
 	 * 
 	 * @param data
 	 * @param user
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
-	public DictionaryDTO applicationsDictionary(DictionaryDTO data) throws ObjectNotFoundException {
-		data.setUrl(DICTIONARY_GUEST_APPLICATIONS);
+	public DictionaryDTO applicationsDictionary(String url, DictionaryDTO data) throws ObjectNotFoundException {
+		data.setUrl(url);
 		Concept root = closureServ.loadRoot(data.getUrl());
 		String prefLabel = literalServ.readPrefLabel(root);
 		String descr = literalServ.readDescription(root);
 		if (prefLabel.length() == 0) {
 			prefLabel = messages.get("newapplications");
 			descr = "";
+			literalServ.prefAndDescription(prefLabel, descr, root);
 		}
-		literalServ.prefAndDescription(prefLabel, descr, root);
 		data = dictServ.createDictionary(data);
 		return data;
 	}
@@ -317,7 +317,7 @@ public class SystemService {
 			literalServ.createUpdateLiteral("type", "system", root);
 		}
 		List<Concept> level = literalServ.loadOnlyChilds(root);
-		if (level.size() != 9) {
+		if (level.size() != 10) {
 			// create level
 			systemDictNode(root, "0", messages.get("continue"));
 			systemDictNode(root, "1", messages.get("route_action"));
@@ -328,6 +328,7 @@ public class SystemService {
 			systemDictNode(root, "6", messages.get("reassign"));
 			systemDictNode(root, "7", messages.get("amendment"));
 			systemDictNode(root, "8", messages.get("deregistration"));
+			systemDictNode(root, "9", messages.get("revokepermit"));
 		}
 		ret = dictServ.createDictionary(ret);
 		ret.setMult(false);
@@ -353,8 +354,8 @@ public class SystemService {
 		}
 		List<Concept> level = literalServ.loadOnlyChilds(root);
 		if (level.size() == 0) {
-			systemDictNode(root, AssemblyService.DATAIMPORT_DATA, "XLSX file contains data to import");
-			systemDictNode(root, AssemblyService.DATAIMPORT_DATA_ERROR, "XLSX file contains data import errors");
+			systemDictNode(root, AssemblyService.DATAIMPORT_DATA, "File contains data to import (XLSX)");
+			systemDictNode(root, AssemblyService.DATAIMPORT_DATA_ERROR, "File with data import errors(XLSX)");
 		} else if (level.size() == 1) {
 			Concept c = level.get(0);
 			c.setIdentifier(AssemblyService.DATAIMPORT_DATA);
@@ -392,10 +393,26 @@ public class SystemService {
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	public Dict2DTO stagesWorkflow(Dict2DTO data) throws ObjectNotFoundException {
+	public Dict2DTO stagesWorkflow(Dict2DTO data, Long selid) throws ObjectNotFoundException {
 		if (data.getMasterDict().getUrl().length() == 0) {
 			data.setMasterDict(stagesDictionary());
 		}
+		if(selid != null && selid > 0) {
+			data.getMasterDict().getPrevSelected().clear();
+			data.getMasterDict().getPrevSelected().add(selid);
+			for(TableRow tr:data.getMasterDict().getTable().getRows()) {
+				if(tr.getDbID() == selid) {
+					tr.setSelected(true);
+				}
+			}
+		}else {
+			data.getMasterDict().getPrevSelected().clear();
+			for(TableRow tr:data.getMasterDict().getTable().getRows()) {
+				tr.setSelected(false);
+			}
+		}
+		
+		
 		Set<Long> stageNodeIds = dictServ.selectedItems(data.getMasterDict());
 		if (stageNodeIds.size() == 1) {
 			Concept stageNode = closureServ.loadConceptById(stageNodeIds.iterator().next());
@@ -532,6 +549,16 @@ public class SystemService {
 	}
 
 	/**
+	 * Is it shutdown application?
+	 * 
+	 * @param curHis
+	 * @return
+	 */
+	public boolean isShutdown(History curHis) {
+		Concept thisDictRoot = closureServ.getParent(curHis.getApplDict());
+		return thisDictRoot.getIdentifier().equalsIgnoreCase(DICTIONARY_SHUTDOWN_APPLICATIONS);
+	}
+	/**
 	 * Recognize host dictionary node by host process URL
 	 * 
 	 * @param processUrl
@@ -543,7 +570,7 @@ public class SystemService {
 		Concept root = closureServ.loadRoot(DICTIONARY_HOST_APPLICATIONS);
 		List<Concept> level = literalServ.loadOnlyChilds(root);
 		for (Concept conc : level) {
-			String aurl = literalServ.readValue("applicationurl", conc);
+			String aurl = literalServ.readValue(LiteralService.APPLICATION_URL, conc);
 			if (aurl.equalsIgnoreCase(processUrl) && conc.getActive()) {
 				return conc;
 			}
@@ -551,6 +578,34 @@ public class SystemService {
 		throw new ObjectNotFoundException("dictionary node for host process not found. URL is" + processUrl, logger);
 	}
 
+	/**
+	 * Recognize revokepermit dictionary node by revokepermit process URL
+	 * 
+	 * @param processUrl
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	@Transactional
+	public Concept revokepermitDictNode(String processUrl) throws ObjectNotFoundException  {
+		
+		Concept root= new Concept();
+		
+		try {
+			root = closureServ.loadRoot(DICTIONARY_SHUTDOWN_APPLICATIONS);
+		} catch (ObjectNotFoundException e) {
+			throw new ObjectNotFoundException("No dictionary DICTIONARY_SHUTDOWN_APPLICATIONS "+e,logger);
+		}
+		List<Concept> level = literalServ.loadOnlyChilds(root);
+		Concept conDict=null;
+		for (Concept conc : level) {
+			String aurl = literalServ.readValue(LiteralService.URL, conc);
+			if (aurl.equalsIgnoreCase(processUrl) && conc.getActive()) {
+				conDict= conc;
+			}
+		}
+		return conDict;
+	}
+	
 	/**
 	 * Return report configuration dictionary depends on the user category
 	 * <ul>
@@ -634,7 +689,27 @@ public class SystemService {
 		checkLifeCycleDicts();
 		submitActionDictionary();
 		uploadImportDataDictionary();
+		inspectionDictionaries();
 		finalizeDict();
+	}
+	/**
+	 * inspection's guest, host and inspection
+	 * @throws ObjectNotFoundException 
+	 */
+	private void inspectionDictionaries() throws ObjectNotFoundException {
+		List<String> appl = inspectionDictUrs();
+		for (String url : appl) {
+			dictServ.checkDictionary(url);
+		}
+		
+	}
+
+	private List<String> inspectionDictUrs() {
+		List<String> ret = new ArrayList<String>();
+		ret.add(SystemService.DICTIONARY_GUEST_INSPECTIONS);
+		ret.add(SystemService.DICTIONARY_HOST_INSPECTIONS);
+		ret.add(SystemService.DICTIONARY_INSPECTIONS);
+		return ret;
 	}
 
 	/**
@@ -725,5 +800,6 @@ public class SystemService {
 				}
 				return message;
 				}*/
+
 
 }

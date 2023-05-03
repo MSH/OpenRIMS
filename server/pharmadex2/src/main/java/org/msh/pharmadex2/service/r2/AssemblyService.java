@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.apache.poi.ss.format.CellDateFormatter;
 import org.msh.pdex2.dto.table.Headers;
 import org.msh.pdex2.dto.table.TableHeader;
 import org.msh.pdex2.dto.table.TableRow;
@@ -42,6 +43,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AssemblyService {
 
+	public static final String HIDECHECKLIST_FLD = "hidechecklist";
 	public static final String DATAIMPORT_ADDRESS = "dataimport_address";
 	public static final String DATAIMPORT_RESULT = "dataimport_result";
 	public static final String DATAIMPORT_SYSTEM_RESULT = "dataimport_system_result";
@@ -49,7 +51,7 @@ public class AssemblyService {
 	public static final String DATAIMPORT_DATA_ERROR = "dataimporterror";
 	public static final String SYSTEM_IMPORT_ADMINUNITS="system.import.adminunits";
 	public static final String SYSTEM_IMPORT_ADMINUNITS_RELOAD="system.import.adminunits_reload";
-	private static final String ACTIVITY_EXECUTIVES = "executives";
+	public static final String ACTIVITY_EXECUTIVES = "executives";
 	public static final String ACTIVITY_CONFIG_FINALIZE = "finalize";
 	private static final String ACTIVITY_CONFIGURATION = "activity.configuration";
 	private static final String OBJECT_SITE_CLASSIFIERS = "object.site.classifiers";
@@ -63,6 +65,12 @@ public class AssemblyService {
 	public static final String SYSTEM_IMPORT_ATCCODES = "system.import.atccodes";
 	public static final String SYSTEM_IMPORT_ATCCODES_RELOAD = SYSTEM_IMPORT_ATCCODES + "_reload";
 	public static final String DATAIMPORT_CODES = "dataimport_codes";
+	//dictionary for file import
+	public static final String SYSTEM_IMPORT_DICTIONARY="system.import.dictionary";
+	//electronic form for data configuration import
+	public static final String SYSTEM_IMPORT_DATA_CONFIGURATION="system.import.data.configuration";
+	//electronic form for data workflows import
+		public static final String SYSTEM_IMPORT_DATA_WORKFLOW="system.import.data.workflow";
 	
 	@Autowired
 	private ClosureService closureServ;
@@ -137,6 +145,16 @@ public class AssemblyService {
 	 */
 	public List<AssemblyDTO> auxStrings(String url, List<Assembly> assemblies) throws ObjectNotFoundException {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
+		if(url.equalsIgnoreCase(SYSTEM_IMPORT_DATA_CONFIGURATION)) {
+			AssemblyDTO fld = new AssemblyDTO();
+			fld.setRequired(false);
+			fld.setMin(BigDecimal.ZERO);
+			fld.setMax(BigDecimal.ZERO);
+			fld.setReadOnly(true);
+			fld.setTextArea(true);
+			fld.setPropertyName("description");
+			ret.add(fld);	
+		}
 		if(url.equalsIgnoreCase(ACTIVITY_CONFIGURATION)) {
 			BigDecimal min = BigDecimal.valueOf(3l);
 			BigDecimal max= BigDecimal.valueOf(80l);
@@ -173,6 +191,14 @@ public class AssemblyService {
 				fld.setTextArea(false);
 				fld.setPropertyName("addressurl");
 				ret.add(fld);	
+			}
+			{// notes to mail 26.11.2022
+				AssemblyDTO fld = new AssemblyDTO();
+				fld.setRequired(false);
+				fld.setReadOnly(false);
+				fld.setTextArea(true);
+				fld.setPropertyName("attnote");
+				ret.add(fld);
 			}
 		}
 		if(ret.size()==0) {
@@ -244,7 +270,10 @@ public class AssemblyService {
 
 		}
 
-		if(url.equalsIgnoreCase(SystemService.DICTIONARY_HOST_APPLICATIONS)) {
+		if(url.equalsIgnoreCase(SystemService.DICTIONARY_HOST_APPLICATIONS)
+				|| url.equalsIgnoreCase(SystemService.DICTIONARY_HOST_INSPECTIONS)
+				|| url.equalsIgnoreCase(SystemService.DICTIONARY_INSPECTIONS)
+				) {
 			{
 				AssemblyDTO fld = new AssemblyDTO();
 				fld.setRequired(true);
@@ -269,6 +298,7 @@ public class AssemblyService {
 				|| url.equalsIgnoreCase(SystemService.DICTIONARY_GUEST_AMENDMENTS)
 				|| url.equalsIgnoreCase(SystemService.DICTIONARY_GUEST_RENEWAL)
 				|| url.equalsIgnoreCase(SystemService.DICTIONARY_GUEST_DEREGISTRATION)
+				|| url.equalsIgnoreCase(SystemService.DICTIONARY_GUEST_INSPECTIONS)
 				) {
 			{
 				AssemblyDTO fld = new AssemblyDTO();
@@ -474,6 +504,14 @@ public class AssemblyService {
 				ret.add(fld);	
 			}
 		}
+		if(url.equalsIgnoreCase(SYSTEM_IMPORT_DATA_WORKFLOW)) {
+			AssemblyDTO fld = new AssemblyDTO();
+			fld.setRequired(false);
+			fld.setReadOnly(true);
+			fld.setTextArea(false);
+			fld.setPropertyName("dataID");
+			ret.add(fld);	
+		}
 		if(ret.size()==0) {
 			//List<Assembly> assms = loadDataConfiguration(url);
 			for(Assembly assm : assemblies) {
@@ -499,6 +537,11 @@ public class AssemblyService {
 				assm.setPropertyName("attention");
 				ret.add(assm);
 			}
+			{
+				AssemblyDTO assm = new AssemblyDTO();
+				assm.setPropertyName(HIDECHECKLIST_FLD);
+				ret.add(assm);
+			}
 		}
 		//*********************************** read from configuration ***************************************************
 		if(ret.size()==0) {
@@ -521,7 +564,8 @@ public class AssemblyService {
 	@Transactional
 	public List<AssemblyDTO> auxDocuments(String url, List<Assembly> assemblies) throws ObjectNotFoundException{
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
-		if(url.equalsIgnoreCase(SYSTEM_IMPORT_ADMINUNITS) || url.equalsIgnoreCase(SYSTEM_IMPORT_ADMINUNITS_RELOAD)) {
+		if(url.equalsIgnoreCase(SYSTEM_IMPORT_ADMINUNITS) 
+				|| url.equalsIgnoreCase(SYSTEM_IMPORT_ADMINUNITS_RELOAD)) {
 			AssemblyDTO assm = new AssemblyDTO();
 			assm.setPropertyName(DATAIMPORT_DATA);
 			assm.setUrl("data.import");
@@ -551,6 +595,26 @@ public class AssemblyService {
 		if(url.equalsIgnoreCase(SYSTEM_IMPORT_ATCCODES) || url.equalsIgnoreCase(SYSTEM_IMPORT_ATCCODES_RELOAD)) {
 			AssemblyDTO assm = new AssemblyDTO();
 			assm.setPropertyName(DATAIMPORT_DATA);
+			assm.setUrl("data.import");
+			assm.setDescription(messages.get("pleaseuploadimportdata"));
+			assm.setRequired(true);
+			assm.setFileTypes(".xlsx");
+			assm.setDictUrl(SystemService.DICTIONARY_SYSTEM_IMPORT_DATA);
+			ret.add(assm);
+		}
+		if(url.equalsIgnoreCase(SYSTEM_IMPORT_DICTIONARY)) {
+			AssemblyDTO assm = new AssemblyDTO();
+			assm.setPropertyName(DATAIMPORT_DATA);
+			assm.setUrl("data.import");
+			assm.setDescription(messages.get("pleaseuploadimportdata"));
+			assm.setRequired(true);
+			assm.setFileTypes(".xlsx");
+			assm.setDictUrl("dictionary.system.import");
+			ret.add(assm);
+		}
+		if(url.equalsIgnoreCase(SYSTEM_IMPORT_DATA_CONFIGURATION) || url.equalsIgnoreCase(SYSTEM_IMPORT_DATA_WORKFLOW)) {
+			AssemblyDTO assm = new AssemblyDTO();
+			assm.setPropertyName("import_electronic_form");
 			assm.setUrl("data.import");
 			assm.setDescription(messages.get("pleaseuploadimportdata"));
 			assm.setRequired(true);
@@ -664,15 +728,17 @@ public class AssemblyService {
 				cell1.getVariables().add("description");
 				cell1.getVariables().add("activityurl");
 				cell1.getVariables().add("checklisturl");
+				cell1.getVariables().add(HIDECHECKLIST_FLD);	//2023-02-13
 				cell1.getVariables().add("dataurl");
 				cell1.getVariables().add("addressurl");
+				cell1.getVariables().add("attention");
+				cell1.getVariables().add("attnote");// notes to mail 26.11.2022
 				row.getCells().add(cell1);
 
 				LayoutCellDTO cell2 = new LayoutCellDTO();
 				cell2.getVariables().add(ACTIVITY_EXECUTIVES);
 				cell2.getVariables().add("background");
 				cell2.getVariables().add(ACTIVITY_CONFIG_FINALIZE);
-				cell2.getVariables().add("attention");
 				row.getCells().add(cell2);
 
 				ret.add(row);
@@ -786,6 +852,23 @@ public class AssemblyService {
 			cell1.getVariables().add(DATAIMPORT_RESULT);
 			row.getCells().add(cell1);
 
+			ret.add(row);
+		}
+		if(url.equalsIgnoreCase(SYSTEM_IMPORT_DICTIONARY)) {
+			//file uploader and r/o field for messages output
+			LayoutRowDTO row= new LayoutRowDTO();
+			LayoutCellDTO cell1 = new LayoutCellDTO();
+			cell1.getVariables().add(DATAIMPORT_DATA);
+			row.getCells().add(cell1);
+			ret.add(row);
+		}
+		if(url.equalsIgnoreCase(SYSTEM_IMPORT_DATA_CONFIGURATION)|| url.equalsIgnoreCase(SYSTEM_IMPORT_DATA_WORKFLOW) ) {
+			LayoutRowDTO row= new LayoutRowDTO();
+			LayoutCellDTO cell1 = new LayoutCellDTO();
+			cell1.getVariables().add("import_electronic_form");	//file uploader
+			cell1.getVariables().add("description");						//import data diagnostic
+			cell1.getVariables().add("dataID");
+			row.getCells().add(cell1);
 			ret.add(row);
 		}
 		/*************************************** LOAD FROM CONFIGURATION ******************************************************************/
@@ -1023,6 +1106,27 @@ public class AssemblyService {
 	}
 
 	/**
+	 * droplist data references
+	 * @param assms
+	 * @param exts 
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	@Transactional
+	public List<AssemblyDTO> auxDropListData(String url, List<Assembly> assms) throws ObjectNotFoundException {
+		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
+		// TODO hardcoded definitions...
+		if(ret.size()==0) {
+			for(Assembly assm : assms) {
+				if(assm.getClazz().equalsIgnoreCase("droplist")) {
+					ret.add(dtoServ.assemblyDto(assm));
+				}
+			}
+		}
+		return ret;
+	}
+	
+	/**
 	 * Dates intervals
 	 * !!!! attantion, temporary only for the first iteration!
 	 * @param data
@@ -1167,13 +1271,13 @@ public class AssemblyService {
 	public AssemblyDTO auxPathConfig(ThingDTO data, long dictNodeId, String varName) throws ObjectNotFoundException {
 		AssemblyDTO ret = new AssemblyDTO();
 		if(dictNodeId>0) {
-			//configuration is in a dictionary
+			//configuration is in a dictionary @DEPRECATED!!!!
 			Concept dictNode = closureServ.loadConceptById(dictNodeId);
 			String urlStr=literalServ.readValue("URL", dictNode);
 			if(urlStr.length()>0) {
 				ret.setUrl(urlStr);
 			}else {
-				throw new ObjectNotFoundException("auxPathConfig. Bad dictionary choice. URL is undefined ", logger);
+				ret.addError(messages.get("emptyauxurl"));
 			}
 		}else {
 			//configuration is in a variable configuration
@@ -1189,7 +1293,7 @@ public class AssemblyService {
 					if(urlStr.length()>0) {
 						ret.setUrl(urlStr);
 					}else {
-						throw new ObjectNotFoundException("auxPathConfig. Please, configure auxDataUrl for "+data+"/"+varName, logger);
+						ret.addError(messages.get("emptyauxurl"));
 					}
 				}
 			}
@@ -1441,7 +1545,6 @@ public class AssemblyService {
 	
 	public AssemblyDTO auxAssemblyDTOByClazz(List<AssemblyDTO> ret, String key) throws ObjectNotFoundException {
 		AssemblyDTO dto = null;
-		
 		if(ret != null && ret.size() > 0) {
 			for(AssemblyDTO ass:ret) {
 				if(key.equals(ass.getPropertyName())) {
@@ -1451,6 +1554,22 @@ public class AssemblyService {
 			}
 		}
 		return dto;
+	}
+	/**
+	 * Create layout for a thing created from literals
+	 * @param literals
+	 * @return
+	 */
+	public List<LayoutRowDTO> literalsLayout(Map<String, String> literals) {
+		List<LayoutRowDTO> ret = new ArrayList<LayoutRowDTO>();
+		LayoutRowDTO row = new LayoutRowDTO();
+		LayoutCellDTO cell = new LayoutCellDTO();
+		row.getCells().add(cell);
+		for(String key :literals.keySet()) {
+			cell.getVariables().add(key);
+		}
+		ret.add(row);
+		return ret;
 	}
 }
 

@@ -18,6 +18,8 @@ public class DataVariableDTO extends AllowValidation {
 	private long varNodeId=0;
 	//variable name
 	private FormFieldDTO<String> varName = FormFieldDTO.of("");
+	// hide it from an applicant
+	private FormFieldDTO<OptionDTO> hidefromapplicant = FormFieldDTO.of(new OptionDTO());
 	//variable name extension
 	private FormFieldDTO<String> varNameExt = FormFieldDTO.of("");
 	//Help text
@@ -27,7 +29,7 @@ public class DataVariableDTO extends AllowValidation {
 	private FormFieldDTO<String> dictUrl = FormFieldDTO.of("");
 	private FormFieldDTO<String> auxUrl = FormFieldDTO.of("");
 	private FormFieldDTO<String> fileTypes = FormFieldDTO.of("");
-	private FormFieldDTO<OptionDTO> readOnly = new FormFieldDTO<OptionDTO>();
+	private FormFieldDTO<OptionDTO> readOnly = FormFieldDTO.of(new OptionDTO());
 	//Literal, Dictionary, Date, Number, Logical
 	private FormFieldDTO<OptionDTO> clazz = FormFieldDTO.of(new OptionDTO());
 	//validators
@@ -60,6 +62,13 @@ public class DataVariableDTO extends AllowValidation {
 	public void setVarName(FormFieldDTO<String> varName) {
 		this.varName = varName;
 	}
+	
+	public FormFieldDTO<OptionDTO> getHidefromapplicant() {
+		return hidefromapplicant;
+	}
+	public void setHidefromapplicant(FormFieldDTO<OptionDTO> hidefromapplicant) {
+		this.hidefromapplicant = hidefromapplicant;
+	}
 	public FormFieldDTO<String> getVarNameExt() {
 		return varNameExt;
 	}
@@ -79,12 +88,18 @@ public class DataVariableDTO extends AllowValidation {
 		this.clazz = clazz;
 	}
 	public FormFieldDTO<Long> getMaxLen() {
+		if(maxLen.getValue()==null) {
+			maxLen.setValue(0l);
+		}
 		return maxLen;
 	}
 	public void setMaxLen(FormFieldDTO<Long> maxLen) {
 		this.maxLen = maxLen;
 	}
 	public FormFieldDTO<Long> getMinLen() {
+		if(minLen.getValue()==null) {
+			minLen.setValue(0l);
+		}
 		return minLen;
 	}
 	public void setMinLen(FormFieldDTO<Long> minLen) {
@@ -118,18 +133,27 @@ public class DataVariableDTO extends AllowValidation {
 		this.prefLabel = prefLabel;
 	}
 	public FormFieldDTO<Long> getRow() {
+		if(row.getValue()==null) {
+			row.setValue(0l);
+		}
 		return row;
 	}
 	public void setRow(FormFieldDTO<Long> row) {
 		this.row = row;
 	}
 	public FormFieldDTO<Long> getCol() {
+		if(col.getValue()==null) {
+			col.setValue(0l);
+		}
 		return col;
 	}
 	public void setCol(FormFieldDTO<Long> col) {
 		this.col = col;
 	}
 	public FormFieldDTO<Long> getOrd() {
+		if(ord.getValue()==null) {
+			ord.setValue(0l);
+		}
 		return ord;
 	}
 	public void setOrd(FormFieldDTO<Long> ord) {

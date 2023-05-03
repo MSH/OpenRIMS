@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -38,6 +39,7 @@ import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.EventLog;
 import org.msh.pdex2.model.r2.FileResource;
 import org.msh.pdex2.model.r2.History;
+import org.msh.pdex2.model.r2.LegacyData;
 import org.msh.pdex2.model.r2.PublicOrganization;
 import org.msh.pdex2.model.r2.Register;
 import org.msh.pdex2.model.r2.Scheduler;
@@ -57,6 +59,7 @@ import org.msh.pdex2.repository.r2.ConceptRepo;
 import org.msh.pdex2.repository.r2.EventLogRepo;
 import org.msh.pdex2.repository.r2.FileResourceRepo;
 import org.msh.pdex2.repository.r2.HistoryRepo;
+import org.msh.pdex2.repository.r2.LegacyDataRepo;
 import org.msh.pdex2.repository.r2.PubOrgRepo;
 import org.msh.pdex2.repository.r2.RegisterRepo;
 import org.msh.pdex2.repository.r2.SchedulerRepo;
@@ -77,6 +80,7 @@ import org.msh.pharmadex2.service.r2.SystemService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.datetime.DateFormatter;
 import org.springframework.stereotype.Service;
@@ -135,6 +139,8 @@ public class BoilerService {
 	private UserRepo userRepo;
 	@Autowired
 	private PubOrgRepo pubOrgRepo;
+	@Autowired
+	private LegacyDataRepo legacyRepo;
 	/**
 	 * Convert resource bundle to DTO
 	 * @param bundle
@@ -166,9 +172,14 @@ public class BoilerService {
 	 * @return
 	 */
 	public Date localDateTimeToDate(LocalDateTime dateToConvert) {
-		return java.util.Date
+		/*return java.util.Date
 				.from(dateToConvert.atZone(ZoneId.of("UTC"))
-						.toInstant());
+						.toInstant());*/
+		if(dateToConvert != null) {
+			return java.sql.Timestamp.valueOf(dateToConvert);
+		}else {
+			return new Date();
+		}
 	}
 	/**
 	 * local date to date
@@ -179,7 +190,7 @@ public class BoilerService {
 		if(dateToConvert==null) {
 			return new Date();
 		}
-		return java.util.Date.from(dateToConvert.atStartOfDay(ZoneId.of("UTC")).toInstant());
+		return java.util.Date.from(dateToConvert.atStartOfDay(ZoneId.systemDefault()).toInstant());
 	}
 	/**
 	 * Date to local date
@@ -187,6 +198,14 @@ public class BoilerService {
 	 * @return now if parameter is null
 	 */
 	public LocalDate localDateFromDate(Date date) {
+		return BoilerService.dateToLocalDate(date);
+	}
+	/**
+	 * Static implementation for convenience
+	 * @param date
+	 * @return
+	 */
+	public static LocalDate dateToLocalDate(Date date) {
 		if(date== null) {
 			return LocalDate.now();
 		}
@@ -194,6 +213,19 @@ public class BoilerService {
 		SimpleDateFormat format = new SimpleDateFormat(pattern);
 		String dateStr=format.format(date);
 		return LocalDate.parse(dateStr);
+	}
+	/**
+	 * Static implementation of Date to LocalDateTime convertor
+	 * @param date
+	 * @return
+	 */
+	public static LocalDateTime dateAsLocalDateTime(Date date) {
+		if(date== null) {
+			return LocalDateTime.now();
+		}
+		return date.toInstant()
+			      .atZone(ZoneId.systemDefault())
+			      .toLocalDateTime();
 	}
 	/**
 	 * Create display value for all headers
@@ -360,7 +392,17 @@ public class BoilerService {
 	}
 
 	/**
-	 * load all history for application. Sort by Come
+	 * Get all history records by application data. Order by Come
+	 * @param application data
+	 * @return
+	 */
+	@Transactional
+	public List<History> historyAllOrderByCome(Concept applData) {
+		List<History> ret = historyRepo.findAllByApplicationDataOrderByCome(applData);
+		return ret;
+	}
+	/**
+	 * load all history for application (not application data). Sort by Come
 	 * @param application
 	 * @return empty list if no
 	 */
@@ -369,6 +411,18 @@ public class BoilerService {
 		List<History> ret = historyRepo.findAllByApplicationOrderByCome(application);
 		return ret;
 	}
+	
+	/**
+	 * load all history for application. Sort by Come
+	 * @param application
+	 * @return empty list if no
+	 */
+	@Transactional
+	public List<History> historyOpenedByApplData(Concept applData) {
+		List<History> ret = historyRepo.findAllByApplicationDataAndGo(applData, null);
+		return ret;
+	}
+	
 	/**
 	 * Extract application or data url using appropriative node
 	 * @param application
@@ -1222,7 +1276,9 @@ public class BoilerService {
 					df.setMinimumFractionDigits(0);
 					ret=df.format(regNod);
 				}
-				return ret;
+				ret=replaceNonPrintCh(ret);
+				
+				return ret.trim();
 			} catch (Exception e) {
 				return null;
 			}
@@ -1231,7 +1287,7 @@ public class BoilerService {
 	}
 	
 	/**
-	 * Get cell value as a string. No exceptions
+	 * Get cell value as a number. No exceptions
 	 * @param row
 	 * @param col
 	 * @return
@@ -1324,4 +1380,61 @@ public class BoilerService {
 		}
 	}
 	
+	@Transactional
+	public LegacyData findLegacyByConcept(Concept concept) throws ObjectNotFoundException {
+		Optional<LegacyData> leg = legacyRepo.findByConcept(concept);
+		if(leg.isPresent()) {
+			return leg.get();
+		}else {
+			throw new ObjectNotFoundException("findByConcept. LegacyData by concept  not found. The Concept Id is "+concept.getID(),logger);
+		}
+	}
+	/**
+	 * Convert date to string using the current locale
+	 * @param date
+	 * @return
+	 */
+	public String dateToString(Date date) {
+		DateTimeFormatter formatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(LocaleContextHolder.getLocale());
+		LocalDate ld=localDateFromDate(date);
+		return ld.format(formatter);
+	}
+	/**
+	 * Null value is zero value
+	 * @param value
+	 * @return
+	 */
+	public long nullIsZero(Long value) {
+		if(value==null) {
+			return 0;
+		}else {
+			return value;
+		}
+	}
+/**
+ *replase non-printable characters
+ */
+	public String replaceNonPrintCh(String val) {
+		// strips off all non-ASCII characters
+		//val = val.replaceAll("[^\\x00-\\x7F]", "");
+		 
+		    // erases all the ASCII control characters
+			val = val.replaceAll("[\\p{Cntrl}&&[^\r\n\t]]", "");
+		     
+		    // removes non-printable characters from Unicode
+			val = val.replaceAll("\\p{C}", "");
+		return val;
+	}
+	/** 
+	 * Get the root of a given concept tree
+	 * @param child
+	 * @return concept root
+	 */
+	@Transactional
+	public Concept getRootTree(Concept child) {
+		Concept root=closureServ.getParent(child);
+		root=closureServ.getParent(root);
+		return root;
+	}
+
 }

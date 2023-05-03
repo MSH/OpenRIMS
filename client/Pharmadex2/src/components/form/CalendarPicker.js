@@ -18,6 +18,7 @@ class CalendarPicker extends Component{
         }
         this.togglePopover=this.togglePopover.bind(this)
         this.ensureDate=this.ensureDate.bind(this)
+        this.dateToStringWithExceptions=this.dateToStringWithExceptions.bind(this)
     }
 
     togglePopover(){
@@ -54,6 +55,18 @@ class CalendarPicker extends Component{
         }
     }
     /**
+     * Convert date to string using locale
+     * For ill-defined locales, like ne-NP, use ISO date
+     * @param {date type} value 
+     */
+    dateToStringWithExceptions(value){
+        if(this.props.locale=='ne-NP'){
+            return value.toISOString().substr(0,10)+' A.D.'
+        }
+        return value.toLocaleDateString(this.props.locale)
+    }
+
+    /**
      * Convert date to locale string or empty string
      */
     ensureDateAsString(value){
@@ -61,12 +74,12 @@ class CalendarPicker extends Component{
             return new Date
         }
         if(value instanceof Date){
-            return value.toLocaleDateString(this.props.locale)
+            return  this.dateToStringWithExceptions(value)
         }else{
             if(typeof value == 'string'){
                 let ret = new Date(value);
                 if(!isNaN(ret)){
-                    return ret.toLocaleDateString(this.props.locale);
+                    return  this.dateToStringWithExceptions(ret)
                 }else{
                     return ""
                 }
@@ -78,6 +91,10 @@ class CalendarPicker extends Component{
 
 
     render(){
+        let type=this.props.type
+        if(type.length==0){
+            type='month'
+        }
         return(
             <div>
             <Row>
@@ -119,6 +136,7 @@ class CalendarPicker extends Component{
                                 this.togglePopover()
                                 this.props.onChange(e)
                             }}
+                            defaultView={type}
                         />
                     </PopoverBody>
                 </Popover>

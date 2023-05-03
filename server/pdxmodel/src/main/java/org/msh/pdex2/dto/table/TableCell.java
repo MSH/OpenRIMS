@@ -273,7 +273,7 @@ public class TableCell {
 
 	@Override
 	public String toString() {
-		return "TableCell [key=" + key + ", value=" + value + "]";
+		return "TableCell [key=" + key + ", original value=" + originalValue + "]";
 	}
 	/**
 	 * Get a value that suit for the database insert

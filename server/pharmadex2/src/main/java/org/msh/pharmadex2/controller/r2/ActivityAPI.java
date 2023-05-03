@@ -3,7 +3,6 @@ package org.msh.pharmadex2.controller.r2;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -23,6 +22,7 @@ import org.msh.pharmadex2.dto.PersonDTO;
 import org.msh.pharmadex2.dto.PersonSpecialDTO;
 import org.msh.pharmadex2.dto.RegisterDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
+import org.msh.pharmadex2.dto.SubmitRecieptDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.ThingValuesDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
@@ -34,6 +34,7 @@ import org.msh.pharmadex2.service.r2.IrkaServices;
 import org.msh.pharmadex2.service.r2.LinkService;
 import org.msh.pharmadex2.service.r2.MonitoringService;
 import org.msh.pharmadex2.service.r2.PdfService;
+import org.msh.pharmadex2.service.r2.RecieptService;
 import org.msh.pharmadex2.service.r2.ResourceService;
 import org.msh.pharmadex2.service.r2.SupervisorService;
 import org.msh.pharmadex2.service.r2.ThingService;
@@ -65,7 +66,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  *
  */
 @RestController
-public class ActivityAPI {
+public class ActivityAPI{
 	private static final Logger logger = LoggerFactory.getLogger(ActivityAPI.class);
 	@Autowired
 	private UserService userServ;
@@ -91,6 +92,8 @@ public class ActivityAPI {
 	private IrkaServices irkaServ;
 	@Autowired
 	private LinkService linkServ;
+	@Autowired
+	private RecieptService receiptServ;
 
 	@PostMapping({ "/api/*/my/activities"})
 	public ApplicationsDTO myActivities(Authentication auth, @RequestBody ApplicationsDTO data)
@@ -100,16 +103,54 @@ public class ActivityAPI {
 		return data;
 	}
 
-	@PostMapping({ "/api/*/my/monitoring"})
-	public ApplicationsDTO myMonitoring(Authentication auth, @RequestBody ApplicationsDTO data)
+	/**
+	 * t - type - "actual", "scheduled", "fullsearch"
+	 * @param auth
+	 * @param data
+	 * @param t
+	 * @param s
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping({ "/api/*/my/monitoring/type={t}&search={s}"})
+	public ApplicationsDTO myMonitoringActual(Authentication auth, @RequestBody ApplicationsDTO data, @PathVariable(value = "t") String t, @PathVariable(value = "s") String s)
 			throws DataNotFoundException {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
-			data = monitoringServ.myMonitoring(data, user);
+			data = monitoringServ.myMonitoring(data, user, t, s);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
+	}
+	
+	
+	/**
+	 * Get the latest history ID by the application data ID
+	 * @param auth
+	 * @param applID
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping({ "/api/*/my/monitoring/convinient/history"})
+	public Long myMonitoring(Authentication auth, @RequestBody Long applID)
+			throws DataNotFoundException {
+			try {
+				return monitoringServ.convinientHistory(applID);
+			} catch (ObjectNotFoundException e) {
+				throw new DataNotFoundException(e);
+			}
+	}
+	
+	@PostMapping("/api/*/my/monitoring/application")
+	public ApplicationsDTO application(Authentication auth, @RequestBody ApplicationsDTO data) throws DataNotFoundException {
+		userServ.userData(auth, new UserDetailsDTO());
+		try {
+			data.setThing(thingServ.path(data.getThing()));
+			return data;
+		} catch (ObjectNotFoundException e) {
+					throw new DataNotFoundException(e);
+		}
 	}
 	
 	@PostMapping("/api/*/my/monitoring/actual/excel")
@@ -119,7 +160,7 @@ public class ActivityAPI {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		data.getTable().getHeaders().setPageSize(Integer.MAX_VALUE);
 		try {
-			data = monitoringServ.myMonitoring(data, user);
+			data = monitoringServ.myMonitoring(data, user, "actual", "");
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -144,7 +185,7 @@ public class ActivityAPI {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		data.getScheduled().getHeaders().setPageSize(Integer.MAX_VALUE);
 		try {
-			data = monitoringServ.myMonitoring(data, user);
+			data = monitoringServ.myMonitoring(data, user, "scheduled", "");
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -161,6 +202,32 @@ public class ActivityAPI {
 		response.setHeader("filename", "monitoring_scheduled.xlsx");       
 		return new ModelAndView(new ExcelView(), model);
 	}
+	
+	@PostMapping("/api/*/my/monitoring/fullsearch/excel")
+	public ModelAndView myMonitoringFullsearchExcel(Authentication auth, 
+			@RequestBody ApplicationsDTO data,
+			HttpServletResponse response) throws DataNotFoundException {
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		data.getScheduled().getHeaders().setPageSize(Integer.MAX_VALUE);
+		try {
+			data = monitoringServ.myMonitoring(data, user, "fullsearch", "");
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		Map<String, Object> model = new HashMap<String, Object>();
+		//Sheet Name
+		model.put(ExcelView.SHEETNAME, messages.get("fullsearch"));
+		//Title
+		model.put(ExcelView.TITLE, messages.get("monitoring"));
+		//Headers List
+		model.put(ExcelView.HEADERS, data.getFullsearch().getHeaders().getHeaders());
+		//Rows
+		model.put(ExcelView.ROWS, data.getFullsearch().getRows());
+		response.setHeader( HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"monitoring_fullsearch.xlsx\"");
+		response.setHeader("filename", "monitoring_fullsearch.xlsx");       
+		return new ModelAndView(new ExcelView(), model);
+	}
+	
 	
 	
 	/**
@@ -203,8 +270,8 @@ public class ActivityAPI {
 	}
 
 	/**
-	 * Reload history
-	 * 
+	 * Reload history for application.
+	 * Also, checks the current history ID
 	 * @param auth
 	 * @param data
 	 * @return
@@ -252,7 +319,7 @@ public class ActivityAPI {
 	 */
 	@PostMapping({ "/api/*/thing/load"})
 	public ThingDTO thingLoad(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
-		logger.debug("start thing");
+		//logger.debug("start thing");
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			if (data.getNodeId() == 0) {
@@ -261,9 +328,12 @@ public class ActivityAPI {
 				data = thingServ.loadThing(data, user);
 			}
 		} catch (ObjectNotFoundException e) {
-			throw new DataNotFoundException(e);
+			//e.getMessage();
+			throw new DataNotFoundException( "Foo Not Found", e);
+			//throw new ResponseStatusException(
+			        //HttpStatus.NOT_FOUND, "Foo Not Found", e);
 		}
-		logger.debug("end thing");
+		//logger.debug("end thing");
 		return data;
 	}
 
@@ -371,25 +441,25 @@ public class ActivityAPI {
 	 */
 	@PostMapping({ "/api/*/thing/file/save"})
 	public FileDTO thingFileSave(Authentication auth, @RequestParam("dto") String jsonDto,
-			@RequestParam("file") Optional<MultipartFile> file) throws DataNotFoundException {
+			@RequestParam("file") MultipartFile file) throws DataNotFoundException {
 		FileDTO data = new FileDTO();
 		try {
 			UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 			data = objectMapper.readValue(jsonDto, FileDTO.class);
 			byte[] fileBytes = new byte[0];
-			if (file.isPresent()) {
-				fileBytes = file.get().getBytes();
-				data.setFileSize(file.get().getSize());
-				data.setFileName(file.get().getOriginalFilename());
-				data.setMediaType(file.get().getContentType());
+			//if (file.isPresent()) {
+				fileBytes = file.getBytes();
+				data.setFileSize(file.getSize());
+				data.setFileName(file.getOriginalFilename());
+				data.setMediaType(file.getContentType());
 				data = thingServ.fileSave(data, user, fileBytes);
-			}
+			//}
 		} catch (ObjectNotFoundException | IOException e) {
-			throw new DataNotFoundException(e);
+			throw new DataNotFoundException();
 		}
 		return data;
 	}
-
+    
 	/**
 	 * load a table with files
 	 * 
@@ -499,7 +569,7 @@ public class ActivityAPI {
 		try {
 			ResourceDTO resDto = objectMapper.readValue(jsonStr, ResourceDTO.class);
 			ResourceDTO fres = resourceServ.prepareResourceDownload(resDto);
-			Resource res = resourceServ.fileResolve(fres);
+			Resource res = resourceServ.fileResolve(fres,null);
 			return ResponseEntity.ok().contentType(MediaType.parseMediaType(fres.getMediaType()))
 
 					.header(HttpHeaders.CONTENT_DISPOSITION,
@@ -516,12 +586,13 @@ public class ActivityAPI {
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/*/resource/download/form")
-	public ResponseEntity<Resource> resourceDownloadForm(@RequestBody ResourceDTO data)
+	public ResponseEntity<Resource> resourceDownloadForm(@RequestBody ResourceDTO data,Authentication auth)
 			throws DataNotFoundException {
 		try {
+			UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 			ResourceDTO fres = resourceServ.prepareResourceDownload(data);
 			logger.trace("start "+fres.getFileName());
-			Resource res = resourceServ.fileResolve(fres);
+			Resource res = resourceServ.fileResolve(fres, user);
 			logger.trace("finish "+fres.getFileName());
 			return ResponseEntity.ok().contentType(MediaType.parseMediaType(fres.getMediaType()))
 					.header(HttpHeaders.CONTENT_DISPOSITION, fres.getContentDisp() + "; filename=\"" + fres.getFileName() + "\"")
@@ -587,6 +658,9 @@ public class ActivityAPI {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data=applServ.submitSend(user,data);
+			if(!data.isValid()) {
+				data.setColorAlert("danger");
+			}
 		} catch (ObjectNotFoundException | JsonProcessingException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -776,7 +850,11 @@ public class ActivityAPI {
 	@PostMapping({ "/api/*/links/table" })
 	public LinksDTO linksTable(Authentication auth, @RequestBody LinksDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
-		data=linkServ.loadObjectsTable(data);
+		try {
+			data=linkServ.loadObjectsTable(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
 		return data;
 	}
 	/**
@@ -808,4 +886,21 @@ public class ActivityAPI {
 		return data;
 	}
 	
+	/**
+	 * Get data submit reciept
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping({ "/api/*/submit/reciept" })
+	public SubmitRecieptDTO submitReciept(Authentication auth, @RequestBody SubmitRecieptDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		try {
+			data=receiptServ.submitReciept(user, data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
 }

@@ -7,6 +7,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -36,6 +38,7 @@ import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.LinkedCaseInsensitiveMap;
 
 
 /**
@@ -413,7 +416,7 @@ public class JdbcRepository {
 	 * @param varName name of variable
 	 * @param email user's email
 	 */
-	public void prepareFileList(long dictRootId, long thingId, String docUrl, String varName, String email) {
+	public void filelist(long dictRootId, long thingId, String docUrl, String varName, String email) {
 		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
 		proc.withProcedureName("filelist");
 		MapSqlParameterSource params = new MapSqlParameterSource();
@@ -683,6 +686,16 @@ public class JdbcRepository {
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 	}
+	
+	public void report_open_nmra(long nodeid, String email) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("report_open_nmra");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("nodeid", nodeid);
+		params.addValue("email", email);
+		proc.execute(params);
+	}
+	
 	/**
 	 * Get all values of the literal given
 	 * @param rootId
@@ -801,6 +814,27 @@ public class JdbcRepository {
 		proc.execute(params);
 
 	}
+	
+	/**
+	 * get  office by adminunitID
+	 */
+	public List<TableRow> service_office(long admUnitID) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("service_office");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("admUnitId", admUnitID);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+		TableQtb table = new TableQtb();
+		table.getHeaders().getHeaders().add(TableHeader.instanceOf("nodeid", TableHeader.COLUMN_LONG));
+		Headers headers = new Headers();
+		headers.getHeaders().add(TableHeader.instanceOf("ID", TableHeader.COLUMN_LONG));
+		headers.getHeaders().add(TableHeader.instanceOf("orgname", TableHeader.COLUMN_STRING));
+		List<TableRow> selectQuery = selectQuery("select * from service_office", headers);
+		
+		return selectQuery;
+	}
+	
 	/**
 	 * Select executors by the criteria given
 	 * @param id
@@ -1189,16 +1223,23 @@ public class JdbcRepository {
 	 * Get objects from reportpage table in form of a dictionary
 	 * @param objectUrl
 	 * @param state - ACTIVE
+	 							OTHER
+	 							ATC
+	 							LEGACY
 								NOTSUBMITTED
 								ONAPPROVAL
 								DEREGISTERED
+								LOST
+	 The parameters objectUrl and state allows comma separated lists
+	 * @param owner - email of an owner or null
 	 */
-	public void reporting_objects(String objectUrl, String state) {
+	public void reporting_objects(String objectUrl, String state, String owner) {
 		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
 		proc.withProcedureName("reporting_objects");
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("url", objectUrl);
 		params.addValue("state", state);
+		params.addValue("email", owner);
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 		
@@ -1225,6 +1266,141 @@ public class JdbcRepository {
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 	}
+/**
+ * Known usage - Monitoring all feature for Supervisor, Moderator, Applicant, Secretary
+ * @param 0 - lang
+ * @param 1, 2, 3 - APPLICANT (mail applicant, null, null)
+ * MODERATOR COUNTRY (null, mail moderator, null)
+ * MODERATOR TERRITORY (null, mail moderator, mail moderator)
+ * SUPERVISOR||SECRETARY COUNTRY (null, null, null)
+ * SUPERVISOR||SECRETARY TERRITORY (null, null, mail supervisor||secretary)
+ */
+	public void monitoring_all(String app, String mod, String loc) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("monitoring_all");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		params.addValue("ownerEmail", app);
+		params.addValue("moderEmail", mod);
+		params.addValue("localEmail", loc);
+		proc.execute(params);
+	}
+	
+	/**
+	 * For an applDataID given select running Guest or Host applications 
+	 * @param applicationID null means all
+	 */
+	public void guestPlusHost(Long applDataID) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("guestPlusHost");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("applDataId", applDataID);
+		proc.execute(params);
+	}
+	
+	/**
+	 * For an applDataID given select running applications for De-registration and modification 
+	 * @param applicationID null means all
+	 */
+	public void dregPlusModi(Long applDataID) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("dregPlusModi");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("applDataId", applDataID);
+		proc.execute(params);
+	}
 
+	/**
+	 * Simple product report
+	 * @param dataUrl
+	 * @param register_url
+	 * @param string2 
+	 * @param string 
+	 */
+	public List<LinkedCaseInsensitiveMap<Object>> reportpagesQraphql(String lang, String url, String district, String pharmtype) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("reportpages_graphql");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("lang", lang);
+		params.addValue("url", url);
+		params.addValue("district", district);
+		params.addValue("pharmtype", pharmtype);
+		Map<String, Object> map = proc.execute(params);
+		Object result = null;
+		String key = "";
+		Iterator<String> it = map.keySet().iterator();
+		while(it.hasNext()) {
+			String k = it.next();
+			if(k.contains("result")) {
+				key = k;
+				break;
+			}
+		}
+		if(!key.isEmpty()) {
+			result = map.get(key);
+		}
+		List<Object> resList = (ArrayList<Object>)result;
+		List<LinkedCaseInsensitiveMap<Object>> list = new ArrayList<LinkedCaseInsensitiveMap<Object>>();
+		for(Object obj:resList) {
+			list.add((LinkedCaseInsensitiveMap<Object>)obj);
+		}
+		return list;
+	}
+	/**
+	 * Users of active registered companies
+	 */
+	public void company_users() {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("company_users");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+	}
+	/**
+	 * Applications list for applicant
+	 * @param dataUrl
+	 * @param email 
+	 */
+	public void applications_applicant(String dataUrl, String email) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("applications_applicant");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("email", email);
+		params.addValue("url", dataUrl);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+		
+	}
+
+	/**
+	 * Amendments or De-registration list for applicant
+	 * @param dataUrl
+	 * @param email 
+	 */
+	public void amendments_applicant(String dataUrl, String email) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("amendments_applicant");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("email", email);
+		params.addValue("url", dataUrl);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+		
+	}
+	/**
+	 * Host processes schedule
+	 * @param dictURL
+	 * @param email
+	 */
+	public void host_schedule(String dictURL, String email) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("host_schedule");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("email", email);
+		params.addValue("dictURL", dictURL);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+		
+	}
 
 }

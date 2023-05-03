@@ -16,6 +16,8 @@ import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.old.Query;
 import org.msh.pdex2.model.r2.Concept;
+import org.msh.pdex2.model.r2.Thing;
+import org.msh.pdex2.model.r2.ThingDict;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.common.QueryRepository;
 import org.msh.pdex2.services.r2.ClosureService;
@@ -372,16 +374,48 @@ public class DictService {
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public DictNodeDTO loadLevel( DictNodeDTO data) throws ObjectNotFoundException {
+	public DictNodeDTO loadLevel(DictNodeDTO data, String searchStr) throws ObjectNotFoundException {
 		TableQtb table = data.getTable();
 		Concept parentNode = parentNode(data);
 		if(parentNode != null) {
-			table=loadTable(parentNode, table,new ArrayList<Long>(),false, false);
+			if(table.getHeaders().getHeaders().size() == 0) {
+				table.setHeaders(createHeaders(table.getHeaders(), false));
+				// только когда снова создаем заголовки, только тогда проверяем был ли текст в строке поиска
+				if(searchStr != null && !searchStr.equals("null") && searchStr.length() > 2) {
+					for(TableHeader th:table.getHeaders().getHeaders()) {
+						th.setGeneralCondition(searchStr);
+					}
+					table.setGeneralSearch(searchStr);
+				}
+			}
+			
+			table = loadTable(parentNode, table,new ArrayList<Long>(),false, false);
 			data.setTable(table);
 		}
 		data.getTitle().clear();
 		data.getTitle().addAll(createTitle(data));
 		return data;
+		/*if (table.getHeaders().getHeaders().size() == 0) {
+			table.setHeaders(createApplicationsTableHeaders(table.getHeaders()));
+			// только когда снова создаем заголовки, только тогда проверяем был ли текст в строке поиска
+			if(searchStr != null && !searchStr.equals("null") && searchStr.length() > 2) {
+				for(TableHeader th:table.getHeaders().getHeaders()) {
+					th.setGeneralCondition(searchStr);
+				}
+				table.setGeneralSearch(searchStr);
+			}
+		}else {
+			if(table.getGeneralSearch().equals("onSelDict")) {
+				table.setGeneralSearch("");
+				for(TableHeader th:table.getHeaders().getHeaders()) {
+					th.setGeneralCondition(table.getGeneralSearch());
+					if(th.getConditionS().length() > 0) {
+						th.setConditionS("");
+						th.setFilterActive(false);
+					}
+				}
+			}
+		}*/
 	}
 	/**
 	 * Load dictionary level as a list of OptionDTO
@@ -750,17 +784,11 @@ public class DictService {
 
 		if(data.getSelectId() > 0) {
 			DictionaryDTO dict = new DictionaryDTO();
-			// ika if(data.isEditor()) {//edit fields dictionary
-				Concept root = closureServ.loadConceptById(data.getSelectId());
-				dict.setUrlId(root.getID());
-				dict.setUrl(root.getIdentifier());
+			Concept root = closureServ.loadConceptById(data.getSelectId());
+			dict.setUrlId(root.getID());
+			dict.setUrl(root.getIdentifier());
 
-			/*ika }else {//show list item dictionary
-				Concept root = closureServ.loadConceptById(data.getSelectId());
-				dict.setUrlId(root.getID());
-				dict.setUrl(root.getIdentifier());
-			}*/
-				dict.setSystem(checkSystem(root));//ika
+			dict.setSystem(checkSystem(root));//ika
 			data.setSelect(createDictionaryFromRoot(dict, root));
 			reloadTable = false;
 		}else if(data.getSelectId() == 0 && data.isEditor()) {//create new fields dictionary
@@ -772,53 +800,7 @@ public class DictService {
 
 		if(reloadTable)
 			loadTableAllDictionaries(data);
-		/*
-		boolean showForm = (data.getSelectId() >= 0);
-		data.getTable().setSelectable(true);
-
-		if(showForm) {
-			//if(data.getTable().getHeaders().getHeaders().size() == 0)
-				data.getTable().setHeaders(createHeadersAllDictShort(data.getTable().getHeaders()));
-		}else {
-			//if(data.getTable().getHeaders().getHeaders().size() == 0)
-				data.getTable().setHeaders(createHeadersAllDict(data.getTable().getHeaders()));
-		}
-		Optional<Query> optional = queryRep.findByKey("alldictionary");
-		if(optional.isPresent()) {
-			Query query = optional.get();
-			String lang = messages.getCurrentLocaleStr().toUpperCase();
-			String where = "url LIKE 'dictionary.%' and lang like '" + lang + "'";
-
-			List<TableRow> rows = jdbcRepo.qtbGroupReport(query.getSql(), "", where, data.getTable().getHeaders());
-			data.getTable().getHeaders().setPageSize(100);
-			TableQtb.tablePage(rows, data.getTable());
-			data.setTable(boilerServ.translateRows(data.getTable()));
-
-			if(showForm) {
-				DictionaryDTO dict = new DictionaryDTO();
-				if(data.getSelectId() > 0) {
-					Concept root = closureServ.loadConceptById(data.getSelectId());
-					dict.setUrlId(root.getID());
-					dict.setUrl(root.getIdentifier());
-					data.setSelect(createDictionaryFromRoot(dict));
-				}else if(data.getSelectId() == 0) {
-					dict.setUrl("");
-					data.setSelect(dict);
-				}
-
-				for(TableRow row : data.getTable().getRows()) {
-					if(row.getDbID()==data.getSelectId()) {
-						row.setSelected(true);
-					}else {
-						row.setSelected(false);
-					}
-				}
-			}else {
-				data.setSelect(null);
-				data.setSelectId(-1);
-			}
-		}
-		 */
+		
 		return data;
 	}
 
@@ -1157,7 +1139,7 @@ public class DictService {
 		Concept root = closureServ.loadRoot(url);
 		String prefLabel = literalServ.readPrefLabel(root);
 		if(prefLabel.length()==0) {
-			literalServ.createUpdatePrefLabel(messages.get("aminunits"), root);
+			literalServ.createUpdatePrefLabel(url, root);
 		}
 		String description=literalServ.readDescription(root);
 		if(description == null || description.length()==0) {
@@ -1202,5 +1184,46 @@ public class DictService {
 	public boolean isAdminUnits(Concept root) {
 		return root.getIdentifier().equalsIgnoreCase("dictionary.admin.units");
 	}
-
+	/**
+	 * Create droplist from dictionaries
+	 * data from url configuration dictionsru is in use. The value by default is "-" (none)
+	 * @param data
+	 * @param droplist
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public ThingDTO createDropList(ThingDTO data, List<AssemblyDTO> droplist) throws ObjectNotFoundException {
+		data.getDroplist().clear();		
+		if(droplist != null) {
+			for(AssemblyDTO list : droplist) {
+				//???
+				OptionDTO ret = new OptionDTO();
+				List<OptionDTO> plainDictionary = loadPlain(list.getUrl());
+				if(plainDictionary!=null) {
+					for(OptionDTO opt:plainDictionary) {
+						ret.getOptions().add(opt);
+					}
+					FormFieldDTO<OptionDTO> fld = FormFieldDTO.of(ret);
+					fld.setReadOnly(list.isReadOnly());
+					data.getDroplist().put(list.getPropertyName(),fld);
+				}
+			}
+			if(data.getNodeId()>0) {
+				Concept node = closureServ.loadConceptById(data.getNodeId());
+				Thing thing = new Thing();
+				thing= boilerServ.thingByNode(node,thing);
+				for(ThingDict th:thing.getDictionaries()) {
+					FormFieldDTO<OptionDTO> dl=data.getDroplist().get(th.getVarname());
+					if(dl!=null){
+						dl.getValue().setId(th.getConcept().getID());
+						dl.getValue().setCode(literalServ.readPrefLabel(th.getConcept()));
+						dl.getValue().setOriginalCode(literalServ.readPrefLabel(th.getConcept()));
+						dl.getValue().setDescription(literalServ.readDescription(th.getConcept()));
+						dl.getValue().setOriginalDescription(literalServ.readDescription(th.getConcept()));
+					}
+				}
+			}
+		}
+		return data;
+	}
 }

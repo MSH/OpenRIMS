@@ -4,6 +4,7 @@ import PropTypes from 'prop-types'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
 import Navigator from './utils/Navigator'
+import Pharmadex from './Pharmadex'
 
 /**
  * It is a dummy component to create other components quickly
@@ -31,6 +32,7 @@ class EmptyComponent extends Component{
     componentDidMount(){
         window.addEventListener("message",this.eventProcessor)
         Locales.resolveLabels(this)
+        Locales.createLabels(this)
     }
 
     componentWillUnmount(){

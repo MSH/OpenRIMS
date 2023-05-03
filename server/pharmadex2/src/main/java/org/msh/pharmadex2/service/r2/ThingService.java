@@ -1,7 +1,5 @@
 package org.msh.pharmadex2.service.r2;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Type;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
@@ -18,7 +16,6 @@ import java.util.Set;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
-import org.apache.commons.lang3.reflect.FieldUtils;
 import org.msh.pdex2.dto.table.Headers;
 import org.msh.pdex2.dto.table.TableCell;
 import org.msh.pdex2.dto.table.TableHeader;
@@ -30,6 +27,7 @@ import org.msh.pdex2.model.r2.Assembly;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.FileResource;
 import org.msh.pdex2.model.r2.History;
+import org.msh.pdex2.model.r2.LegacyData;
 import org.msh.pdex2.model.r2.Register;
 import org.msh.pdex2.model.r2.Scheduler;
 import org.msh.pdex2.model.r2.Thing;
@@ -49,7 +47,6 @@ import org.msh.pdex2.repository.r2.ThingRepo;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AddressDTO;
 import org.msh.pharmadex2.dto.AddressValuesDTO;
-import org.msh.pharmadex2.dto.AmendmentDTO;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.AtcDTO;
 import org.msh.pharmadex2.dto.DictValuesDTO;
@@ -60,9 +57,9 @@ import org.msh.pharmadex2.dto.IntervalDTO;
 import org.msh.pharmadex2.dto.LegacyDataDTO;
 import org.msh.pharmadex2.dto.LinksDTO;
 import org.msh.pharmadex2.dto.PersonDTO;
-import org.msh.pharmadex2.dto.PersonSelectorDTO;
 import org.msh.pharmadex2.dto.PersonSpecialDTO;
 import org.msh.pharmadex2.dto.RegisterDTO;
+import org.msh.pharmadex2.dto.ReportDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
 import org.msh.pharmadex2.dto.SchedulerDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
@@ -78,6 +75,7 @@ import org.msh.pharmadex2.service.common.ValidationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -148,6 +146,9 @@ public class ThingService {
 	@PersistenceContext
 	EntityManager entityManager;
 
+	@Value("${spring.servlet.multipart.max-file-size}" )
+	String maxFileSize;
+	
 	/**
 	 * Create a new thing
 	 * @param data
@@ -189,7 +190,6 @@ public class ThingService {
 	 */
 	@Transactional
 	public ThingDTO createContent(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
-		//logger.trace("START CONTENT");
 		List<Assembly> assemblies =assemblyServ.loadDataConfiguration(data.getUrl());
 		//literals
 		List<AssemblyDTO> headings = assemblyServ.auxHeadings(data.getUrl(),assemblies);
@@ -202,16 +202,21 @@ public class ThingService {
 		}
 		//logger.trace("literals{");
 		List<String> exts=boilerServ.variablesExtensions(data);
+		//Applicant user?
+		boolean thisApplicant=accessControlServ.isApplicant(user);
 
 		data.getStrings().clear();
 		List<AssemblyDTO> strings = assemblyServ.auxStrings(data.getUrl(),assemblies);
-		data=dtoServ.createStrings(data,strings);
+		/*if(accessControlServ.isApplicant(user) && strings.isHideFromApplicant()) {
+			continue;
+		}*/
+		data=dtoServ.createStrings(data,strings, thisApplicant);
 
 		List<AssemblyDTO> literals = assemblyServ.auxLiterals(data.getUrl());
-		data=dtoServ.createLiterals(data, literals);
+		data=dtoServ.createLiterals(data, literals, thisApplicant);
 		//dates
 		List<AssemblyDTO> dates=assemblyServ.auxDates(data.getUrl(),assemblies);
-		data=dtoServ.createDates(data, dates);
+		data=dtoServ.createDates(data, dates, thisApplicant);
 		//numbers
 		List<AssemblyDTO> numbers=assemblyServ.auxNumbers(data.getUrl(),assemblies);
 		data=dtoServ.createNumbers(data,numbers);
@@ -222,7 +227,7 @@ public class ThingService {
 		//dictionaries
 		List<AssemblyDTO> dictionaries = assemblyServ.auxDictionaries(data.getUrl(),assemblies);
 		//logger.trace("dictionaries{");
-		data=createDictonaries(data, dictionaries);
+		data=createDictonaries(data, dictionaries, user);
 		//logger.trace("}");
 		//addresses
 		List<AssemblyDTO> addresses = assemblyServ.auxAddresses(data.getUrl(),assemblies);
@@ -272,6 +277,10 @@ public class ThingService {
 		data.getMainLabels().clear();
 		data.getMainLabels().putAll(assemblyServ.mainLabelsByUrl(data.getUrl()));
 		//logger.trace("END content");
+		//DropList data
+		List<AssemblyDTO> droplist = assemblyServ.auxDropListData(data.getUrl(), assemblies);
+		data=dictServ.createDropList(data,droplist);
+		data=validServ.validateThingsIncluded(assemblies, data);
 		return data;
 	}
 	/**
@@ -318,6 +327,8 @@ public class ThingService {
 		}
 		return data;
 	}
+
+
 	/**
 	 * Create ATC codes lookup table and load selected codes 
 	 * @param atc
@@ -653,13 +664,17 @@ public class ThingService {
 		data.getDocuments().clear();
 		//prepare files
 		for(AssemblyDTO asm : files) {
+			if(accessControlServ.isApplicant(user) && asm.isHideFromApplicant()) {
+				continue;				// do not render hidden components!
+			}
 			FileDTO fdto=new FileDTO();
 			fdto.setAccept(asm.getFileTypes());
 			fdto.setReadOnly(data.isReadOnly());
 			fdto.setUrl(asm.getUrl());
 			fdto.setDictUrl(asm.getDictUrl());
 			fdto.setVarName(asm.getPropertyName());
-			fdto.setThingUrl(data.getUrl());
+			//fdto.setThingUrl(data.getUrl()); 2023-02-13
+			fdto.setThingUrl(asm.getUrl());
 			fdto.setThingNodeId(data.getNodeId());
 			fdto = removeOrphans(fdto, user);
 			fdto = createDocTable(fdto,user);
@@ -723,7 +738,7 @@ public class ThingService {
 			Concept dictRoot = closureServ.loadRoot(data.getDictUrl());
 			th.getHeaders().add(TableHeader.instanceOf("ID", TableHeader.COLUMN_LONG));	//dictNodeId
 			th.getHeaders().add(TableHeader.instanceOf("nodeId", TableHeader.COLUMN_LONG)); //nodeId
-			jdbcRepo.prepareFileList(dictRoot.getID(),0,data.getUrl(), data.getVarName(), user.getEmail());
+			jdbcRepo.filelist(dictRoot.getID(),0,data.getUrl(), data.getVarName(), user.getEmail());
 			List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from _filelist", "", "", th);
 			for(TableRow row : rows) {
 				Long dictNodeId = (Long) row.getRow().get(0).getOriginalValue();
@@ -751,8 +766,8 @@ public class ThingService {
 		}
 		Thing thing = new Thing();
 		thing = boilerServ.thingByNode(node, thing);
-		String email="";
-		jdbcRepo.prepareFileList(dict.getID(),thing.getID(),data.getUrl(), data.getVarName(), email);
+		//String email="";
+		jdbcRepo.filelist(dict.getID(),thing.getID(),data.getUrl(), data.getVarName(),user.getEmail());        //  email);
 		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from _filelist", "","", data.getTable().getHeaders());
 		TableQtb.tablePage(rows, data.getTable());
 		for(TableRow row : rows) {
@@ -823,14 +838,18 @@ public class ThingService {
 	/**
 	 * Create a set of dictionaries in the application's activity
 	 * @param data - application's activity
+	 * @param user 
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	private ThingDTO createDictonaries(ThingDTO data, List<AssemblyDTO> dictas) throws ObjectNotFoundException {
+	private ThingDTO createDictonaries(ThingDTO data, List<AssemblyDTO> dictas, UserDetailsDTO user) throws ObjectNotFoundException {
 		data.getDictionaries().clear();
 		//restore dictionaries
 		for(AssemblyDTO dicta : dictas) {
+			if(accessControlServ.isApplicant(user) && dicta.isHideFromApplicant()) {
+				continue;
+			}
 			DictionaryDTO dict = new DictionaryDTO();
 			dict.setUrl(dicta.getUrl());
 			dict.setVarName(dicta.getPropertyName());
@@ -972,8 +991,6 @@ public class ThingService {
 					}
 				}
 
-				//person special may change parent ID
-				data = storePersonSpecial(data, thing);
 				//attach to the parent auxiliary things
 				if(data.getParentId()>0) {
 					Concept incl=closureServ.loadConceptById(data.getParentId());
@@ -1045,6 +1062,7 @@ public class ThingService {
 		data = storeLinks(thing, data);					//should be first, because may change literals
 		data = storeLegacy(thing, data);				//should be first, because may change literals
 		data = storeDictionaries(thing,data, user);	    //should be first, because may change literals
+		data = storeDropList(thing,data, user);
 		data = storeStrings(node,data);
 		data = storeLiterals(node, data);
 		data = storeDates(node,data);
@@ -1053,14 +1071,60 @@ public class ThingService {
 
 		data = storeDocuments(thing, data,user);
 		data = storeAddresses(user, node, thing,data);
-		data = storeAmended(user, node, thing, data);
 		data = storeSchedule(user, thing, data);
 		data = storeRegister(user, thing, data);
 		data = storeAtc(thing, data);
 		data = storeIntervals(node, data);
-		
+
 		data=amendServ.storePersonToRemove(data, thing);
 
+		return data;
+	}
+	private ThingDTO storeDropList(Thing thing, ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		/* полуить из конфигурации droplists*/
+		List<Assembly> assemblies =assemblyServ.loadDataConfiguration(data.getUrl());
+		List<AssemblyDTO> droplists = assemblyServ.auxDropListData(data.getUrl(), assemblies);
+		for(AssemblyDTO dl:droplists) {
+			String key=dl.getPropertyName();
+			FormFieldDTO<OptionDTO> fld =data.getDroplist().get(key);
+			Long id=fld.getValue().getId();
+			if(id>0) {
+				Concept dictItem = closureServ.loadConceptById(id);
+				ThingDict thingDict = new ThingDict();
+				thingDict.setUrl(dl.getUrl());
+				thingDict.setConcept(dictItem);
+				thingDict.setVarname(dl.getPropertyName());
+				thing.getDictionaries().add(thingDict);
+				if(dl!= null && dl.isPrefLabel() && !dl.isMult()) {
+					FormFieldDTO<String> prefLabelDTO = data.getLiterals().get(LiteralService.PREF_NAME);
+					if(prefLabelDTO == null) {
+						prefLabelDTO = data.getStrings().get(LiteralService.PREF_NAME);
+					}
+					if(prefLabelDTO == null) {
+						prefLabelDTO = new FormFieldDTO<String>("");
+						data.getLiterals().put("prefLabel", prefLabelDTO);
+						prefLabelDTO = data.getLiterals().get(LiteralService.PREF_NAME);
+					}
+					if(prefLabelDTO != null) {
+						String prefLabel = literalServ.readPrefLabel(dictItem);
+						prefLabelDTO.setValue(prefLabel);
+					}
+					FormFieldDTO<String> descriptionDTO = data.getLiterals().get(LiteralService.DESCRIPTION);
+					if(descriptionDTO==null) {
+						descriptionDTO=data.getStrings().get(LiteralService.DESCRIPTION);
+					}
+					if(descriptionDTO == null) {
+						descriptionDTO = new FormFieldDTO<String>("");
+						data.getLiterals().put("description", descriptionDTO);
+						descriptionDTO = data.getLiterals().get(LiteralService.DESCRIPTION);
+					}
+					if(descriptionDTO != null) {
+						String descr=literalServ.readDescription(dictItem);		//here altLabel is right
+						descriptionDTO.setValue(descr);
+					}
+				}
+			}
+		}
 		return data;
 	}
 	/**
@@ -1110,37 +1174,60 @@ public class ThingService {
 	private ThingDTO storeLegacy(Thing thing, ThingDTO data) throws ObjectNotFoundException {
 		thing.getLegacyData().clear();
 		/*22.09.2022 new version */
-		List<AssemblyDTO> assemblie = assemblyServ.auxByClazz(data.getUrl(), "legacy");
+		//List<AssemblyDTO> assemblie = assemblyServ.auxByClazz(data.getUrl(), "legacy");
 		for(String key :data.getLegacy().keySet()) {
 			ThingLegacyData tld = new ThingLegacyData();
 			LegacyDataDTO dto = data.getLegacy().get(key);
-			if(dto.getSelectedNode()>0) {
-				Concept node=closureServ.loadConceptById(dto.getSelectedNode());
-				tld.setConcept(node);
-				tld.setUrl(dto.getUrl());
-				tld.setVarName(dto.getVarName());
-				thing.getLegacyData().add(tld);
-				//tune variables, we understand that legacy data component is only one :)
-				/* 22.09.2022 old version
-				FormFieldDTO<String> prefLabelDTO = data.getLiterals().get("prefLabel");
-				if(prefLabelDTO==null) {
-					prefLabelDTO = data.getStrings().get("prefLabel");
-				}
-				if(prefLabelDTO != null) {
+			FormFieldDTO<String> prefLabelDTO = data.getLiterals().get("prefLabel");
+			if(prefLabelDTO==null) {
+				prefLabelDTO= data.getStrings().get("prefLabel");
+			}
+			if(prefLabelDTO==null || prefLabelDTO.getValue().isEmpty()) {
+				if(dto.getSelectedNode()>0) {
+					Concept node=closureServ.loadConceptById(dto.getSelectedNode());
+					tld.setConcept(node);
+					tld.setUrl(dto.getUrl());
+					tld.setVarName(dto.getVarName());
+					thing.getLegacyData().add(tld);
+					//tune variables, we understand that legacy data component is only one :)
+					// 22.09.2022 old version RETURN 04.11.2022 ika
+					//FormFieldDTO<String> prefLabelDTO = data.getLiterals().get("prefLabel");
+					//if(prefLabelDTO==null) {
+					//	prefLabelDTO = data.getStrings().get("prefLabel");
+					//}
+					//if(prefLabelDTO != null) {
 					String prefLabel=literalServ.readPrefLabel(node);
 					prefLabelDTO.setValue(prefLabel);
-				}
-				//alt label may be configured as altLabel or another name
-				FormFieldDTO<String> altLabelDTO = data.getLiterals().get(dto.getAltLabel());
-				if(altLabelDTO==null) {
-					altLabelDTO=data.getStrings().get(dto.getAltLabel());
-				}
-				if(altLabelDTO != null) {
-					String altLabel=literalServ.readValue("altLabel", node);		//here altLabel is right
-					altLabelDTO.setValue(altLabel);
-				}*/
-
-				/*22.09.2022 new version */
+					//}
+					//alt label may be configured as altLabel or another name
+					FormFieldDTO<String> altLabelDTO = data.getLiterals().get(dto.getAltLabel());
+					if(altLabelDTO==null) {
+						altLabelDTO=data.getStrings().get(dto.getAltLabel());
+					}
+					if(altLabelDTO != null) {
+						String altLabel=literalServ.readValue("altLabel", node);		//here altLabel is right
+						altLabelDTO.setValue(altLabel);
+					}
+					//for legacyRegister  register
+					LegacyData legacy=boilerServ.findLegacyByConcept(node);
+					RegisterDTO regDto = data.getRegisters().get("legacyRegister");
+					if(regDto!=null) {
+						FormFieldDTO<LocalDate> rD=new FormFieldDTO<LocalDate>();
+						FormFieldDTO<LocalDate> eD=new FormFieldDTO<LocalDate>();
+						FormFieldDTO<String> num=new FormFieldDTO<String>();
+						num.setReadOnly(true);
+						num.setValue(legacy.getRegister());
+						regDto.setReg_number(num);
+						LocalDate regDate=boilerServ.localDateFromDate(legacy.getRegDate());
+						rD.setReadOnly(true);
+						rD.setValue(regDate);
+						regDto.setRegistration_date(rD);
+						LocalDate expDate=boilerServ.localDateFromDate(legacy.getExpDate());
+						eD.setValue(expDate);
+						regDto.setExpiry_date(eD);
+						data.getRegisters().replace("legacyRegister", regDto);
+					}
+					/*22.09.2022 new version CANCEL 04.11.2022 ika
 				FormFieldDTO<String> prefLabelDTO = data.getLiterals().get(LiteralService.PREF_NAME);
 				if(prefLabelDTO==null) {
 					prefLabelDTO = data.getStrings().get(LiteralService.PREF_NAME);
@@ -1173,6 +1260,7 @@ public class ThingService {
 						String altLabel=literalServ.readValue("altLabel", node);		//here altLabel is right
 						altLabelDTO.setValue(altLabel);
 					}
+				}*/
 				}
 			}
 		}
@@ -1200,76 +1288,7 @@ public class ThingService {
 		}
 		return data;
 	}
-	/**
-	 * Store which object should be amended 
-	 * @deprecated
-	 * @param user
-	 * @param node
-	 * @param thing
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	@Transactional
-	private ThingDTO storeAmended(UserDetailsDTO user, Concept node, Thing thing, ThingDTO data) throws ObjectNotFoundException {
-		if(data.getAmendments().size()==1) {
-			Set<String> keySet = data.getAmendments().keySet();
-			AmendmentDTO dto = data.getAmendments().get(keySet.iterator().next());
-			dto=validServ.amendment(dto);		//always mandatory, always strict
-			if(dto.isValid()) {
-				data.setValid(true);
-				data = amendServ.save(user, node, thing, data, dto);
-			}else {
-				data.setValid(false);
-			}
-		}
-		return data;
-	}
-	/**
-	 * Component Person Special may change the parent ID
-	 * @deprecated
-	 * @param data
-	 * @param thing 
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	@Transactional
-	private ThingDTO storePersonSpecial(ThingDTO data, Thing thing) throws ObjectNotFoundException {
-		Set<String> keyset = data.getPersonspec().keySet();
-		if(keyset.size()==1) {
-			PersonSpecialDTO dto = data.getPersonspec().get(keyset.iterator().next());
-			//save under the current person Id
-			Concept pconc = new Concept();
-			for(TableRow row : dto.getTable().getRows()) {
-				if(row.getSelected()) {
-					pconc=closureServ.loadConceptById(row.getDbID());
-					break;
-				}
-			}
-			if(pconc.getID()>0) {
-				Thing th = boilerServ.thingByNode(pconc);
-				Concept conc = closureServ.loadConceptById(data.getNodeId());
-				conc.setLabel(pconc.getID()+"");				//save Person ID to the label of node. Acceptable
-				ThingThing link= new ThingThing();
-				for(ThingThing tt :th.getThings()) {
-					if(tt.getUrl().equalsIgnoreCase(dto.getPresonDataUrl())) {
-						link=tt;
-					}
-				}
-				if(link.getID()==0) {
-					link.setConcept(conc);
-					link.setUrl(data.getUrl());
-					link.setVarname(data.getVarName());
-					th.getThings().add(link);
-					th=thingRepo.save(th);
-				}
-			}
-			//set new parent ID
-			data.setParentId(dto.getParentId());
-		}
 
-		return data;
-	}
 	/**
 	 * Sometimes the data URL may be changed, this we should re-save the data under the new url
 	 * @param data
@@ -1537,14 +1556,16 @@ public class ThingService {
 	 */
 	@Transactional
 	public ThingDTO storeDictionaries(Thing thing, ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		List<AssemblyDTO> assemblies = assemblyServ.auxByClazz(data.getUrl(), "dictionaries");	//take a configuration
+		// smart cleanup. We should left hidden dictionaries
+		Set<ThingDict> dicts = new HashSet<ThingDict>();
+		dicts.addAll(thing.getDictionaries());
+		thing.getDictionaries().clear();
 		if(thing.getID()>0) {
-			entityManager.refresh(thing);
-			thing.getDictionaries().clear();
-			boilerServ.saveThing(thing);
-			//entityManager.flush();
+			if(accessControlServ.isApplicant(user)) {
+				thing=addHiddenDictionaries(assemblies, dicts,thing);
+			}
 		}
-		/*22.09.2022 new version */
-		List<AssemblyDTO> assemblies = assemblyServ.auxByClazz(data.getUrl(), "dictionaries");
 		Set<Long> selected = new HashSet<Long>();
 		for(String key : data.getDictionaries().keySet()) {
 			DictionaryDTO dict = data.getDictionaries().get(key);
@@ -1596,46 +1617,32 @@ public class ThingService {
 				}
 			}			
 		}
-
-		/*boolean isPrefLblAssembly = false;
-
-		if(assemblie != null && assemblie.size() > 0) {
-			for(AssemblyDTO ass:assemblie) {
-				if(key.equals(ass.getPropertyName())) {
-					if(ass.isPrefLabel()) {
-						String prefLabel=literalServ.readPrefLabel(node);
-						prefLabelDTO.setValue(prefLabel);
-						isPrefLblAssembly = true;
-					}
-					break;
-				}
-			}
-		}*/
-
-		/*22.09.2022 old version
-		Set<Long> selected = new HashSet<Long>();
-		for(String key : data.getDictionaries().keySet()) {
-			DictionaryDTO dict = data.getDictionaries().get(key);
-			selected.clear();
-			selected.addAll(dict.getPrevSelected());
-			if(selected.size()==0 && dict.getSelection().getValue().getId()>0) {
-				selected.add(dict.getSelection().getValue().getId());
-			}
-			for(Long id : selected) {
-				if(id != 0) {
-					Concept dictItem = closureServ.loadConceptById(id);
-					ThingDict thingDict = new ThingDict();
-					thingDict.setUrl(dict.getUrl());
-					thingDict.setConcept(dictItem);
-					thingDict.setVarname(dict.getVarName());
-					thing.getDictionaries().add(thingDict);
-				}
-			}
-		}
-		 */
 		return data;
 	}
-
+	/**
+	 * Add hidden dictionary links to avoid losses
+	 * Presumed that the thing.getDictionaries is clean
+	 * @param assemblies
+	 * @param dicts
+	 * @param thing 
+	 * @return
+	 */
+	private Thing addHiddenDictionaries(List<AssemblyDTO> assemblies, Set<ThingDict> dicts, Thing thing) {
+		List<String> vars = new ArrayList<String>();
+		// determine hiddens
+		for(AssemblyDTO assm : assemblies) {
+			if(assm.isHideFromApplicant()) {
+				vars.add(assm.getPropertyName().toUpperCase());
+			}
+		}
+		//add hiddens
+		for(ThingDict td : dicts) {
+			if(vars.contains(td.getVarname().toUpperCase())) {
+				thing.getDictionaries().add(td);
+			}
+		}
+		return thing;
+	}
 	@Transactional
 	public ThingDTO storeDates(Concept node, ThingDTO data) throws ObjectNotFoundException {
 		DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE;
@@ -1819,7 +1826,7 @@ public class ThingService {
 	}
 
 	/**
-	 * load a thing
+	 * load a thing or Legacy if one
 	 * @param data
 	 * @param user
 	 * @return
@@ -1832,6 +1839,10 @@ public class ThingService {
 			Thing thing = new Thing();
 			thing = boilerServ.thingByNode(node,thing);
 			//determine URL
+			if(data.getUrl() == null) {
+				// it is not a thing, display only literals under the node
+				return loadThingFromLiterals(node, data);
+			}
 			if(data.getUrl().length()==0) {
 				data.setUrl(thing.getUrl());
 			}
@@ -1853,6 +1864,7 @@ public class ThingService {
 				data.setDates(dtoServ.readAllDates(data.getDates(),node));
 				data.setNumbers(dtoServ.readAllNumbers(data.getNumbers(),node));
 				data.setLogical(dtoServ.readAllLogical(data.getLogical(), node));
+
 				//compare with amended, if needed
 				data=amendServ.diffMark(data);
 			}else {
@@ -1861,6 +1873,23 @@ public class ThingService {
 		}else {
 			throw new ObjectNotFoundException("loadThing. Node  is not defined",logger);
 		}
+		return data;
+	}
+
+	/**
+	 * Create a thing from literals to have possibility to display it on the screen
+	 * @param node
+	 * @param data
+	 * @return
+	 */
+	@Transactional
+	private ThingDTO loadThingFromLiterals(Concept node, ThingDTO data) {
+		Map<String,String> literals= literalServ.literals(node);
+		literals=legacyServ.additionalData(node,literals);
+		for(String key : literals.keySet()) {
+			data.getLiterals().put(key,FormFieldDTO.of(literals.get(key)));
+		}
+		data.setLayout(assemblyServ.literalsLayout(literals));
 		return data;
 	}
 
@@ -1914,7 +1943,10 @@ public class ThingService {
 		}else {
 			//amendment related
 			if(data.getModiUnitId()>0) {
-				data.getLiterals().put("prefLabel", FormFieldDTO.of(data.getPrefLabel()));
+				Concept conc=closureServ.loadConceptById(data.getModiUnitId());
+				String prefLabel=literalServ.readPrefLabel(conc);
+				data.setPrefLabel(prefLabel);
+				data.getLiterals().put("prefLabel", FormFieldDTO.of(prefLabel));
 			}
 		}
 		//breadcrumb related things
@@ -2009,6 +2041,12 @@ public class ThingService {
 				throw new ObjectNotFoundException("fileLoad File Resource by concept is not found. Concept id is "+data.getNodeId(),logger);
 			}
 		}
+		String s = "1";
+		if(maxFileSize.length() > 2) {
+			s = maxFileSize.substring(0, maxFileSize.length() - 2);
+		}
+		Long maxsize = new Long(s) * 1048576l;
+		data.setMaxFileSize(maxsize);
 		return data;
 	}
 
@@ -2204,16 +2242,20 @@ public class ThingService {
 			}
 			//core ThingDTO
 			AssemblyDTO coreAssembly = assemblyServ.auxPathConfig(data, dictNodeId,data.getAuxPathVar());
-			ThingDTO coreDTO= ThingDTO.createIncluded(data, coreAssembly);
-			coreDTO.setParentId(data.getNodeId());
-			coreDTO.setNodeId(personDTO.getNodeId());
-			coreDTO.setTitle(messages.get(personDTO.getVarName()));
-			coreDTO.setHistoryId(data.getHistoryId());
-			coreDTO.setVarName(personDTO.getVarName());
-			//calculate path and place it to auxiliary path of the thing
-			List<ThingDTO> path = createPath(coreDTO, new ArrayList<ThingDTO>(),-1);
-			data.getAuxPath().clear();
-			data.getAuxPath().addAll(path);
+			if(coreAssembly.isValid()) {
+				ThingDTO coreDTO= ThingDTO.createIncluded(data, coreAssembly);
+				coreDTO.setParentId(data.getNodeId());
+				coreDTO.setNodeId(personDTO.getNodeId());
+				coreDTO.setTitle(messages.get(personDTO.getVarName()));
+				coreDTO.setHistoryId(data.getHistoryId());
+				coreDTO.setVarName(personDTO.getVarName());
+				//calculate path and place it to auxiliary path of the thing
+				List<ThingDTO> path = createPath(coreDTO, new ArrayList<ThingDTO>(),-1);
+				data.getAuxPath().clear();
+				data.getAuxPath().addAll(path);
+			}else {
+				data.addError(coreAssembly.getIdentifier());
+			}
 			return data;
 		}else {
 			throw new ObjectNotFoundException("auxPath. Wrong dictionary selection. Only one is allowed "
@@ -2321,19 +2363,6 @@ public class ThingService {
 		for(String key :thing.getAddresses().keySet()) {
 			data.getAddresses().put(key.toUpperCase(), addressData(thing.getAddresses().get(key)));
 		}
-		data.getPersonselection().clear();
-		for(String key :thing.getPersonselector().keySet()) {
-			Long selected=0l;
-			for(TableRow row : thing.getPersonselector().get(key).getTable().getRows()) {
-				if(row.getSelected()) {
-					selected=row.getDbID();
-					break;
-				}
-			}
-			if(selected>0l) {
-				data.getPersonselection().put(key,selected);
-			}
-		}
 		data.getSchedulers().clear();
 		for(String key :thing.getSchedulers().keySet()) {
 			data.getSchedulers().put(key.toUpperCase(), thing.getSchedulers().get(key));
@@ -2342,7 +2371,10 @@ public class ThingService {
 		for(String key :thing.getRegisters().keySet()) {
 			data.getRegisters().put(key.toUpperCase(), thing.getRegisters().get(key));
 		}
-
+		data.getDroplist().clear();
+		for(String key:thing.getDroplist().keySet()) {
+			data.getDroplist().put(key.toUpperCase(), thing.getDroplist().get(key));
+		}
 		return data;
 	}
 	/**
@@ -2442,7 +2474,7 @@ public class ThingService {
 		}
 		return data;
 	}
-	
+
 	/**
 	 * change Password by Admin Load
 	 * @param data
@@ -2468,7 +2500,7 @@ public class ThingService {
 		}
 		return data;
 	}
-	
+
 	/**
 	 * change Password by Admin Load
 	 * @param data
@@ -2508,7 +2540,29 @@ public class ThingService {
 		}
 		return false;
 	}
-	
-
+	public boolean openThing(ReportDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		ThingDTO thing=data.getThing();
+		if(thing.getNodeId()>0) {
+			String select = "";
+			if (!accessControlServ.isApplicant(user)) {
+				jdbcRepo.report_open_nmra(thing.getNodeId(), user.getEmail());
+				select = "select * from report_open_nmra";
+				Headers headers= new Headers();
+				headers.getHeaders().add(TableHeader.instanceOf("us", "us", false, false, false, TableHeader.COLUMN_STRING, 0));
+				List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", "", headers);
+				if(rows.size()>0) {
+					return true;
+				}else {
+					data.setIdentifier(messages.get("warningNMRA"));
+					return false;
+				}
+			}else {
+				return true;
+			} 
+		}else {
+			data.setIdentifier(messages.get("errorNMRA"));
+			return false;
+		}
+	}
 }
 

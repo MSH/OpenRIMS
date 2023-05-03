@@ -1,10 +1,14 @@
 package org.msh.pharmadex2.controller.r2;
 
+import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Optional;
 
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
+import org.msh.pdex2.model.r2.FileResource;
+import org.msh.pdex2.repository.r2.FileResourceRepo;
 import org.msh.pharmadex2.dto.AboutDTO;
 import org.msh.pharmadex2.dto.ActuatorAdmDTO;
 import org.msh.pharmadex2.dto.ContentDTO;
@@ -16,6 +20,7 @@ import org.msh.pharmadex2.dto.Dict2DTO;
 import org.msh.pharmadex2.dto.DictNodeDTO;
 import org.msh.pharmadex2.dto.DictionariesDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
+import org.msh.pharmadex2.dto.FileDTO;
 import org.msh.pharmadex2.dto.MessageDTO;
 import org.msh.pharmadex2.dto.PublicOrgDTO;
 import org.msh.pharmadex2.dto.ReportConfigDTO;
@@ -28,31 +33,48 @@ import org.msh.pharmadex2.dto.WorkflowDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.exception.DataNotFoundException;
 import org.msh.pharmadex2.service.common.UserService;
+import org.msh.pharmadex2.service.common.ValidationService;
 import org.msh.pharmadex2.service.r2.AccessControlService;
 import org.msh.pharmadex2.service.r2.ActuatorService;
 import org.msh.pharmadex2.service.r2.ApplicationService;
+import org.msh.pharmadex2.service.r2.AssemblyService;
 import org.msh.pharmadex2.service.r2.ContentService;
 import org.msh.pharmadex2.service.r2.DWHService;
 import org.msh.pharmadex2.service.r2.DictService;
-import org.msh.pharmadex2.service.r2.ImportAService;
+import org.msh.pharmadex2.service.r2.ImportExportDictionaryService;
+import org.msh.pharmadex2.service.r2.ImportExportWorkflowService;
 import org.msh.pharmadex2.service.r2.ImportATCcodesService;
 import org.msh.pharmadex2.service.r2.ImportAdmUnitsService;
 import org.msh.pharmadex2.service.r2.ImportBService;
+import org.msh.pharmadex2.service.r2.ImportExportDataConfigService;
 import org.msh.pharmadex2.service.r2.MailService;
 import org.msh.pharmadex2.service.r2.MetricService;
 import org.msh.pharmadex2.service.r2.PubOrgService;
 import org.msh.pharmadex2.service.r2.ReportService;
+import org.msh.pharmadex2.service.r2.ResourceService;
 import org.msh.pharmadex2.service.r2.SupervisorService;
 import org.msh.pharmadex2.service.r2.SystemService;
 import org.msh.pharmadex2.service.r2.ThingService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -87,8 +109,6 @@ public class AdminAPI {
 	@Autowired
 	private ReportService reportServ;
 	@Autowired
-	private ImportAService importAService;
-	@Autowired
 	private ThingService thingServ;
 	@Autowired
 	private ImportBService importBServ;
@@ -108,6 +128,19 @@ public class AdminAPI {
 	private ObjectMapper objectMapper;
 	@Autowired
 	private MailService mailServ;
+	@Autowired
+	private ValidationService validation;
+	@Autowired
+	private ResourceService resourceServ;
+	@Autowired
+	ImportExportDictionaryService dictionaryServ;
+	@Autowired
+	ImportExportDataConfigService importExportDataConfigService;
+	@Autowired
+	ImportExportWorkflowService importExportWorkflowService;
+
+
+
 	/**
 	 * Tiles for landing page
 	 * 
@@ -199,10 +232,10 @@ public class AdminAPI {
 		return data;
 	}
 
-	@PostMapping("/api/admin/list/users")
-	public UserElementDTO listUsers(@RequestBody UserElementDTO data) throws DataNotFoundException {
+	@PostMapping("/api/admin/list/users/search={s}")
+	public UserElementDTO listUsers(@RequestBody UserElementDTO data, @PathVariable(value = "s") String s) throws DataNotFoundException {
 		try {
-			data = userService.listUsers(data);
+			data = userService.listUsers(data, s);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -369,10 +402,10 @@ public class AdminAPI {
 	 * @return
 	 * @throws DataNotFoundException
 	 */
-	@PostMapping("/api/admin/stages/workflow")
-	public Dict2DTO stagesWorkflow(@RequestBody Dict2DTO data) throws DataNotFoundException {
+	@PostMapping("/api/admin/stages/workflow/selid={selid}")
+	public Dict2DTO stagesWorkflow(@RequestBody Dict2DTO data, @PathVariable(value = "selid") Long selid) throws DataNotFoundException {
 		try {
-			data = systemServ.stagesWorkflow(data);
+			data = systemServ.stagesWorkflow(data, selid);
 			return data;
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
@@ -400,12 +433,12 @@ public class AdminAPI {
 	}
 
 	/*	*//**
-			 * 2011-11-11 DEPRECATED and useless!!! Load activity or user data configuration
-			 * 
-			 * @param data
-			 * @return
-			 * @throws DataNotFoundException
-			 *//*
+	 * 2011-11-11 DEPRECATED and useless!!! Load activity or user data configuration
+	 * 
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 *//*
 						@PostMapping("/api/admin/thing/load")
 						public ThingDTO thingLoad(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
 						if(data.getNodeId()>0) {
@@ -483,10 +516,10 @@ public class AdminAPI {
 	 * @return
 	 * @throws DataNotFoundException
 	 */
-	@PostMapping("/api/admin/data/collections/load")
-	public DataConfigDTO dataCollectionsLoad(@RequestBody DataConfigDTO data) throws DataNotFoundException {
+	@PostMapping("/api/admin/data/collections/load/search={s}/svars={svars}")
+	public DataConfigDTO dataCollectionsLoad(@RequestBody DataConfigDTO data, @PathVariable(value = "s") String s, @PathVariable(value = "svars") String svars) throws DataNotFoundException {
 		try {
-			data = superVisServ.dataCollectionsLoad(data);
+			data = superVisServ.dataCollectionsLoad(data, s, svars);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -575,7 +608,7 @@ public class AdminAPI {
 	@PostMapping("/api/admin/data/collection/variables/load")
 	public DataConfigDTO dataCollectionVariablesLoad(@RequestBody DataConfigDTO data) throws DataNotFoundException {
 		try {
-			data = superVisServ.dataCollectionVariablesLoad(data);
+			data = superVisServ.dataCollectionVariablesLoad(data, "");
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -588,7 +621,7 @@ public class AdminAPI {
 		try {
 			String mediaType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 			String fileName = "reportDataStructure.xlsx";
-			Resource res = reportServ.dataCollectionVariablesExport(data);
+			Resource res = importExportDataConfigService.variablesExport(data);
 			return ResponseEntity.ok().contentType(MediaType.parseMediaType(mediaType))
 					// .header(HttpHeaders.CONTENT_DISPOSITION, fres.getContentDisp() + ";
 					// filename=\"" + fres.getFileName() + "\"")
@@ -609,6 +642,22 @@ public class AdminAPI {
 	public DataVariableDTO dataCollectionVariableLoad(@RequestBody DataVariableDTO data) throws DataNotFoundException {
 		try {
 			data = superVisServ.dataCollectionVariableLoad(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+
+	/**
+	 * Get a simple help
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/data/configuration/variable/help")
+	public DataVariableDTO dataCollectionVariableHelp(@RequestBody DataVariableDTO data) throws DataNotFoundException {
+		try {
+			data = validation.variable(data, false, false);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -821,12 +870,12 @@ public class AdminAPI {
 	/*
 	 * We don't need it anymore
 	 * 	*//**
-			 * Keep actual addresses cache etc
-			 * 
-			 * @param data
-			 * @return
-			 * @throws DataNotFoundException
-			 *//*
+	 * Keep actual addresses cache etc
+	 * 
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 *//*
 				@PostMapping("/api/admin/report/parameters/renew")
 				@Deprecated
 				public ReportConfigDTO reportParametersRenew(@RequestBody ReportConfigDTO data) throws DataNotFoundException {
@@ -1023,14 +1072,15 @@ public class AdminAPI {
 		importATCcodesService.importRunAsync(data, user);
 		return data;
 	}
-	
+
 	@PostMapping("/api/admin/workflow/export/excel")
-	public ResponseEntity<Resource> workflowExportExcel(@RequestBody WorkflowDTO data)
+	public ResponseEntity<Resource> workflowExportExcel(Authentication auth,@RequestBody WorkflowDTO data)
 			throws DataNotFoundException {
 		try {
 			String mediaType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 			String fileName = "reportDataStructure.xlsx";
-			Resource res = reportServ.workflowExportExcel(data);
+			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+			Resource res = importExportWorkflowService.workflowExportExcel(user,data);
 			return ResponseEntity.ok().contentType(MediaType.parseMediaType(mediaType))
 					// .header(HttpHeaders.CONTENT_DISPOSITION, fres.getContentDisp() + ";
 					// filename=\"" + fres.getFileName() + "\"")
@@ -1056,4 +1106,180 @@ public class AdminAPI {
 		return message;
 	}
 
+	/**
+	 * Download or read "EL Reference instruction
+	 * @return
+	 * @throws DataNotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value="/api/admin/elreference", method = RequestMethod.GET)
+	public ResponseEntity<Resource> loadElreference() throws DataNotFoundException, IOException {
+		ResponseEntity<Resource> res;
+		try {
+			res = resourceServ.adminElreferenceGuide();
+			return res;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+
+	/**
+	 * Download or read DictionaryCreationMaintenance
+	 * @return
+	 * @throws DataNotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value="/api/admin/help/dictionaries", method = RequestMethod.GET)
+	public ResponseEntity<Resource> loadDictionariesGuide() throws DataNotFoundException, IOException {
+		ResponseEntity<Resource> res;
+		try {
+			res = resourceServ.adminHelpDictionaries();
+			return res;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+
+	/**
+	 * Download or read workflow reference guide
+	 * @return
+	 * @throws DataNotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value="/api/admin/help/wfrguide", method = RequestMethod.GET)
+	public ResponseEntity<Resource> loadPrivacy() throws DataNotFoundException, IOException {
+		ResponseEntity<Resource> res;
+		try {
+			res = resourceServ.adminHelpWfrGuide();
+			return res;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+
+
+	@RequestMapping(value = {"/api/admin/dictionary/export/dicturl={url}&curid={id}"}, method = RequestMethod.GET)
+	public ResponseEntity<Resource> dictionaryExport(@PathVariable(value = "url", required = true) String dicturl, @PathVariable(value = "id", required = true) Long currentId)
+			throws DataNotFoundException, ObjectNotFoundException {
+		try {
+			return dictionaryServ.exportDictionary(dicturl, currentId);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+
+	/**
+	 * Load import admin units feature
+	 * 
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/dictionary/import/load")
+	public ThingDTO dictionaryImportLoad(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		try {
+			data = dictionaryServ.importLoad(data, user);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+
+	@PostMapping({"/api/admin/dictionary/import/run"})
+	public DictionaryDTO dictionaryImportRun(Authentication auth, @RequestParam("dict") String jsonDict,
+			@RequestParam("file") Optional<MultipartFile> file) throws DataNotFoundException {
+		DictionaryDTO dict = new DictionaryDTO();
+		try {
+			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+			dict = objectMapper.readValue(jsonDict, DictionaryDTO.class);
+			byte[] fileBytes = new byte[0];
+			if (file.isPresent()) {
+				fileBytes = file.get().getBytes();
+				dict = dictionaryServ.importRun(dict, fileBytes);
+			}
+		} catch (ObjectNotFoundException | IOException e) {
+			throw new DataNotFoundException(e);
+		}
+		return dict;
+	}
+
+	@RequestMapping(value = {"/api/admin/dictionary/import/errorfile"}, method = RequestMethod.GET)
+	public ResponseEntity<Resource> dictionaryExport()
+			throws DataNotFoundException, ObjectNotFoundException, IOException {
+		ResponseEntity<Resource> resp = dictionaryServ.getFileErrors();
+		return resp;
+	}
+
+	/**
+	 * Load an electronic form to upload the data file in xlsx
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/data/configuration/load/import")
+	public ThingDTO dataConfigurationLoadImport(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		try {
+			data=importExportDataConfigService.importLoad(user, data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
+	/**
+	 * Load an electronic form to upload the data file in xlsx
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/data/workflow/load/import")
+	public ThingDTO dataWorkflowLoadImport(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		try {
+			data=importExportWorkflowService.importWorkflow(user, data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	/**
+	 * Import data configuration from the XLSX file uploaded
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/data/configuration/run/import")
+	public ThingDTO dataConfigurationRunImport(Authentication auth, @RequestBody ThingDTO data){
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		data.setUrl(AssemblyService.SYSTEM_IMPORT_DATA_CONFIGURATION);
+		try {
+			data.getStrings().get("description").setValue("");
+			data=importExportDataConfigService.importRun(user, data);
+		} catch (ObjectNotFoundException e) {
+			data.setValid(false);
+			data.setIdentifier(e.getMessage());
+			data.getStrings().get("description").setValue(data.getIdentifier());
+		}
+		return data;
+	}
+	/**
+	 * Import data configuration from the XLSX file uploaded
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/data/workflow/run/import")
+	public ThingDTO dataWorkflowRunImport(Authentication auth, @RequestBody ThingDTO data){
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		data.setUrl(AssemblyService.SYSTEM_IMPORT_DATA_WORKFLOW);
+		try {
+			data=importExportWorkflowService.importRun(user, data);
+		} catch (ObjectNotFoundException e) {
+			data.setValid(false);
+			data.setIdentifier(e.getMessage());
+		}
+		return data;
+	}
 }

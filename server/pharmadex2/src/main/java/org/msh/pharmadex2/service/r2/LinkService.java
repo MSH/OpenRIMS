@@ -24,9 +24,13 @@ import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.LinkDTO;
 import org.msh.pharmadex2.dto.LinksDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
+import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
+import org.msh.pharmadex2.service.common.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.AuthenticatedPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,6 +51,10 @@ public class LinkService {
 	private ClosureService closureServ;
 	@Autowired
 	private LiteralService literalServ;
+	@Autowired 
+	private UserService userServ;
+	@Autowired
+	private AccessControlService accessControl;
 
 	/**
 	 * Create/load links for a thing
@@ -56,6 +64,7 @@ public class LinkService {
 	 * @throws ObjectNotFoundException 
 	 */
 	public ThingDTO createLinks(List<AssemblyDTO> links, ThingDTO data) throws ObjectNotFoundException {
+		data.getLinks().clear();
 		for(AssemblyDTO  aDto : links) {
 			String key=aDto.getPropertyName();
 			if(data.getLinks().get(key)== null) {
@@ -161,13 +170,15 @@ public class LinkService {
 
 	/**
 	 * Active objects for selection by URL
-	 * @param dto
+	 * @param dto 
 	 * @return
+	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public LinksDTO loadObjectsTable(LinksDTO dto) {
+	public LinksDTO loadObjectsTable(LinksDTO dto) throws ObjectNotFoundException {
+		String owner = ownerRestriction(dto);
 		dto.getTable().setSelectable(true);
-		jdbcRepo.reporting_objects(dto.getObjectUrl(), "ACTIVE");
+		jdbcRepo.reporting_objects(dto.getObjectUrl(), "ACTIVE,LEGACY,ATC",owner);
 		if(dto.getTable().getHeaders().getHeaders().size()==0) {
 			dictServ.createHeaders(dto.getTable().getHeaders(), false);
 			dto.getTable().getHeaders().setPageSize(10);
@@ -189,6 +200,31 @@ public class LinkService {
 		TableQtb.tablePage(rows, dto.getTable());
 		selectObjects(dto);
 		return dto;
+	}
+	/**
+	 * Should we restrict the selection of objects only to objects belong to owner or the current applicant
+	 * @param dto
+	 * @return email of the owner or null if no restriction
+	 * @throws ObjectNotFoundException 
+	 */
+	private String ownerRestriction(LinksDTO dto) throws ObjectNotFoundException {
+		if(!dto.getLinkUrl().toUpperCase().startsWith("ALL.")) {
+			if(dto.getNodeID()>0) {
+				Concept node=closureServ.loadConceptById(dto.getNodeID());
+				Concept initNode=boilerServ.initialApplicationNode(node);
+				Concept email=closureServ.getParent(initNode);
+				return email.getIdentifier();
+			}else {
+				// the current user`s email
+				UserDetailsDTO user = userServ.userData(SecurityContextHolder.getContext().getAuthentication(), new UserDetailsDTO());
+				if(accessControl.isApplicant(user)) {
+					return user.getEmail();
+				}else {
+					return null;		// no restriction for NMRA
+				}
+			}
+		}
+		return null;
 	}
 	/**
 	 * Select objects on the current page
@@ -266,6 +302,7 @@ public class LinkService {
 	}
 	/**
 	 * Store all links in the link
+	 * We don`t need store thing itself here
 	 * @param thing 
 	 * @param data
 	 * @return
@@ -293,7 +330,6 @@ public class LinkService {
 				thing.getThingLinks().add(tl);
 			}
 		}
-		thing=boilerServ.saveThing(thing);
 		return data;
 	}
 

@@ -16,6 +16,7 @@ import org.msh.pharmadex2.Pharmadex2Application;
 import org.msh.pharmadex2.controller.common.DocxView;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
+import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.service.r2.ResolverService;
@@ -54,7 +55,7 @@ public class ResolverServiceTest {
 		Map<String,Object> model = dx.initModel();
 		ResourceDTO td = new ResourceDTO();
 		td.setHistoryId(322);
-		model = resolverServ.resolveModel(model,td);
+		model = resolverServ.resolveModel(model,td, new UserDetailsDTO());
 		for(String key :model.keySet()) {
 			System.out.println(key+"=>"+model.get(key));
 		}
@@ -65,7 +66,7 @@ public class ResolverServiceTest {
 		ResourceDTO fres = new ResourceDTO();
 		fres.setHistoryId(2058);
 		Map<String, List<AssemblyDTO>> assemblies = new HashMap<String, List<AssemblyDTO>>();
-		Map<String, Object> ret = resolverServ.resolve("/pharmacists/pharmacists/0/pharmacist_qualification/person_academic", fres,assemblies, true);
+		Map<String, Object> ret = resolverServ.resolve("/pharmacists/pharmacists/0/pharmacist_qualification/person_academic", fres,assemblies, true, new UserDetailsDTO());
 		System.out.println(ret);
 	}
 	

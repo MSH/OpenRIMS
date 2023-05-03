@@ -13,11 +13,8 @@ import ApplicationFiles from './ApplicationFiles'
 import AddressForm from './AddressForm'
 import Persons from './Persons'
 import ResourcesUsage from './ResourcesUsage'
-import PersonSelector from './PersonSelector'
 import Scheduler from './Scheduler'
 import Register from './Register'
-import PersonSpecial from './PersonSpecial'
-import Amended from './Amended'
 import ATCCodes from './ATCCodes'
 import LegacyData from './LegacyData'
 import Interval from './Interval'
@@ -47,7 +44,10 @@ class Thing extends Component{
             repaint:this.props.data.repaint,
             identifier:Date.now().toString(),  //my address for messages
             data:this.props.data,             //ThingDTO         
-            labels:{},
+            labels:{
+                save_app_error:'',
+                success:''
+            },
         }
         this.state.data.readOnly=this.props.readOnly
         
@@ -67,12 +67,11 @@ class Thing extends Component{
         this.autoFillFormField=this.autoFillFormField.bind(this)
         this.numberFiled=this.numberFiled.bind(this)
         this.logicalFiled=this.logicalFiled.bind(this)
-        this.personSelectorControl=this.personSelectorControl.bind(this)
         this.saveGuest=this.saveGuest.bind(this)
         this.postLoaded=this.postLoaded.bind(this)
-        this.personSpecControl=this.personSpecControl.bind(this)
         this.helpButton=this.helpButton.bind(this)
         this.reloadComponents=this.reloadComponents.bind(this)
+        this.droplistFiled=this.droplistFiled.bind(this)
     }
     /**
      * GEt prefLabel
@@ -110,7 +109,13 @@ class Thing extends Component{
                 this.state.data=result
                 if(this.state.data.valid){
                     this.storeLocal()
+                    Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.success, color:'success'})
                 }else{
+                    let err_mess=this.state.labels.save_app_error
+                    if(this.state.data.identifier){
+                        err_mess=this.state.data.identifier
+                    }
+                    Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:err_mess, color:'danger'})
                     this.setState(this.state)
                 }
                 if(savedByAction){
@@ -135,6 +140,7 @@ class Thing extends Component{
                     Navigator.message(this.state.identifier, this.props.recipient, "saved", this.state.data)
                 }
             }else{
+                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'danger'})
                 this.setState(this.state)
             }
             
@@ -157,6 +163,9 @@ class Thing extends Component{
                     this.state.data=result
                     this.setState(this.state)
                     Navigator.message(this.state.identifier, this.props.recipient, "thingValidated", result)
+                    if(!this.state.data.valid){
+
+                    }
                 })
             }
             if(data.subject=='thingReload'){
@@ -228,6 +237,7 @@ class Thing extends Component{
                         if(result.valid){
                             Navigator.message(this.state.identifier, this.props.recipient, "auxPath", this.state.data)
                         }else{
+                            Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'danger'})
                             this.setState(this.state)
                         }
                     })
@@ -363,6 +373,7 @@ class Thing extends Component{
      * Common action after thing has been loaded or accepted
      */
     postLoaded(){
+        let err_mess=this.state.data.identifier
         this.state.data.identifier=this.state.identifier
         Navigator.message(this.state.identifier, "*","refreshData",this.state.data);
         Locales.createLabels(this, "strings")
@@ -375,16 +386,14 @@ class Thing extends Component{
         Locales.createLabels(this,"resources")
         Locales.createLabels(this,"addresses")
         Locales.createLabels(this,"persons")
-        Locales.createLabels(this,"personselector")
         Locales.createLabels(this,"schedulers")
         Locales.createLabels(this,'files')
         Locales.createLabels(this,'registers')
-        Locales.createLabels(this,'personspec')
-        Locales.createLabels(this,'amendments')
         Locales.createLabels(this,'atc')
         Locales.createLabels(this, 'legacy');
         Locales.createLabels(this, 'intervals');
-        Locales.createLabels(this,"links")
+        Locales.createLabels(this,"links");
+        Locales.createLabels(this,"droplist")
         if(this.state.data.activityName != undefined){
             this.state.labels[this.state.data.activityName]=''     //for activity names
         }
@@ -409,6 +418,9 @@ class Thing extends Component{
             this.comparator=undefined       //the latch!
         }
         Navigator.message(this.state.identifier, this.props.recipient,"thingLoaded",this.state.data);
+        if(!this.state.data.valid){
+            Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:err_mess, color:'danger'})
+        }
     }
     componentWillUnmount(){
         window.removeEventListener("message",this.eventProcessor)
@@ -603,107 +615,37 @@ class Thing extends Component{
             return[]
         }
     }
-
-
-    /**
-     * Responsible for person selection
+/**
+     * Responsible for droplist
      * @param {string} name 
      * @param {number} index 
      * @returns 
      */
-        personSelectorControl(name, index){
-        if(this.state.data.readOnly || this.props.readOnly){
-            return []
+ droplistFiled(name, index){
+    let fieldDTO = this.state.data.droplist[name]
+    if(fieldDTO != undefined){
+        let readOnly=this.props.readOnly || fieldDTO.readOnly
+        let mark=""
+        if(fieldDTO.mark){
+            mark= "markedbycolor"
         }
-        let res=this.state.data.personselector[name] 
-        if(res!=undefined){
-            return(
-            <Row key={index}>
+        return(
+            <Row key={index} className={mark}>
                 <Col>
-                    <Row>
-                        <Col>
-                            <h6>{this.state.labels[name]}</h6>
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col>
-                            <PersonSelector data={res}
-                                            recipient={this.state.identifier}
-                            />
-                        </Col>
-                    </Row>
+                    <ViewEditOption
+                        edit={!readOnly} 
+                        attribute={name}
+                        component={this} 
+                        data={this.state.data.droplist}
+                    />
                 </Col>
             </Row>
-            )
-        }
+        )
+    }else{
+        return[]
     }
+}
 
-    /**
-     * Responsible for the special person data
-     * @param {string} name 
-     * @param {number} index 
-     * @returns 
-     */
-        personSpecControl(name, index){
-            let res=this.state.data.personspec[name] 
-            if(res!=undefined){
-                return(
-                <Row key={index}>
-                    <Col>
-                        <Row hidden={this.state.data.personspec[name].valid} className="mb-1">
-                            <Col>
-                                <Alert color="danger" className="p-0 m-0">
-                                    <small>{this.state.data.personspec[name].identifier}</small>
-                                </Alert>
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col>
-                                <PersonSpecial data={res}
-                                                recipient={this.state.identifier}
-                                />
-                            </Col>
-                        </Row>
-                    </Col>
-                </Row>
-                )
-            }
-        }
-
-    /**
-     * Responsible for the amended object selection
-     * @param {string} name 
-     * @param {number} index 
-     * @deprecated
-     * @returns 
-     */
-        amendmentsControl(name, index){
-        let res=this.state.data.amendments[name] 
-        if(res!=undefined){
-            return(
-            <Row key={index}>
-                <Col>
-                    <Row hidden={this.state.data.amendments[name].valid} className="mb-1">
-                        <Col>
-                            <Alert color="danger" className="p-0 m-0">
-                                <small>{this.state.data.amendments[name].identifier}</small>
-                            </Alert>
-                        </Col>
-                    </Row>
-                    <Row hidden={this.props.readOnly}>
-                        <Col>
-                            <Amended data={res}
-                                            recipient={this.state.identifier}
-                            />
-                        </Col>
-                    </Row>
-                </Col>
-            </Row>
-            )
-        }
-    }
-
- 
 
     /**
      * Take component by variable name and then create it or replace data
@@ -753,6 +695,13 @@ class Thing extends Component{
                 )
             }
         }
+        //
+        if(this.state.data.droplist.hasOwnProperty(name)){
+            return (
+                this.droplistFiled(name,index)
+            )
+        }
+
         if(this.state.data.addresses.hasOwnProperty(name)){
             if(data != undefined){
                 this.state.data.addresses[name]=data
@@ -781,11 +730,7 @@ class Thing extends Component{
                 ResourcesUsage.place(data, index, this.props.readOnly, this.state.identifier, this.state.labels[name], this.state.data)
             )
         }
-        if(this.state.data.personselector.hasOwnProperty(name)){
-            return(
-                this.personSelectorControl(name,index)
-            )
-        }
+
         if(this.state.data.schedulers.hasOwnProperty(name)){
             return(
                 //this.schedulersControl(name,index)
@@ -814,24 +759,7 @@ class Thing extends Component{
                 )
             }
         }
-        if(this.state.data.personspec.hasOwnProperty(name)){
-            if(data != undefined){
-                this.state.data.personspec[name]=data
-            }else{
-                return(
-                    this.personSpecControl(name, index)
-                )
-            }
-        }
-        if(this.state.data.amendments.hasOwnProperty(name)){
-            if(data != undefined){
-                this.state.data.amendments[name]=data
-            }else{
-                return(
-                    this.amendmentsControl(name, index)
-                )
-            }
-        }
+
         if(this.state.data.atc.hasOwnProperty(name)){
             if(data != undefined){
                 this.state.data.atc[name]=data
@@ -885,7 +813,7 @@ class Thing extends Component{
                 )
             }
         }
-        return(<h6>No components to display</h6>)
+        return([])
     }
      /**
      * Place components inside a cell in rows
@@ -983,6 +911,7 @@ class Thing extends Component{
         if(this.state.data.activityName != undefined){
             activityName=this.state.labels[this.state.data.activityName]
         }
+       
         return(
             <Container fluid>
                 {this.helpButton()}

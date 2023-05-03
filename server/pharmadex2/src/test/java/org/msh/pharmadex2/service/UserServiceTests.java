@@ -17,7 +17,7 @@ public class UserServiceTests {
 	
 	@Test
 	public void testRolesFromDict() throws ObjectNotFoundException {
-		UserDetails ud = userServ.loadUserByUsername("mustanger@headlesshorseman.org");
+		UserDetails ud = userServ.loadUserByUsername("admin");
 		assertNotNull(ud);
 	}
 }

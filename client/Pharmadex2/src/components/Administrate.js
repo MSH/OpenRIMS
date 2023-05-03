@@ -60,7 +60,8 @@ class Administrate extends Component{
                 changePassAdmin:'',
                 importATC:'',
                 actuatorMonitoring:'',
-                test_mail:''
+                test_mail:'',
+                systemsetting:''
             },
             isOpen:false,
             menu:'',
@@ -167,7 +168,6 @@ class Administrate extends Component{
                                         </NavLink>
                                     </NavItem>
 
-
                                     <UncontrolledDropdown nav inNavbar>
                                         <DropdownToggle nav caret>
                                             {this.state.labels.processes}
@@ -219,7 +219,6 @@ class Administrate extends Component{
                                             </DropdownItem>
                                         </DropdownMenu>
                                         </UncontrolledDropdown>
-
 
                                         <UncontrolledDropdown nav inNavbar>
                                         <DropdownToggle nav caret>
@@ -334,22 +333,35 @@ class Administrate extends Component{
                                             </DropdownItem>
                                         </DropdownMenu>
                                         </UncontrolledDropdown>
-                                        <NavItem>
-                                            <NavLink active={this.state.menu=='actuator'}
-                                                    href="/admin#administrate/actuator">
-                                                <div>
-                                                    {this.state.labels.actuatorMonitoring}
-                                                </div>
-                                            </NavLink>
-                                        </NavItem>
-                                        <NavItem>
-                                            <NavLink active={this.state.menu=='changepass'}
-                                                    href="/admin#administrate/changepass">
-                                                <div>
-                                                    {this.state.labels.changePassAdmin}
-                                                </div>
-                                            </NavLink>
-                                        </NavItem>
+                                <UncontrolledDropdown nav inNavbar>
+                                <DropdownToggle nav caret>
+                                            {this.state.labels.systemsetting}
+                                        </DropdownToggle>
+                                        <DropdownMenu right>
+                                            <DropdownItem>
+                                                <NavItem active={this.state.menu=='actuator'}>
+                                                <NavLink active={this.state.menu=='actuator'}
+                                                        href="/admin#administrate/actuator">
+                                                    <div>
+                                                    <i className="fas fa-file-import mr-1"></i>
+                                                        {this.state.labels.actuatorMonitoring}
+                                                    </div>
+                                                </NavLink>
+                                                </NavItem>
+                                            </DropdownItem>
+                                            <DropdownItem>
+                                                <NavItem active={this.state.menu=='changepass'}>
+                                                <NavLink active={this.state.menu=='changepass'}
+                                                        href="/admin#administrate/changepass">
+                                                    <div>
+                                                    <i className="fas fa-file-import mr-1"></i>
+                                                        {this.state.labels.changePassAdmin}
+                                                    </div>
+                                                </NavLink>
+                                                </NavItem>
+                                            </DropdownItem>
+                                        </DropdownMenu>
+                                </UncontrolledDropdown>
                                         <NavItem>
                                             <NavLink href="/admin">{this.state.labels.global_exit}</NavLink>
                                         </NavItem>

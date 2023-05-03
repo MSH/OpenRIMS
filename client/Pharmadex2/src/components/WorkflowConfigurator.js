@@ -1,5 +1,5 @@
 import React , {Component} from 'react'
-import {Container, Row, Col, Breadcrumb, BreadcrumbItem, NavItem} from 'reactstrap'
+import {Container, Row, Col, Breadcrumb, BreadcrumbItem, NavItem, Spinner} from 'reactstrap'
 import PropTypes from 'prop-types'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
@@ -9,7 +9,7 @@ import Thing from './Thing'
 import SpinnerMain from './utils/SpinnerMain'
 import Pharmadex from './Pharmadex'
 import Downloader from './utils/Downloader'
-
+import ImportDataConfiguration from './ImportDataConfiguration'
 /**
  * Responsible for workflow configuration process
  * Simialr to ThingManager
@@ -20,6 +20,7 @@ class WorkflowConfigurator extends Component{
     constructor(props){
         super(props)
         this.state={
+            showimport:false,
             wait:false,                             //for the first time
             identifier:Date.now().toString(),
             data:{},                                //WorkflowDTO
@@ -27,16 +28,19 @@ class WorkflowConfigurator extends Component{
                 global_save:'',
                 global_cancel:'',
                 global_suspend:'',
+                global_import_short:'',
                 workflows:'',
                 next:'',
                 insertbefore:'',
                 exportExcel:'',
+                warningRemove:''
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
         this.createBreadCrumb=this.createBreadCrumb.bind(this)
         this.afterSave=this.afterSave.bind(this)
         this.content=this.content.bind(this)
+        this.loader=this.loader.bind(this)
     }
 
     /**
@@ -85,6 +89,7 @@ class WorkflowConfigurator extends Component{
                     if(this.state.data.selected==0){
                         this.state.data.path[0]=data.data
                         this.state.thingIdentifier=data.data.identifier
+                        SpinnerMain.hide()
                     }
                 }
                 if(data.subject=="saved"){
@@ -93,6 +98,10 @@ class WorkflowConfigurator extends Component{
                 if(data.subject=="savedByAction"){
                     this.afterSave(data.data,true)
                 }
+                if(data.subject=='DataConfigurationImportCancel'){
+                    this.state.showimport=false
+                    this.loader()
+                }
             }  
         }
 
@@ -100,13 +109,7 @@ class WorkflowConfigurator extends Component{
         SpinnerMain.show()
         window.addEventListener("message",this.eventProcessor)
         this.state.data.dictNodeId=this.props.dictNodeId
-        Fetchers.postJSON("/api/admin/workflow/configuration/load", this.state.data, (query,result)=>{
-            this.state.data=result
-            Locales.resolveLabels(this)
-            this.setState(this.state)
-            SpinnerMain.hide()
-        })
-        
+        this.loader()
     }
 
     componentDidUpdate(){
@@ -119,6 +122,15 @@ class WorkflowConfigurator extends Component{
     componentWillUnmount(){
         window.removeEventListener("message",this.eventProcessor)
     }
+loader(){
+    Fetchers.postJSON("/api/admin/workflow/configuration/load", this.state.data, (query,result)=>{
+        this.state.data=result
+        Locales.resolveLabels(this)
+        this.setState(this.state)
+        Navigator.message(this.state.identifier, "*", "thingReload", {})
+        SpinnerMain.show()
+    })
+}
 
     createBreadCrumb(){
         let ret=[]
@@ -179,7 +191,7 @@ class WorkflowConfigurator extends Component{
      */
     content(){
         return(
-            <div>
+            <div hidden={this.state.showimport}>
             <Row>
             <Col>
                 <Breadcrumb>
@@ -222,7 +234,7 @@ class WorkflowConfigurator extends Component{
                     <Col xs='12' sm='12' lg='6' xl='6'>
                        <h4>{this.state.data.title}</h4>
                     </Col>
-                    <Col xs='12' sm='12' lg='1' xl='1'>
+                    <Col xs='12' sm='12' lg='1' xl='1' className={"text-center m-0 p-1"} hidden={this.state.showimport}>
                         <ButtonUni
                             label={this.state.labels.global_save}
                             onClick={()=>{
@@ -231,7 +243,7 @@ class WorkflowConfigurator extends Component{
                             color="success"
                         />
                     </Col>
-                    <Col xs='12' sm='12' lg='1' xl='1'>
+                    <Col xs='12' sm='12' lg='1' xl='1' className={"text-center m-0 p-1"} hidden={this.state.showimport}>
                         <ButtonUni
                             label={this.state.labels.global_cancel}
                             onClick={()=>{
@@ -240,7 +252,7 @@ class WorkflowConfigurator extends Component{
                             color="secondary"
                         />
                     </Col>
-                    <Col xs='12' sm='12' lg='1' xl='1'>
+                    <Col xs='12' sm='12' lg='1' xl='1' className={"text-center m-0 p-1"} hidden={this.state.showimport}>
                         <ButtonUni
                             label={this.state.labels.insertbefore}
                             onClick={()=>{
@@ -255,25 +267,42 @@ class WorkflowConfigurator extends Component{
                             color="primary"
                         />
                     </Col>
-                    <Col xs='12' sm='12' lg='1' xl='1'>
+                    <Col xs='12' sm='12' lg='1' xl='1' className={"text-center m-0 p-1"} hidden={this.state.showimport}>
                         <div hidden={this.state.data.selected==0}>
                             <ButtonUni
                                 label={this.state.labels.global_suspend}
                                 onClick={()=>{
-                                    Fetchers.postJSON("/api/admin/workflow/activity/suspend", this.state.data, (query,result)=>{
-                                        this.state.data=result
-                                        this.state.data.selected=0
-                                        this.state.data.path.forEach(element=>{
-                                            element.repaint=true
+                                    Fetchers.alerts(this.state.labels.warningRemove, ()=>{
+                                        Fetchers.postJSON("/api/admin/workflow/activity/suspend", this.state.data, (query,result)=>{
+                                            this.state.data=result
+                                            this.state.data.selected=0
+                                            this.state.data.path.forEach(element=>{
+                                                element.repaint=true
+                                            })
+                                            this.setState(this.state)
                                         })
-                                        this.setState(this.state)
-                                    })
+                                    }, null)
                                 }}
                                 color="warning"
                             />
                         </div>
                     </Col>
-                    <Col xs='12' sm='12' lg='2' xl='2'>
+                    {/* </Row>
+                    <Row> */}
+                    <Col xs='12' sm='12' lg='1' xl='1'className={"text-center m-0 p-1"} hidden={this.state.showimport}>
+                    <div hidden={this.state.data.selected>0}>
+                        <ButtonUni
+                        label={this.state.labels.global_import_short}
+                        onClick={()=>{
+                            this.state.showimport=true;
+                            this.setState(this.state)
+                            Navigator.message(this.state.identifier, "*",'DataConfigurationImportReload',{})
+                        }}
+                        color="info"
+                        />
+                        </div>
+                    </Col>
+                    <Col xs='12' sm='12' lg='1' xl='1' className={"text-center m-0 p-1"} hidden={this.state.showimport}>
                         <ButtonUni
                             label={this.state.labels.exportExcel}
                             onClick={()=>{
@@ -282,7 +311,17 @@ class WorkflowConfigurator extends Component{
                                         downloader.postDownload("/api/admin/workflow/export/excel",
                                         this.state.data, "workflow.xlsx");
                             }}
-                            color="info"
+                            color="secondary"
+                        />
+                    </Col>
+                </Row>
+                <Row hidden={!this.state.showimport}>
+                    <Col xs='12' sm='12' lg='6' xl='6' >
+                        <ImportDataConfiguration
+                            dataID={this.state.data.path[0].nodeId}
+                            recipient={this.state.identifier}
+                            loadapi='/api/admin/data/workflow/load/import'
+                            importapi='/api/admin/data/workflow/run/import' 
                         />
                     </Col>
                 </Row>

@@ -28,8 +28,8 @@ public class ReportPageLinks implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC222274183844892740737B")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC222274183844892740737B", strategy="native")	
+	@GeneratedValue(generator="VAC222277187B383444A0A608")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC222277187B383444A0A608", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	
@@ -52,7 +52,7 @@ public class ReportPageLinks implements Serializable {
 	@org.hibernate.annotations.Index(name="byDatamoduleID")	
 	private long dataModuleID;
 	
-	@Column(name="DataPrefLabel", nullable=true, length=255)	
+	@Column(name="DataPrefLabel", nullable=true)	
 	private String dataPrefLabel;
 	
 	@Column(name="Varname", nullable=true, length=255)	
@@ -73,20 +73,20 @@ public class ReportPageLinks implements Serializable {
 	@Basic(fetch=FetchType.LAZY)	
 	private org.msh.pdex2.model.dwh.ReportPage linkedPage;
 	
-	@Column(name="LinkedPrefLabel", nullable=true, length=255)	
+	@Column(name="LinkedPrefLabel", nullable=true)	
 	private String linkedPrefLabel;
 	
 	@Column(name="DictUrl", nullable=true, length=255)	
 	@org.hibernate.annotations.Index(name="byDictUrl")	
 	private String dictUrl;
 	
-	@Column(name="DictPrefLabel", nullable=true, length=255)	
+	@Column(name="DictPrefLabel", nullable=true)	
 	private String dictPrefLabel;
 	
-	@Column(name="DictItem", nullable=true, length=255)	
+	@Column(name="DictItem", nullable=true)	
 	private String dictItem;
 	
-	@Column(name="DictPath", nullable=true, length=255)	
+	@Column(name="DictPath", nullable=true)	
 	private String dictPath;
 	
 	@Column(name="Lang", nullable=true, length=255)	

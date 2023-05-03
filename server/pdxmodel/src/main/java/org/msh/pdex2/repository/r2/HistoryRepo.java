@@ -15,5 +15,8 @@ public interface HistoryRepo extends CrudRepository<History, Long> {
 	List<History> findByActivityData(Concept conc);
 
 	List<History> findAllByApplicationDataOrderByID(Concept applicationData);
+	
+	List<History> findAllByApplicationDataOrderByCome(Concept applicationData);
 
+	List<History> findAllByApplicationDataAndGo(Concept applicationData, java.util.Date go);
 }

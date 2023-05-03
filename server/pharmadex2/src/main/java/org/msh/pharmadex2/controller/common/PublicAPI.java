@@ -12,7 +12,9 @@ import org.msh.pdex2.dto.i18n.Languages;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pharmadex2.dto.AboutDTO;
+import org.msh.pharmadex2.dto.AskForPass;
 import org.msh.pharmadex2.dto.ContentDTO;
+import org.msh.pharmadex2.dto.SystemImageDTO;
 import org.msh.pharmadex2.dto.UserFormDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.exception.DataNotFoundException;
@@ -21,6 +23,7 @@ import org.msh.pharmadex2.service.common.UserService;
 import org.msh.pharmadex2.service.r2.ContentService;
 import org.msh.pharmadex2.service.r2.ReportService;
 import org.msh.pharmadex2.service.r2.ResourceService;
+import org.msh.pharmadex2.service.r2.SystemService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,7 +48,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 public class PublicAPI{
-	
+
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(PublicAPI.class);
 
@@ -54,19 +57,21 @@ public class PublicAPI{
 
 	@Autowired
 	private UserService userService;
-	
+
 	@Autowired
 	private ContentService contentService;
 	@Autowired
 	private ResourceService resourceServ;
 	@Autowired
 	private ReportService reportServ;
-	
+	@Autowired
+	private SystemService systemServ;
+
 	@Value("${app.buildTime}")
 	private String buildTime;
 	@Value("${app.release}")
 	private String release;
-	
+
 	/**
 	 * Create a context cookie
 	 * @param contextId
@@ -115,45 +120,44 @@ public class PublicAPI{
 				.header("filename","emblem.svg")
 				.body(res);
 	}
-	
+
 	/**
 	 * Load the NMRA logo
 	 * @return
 	 * @throws DataNotFoundException 
 	 */
-	@RequestMapping(value="api/public/nmra.svg", method = RequestMethod.GET)
+	@RequestMapping(value="api/public/headerlogo", method = RequestMethod.GET)
 	public ResponseEntity<Resource> nmraLogo() throws DataNotFoundException {
-		Resource res;
 		try {
-			res = resourceServ.logo();
+			SystemImageDTO dto = resourceServ.logo();
 			return ResponseEntity.ok()
-					.contentType(MediaType.parseMediaType("image/svg+xml"))
-					.header("filename","nmra.svg")
-					.body(res);
+					.contentType(MediaType.parseMediaType(dto.getMediatype()))
+					.header("filename", dto.getFilename())
+					.body(dto.getResource());
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 	}
+
 
 	/**
 	 * Load the NMRA footer
 	 * @return
 	 * @throws DataNotFoundException 
 	 */
-	@RequestMapping(value="api/public/footer.svg", method = RequestMethod.GET)
+	@RequestMapping(value="api/public/footerlogo", method = RequestMethod.GET)
 	public ResponseEntity<Resource> nmraFooter() throws DataNotFoundException {
-		Resource res;
 		try {
-			res = resourceServ.footer();
+			SystemImageDTO dto = resourceServ.footer();
 			return ResponseEntity.ok()
-					.contentType(MediaType.parseMediaType("image/svg+xml"))
-					.header("filename","nmra.svg")
-					.body(res);
+					.contentType(MediaType.parseMediaType(dto.getMediatype()))
+					.header("filename", dto.getFilename())
+					.body(dto.getResource());
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 	}
-	
+
 	/**
 	 * About data for the footer etc
 	 * @param data
@@ -166,9 +170,9 @@ public class PublicAPI{
 		data.setRelease(release);
 		return data;
 	}
-	
-	
-	
+
+
+
 	/**
 	 * Get an SVG flag to switch the language
 	 * @return
@@ -198,7 +202,7 @@ public class PublicAPI{
 		ret = userService.userData(auth, ret);
 		return ret;
 	}
-	
+
 	/**
 	 * Get user's details for just authenticated user. For edit/display
 	 * @param user
@@ -215,7 +219,7 @@ public class PublicAPI{
 		}
 		return ret;
 	}
-	
+
 	/**
 	 * Get a list of available languages
 	 * @param List<FlagDTO>
@@ -226,7 +230,7 @@ public class PublicAPI{
 		data=messages.getLanguages();
 		return data;
 	}
-	
+
 	/**
 	 * Tiles for landing page
 	 * @param data
@@ -242,7 +246,7 @@ public class PublicAPI{
 		}
 		return data;
 	}
-	
+
 	@RequestMapping(value="api/public/tileicon", method = RequestMethod.GET)
 	public ResponseEntity<Resource> loadTileIcon(@RequestParam String iconurl) throws DataNotFoundException, IOException {
 		ResponseEntity<Resource> res;
@@ -256,16 +260,52 @@ public class PublicAPI{
 			}else {
 				res = resourceServ.createEmptyResource();
 			}
-			
-			
+
+
 			return res;
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 	}
+
 	@PostMapping("/api/public/report/loadlink")
 	public String reportLoadlink(Authentication auth, @RequestBody String data) {
 		return reportServ.getLinkReport();
 	}
-	
+
+	/* 15.11.2022 khomenska */
+	@RequestMapping(value="api/public/terms", method = RequestMethod.GET)
+	public ResponseEntity<Resource> loadTerms() throws DataNotFoundException, IOException {
+		ResponseEntity<Resource> res;
+		try {
+			res = resourceServ.downloadTerms();
+			return res;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+
+	/* 15.11.2022 khomenska */
+	@RequestMapping(value="api/public/privacy", method = RequestMethod.GET)
+	public ResponseEntity<Resource> loadPrivacy() throws DataNotFoundException, IOException {
+		ResponseEntity<Resource> res;
+		try {
+			res = resourceServ.downloadPrivacy();
+			return res;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+
+	/**
+	 * ASk for a temporary password
+	 * @return
+	 * @throws DataNotFoundException
+	 * @throws IOException
+	 */
+	@PostMapping(value="/api/public/temporary/password")
+	public AskForPass temporaryPassword(@RequestBody AskForPass data){
+		data=userService.temporaryPassword(data);
+		return data;
+	}
 }

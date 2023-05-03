@@ -8,6 +8,7 @@ import Locales from './utils/Locales'
 import AmendmentSelect from './AmendmentSelect'
 import RenewSelect from './RenewSelect'
 import DeRegistrationSelect from './DeRegistrationSelect'
+import InspectionSelect from './InspectionSelect'
 
 /**
  * Tab Application. Switch between ApplicationSelect and ApplicationProcess components
@@ -25,6 +26,7 @@ class Applications extends Component{
                 amendments:'',
                 deregistration:'',
                 renew:'',
+                inspections:'',
             }
         }
         this.component=this.component.bind(this)
@@ -66,6 +68,8 @@ class Applications extends Component{
                 return <DeRegistrationSelect />
             case "renew":
                 return <RenewSelect />
+            case "inspections":
+                    return <InspectionSelect />
             default:
                 return <ApplicationSelect />
         }
@@ -109,6 +113,11 @@ class Applications extends Component{
                                                 <NavLink href={"/guest"+"#"+Navigator.tabName()+"/deregistration"}>{this.state.labels.deregistration}</NavLink>
                                             </NavItem>
                                         </Nav>
+                                        {/* <Nav>     
+                                            <NavItem active={this.state.menu=='inspections'}>
+                                                <NavLink href={"/guest"+"#"+Navigator.tabName()+"/inspections"}>{this.state.labels.inspections}</NavLink>
+                                            </NavItem>
+                                        </Nav> */}
                                         <Nav>     
                                             <NavItem>
                                                 <NavLink href={"/"+Navigator.tabSetName()+"#"}>{this.state.labels.global_exit}</NavLink>

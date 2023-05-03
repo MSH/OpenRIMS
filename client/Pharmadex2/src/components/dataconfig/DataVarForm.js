@@ -1,5 +1,5 @@
 import React , {Component} from 'react'
-import {Container, Row, Col, Alert} from 'reactstrap'
+import {Container, Row, Col, Alert, Button} from 'reactstrap'
 import PropTypes from 'prop-types'
 import Locales from '../utils/Locales'
 import Fetchers from '../utils/Fetchers'
@@ -31,7 +31,10 @@ class DataVarForm extends Component{
                 cancel:'',
                 screenposition:'',
                 auxiliarydata:'',
-            }
+                success:'',
+                warningRemove:''
+            },
+            color:"warning"
         }
         this.eventProcessor=this.eventProcessor.bind(this)
         this.buttons=this.buttons.bind(this)
@@ -39,6 +42,8 @@ class DataVarForm extends Component{
         this.option=this.option.bind(this)
         this.hiddenUrl=this.hiddenUrl.bind(this)
         this.hiddenAuxUrl=this.hiddenAuxUrl.bind(this)
+        this.hiddenRestricted=this.hiddenRestricted.bind(this)
+        this.helpButton=this.helpButton.bind(this)
     }
 
     /**
@@ -70,6 +75,29 @@ class DataVarForm extends Component{
             this.setState(this.state)
         })
     }
+    helpButton(){
+        return (
+            <Row className='p-0 m-0'>
+            <Col className="d-flex justify-content-end p-0 m-0">
+                <Button
+                    size='lg'
+                    className="p-0 m-0"
+                    color="link"
+                    onClick={()=>{
+                        Fetchers.postJSON("/api/admin/data/configuration/variable/help", this.state.data, (query,result)=>{
+                            this.state.data=result
+                            this.setState(this.state)
+                            this.state.color='warning'
+                            Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:result.identifier, color:'warning'})
+                        })
+                    }}
+                >
+                    <i className="far fa-question-circle"></i>
+                </Button>
+            </Col>
+        </Row>
+        )
+    }
     /**
      * Control buttons
      * @returns 
@@ -84,35 +112,45 @@ class DataVarForm extends Component{
                                 color='primary'
                                 onClick={()=>{
                                     Fetchers.postJSONNoSpinner("/api/admin/data/configuration/variable/save", this.state.data, (query,result)=>{
+                                        this.state.data=result
                                         if(result.valid){
                                             Navigator.message(this.state.identifier, this.props.recipient,"formCancel",{})
-                                        }else{
-                                            if(result.strict){
-                                                this.state.data=result
-                                                this.setState(this.state)
+                                            if(this.state.data.identifier.length==0){
+                                                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.success,
+                                                 color:'success'})
                                             }else{
                                                 Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:result.identifier, color:'warning'})
+                                            }
+                                        }else{
+                                            if(result.strict){
+                                                this.state.color='danger'
+                                                this.setState(this.state)
+                                            }else{
+                                                this.state.color='warning'
                                                 Navigator.message(this.state.identifier, this.props.recipient,"formCancel",{})
                                             }
+                                            Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:result.identifier, color:this.state.color})
                                         }
                                     })
                                 }}
                             />
                         </Col>
-                        <Col xs='12' sm='12' lg='4' xl='4' hidden={this.props.restricted && this.state.data.varNodeId!=0}>
+                        <Col xs='12' sm='12' lg='4' xl='4' hidden={this.hiddenRestricted()}>
                             <ButtonUni
                                 disabled={this.state.data.varNodeId==0}
                                 label={this.state.labels.global_suspend}
                                 color="warning"
                                 onClick={()=>{
-                                    Fetchers.postJSONNoSpinner("/api/admin/data/configuration/variable/suspend", this.state.data, (query,result)=>{
-                                        if(result.valid){
-                                            Navigator.message(this.state.identifier, this.props.recipient,"formCancel",{})
-                                        }else{
-                                            this.state.data=result
-                                            this.setState(this.state)
-                                        }
-                                    })
+                                    Fetchers.alerts(this.state.labels.warningRemove, ()=>{
+                                        Fetchers.postJSONNoSpinner("/api/admin/data/configuration/variable/suspend", this.state.data, (query,result)=>{
+                                            if(result.valid){
+                                                Navigator.message(this.state.identifier, this.props.recipient,"formCancel",{})
+                                            }else{
+                                                this.state.data=result
+                                                this.setState(this.state)
+                                            }
+                                        }) 
+                                    }, null)
                                 }}
                             />
                         </Col>
@@ -128,7 +166,7 @@ class DataVarForm extends Component{
                     </Row>
                     <Row>
                         <Col hidden={this.state.data.valid}>
-                            <Alert color="danger" className="p-0 m-0">
+                            <Alert color={this.state.color} className="p-0 m-0">
                                 <small>{this.state.data.identifier}</small>
                             </Alert>       
                         </Col>
@@ -138,7 +176,7 @@ class DataVarForm extends Component{
         }
 
 option(){
-    if(this.props.restricted){
+    if(!this.props.restricted){
         if(this.state.data.varNodeId!=0){
            return(<Col>
                 <ViewEditOption component={this} attribute='clazz' />
@@ -156,59 +194,92 @@ option(){
 }
 hiddenUrl(){
     if(this.props.restricted){
-        if(this.state.data.varNodeId!=0){
-           return(<Col xs='12' sm='12' lg='4' xl='6'>
-           <ViewEdit mode='text' attribute='url' component={this} />
-       </Col>)
-        }else{
-            return(<Col xs='12' sm='12' lg='4' xl='6'>
-            <ViewEdit mode='text' attribute='url' component={this} edit/>
-            </Col>)
-        }
-    }else{
         return(<Col xs='12' sm='12' lg='4' xl='6'>
             <ViewEdit mode='text' attribute='url' component={this} edit/>
             </Col>)
+    }else{
+        if(this.state.data.varNodeId==0){
+            return(<Col xs='12' sm='12' lg='4' xl='6'>
+            <ViewEdit mode='text' attribute='url' component={this} edit/>
+            </Col>)
+        }else{
+            return(<Col xs='12' sm='12' lg='4' xl='6'>
+            <ViewEdit mode='text' attribute='url' component={this} />
+        </Col>)
+        }
     }
 }
 hiddenAuxUrl(){
     if(this.props.restricted){
-        if(this.state.data.varNodeId!=0){
-           return(<Col xs='12' sm='12' lg='6' xl='6'>
-           <ViewEdit mode='text' attribute='auxUrl' component={this} />
-       </Col>)
-        }else{
-            return(<Col xs='12' sm='12' lg='6' xl='6'>
-            <ViewEdit mode='text' attribute='auxUrl' component={this} edit/>
-        </Col>)
-        }
-    }else{
         return(<Col xs='12' sm='12' lg='6' xl='6'>
         <ViewEdit mode='text' attribute='auxUrl' component={this} edit/>
     </Col>)
+    }else{
+        if(this.state.data.varNodeId==0){
+            return(<Col xs='12' sm='12' lg='6' xl='6'>
+            <ViewEdit mode='text' attribute='auxUrl' component={this} edit/>
+        </Col>)
+        }else{
+            return(<Col xs='12' sm='12' lg='6' xl='6'>
+           <ViewEdit mode='text' attribute='auxUrl' component={this} />
+       </Col>)
+        }
     }
+}
+hiddenRestricted(){
+    let x = new Boolean(true) 
+    if(this.props.restricted){
+        x=false;
+    }else{
+        if(this.state.data.varNodeId==0){
+            x=false;
+        }
+    }
+    return(x)
 }
 
     render(){
         if(this.state.data.clazz == undefined || this.state.labels.locale==undefined){
             return []
         }
+
         return(
             <Container fluid className={Pharmadex.settings.activeBorder}>
                 {this.buttons()}
+                {this.helpButton()}
                 <Row>
-                    <Col>
-                        <FieldGuarded mode="text" attribute="varName" component={this} editno={this.props.restricted && this.state.data.varNodeId!=0}/>
+                    <Col xs='12' sm='12' lg='9' xl='9'>
+                        <FieldGuarded mode="text" attribute="varName" component={this} editno={this.hiddenRestricted()}/>
+                    </Col>
+                    <Col xs='12' sm='12' lg='3' xl='3'>
+                        <ViewEditOption attribute="hidefromapplicant" component={this} edit />
                     </Col>
                 </Row>
                 <Row>
                     <Col>
-                        <FieldGuarded mode="text" attribute="varNameExt" component={this} editno={this.props.restricted && this.state.data.varNodeId!=0}/>
+                        <FieldGuarded mode="text" attribute="varNameExt" component={this} editno={this.hiddenRestricted()}/>
                     </Col>
                 </Row>
+               
                 <Row>
                     <Col>
                         <ViewEdit mode='textarea' component={this} attribute='description' edit />
+                    </Col>
+                </Row>
+                <Row>
+                    <Col className="d-flex justify-content-center">
+                        <h5>{this.state.labels.screenposition}</h5>
+                    </Col>
+                </Row>
+                <Row>
+                    <Col xs='12' sm='12' lg='4' xl='4'>
+                        <ViewEdit mode='number' attribute='row' component={this} edit/>
+                    </Col>
+                    <Col xs='12' sm='12' lg='4' xl='4'>
+                        <ViewEdit mode='number' attribute='col' component={this} edit/>
+                    </Col>
+                    <Col xs='12' sm='12' lg='4' xl='4'>
+                        <ViewEdit mode='number' attribute='ord' component={this} edit/>
                     </Col>
                 </Row>
                 <Row>
@@ -228,22 +299,8 @@ hiddenAuxUrl(){
                         <ViewEditOption attribute="mult" component={this} edit />
                     </Col>
                 </Row>
-                <Row>
-                    <Col className="d-flex justify-content-center">
-                        <h5>{this.state.labels.screenposition}</h5>
-                    </Col>
-                </Row>
-                <Row>
-                    <Col xs='12' sm='12' lg='4' xl='4'>
-                        <ViewEdit mode='number' attribute='row' component={this} edit/>
-                    </Col>
-                    <Col xs='12' sm='12' lg='4' xl='4'>
-                        <ViewEdit mode='number' attribute='col' component={this} edit/>
-                    </Col>
-                    <Col xs='12' sm='12' lg='4' xl='4'>
-                        <ViewEdit mode='number' attribute='ord' component={this} edit/>
-                    </Col>
-                </Row>
+               
+               
                 <Row>
                     <Col className="d-flex justify-content-center">
                         <h5>{this.state.labels.auxiliarydata}</h5>
@@ -276,7 +333,7 @@ hiddenAuxUrl(){
                         <ViewEdit mode='text' attribute='fileTypes' component={this} edit/>
                     </Col>
                 </Row>
-                
+                {this.helpButton()}
                 {this.buttons()}
             </Container>
         )

@@ -1,11 +1,12 @@
 import React , {Component} from 'react'
-import {Container, Row, Col} from 'reactstrap'
+import {Container, Row, Col,FormText} from 'reactstrap'
 import PropTypes from 'prop-types'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
 import Navigator from './utils/Navigator'
 import CollectorTable from './utils/CollectorTable'
 import Pharmadex from './Pharmadex'
+import SearchControl from './utils/SearchControl'
 
 /**
  * It is a dummy component to create other components quickly
@@ -20,6 +21,7 @@ class DeregistrationAdd extends Component{
                 dictItemId:this.props.dictItemId
             },
             labels:{
+                search:'',
                 selectforderigester:''
             }
         }
@@ -71,6 +73,7 @@ class DeregistrationAdd extends Component{
     runDeregistration(rowNo){
         let row=this.state.data.applications.rows[rowNo]
         let data={
+            dataId:0,
             url:'',                                     //url of an application, i.e. application.guest, deprecated in favor of applDictNodeId
             applDictNodeId:this.state.data.dictItemId,  //id of dictionary node that describes an application
             historyId:0,                                //id of the histry record to determine activity and data. Zero means new
@@ -89,7 +92,16 @@ class DeregistrationAdd extends Component{
             <Container fluid>
                 <Row>
                     <Col>
-                        <h6>{this.state.labels.selectforderigester}</h6>
+                        <h5>{this.state.data.permitType}</h5>
+                    </Col>
+                    
+                </Row>
+                <Row>
+                    <Col  xs='12' sm='12' lg='10' xl='10'>
+                        <FormText color="muted">{this.state.labels.selectforderigester}</FormText>
+                    </Col>
+                    <Col xs='12' sm='12' lg='2' xl='2'>
+                        <SearchControl label={this.state.labels.search} table={this.state.data.applications} loader={this.loadTable} />
                     </Col>
                 </Row>
                 <Row>

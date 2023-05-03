@@ -28,9 +28,15 @@ public class History implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC2222741838448924A07361")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC2222741838448924A07361", strategy="native")	
+	@GeneratedValue(generator="VAC222277187B383442C0A5ED")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC222277187B383442C0A5ED", strategy="native")	
 	private long ID;
+	
+	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
+	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.LOCK})	
+	@JoinColumns({ @JoinColumn(name="executorConceptID", referencedColumnName="ID") })	
+	@Basic(fetch=FetchType.LAZY)	
+	private org.msh.pdex2.model.r2.Concept executor;
 	
 	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
 	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.ALL, org.hibernate.annotations.CascadeType.DELETE_ORPHAN})	
@@ -249,6 +255,14 @@ public class History implements Serializable {
 	
 	public org.msh.pdex2.model.r2.Concept getActConfig() {
 		return actConfig;
+	}
+	
+	public void setExecutor(org.msh.pdex2.model.r2.Concept value) {
+		this.executor = value;
+	}
+	
+	public org.msh.pdex2.model.r2.Concept getExecutor() {
+		return executor;
 	}
 	
 	public String toString() {

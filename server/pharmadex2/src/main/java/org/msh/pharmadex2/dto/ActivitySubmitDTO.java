@@ -31,6 +31,14 @@ public class ActivitySubmitDTO extends AllowValidation{
 		private boolean reload=false;				//reload all unconditionally
 		private boolean reassign=false;			//re-assign and cancel only
 		private boolean reject=false;				//reject and return to user for clarification
+		private String colorAlert = "info"; // color Alert message
+		
+		public String getColorAlert() {
+			return colorAlert;
+		}
+		public void setColorAlert(String colorAlert) {
+			this.colorAlert = colorAlert;
+		}
 		public long getHistoryId() {
 			return historyId;
 		}
@@ -151,5 +159,4 @@ public class ActivitySubmitDTO extends AllowValidation{
 		public void setReject(boolean reject) {
 			this.reject = reject;
 		}
-			
 }

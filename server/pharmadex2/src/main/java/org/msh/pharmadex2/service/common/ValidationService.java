@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +40,7 @@ import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.ActivitySubmitDTO;
 import org.msh.pharmadex2.dto.AddressDTO;
 import org.msh.pharmadex2.dto.AmendmentDTO;
+import org.msh.pharmadex2.dto.AskForPass;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.AtcDTO;
 import org.msh.pharmadex2.dto.CheckListDTO;
@@ -52,7 +54,6 @@ import org.msh.pharmadex2.dto.LegacyDataDTO;
 import org.msh.pharmadex2.dto.LinksDTO;
 import org.msh.pharmadex2.dto.MessageDTO;
 import org.msh.pharmadex2.dto.PersonDTO;
-import org.msh.pharmadex2.dto.PersonSpecialDTO;
 import org.msh.pharmadex2.dto.PublicOrgDTO;
 import org.msh.pharmadex2.dto.QuestionDTO;
 import org.msh.pharmadex2.dto.RegisterDTO;
@@ -77,7 +78,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-
 /**
  * Service to validate application specific DTOs
  * @author alexk
@@ -85,7 +85,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class ValidationService {
-	private static final Logger logger = LoggerFactory.getLogger(DtoService.class);
+	private static final Logger logger = LoggerFactory.getLogger(ValidationService.class);
 	@Autowired
 	Messages messages;
 	@Autowired
@@ -106,7 +106,19 @@ public class ValidationService {
 	private JdbcRepository jdbcRepo;
 	@Autowired
 	private DeregistrationService deregServ;
+	
 
+	/**
+	 * ^[a-z]{1,} - первый символ всегда буква
+	 * [a-z0-9]* - далее буква или цыфра или _ или .
+	 * ((\\.|\\_)[a-z0-9]{1,})* - после любого _ или . всегда буква или цыфра. Повторы тоже возможны
+	 */
+	private static final String regexVarName = "^[a-z]{1,}[a-z0-9]*" + "((\\.|\\_)[a-z0-9]{1,})*";
+	private static final Pattern pattern = Pattern.compile(regexVarName, Pattern.CASE_INSENSITIVE);
+	public static final String regexEmail="^[-a-z0-9~!$%^&*_=+}{\\'?]+(\\.[-a-z0-9~!$%^&*_=+}{\\'?]+)*@([a-z0-9_]"
+			+ "[-a-z0-9_]*(\\.[-a-z0-9_]+)*\\.(aero|arpa|biz|com|coop|edu|gov|info|int|mil|museum|name|net|org|pro|travel|mobi|"
+			+ "[a-z][a-z])|([0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}))(:[0-9]{1,5})?$";
+	private static final Pattern emailPattern = Pattern.compile(regexEmail, Pattern.CASE_INSENSITIVE);
 	/**
 	 * Validate a node
 	 * @param data
@@ -216,6 +228,15 @@ public class ValidationService {
 			data.getRoles().setValid(false);
 			data.getRoles().setIdentifier(messages.get("error_rolemandatory"));
 		}
+		//20230419 check roles, not Applicant
+		for(Long id :data.getRoles().getPrevSelected()) {
+			Concept item=closureServ.loadConceptById(id);
+			if(item.getIdentifier().equalsIgnoreCase("APPLICANT")) {
+				data.getRoles().setValid(false);
+				data.getRoles().setIdentifier(messages.get("error_roleapplicant"));
+				break;
+			}
+		}
 		data.propagateValidation();
 		return data;
 	}
@@ -258,7 +279,8 @@ public class ValidationService {
 			dict.clearErrors();
 			dict.setStrict(strict);
 			if(dict.isRequired()) {
-				long sumIds=dict.getSelection().getValue().getId() * dict.getSelection().getValue().getOptions().size();		//value exists, list is empty
+				// 22.03.2023 by issue 1561 khomka
+				/*long sumIds=dict.getSelection().getValue().getId() * dict.getSelection().getValue().getOptions().size();		//value exists, list is empty
 				for(Long id : dict.getPrevSelected()) {
 					sumIds+=id;
 				}
@@ -266,6 +288,22 @@ public class ValidationService {
 					dict.setValid(false);
 					dict.setStrict(strict);
 					dict.setIdentifier(messages.get("error_dictionaryempty") +". "+ description);
+				}else {
+					dict.clearErrors();
+				}*/
+				if(dict.getTable().getRows().size() > 0) {
+					boolean isHasSelect = false;
+					for(TableRow r:dict.getTable().getRows()) {
+						if(r.getSelected()) {
+							isHasSelect = true;
+						break;
+						}
+					}
+					if(!isHasSelect) {
+						dict.setValid(false);
+						dict.setStrict(strict);
+						dict.setIdentifier(messages.get("error_dictionaryempty") +". "+ description);
+					}
 				}else {
 					dict.clearErrors();
 				}
@@ -316,7 +354,7 @@ public class ValidationService {
 		List<String> exts=boilerServ.variablesExtensions(data);
 
 		//validate all components
-		List<AssemblyDTO> legs = assemblyServ.auxLiterals(data.getUrl(), allAssms);
+		List<AssemblyDTO> legs = assemblyServ.auxLegacyData(data.getUrl(), allAssms);
 		for(AssemblyDTO l : legs) {
 			if(l.isRequired()) {
 				mandatoryLegacy(data, l,strict);
@@ -341,6 +379,23 @@ public class ValidationService {
 				mandatoryLiteral(data, lit,strict);
 			}
 		}
+		// check for prefLabel if this is the first page of the application
+		if(data.isFirstPage() || data.isAuxfirstPage()) {
+			lits.addAll(s);
+			boolean flag=false;
+			for(AssemblyDTO assm : lits) {
+				if(assm.getPropertyName().equalsIgnoreCase("prefLabel")) {
+					flag=true;
+				}
+			}
+			if(!flag) {
+				data.setValid(flag);
+				data.setIdentifier(messages.get("configuration_error_preflabel"));
+				return data;
+			}
+		}
+
+
 		List<AssemblyDTO> dats = assemblyServ.auxDates(data.getUrl(),allAssms);
 		for(AssemblyDTO dat : dats) {
 			if(dat.isRequired()) {
@@ -404,16 +459,44 @@ public class ValidationService {
 		List<AssemblyDTO> links=assemblyServ.auxLinks(data.getUrl(), allAssms);
 		mandatoryLinks(data, links, strict);
 
+		/*19122022 khomka
 		List<AssemblyDTO> things = assemblyServ.auxThings(data.getUrl(),allAssms);
 		for(AssemblyDTO thing :things) {
 			if(thing.isRequired()) {
-				mandatoryThing(data.getThings().get(thing.getIdentifier()));
+				mandatoryThing(data.getThings().get(thing.getPropertyName()));
+			}
+		}
+		 */
+		List<AssemblyDTO> droplists = assemblyServ.auxDropListData(data.getUrl(),allAssms);
+		for(AssemblyDTO droplist :droplists) {
+			if(droplist.isRequired()) {
+				mandatoryDropList(data.getDroplist().get(droplist.getPropertyName()), strict, droplist);
 			}
 		}
 		data.propagateValidation();
 		return data;
 	}
 
+	private void mandatoryDropList(FormFieldDTO<OptionDTO> data, boolean strict, AssemblyDTO droplist) {
+		data.setError(false);
+		if(data.getValue().getId()==0) {
+			FormFieldDTO<String> str= new FormFieldDTO<String>();
+			data.setError(true);
+			data.setStrict(strict);
+			data.setSuggest(messages.get("valuesmustbeselected"));
+
+			str.setValue(droplist.getPropertyName());
+			;
+			help(str, droplist.getDescription());
+		}
+
+	}
+
+	public List<AssemblyDTO> loadThingByConfig(ThingDTO data) throws ObjectNotFoundException {
+		List<Assembly> allAssms = assemblyServ.loadDataConfiguration(data.getUrl());
+		List<AssemblyDTO> things = assemblyServ.auxThings(data.getUrl(),allAssms);
+		return things;
+	}
 
 	private void mandatoryLinks(ThingDTO data, List<AssemblyDTO> links, boolean strict) {
 		for(AssemblyDTO aDto : links) {
@@ -462,7 +545,7 @@ public class ValidationService {
 				}
 				if(interval.getMax().longValue()>0 && dto.isValid()) {
 					LocalDate maxDt = LocalDate.now().plusMonths(interval.getMax().longValue());
-					if(to.isBefore(maxDt)) {
+					if(!to.isBefore(maxDt)) {
 						//the left border of the interval 
 						dto.setValid(false);
 						dto.setStrict(strict);
@@ -482,7 +565,12 @@ public class ValidationService {
 	 */
 	private void mandatoryLegacy(ThingDTO data, AssemblyDTO l, boolean strict) {
 		LegacyDataDTO dto = data.getLegacy().get(l.getPropertyName());
-		if(dto!=null) {
+		FormFieldDTO<String> prefLabelDTO = data.getLiterals().get("prefLabel");
+		if(prefLabelDTO==null) {
+			prefLabelDTO = data.getStrings().get("prefLabel");
+		}
+		//if(dto!=null) {
+		if(prefLabelDTO==null || prefLabelDTO.getValue().isEmpty()) {
 			if(dto.getSelectedNode()==0) {
 				dto.setValid(false);
 				dto.setStrict(strict);
@@ -507,9 +595,19 @@ public class ValidationService {
 			if(fld!=null) {
 				String value= fld.getValue();
 				if(value.length()>0) {
-					if(!patternMatch(value, aDTO.getFileTypes())) {
+					Pattern pattern;
+					try {
+						pattern = Pattern.compile(aDTO.getFileTypes(), Pattern.CASE_INSENSITIVE);
+						Matcher matcher = pattern.matcher(value);
+						if(!matcher.find()) {
+							fld.setError(true);
+							fld.setSuggest(messages.get("invalidformat"));
+							fld.setStrict(strict);
+							help(fld, aDTO.getDescription());
+						}
+					} catch (Exception e) {
 						fld.setError(true);
-						fld.setSuggest(messages.get("invalidformat"));
+						fld.setSuggest(messages.get("invalidpattern"));
 						fld.setStrict(strict);
 						help(fld, aDTO.getDescription());
 					}
@@ -524,10 +622,20 @@ public class ValidationService {
 	 * @param regex
 	 * @return
 	 */
-	private boolean patternMatch(String value, String regex) {
+	public boolean patternMatch(String value, String regex) {
 		Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
 		Matcher matcher = pattern.matcher(value);
 		return matcher.find();
+	}
+
+	/**
+	 * RegExp pattern matches
+	 * @return true if full value  \sequencematches this matcher's pattern
+	 * если вся строка value подходит под шаблон
+	 */
+	public boolean patternMatchFull(String value) {
+		Matcher matcher = pattern.matcher(value);
+		return matcher.matches();
 	}
 
 	/**
@@ -549,32 +657,6 @@ public class ValidationService {
 		}
 	}
 
-	/**
-	 * Special person, like Pharmacist
-	 * @param data
-	 * @param propertyName
-	 * @param strict 
-	 * @param per 
-	 * @throws ObjectNotFoundException 
-	 */
-	private void mandatoryPersonSpec(ThingDTO data, String propertyName, AssemblyDTO per, boolean strict) throws ObjectNotFoundException {
-		PersonSpecialDTO dto = data.getPersonspec().get(propertyName);
-		//person should be selected
-		List<TableRow> rows = dto.getTable().getRows();
-		int selected = 0;
-		if(rows.size()>0) {
-			for(TableRow row : rows) {
-				if(row.getSelected()) {
-					selected++;
-				}
-			}
-			if(selected==0) {
-				dto.setValid(false);
-				dto.setStrict(strict);
-				dto.setIdentifier(messages.get("error_dictionaryempty")+" "+per.getDescription());
-			}
-		}
-	}
 
 	/**
 	 * Register record should...
@@ -989,15 +1071,17 @@ public class ValidationService {
 	@Transactional
 	public AllowValidation workflowConfig(List<Concept> activities, Concept configRoot, AllowValidation data) throws ObjectNotFoundException {
 		data.clearErrors();
+		boolean hasSchedulers = false;
 		//each activity definition should has prefLabel,activityurl, checklisturl
 		for(Concept aco : activities) {
 			String prefLabel=literalServ.readPrefLabel(aco);
 			String activityUrl = literalServ.readValue("activityurl", aco);
 			String checklisturl = literalServ.readValue("checklisturl",aco);
+			String dataurl = literalServ.readValue("dataurl",aco);
 			if(prefLabel.length()==0
 					|| activityUrl.length()==0
 					|| checklisturl.length()==0){
-				data.setIdentifier(messages.get("badconfiguration")+prefLabel+"/"+activityUrl+"/"+checklisturl);
+				data.setIdentifier(messages.get("badconfiguration")+"/"+messages.get("error_preflabel")+"/"+activityUrl+"/"+checklisturl);
 				data.setValid(false);
 				return data;
 			}
@@ -1008,11 +1092,25 @@ public class ValidationService {
 					data.setValid(false);
 					return data;
 				}
+				//Schedulers 09.11.2022 khomenska
+				hasSchedulers = true;			//TODO
+				/*List<Assembly> assemblies = assemblyServ.loadDataConfiguration(dataurl);
+				List<AssemblyDTO> schedulers = assemblyServ.auxSchedulers(dataurl, assemblies);
+				if(schedulers != null && schedulers.size() > 0) {
+					hasSchedulers = true;
+				}*/
 			}else {
 				data.setIdentifier(messages.get("badconfiguration")+"ThingID is ZERO config root is " + configRoot.getID());
 				data.setValid(false);
 				return data;
 			}
+		}
+		if(!hasSchedulers) {//Schedulers 09.11.2022 khomenska
+			String w = messages.get("badconfiguration")+" " + messages.get("notFoundSchedulers");
+			data.setIdentifier(w);
+			logger.info(w);
+			data.setValid(false);
+			return data;
 		}
 		return data;
 	}
@@ -1035,50 +1133,178 @@ public class ValidationService {
 	/**
 	 * Validate a definition of variable
 	 * @param data
+	 * @param isImport TODO
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public DataVariableDTO variable(DataVariableDTO data) throws ObjectNotFoundException {
+	public DataVariableDTO variable(DataVariableDTO data, boolean strict, boolean isImport) throws ObjectNotFoundException {
 		data.clearErrors();
-		data=variableName(data);
-		data=variableClazzAndParams(data);
-		data=variableScreen(data);
-		data=variableDictionary(data);
+		data=variableClazz(data,strict);
+		if(!isImport) {
+			data=variableName(data, strict);
+			data=variableExtName(data,strict);
+			data=variableScreen(data,strict);
+		}
+		data=variableFileTypes(data);
+		// special validation
+		data=variableMinMaxWhenRequired(data,strict);
+		data= variableUrl(data, strict);
+		data=variableDictUrl(data,strict);
+		data=variableAuxUrl(data,strict);
 		data=variableDocuments(data);
+		data.propagateValidation();
 		return data;
 	}
 	/**
-	 * Warning message should be if size or width/hegth are zero
+	 * field fileTypes should be checked and all non-printable characters should be removed:
+	 * <ul>
+	 * <li> literals(strings) - empty or valid Java Regular Expression pattern
+	 * <li> documents - empty or value of attribute "accept" of the input file control (https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/accept)
+	 * </ul>
+	 * For now we validate only for literals
 	 * @param data
 	 * @return
 	 */
-	private DataVariableDTO variableDocuments(DataVariableDTO data) {
-		if(data.getClazz().getValue().getCode().equalsIgnoreCase("documents")) {
-			if(data.getMinLen().getValue()==0 & data.getMaxLen().getValue()==0) {
-				data.setValid(false);
-				data.setStrict(false);
-				String mess = messages.get("sizeisnotdefined");
-				data.setIdentifier(mess);
+	private DataVariableDTO variableFileTypes(DataVariableDTO data) {
+		String clazz = data.getClazz().getValue().getCode();
+		if(clazz.equalsIgnoreCase("literals") || clazz.equalsIgnoreCase("strings")) {
+			if(data.getFileTypes()!=null) {
+				String regex = boilerServ.replaceNonPrintCh(data.getFileTypes().getValue());
+				regex=regex.replace(" ", "");
+				data.getFileTypes().setValue(regex);
+				if(regex.length()>0) {
+					try {
+						Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+						data.getFileTypes().clearValidation();
+					} catch (Exception e) {
+						data.getFileTypes().setError(true);
+						data.getFileTypes().setSuggest(messages.get("invalidpattern"));
+						data.setIdentifier(messages.get("invalidpattern"));
+					}
+				}
 			}
 		}
 		return data;
 	}
 
 	/**
-	 * Should be URL
+	 * Is auxUrl mandatory
 	 * @param data
 	 * @return
 	 */
-	private DataVariableDTO variableDictionary(DataVariableDTO data) {
-		if(data.getUrl().getValue().length()==0 && data.getClazz().getValue().getCode().equalsIgnoreCase("dictionaries")) {
-			data.setValid(false);
-			String mess = data.getIdentifier();
-			mess = mess + "; "+messages.get("emptyurl");
-			data.setIdentifier(mess);
+	private DataVariableDTO variableAuxUrl(DataVariableDTO data, boolean strict) {
+		List<String> auxUrlReq = Arrays.asList ( 
+				//"persons", 
+				"schedulers", 
+				"links"
+				);
+		if(data.getAuxUrl().getValue().length()==0) {
+			if(auxUrlReq.contains(data.getClazz().getValue().getCode().toLowerCase())) {
+				data.getAuxUrl().setSuggest(messages.get("requiredvalue"));
+				data.getAuxUrl().setError(true);
+				data.getAuxUrl().setStrict(strict);
+				if(strict) {
+					data.setIdentifier(messages.get("error"));
+				}else {
+					data.setIdentifier(messages.get("warning"));
+				}
+				data.setStrict(strict);
+				data.setValid(false);
+			}
 		}
 		return data;
 	}
+
+	/**
+	 * Is dictUrl mandatory?
+	 * @param data
+	 * @return
+	 */
+	private DataVariableDTO variableDictUrl(DataVariableDTO data, boolean strict) {
+		List<String> dictUrlReq = Arrays.asList (
+				"documents", 
+				"atc", 
+				"legacy"
+				);
+		if(data.getDictUrl().getValue().length()==0) {
+			if(dictUrlReq.contains(data.getClazz().getValue().getCode().toLowerCase())) {
+				data.getDictUrl().setSuggest(messages.get("requiredvalue"));
+				data.getDictUrl().setError(true);
+				data.getDictUrl().setStrict(strict);
+				if(strict) {
+					data.setIdentifier(messages.get("error"));
+				}else {
+					data.setIdentifier(messages.get("warning"));
+				}
+				data.setStrict(strict);
+				data.setValid(false);
+			}
+		}
+		return data;
+	}
+
+	/**
+	 * Is url mandatory?
+	 * @param data
+	 * @return
+	 */
+	private DataVariableDTO variableUrl(DataVariableDTO data, boolean strict) {
+		List<String> urlReq = Arrays.asList (
+				"dictionaries", 
+				"addresses", 
+				"documents", 
+				"resources", 
+				"things", 
+				"persons", 
+				"schedulers", 
+				"registers",
+				"atc", 
+				"legacy", 
+				"links", 
+				"droplist"
+				);
+		if(data.getUrl().getValue().length()==0) {
+			if(urlReq.contains(data.getClazz().getValue().getCode().toLowerCase())) {
+				data.getUrl().setSuggest(messages.get("requiredvalue"));
+				data.getUrl().setError(true);
+				data.getUrl().setStrict(strict);
+				if(strict) {
+					data.setIdentifier(messages.get("error"));
+				}else {
+					data.setIdentifier(messages.get("warning"));
+				}
+				data.setStrict(strict);
+				data.setValid(false);
+			}else {
+				data.getUrl().clearValidation();
+			}
+		}
+		return data;
+	}
+
+
+
+	/**
+	 * Warning message should be if size or width/hegth are zero
+	 * Sometimes it is possible to restrict images by size in pixels 
+	 * @param data
+	 * @return
+	 */
+	private DataVariableDTO variableDocuments(DataVariableDTO data) {
+		if(data.isValid()) {
+			if(data.getClazz().getValue().getCode().equalsIgnoreCase("documents")) {
+				if(data.getMinLen().getValue()==0 & data.getMaxLen().getValue()==0) {
+					data.setValid(false);
+					data.setStrict(false);
+					String mess = messages.get("sizeisnotdefined");
+					data.setIdentifier(mess);
+				}
+			}
+		}
+		return data;
+	}
+
 
 	/**
 	 * Shouldn't be variables on the same place
@@ -1086,17 +1312,17 @@ public class ValidationService {
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	private DataVariableDTO variableScreen(DataVariableDTO data) throws ObjectNotFoundException {
+	private DataVariableDTO variableScreen(DataVariableDTO data, boolean strict) throws ObjectNotFoundException {
 		if(data.getVarNameExt().getValue().length()==0) {//it is not real variables
 			if(data.getNodeId()>0) {
-				long row=data.getRow().getValue();
-				long col=data.getCol().getValue();
-				long ord=data.getOrd().getValue();
+				long row=boilerServ.nullIsZero(data.getRow().getValue());
+				long col=boilerServ.nullIsZero(data.getCol().getValue());
+				long ord=boilerServ.nullIsZero(data.getOrd().getValue());
 				//ik 28102022 ScreenParam for not things <90
 				Long s1 = 0l;
 				int obj1 = Long.compare(row, s1);  
-				 int obj2 = Long.compare(col, s1); 
-				 int obj3 = Long.compare(ord, s1); 
+				int obj2 = Long.compare(col, s1); 
+				int obj3 = Long.compare(ord, s1); 
 				if (!data.getClazz().getValue().getCode().equalsIgnoreCase("things")) {
 					if(obj1<0) {row=0l; data.getRow().setValue(s1);}
 					if(obj2<0) {col=0l; data.getCol().setValue(s1);}
@@ -1104,9 +1330,9 @@ public class ValidationService {
 				}
 				s1 = 89l;
 				long s2=1l;
-				  obj1 = Long.compare(row, s1);  
-				  obj2 = Long.compare(col, s2); 
-				  obj3 = Long.compare(ord, s1); 
+				obj1 = Long.compare(row, s1);  
+				obj2 = Long.compare(col, s2); 
+				obj3 = Long.compare(ord, s1); 
 				if (!data.getClazz().getValue().getCode().equalsIgnoreCase("things")) {
 					if(obj1>0) {row=s1; data.getRow().setValue(s1);}
 					if(obj2>0) {col=s2; data.getCol().setValue(s2);}
@@ -1116,7 +1342,7 @@ public class ValidationService {
 				}
 				Concept root = closureServ.loadConceptById(data.getNodeId());
 				List<Concept> variables = literalServ.loadOnlyChilds(root);
-				int numOrd =(int) ord;
+				//int numOrd =(int) ord;
 				int numRow=0;
 				ArrayList<Assembly> list=new ArrayList<Assembly>();
 				for(Concept var : variables) { //F2
@@ -1132,41 +1358,56 @@ public class ValidationService {
 				long maxRow=0l; 
 				for(Assembly asRow:list) {
 					if(!asRow.getClazz().equalsIgnoreCase("things")) {
-					obj1 = Long.compare(asRow.getRow(), maxRow); 
-					if(obj1>0) {maxRow=asRow.getRow();}
+						obj1 = Long.compare(asRow.getRow(), maxRow); 
+						if(obj1>0) {maxRow=asRow.getRow();}
 					}
 				}
-				boolean flag =true;
+				//is the position consolidated
+				boolean flag=false;
 				for(Assembly asOrd:list) {
 					if(asOrd.getRow()==row && asOrd.getCol()==col && asOrd.getOrd()==ord) {
-						numOrd+=1;
-						if(numOrd>=90) {//..1
-							numRow= (int) maxRow;
-							if(numRow>=89) {
-								data.setIdentifier(messages.get("errorscreenposition"));
-								data.setValid(false);
-								return data;
-							}else {
-								if(flag) {
-									numRow+=1;										
-									flag=false;}
-								numOrd=numOrd-(int)ord;
-								asOrd.setOrd(numOrd);
-								asOrd.setRow(numRow);
-								asOrd = boilerServ.assemblySave(asOrd);
-								}
-						}else {//..1
-							asOrd.setOrd(numOrd);
-							asOrd = boilerServ.assemblySave(asOrd);
-						}				
+						flag=true;
 					}
 				}
-		}else {
-			throw new ObjectNotFoundException("variableScreen. Data Collection node ID not found",logger);
-		}
+				//
+				if(flag) {
+					List<Assembly> newRow= new ArrayList<Assembly>();
+					for(Assembly asOrd:list) {
+						if(asOrd.getRow()==row && asOrd.getCol()==col && asOrd.getOrd()>=ord) {
+							if(asOrd.getOrd()+1>=90) {
+								newRow.add(asOrd);
+							}else {
+								asOrd.setOrd(asOrd.getOrd()+1);
+								asOrd = boilerServ.assemblySave(asOrd);
+							}
+						}
+					}
+					if(!newRow.isEmpty()) {
+						numRow= (int) maxRow;
+						if(numRow>=89) {
+							data.setIdentifier(messages.get("errorscreenposition"));
+							data.setValid(false);
+							data.setStrict(strict);
+							return data;
+						}else {
+							numRow+=1;	
+							for(Assembly asOrd:newRow) {
+								asOrd.setOrd(89-asOrd.getOrd());
+								asOrd.setRow(numRow);
+								asOrd = boilerServ.assemblySave(asOrd);
+							}
+						}
+
+					}
+				}
+				//
+			}else {
+				throw new ObjectNotFoundException("variableScreen. Data Collection node ID not found",logger);
+			}
 		}
 		return data;
 	}
+
 
 	/**
 	 * Class of variable should be defined
@@ -1174,38 +1415,132 @@ public class ValidationService {
 	 * @param data
 	 * @return
 	 */
-	private DataVariableDTO variableClazzAndParams(DataVariableDTO data) {
+	private DataVariableDTO variableClazz(DataVariableDTO data, boolean strict) {
 		FormFieldDTO<OptionDTO> clazz = data.getClazz();
 		clazz.clearValidation();
 		if(clazz.getValue().getId()==0) {
-			suggest(clazz,3,100,true);
+			suggest(clazz,3,100,strict);
 		}
-		FormFieldDTO<OptionDTO> ropt = data.getRequired();
-		YesNoNA required=dtoServ.optionToEnum(YesNoNA.values(), ropt.getValue());
-		if(required.equals(YesNoNA.YES)) {
-			FormFieldDTO<Long> min = data.getMinLen();
-			FormFieldDTO<Long> max = data.getMaxLen();
-			if(min==max) {
-				suggest(max,messages.get("valueReq"),true);
-				suggest(max,messages.get("valueReq"),true);
+		return data;
+	}
+	/**
+	 * For some variables like literals 
+	 * @param data
+	 * @return
+	 */
+	public DataVariableDTO variableMinMaxWhenRequired(DataVariableDTO data, boolean strict) {
+		List<String> minMaxReq = Arrays.asList(
+				"strings", 
+				"literals", 
+				"dates", 
+				"numbers", 
+				"schedulers",
+				"registers", 
+				"intervals"
+				);
+		String clazz=data.getClazz().getValue().getCode();
+		if(minMaxReq.contains(clazz.toLowerCase())) {
+			FormFieldDTO<OptionDTO> ropt = data.getRequired();
+			YesNoNA required=dtoServ.optionToEnum(YesNoNA.values(), ropt.getValue());
+			if(required.equals(YesNoNA.YES)) {
+				long min = boilerServ.nullIsZero(data.getMinLen().getValue());
+				long max = boilerServ.nullIsZero(data.getMaxLen().getValue());
+				if(!validateMinMax(min, max, clazz)) {
+					suggest(data.getMinLen(),messages.get("valueReq"),strict);
+					suggest(data.getMaxLen(),messages.get("valueReq"),strict);
+					data.setValid(false);
+					if(strict) {
+						data.setIdentifier(messages.get("error"));
+					}else {
+						data.setIdentifier(messages.get("warning"));
+					}
+				}else {
+					data.getMinLen().clearValidation();
+					data.getMaxLen().clearValidation();
+				}
 			}
 		}
 		return data;
+	}
+	/**
+	 * The validatio nresult depends on the clazz
+	 * @param min
+	 * @param max
+	 * @param clazz
+	 * @return
+	 */
+	private boolean validateMinMax(long min, long max, String clazz) {
+		if(clazz.equalsIgnoreCase("intervals")) {
+			if(min>0 && max>0) {	//zero interval is not allowed
+				return true;
+			}else {
+				return false;
+			}
+		}
+		if(clazz.equalsIgnoreCase("schedulers")) {
+			if(min>=0 && min<=max) {	//schedule in a past is not allowed
+				return true;
+			}else {
+				return false;
+			}
+		}
+		return min<=max;
 	}
 
 	/**
 	 * Variable name should be defined
 	 * @param data
 	 * @return
-	 * @throws ObjectNotFoundException 
+	 * @throws ObjectNotFoundException
+	 *  
+	 * 18.11.2022 khomenska
+	 * add verification with Pattern
 	 */
-	private DataVariableDTO variableName(DataVariableDTO data) throws ObjectNotFoundException {
+	public DataVariableDTO variableName(DataVariableDTO data, boolean strict) throws ObjectNotFoundException {
 		FormFieldDTO<String> vn= data.getVarName();
 		vn.clearValidation();
 		if(vn.getValue().length()<3 || vn.getValue().length()>100) {
-			suggest(vn,3,100,true);
+			suggest(vn,3,100,strict);
+			return data;
 		}
-		data.propagateValidation();
+		if(!patternMatchFull(vn.getValue().trim())) {
+			//TODO relaxed temporarily
+			//data.setValid(false);
+			data.setValid(data.getVarNodeId()!=0 && data.isValid());
+			//TODO relaxed temporarily
+			if(strict && !data.isValid()) {
+				data.setIdentifier(messages.get("error")+ "! "+vn.getValue());
+			}else {
+				data.setIdentifier(messages.get("warning")+ "! "+vn.getValue());
+			}
+		}
+		return data;
+	}
+
+	/**
+	 * VariableExt name should be defined
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 *  
+	 * 18.11.2022 khomenska
+	 * add verification with Pattern
+	 */
+	public DataVariableDTO variableExtName(DataVariableDTO data, boolean strict) throws ObjectNotFoundException {
+		FormFieldDTO<String> vn= data.getVarNameExt();
+		if(vn.getValue().length() > 0){
+			if(!patternMatchFull(vn.getValue())) {
+				// не подходит по патерну - выдаем сообщение, но разрешаем сохранять ПОКА
+				data.setValid(false);
+				data.setStrict(data.getNodeId()>0);
+				if(strict) {
+					data.setIdentifier(messages.get("error"));
+				}else {
+					data.setIdentifier(messages.get("warning"));
+				}
+			}
+		}
+
 		return data;
 	}
 	/**
@@ -1407,20 +1742,23 @@ public class ValidationService {
 	@Transactional
 	public ActivitySubmitDTO submitNext(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		data.clearErrors();
-		if(!deregServ.isDeregistrationActivity(curHis)) {
-			if(!data.isReject()) {
-				if(!data.isReassign()) {
-					Concept exec = closureServ.getParent(curHis.getActivity());
-					if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {
-						if(isActivityForeground(curHis.getActConfig())) {
-							if(curHis.getGo()==null) {
-								return data;
+		if(!deregServ.isDeregistrationActivity(curHis)) {//1
+			if(!deregServ.isRevokeActivity(curHis)) {
+				if(!data.isReject()) {
+					if(!data.isReassign()) {//2
+						
+						Concept exec = closureServ.getParent(curHis.getActivity());
+						if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {
+							if(isActivityForeground(curHis.getActConfig())) {
+								if(curHis.getGo()==null) {
+									return data;
+								}
 							}
 						}
-					}
+					}//2
 				}
 			}
-		}
+		}//1
 		data.setIdentifier(messages.get("error_sendsent"));
 		data.setValid(false);
 		return data;
@@ -1467,24 +1805,73 @@ public class ValidationService {
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public ActivitySubmitDTO submitApprove(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
+	public ActivitySubmitDTO submitApprove(History curHis, UserDetailsDTO user, ActivitySubmitDTO data, List<Concept> nextActs) throws ObjectNotFoundException {
 		data.clearErrors();
+		data.setColorAlert("info");
 		if(!data.isReassign()) {
 			Concept exec = closureServ.getParent(curHis.getActivity());
 			if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {
 				if(isActivityForeground(curHis.getActConfig())) {
 					if(curHis.getGo()==null) {
-						if(isActivityFinalAction(curHis, SystemService.FINAL_ACCEPT)) {
+						if(isActivitySubmitApprove(curHis)) {
 							return data;
+							/*	if(nextActs != null) {//TODO khomenska 09112022
+									if(validateConfigurationRegister(nextActs)) {
+										return data;
+									}else {
+										String w = messages.get("badconfiguration") + " " + messages.get("notFoundRegisters");
+										data.setIdentifier(w);
+										data.setColorAlert("danger");
+										logger.info(w);
+										data.setValid(false);
+										return data;
+									}
+								}else {
+									return data;
+								}*/
 						}
 					}
 				}
 			}
 		}
+		data.setColorAlert("danger");
 		data.setIdentifier(messages.get("error_activityfinal"));
 		data.setValid(false);
 		return data;
 	}
+
+	public boolean isActivitySubmitApprove(History curHis) throws ObjectNotFoundException {
+		return isActivityFinalAction(curHis, SystemService.FINAL_ACCEPT) || isActivityFinalAction(curHis, SystemService.FINAL_COMPANY);
+	}
+
+	/**
+	 * khomenska 10.11.2022
+	 * 
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	private boolean validateConfigurationRegister(List<Concept> activities) throws ObjectNotFoundException {
+		return true;	//TODO
+		/*boolean hasRegisters = false;
+
+		for(Concept aco : activities) {
+			String dataurl = literalServ.readValue("dataurl",aco);
+			List<Assembly> assemblies = assemblyServ.loadDataConfiguration(dataurl);
+			List<AssemblyDTO> registers = assemblyServ.auxRegisters(dataurl, assemblies);
+			if(registers != null && registers.size() > 0) {
+				for(AssemblyDTO ass:registers) {
+					if(ass.isRequired() && ass.isMult()) {
+						hasRegisters = true;
+						return hasRegisters;
+					}
+				}
+			}
+		}
+		return hasRegisters;
+		 */
+
+	}
+
 	/**
 	 * Is it reject action. Is reject action is allowed
 	 * @param curHis
@@ -1719,6 +2106,27 @@ public class ValidationService {
 		error(data, messages.get("error_nextactivitydata"), true);
 		return data;
 	}
+
+	/**
+	 * Is it RevokePermit action. Is RevokePermit action is allowed
+	 * @param curHis
+	 * @param user
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public ActivitySubmitDTO submitRevokePermit(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
+		data.clearErrors();
+		List<Long> executors = data.executors();
+		if(executors.size() == 1) {
+			data = submitNotesIsMandatory(curHis, data);
+			return data;
+		}
+		error(data, messages.get("error_execs"), true);
+		return data;
+	}
+
+
 	/**
 	 * For some submits notes field is mandatory
 	 * @param curHis
@@ -1768,23 +2176,7 @@ public class ValidationService {
 		data=submitNotesIsMandatory(curHis, data);
 		return data;
 	}
-	/**
-	 * Approve action should run at least one follow up (scheduled) action
-	 * @param curHis
-	 * @param user
-	 * @param data
-	 * @return
-	 */
-	public ActivitySubmitDTO submitApproveData(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) {
-		if(data.isValid()) {
-			int sch = data.getScheduled().getRows().size();
-			if(sch==0) {
-				data.setValid(false);
-				data.setIdentifier(messages.get("shouldbefollowup"));
-			}
-		}
-		return data;
-	}
+
 
 	/**
 	 * Any extra requirements to data yet
@@ -1836,6 +2228,7 @@ public class ValidationService {
 		}
 		return false;
 	}
+	
 	/**
 	 * Validate file uploaded
 	 * Read the configuration and check min/max size for non-images or width/height for images 
@@ -1901,6 +2294,67 @@ public class ValidationService {
 		}
 		return data;
 	}
-
+	/**
+	 * Validate all additional pages if ones
+	 * @param assemblies
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public ThingDTO validateThingsIncluded(List<Assembly> assemblies, ThingDTO data) throws ObjectNotFoundException {
+		for(Assembly  assm : assemblies ) {
+			if(assm.getClazz().equalsIgnoreCase("things")) {
+				data=validateThingIncluded(assm,data);
+			}
+		}
+		return data;
+	}
+	/**
+	 * Validate an additional page definition
+	 * @param assm
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private ThingDTO validateThingIncluded(Assembly assm, ThingDTO data) throws ObjectNotFoundException {
+		data.clearErrors();
+		//rule 1. The URL should be defined
+		if(assm.getUrl() == null) {
+			data.addError(messages.get("emptyurl"));
+		}else {
+			if(assm.getUrl().length()==0) {
+				data.addError(messages.get("emptyurl"));
+			}else {
+				//rule 2. If the thing contains class "persons" the aux URL should be defined 
+				List<Assembly> clazzes =  assemblyServ.loadDataConfiguration(assm.getUrl());
+				for(Assembly clazz : clazzes) {
+					if(clazz.getClazz().equalsIgnoreCase("persons")) {
+						if(assm.getAuxDataUrl()==null) {
+							data.addError(messages.get("emptyauxurl"));
+						}else {
+							if(assm.getAuxDataUrl().length()==0) {
+								data.addError(messages.get("emptyauxurl"));
+							}
+						}
+					}
+				}
+			}
+		}
+		return data;
+	}
+	/**
+	 * Validate email address using regex
+	 * @param data
+	 * @return
+	 */
+	public AskForPass validEmail(AskForPass data) {
+		Matcher matcher = emailPattern.matcher(data.getEmail());
+		if(!matcher.find()) {
+			data.addError(messages.get("valid_email"));
+		}
+		return data;
+	}
 
 }

@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.reflect.FieldUtils;
+import org.msh.pdex2.dto.table.TableHeader;
 import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pharmadex2.dto.form.AllowValidation;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
@@ -64,20 +65,19 @@ public class ThingDTO extends AllowValidation {
 	private Map<String,ResourceDTO> resources = new LinkedHashMap<String, ResourceDTO>();											//documents for upload and templates
 	private Map<String, ThingDTO> things = new LinkedHashMap<String, ThingDTO>();															//things included
 	private Map<String,PersonDTO> persons = new LinkedHashMap<String, PersonDTO>();														//persons tables
-	private Map<String,PersonSelectorDTO> personselector = new LinkedHashMap<String, PersonSelectorDTO>();					//selection from the existing persons
-	private Map<String, PersonSpecialDTO> personspec = new LinkedHashMap<String, PersonSpecialDTO>();							//selection for the special persons
 	private Map<String,SchedulerDTO> schedulers = new LinkedHashMap<String, SchedulerDTO>();										//with workflow should be run
 	private Map<String,RegisterDTO> registers = new LinkedHashMap<String, RegisterDTO>();												//filing system registers
-	private Map<String,AmendmentDTO> amendments = new LinkedHashMap<String, AmendmentDTO>();								//ameded data
 	private Map<String,AtcDTO> atc = new LinkedHashMap<String, AtcDTO>();																		//atc codes
 	private Map<String, LegacyDataDTO> legacy = new LinkedHashMap<String, LegacyDataDTO>();										//list of legacy applications to import
 	private Map<String, IntervalDTO> intervals = new LinkedHashMap<String, IntervalDTO>();
-	private Map<String, LinksDTO> links = new LinkedHashMap<String, LinksDTO>();																// links to other objects
-	private ActionBarDTO actionBar= new ActionBarDTO();																										//action bar for it @depricated
+	private Map<String, LinksDTO> links = new LinkedHashMap<String, LinksDTO>();	
+	private Map<String, FormFieldDTO<OptionDTO>> droplist = new LinkedHashMap<String, FormFieldDTO<OptionDTO>>();// dropdown list Dictionary																									//action bar for it @depricated
 	
 	//The main static path - things that should be filled
 	private List<ThingDTO> path = new ArrayList<ThingDTO>();								//all things path
 	private int pathIndex=0;																					//the current index in the path		
+	private boolean firstPage=false;
+	private boolean auxfirstPage=false;
 	
 	//auxiliary dynamic path
 	private String auxPathVar="";																			//variable name that initiate path rebuild
@@ -242,6 +242,12 @@ public class ThingDTO extends AllowValidation {
 		this.dates = dates;
 	}
 	public Map<String, FormFieldDTO<Long>> getNumbers() {
+		for(String key : numbers.keySet()) {
+			FormFieldDTO<Long> n = numbers.get(key);
+			if(n.getValue()==null) {
+				n.setValue(0l);
+			}
+		}
 		return numbers;
 	}
 	public void setNumbers(Map<String, FormFieldDTO<Long>> numbers) {
@@ -289,18 +295,7 @@ public class ThingDTO extends AllowValidation {
 	public void setPersons(Map<String, PersonDTO> persons) {
 		this.persons = persons;
 	}
-	public Map<String, PersonSelectorDTO> getPersonselector() {
-		return personselector;
-	}
-	public void setPersonselector(Map<String, PersonSelectorDTO> personselector) {
-		this.personselector = personselector;
-	}
-	public Map<String, PersonSpecialDTO> getPersonspec() {
-		return personspec;
-	}
-	public void setPersonspec(Map<String, PersonSpecialDTO> personspec) {
-		this.personspec = personspec;
-	}
+	
 	public Map<String, SchedulerDTO> getSchedulers() {
 		return schedulers;
 	}
@@ -313,18 +308,6 @@ public class ThingDTO extends AllowValidation {
 	}
 	public void setRegisters(Map<String, RegisterDTO> registers) {
 		this.registers = registers;
-	}
-	public ActionBarDTO getActionBar() {
-		return actionBar;
-	}
-	public void setActionBar(ActionBarDTO actionBar) {
-		this.actionBar = actionBar;
-	}
-	public Map<String, AmendmentDTO> getAmendments() {
-		return amendments;
-	}
-	public void setAmendments(Map<String, AmendmentDTO> amendments) {
-		this.amendments = amendments;
 	}
 	
 	public Map<String, AtcDTO> getAtc() {
@@ -464,5 +447,39 @@ public class ThingDTO extends AllowValidation {
 		// the last resort
 		return ret;
 	}
+	public boolean isFirstPage() {
+		return firstPage;
+	}
+	public void setFirstPage(boolean firstPage) {
+		this.firstPage = firstPage;
+	}
+	public boolean isAuxfirstPage() {
+		return auxfirstPage;
+	}
+	public void setAuxfirstPage(boolean auxfirstPage) {
+		this.auxfirstPage = auxfirstPage;
+	}
+	public Map<String, FormFieldDTO<OptionDTO>> getDroplist() {
+		return droplist;
+	}
+	public void setDroplist(Map<String, FormFieldDTO<OptionDTO>> droplist) {
+		this.droplist = droplist;
+	}
+	/**
+	 * Type of TableQtb header for import/export
+	 * @param varName name of electronic form variable
+	 * @return
+	 */
+	public int tableHeaderType(String varName) {
+		if(getNumbers().get(varName)!=null) {
+			return TableHeader.COLUMN_LONG;
+		}
+		if(getDates().get(varName) != null) {
+			return TableHeader.COLUMN_LOCALDATE;
+		}
+		return TableHeader.COLUMN_STRING;
+	}
+
+	
 	
 }

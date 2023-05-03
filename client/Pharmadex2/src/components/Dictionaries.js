@@ -5,7 +5,7 @@ import Fetchers from './utils/Fetchers'
 import ButtonUni from './form/ButtonUni'
 import Dictionary from './Dictionary'
 import RootNode from './RootNode'
-import SearchControl from './utils/SearchControl'
+import SearchControlNew from './utils/SearchControlNew'
 import CollectorTable from './utils/CollectorTable'
 import Pharmadex from './Pharmadex'
 import Navigator from './utils/Navigator'
@@ -26,7 +26,8 @@ class Dictionaries extends Component{
                 newdictionary:'',
                 dictionaries:"",
                 search:"",
-                global_cancel:""
+                global_cancel:"",
+                global_help:''
             }
         }
         this.load=this.load.bind(this)
@@ -64,7 +65,7 @@ class Dictionaries extends Component{
                 <Col>
                     <Row>
                         <Col xs='12' sm='12' lg='6' xl='6'>
-                            <SearchControl label={this.state.labels.search} table={this.state.data.table} loader={this.load}/>
+                            <SearchControlNew label={this.state.labels.search} table={this.state.data.table} loader={this.load}/>
                         </Col>
                         <Col xs='12' sm='12' lg='3' xl='3'>
                         </Col>
@@ -187,8 +188,17 @@ class Dictionaries extends Component{
             </Container>*/
             <Container fluid>
                 <Row>
-                    <Col xs='12'sm='12' lg='11' xl='11' className="d-flex justify-content-center">
+                    <Col xs='12'sm='12' lg='10' xl='10' className="d-flex justify-content-center">
                         <h6>{this.state.labels.dictionaries}</h6>
+                    </Col>
+                    <Col xs='12' sm='12' lg='1' xl='1'>
+                        <ButtonUni
+                            label={this.state.labels.global_help}
+                            onClick={()=>{
+                                window.open('/api/admin/help/dictionaries','_blank').focus()
+                            }}
+                            color="info"
+                        />
                     </Col>
                     <Col xs='12'sm='12' lg='1' xl='1'>
                         <ButtonUni

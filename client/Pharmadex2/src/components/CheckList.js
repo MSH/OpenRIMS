@@ -106,15 +106,16 @@ class CheckList extends Component{
                         this.state.data=result
                         if(this.state.data.valid){
                             Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.success, color:'success'})
-                            Navigator.message(this.state.identifier, this.props.recipient, "cancelThing", {})
+                            //Navigator.message(this.state.identifier, this.props.recipient, "cancelThing", {})
                             Navigator.message(this.state.identifier, this.props.recipient, "afterSubmit", {})
                         }else{
-                            Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'warning'})
+                            Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'danger'})
                             this.setState(this.state)
                         }
                     })
                 }else{
-                    Navigator.message(this.state.identifier, this.props.recipient, "cancelThing", {})
+                    //Navigator.message(this.state.identifier, this.props.recipient, "cancelThing", {}) 2023-03-13 AK to avoid close
+                    Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.success, color:'success'})
                 }
             }else{
                 this.state.data=result
@@ -167,35 +168,37 @@ class CheckList extends Component{
     render(){
         if(this.state.data.questions == undefined || this.state.labels.locale==undefined){
             return []
-        }else{
-            return(
-                <Container fluid className={Pharmadex.settings.activeBorder}>
-                    <Card key={this.state.data.id+this.state.data.prevStatusId} style={{fontSize:"0.8rem"}}>
-                        <CardHeader>
-                            <Row>
-                                <Col xs='12' sm='12' lg='12' xl='12'>
-                                    <h6>{this.state.data.title}</h6>
-                                </Col>
-                            </Row>
-                            <Row hidden={this.validCheckList()}>
-                                <Col>
-                                    <Alert color="danger" className="p-0 m-0">
-                                        <small>{this.state.labels.requiredvalue}</small>
-                                    </Alert>
-                                </Col>
-                            </Row>
-                        </CardHeader>
-                        <CardBody>
-                            <Row>
-                                <Col xs='12' sm='12' lg='12' xl='12'>
-                                    {this.checkList()}
-                                </Col>
-                            </Row>
-                        </CardBody>
-                    </Card>
-                </Container>
-            )
         }
+        if(this.state.data.questions.length==0){
+            return []
+        }
+        return(
+            <Container fluid className={Pharmadex.settings.activeBorder}>
+                <Card key={this.state.data.id+this.state.data.prevStatusId} style={{fontSize:"0.8rem"}}>
+                    <CardHeader>
+                        <Row>
+                            <Col xs='12' sm='12' lg='12' xl='12'>
+                                <h6>{this.state.data.title}</h6>
+                            </Col>
+                        </Row>
+                        <Row hidden={this.validCheckList()}>
+                            <Col>
+                                <Alert color="danger" className="p-0 m-0">
+                                    <small>{this.state.labels.requiredvalue}</small>
+                                </Alert>
+                            </Col>
+                        </Row>
+                    </CardHeader>
+                    <CardBody>
+                        <Row>
+                            <Col xs='12' sm='12' lg='12' xl='12'>
+                                {this.checkList()}
+                            </Col>
+                        </Row>
+                    </CardBody>
+                </Card>
+            </Container>
+            )
     }
 
 

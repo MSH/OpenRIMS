@@ -46,6 +46,8 @@ public class WebSecurity {
 	UserService userService;
 	@Autowired
 	PasswordEncoder encoder;
+	
+	public static final String PDX2_URL_COOKIE = "PDX2_SENDURL";
 
 	/**
 	 * Configure form based authentication
@@ -68,8 +70,11 @@ public class WebSecurity {
 			.csrf().disable()
 			.authorizeRequests()
 			.antMatchers("/form/login").permitAll()
+			.antMatchers("/company/login").permitAll()
 			.antMatchers("/oauth_login").permitAll()
 			.antMatchers("/").permitAll()
+			//.antMatchers("/graphql").permitAll()
+			//.antMatchers("/graphql").permitAll()
 			.antMatchers("/img/**").permitAll()
 			.antMatchers("/js/**").permitAll()
 			.antMatchers("/favicon.ico").permitAll()
@@ -81,8 +86,11 @@ public class WebSecurity {
 			.antMatchers("/api/common/**").authenticated()
 			.antMatchers("/api/guest/**").hasAuthority("ROLE_GUEST")
 			.antMatchers("/guest/**").hasAuthority("ROLE_GUEST")
+			.antMatchers("/graphiql**").hasAuthority("ROLE_GUEST")
+			.antMatchers("/graphql**").hasAuthority("ROLE_GUEST")
 			.antMatchers("/admin/**").hasAuthority("ROLE_ADMIN")
 			.antMatchers("/shablon/**").hasAuthority("ROLE_ADMIN")
+			//.antMatchers("/graphql").hasAuthority("ROLE_ADMIN")
 			.antMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
 			.antMatchers("/moderator/**").hasAuthority("ROLE_MODERATOR")
 			.antMatchers("/api/moderator/**").hasAuthority("ROLE_MODERATOR")
@@ -103,10 +111,11 @@ public class WebSecurity {
 			.formLogin()
 			.loginPage("/form/login")
 			.failureUrl("/form/login")
-			//.successForwardUrl("/")
 			.and()
-			.logout().deleteCookies("PDX2_SESSION","remember-me")
-			.logoutSuccessUrl("/")
+			.logout()
+			.logoutSuccessHandler(new PdxLogoutSuccessHandler())
+			.deleteCookies("PDX2_SESSION","remember-me", PDX2_URL_COOKIE)
+			//.logoutSuccessUrl("/")
 			.and()
 			.rememberMe().key("арозаупаланалапуазора")
 			.and()			
@@ -132,6 +141,8 @@ public class WebSecurity {
 			.csrf().disable()
 			.authorizeRequests()
 			.antMatchers("/").permitAll()
+			//.antMatchers("/graphql").permitAll()
+			//.antMatchers("/graphql").permitAll()
 			.antMatchers("/img/**").permitAll()
 			.antMatchers("/js/**").permitAll()
 			.antMatchers("/favicon.ico").permitAll()
@@ -139,13 +150,17 @@ public class WebSecurity {
 			.antMatchers("/landing").permitAll()
 			.antMatchers("/api/landing/report/**").permitAll()
 			.antMatchers("/form/login").permitAll()
+			.antMatchers("/company/login").permitAll()
 			.antMatchers("/oauth_login").permitAll()
 			.antMatchers("/api/common/**").authenticated()
 			.antMatchers("/api/guest/**").hasAuthority("ROLE_GUEST")
 			.antMatchers("/guest/**").hasAuthority("ROLE_GUEST")
+			.antMatchers("/graphiql**").hasAuthority("ROLE_GUEST")
+			.antMatchers("/graphql**").hasAuthority("ROLE_GUEST")
 			.antMatchers("/admin/**").hasAuthority("ROLE_ADMIN")
 			.antMatchers("/shablon/**").hasAuthority("ROLE_ADMIN")
 			.antMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
+			//.antMatchers("/graphql").hasAuthority("ROLE_ADMIN")
 			.antMatchers("/moderator/**").hasAuthority("ROLE_MODERATOR")
 			.antMatchers("/api/moderator/**").hasAuthority("ROLE_MODERATOR")
 			.antMatchers("/screener/**").hasAuthority("ROLE_SCREENER")
@@ -162,12 +177,13 @@ public class WebSecurity {
 			.antMatchers("/actuator/**").hasAuthority("ROLE_ADMIN")
 			.anyRequest().denyAll()
 			.and()
-			.oauth2Login().loginPage("/oauth_login")///oauth_login
-			//.failureUrl("/form/login")
-			//.oauth2Login().failureUrl("/form/login")
+			.oauth2Login()
+				.loginPage("/oauth_login")
+				.successHandler(new GoogleAuthenticationSuccessHandler())
 			.and()
-			.logout().deleteCookies("PDX2_SESSION","remember-me")
-			.logoutSuccessUrl("/")
+			.logout()
+			.logoutSuccessHandler(new PdxLogoutSuccessHandler())
+			.deleteCookies("PDX2_SESSION","remember-me", PDX2_URL_COOKIE)
 			.and()			
 			.exceptionHandling().accessDeniedPage("/");
 		}

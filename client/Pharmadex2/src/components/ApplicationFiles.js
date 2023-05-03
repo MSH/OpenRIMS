@@ -9,7 +9,7 @@ import Pharmadex from './Pharmadex'
 import ButtonUni from './form/ButtonUni'
 import Downloader from './utils/Downloader'
 import Navigator from './utils/Navigator'
-import AlertFloat from './utils/AlertFloat'
+import Alerts from './utils/Alerts'
 
 /**
  * A set of files for an application
@@ -31,6 +31,7 @@ class ApplicationFiles extends Component{
                 global_save:"",
                 global_cancel:"",
                 saved:"",
+                error_filesize:""
             },           
             file:{}
         }
@@ -48,13 +49,13 @@ class ApplicationFiles extends Component{
      * Return changed style
      * @param {FileDTO} addr 
      */
-         static changed(files){
-            if(files.changed){
-                return "markedbycolor"
-            }else{
-                return ""
-            }
+    static changed(files){
+        if(files.changed){
+            return "markedbycolor"
+        }else{
+            return ""
         }
+    }
 
     /**
      * Place this component to ThingDTO
@@ -154,23 +155,30 @@ class ApplicationFiles extends Component{
     }
 
     save(){
-        let formData = new FormData()
-        formData.append('dto', JSON.stringify(this.state.data))
-        formData.append('file', this.state.file);
-        Fetchers.postFormJson('/api/'+Navigator.tabSetName() +'/thing/file/save', formData, (formData,result)=>{
-            if(result.valid){
-                this.state.data = result;
-                this.state.data.fileName=''
-                //Navigator.message(this.state.identifier,this.props.recipient, "onSelectionChange", this.state.data)
-                this.state.data.editor = false
-                this.state.file = {}
-                this.tableLoader()
-                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.saved, color:'success'})
-                Navigator.message(this.state.identifier,this.props.recipient, "onSelectionChange", this.state.data)
-            }else{
-                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:result.identifier, color:'danger'})
-            }
-        })
+        /** 
+        additional verification
+        suddenly the button SAVE visibility formula does not work correctly
+        */
+        if(this.state.file != undefined && this.state.file.size < this.state.data.maxFileSize){
+            let formData = new FormData()
+            formData.append('dto', JSON.stringify(this.state.data))
+            formData.append('file', this.state.file);
+            Fetchers.postFormJson('/api/'+Navigator.tabSetName() +'/thing/file/save', formData, (formData,result)=>{
+                if(result.valid){
+                    this.state.data = result;
+                    this.state.data.fileName=''
+                    this.state.data.editor = false
+                    this.state.file = {}
+                    this.tableLoader()
+                    Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.saved, color:'success'})
+                }else{
+                    Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:result.identifier, color:'danger'})
+                }
+            })
+        }else{
+            Alerts.show(this.state.labels.error_filesize, 3)
+        }
+        
     }
 
     download(){
@@ -190,6 +198,13 @@ class ApplicationFiles extends Component{
         if(fileName !== undefined){
             if(fileName.error){
                 ret = fileName.suggest
+                return ret
+            }
+        }
+        if(this.state.file !== undefined){
+            if(this.state.file.size >= this.state.data.maxFileSize){
+                var max = this.state.data.maxFileSize / 1048576
+                return this.state.labels.error_filesize + " " + max + " MB"
             }
         }
         return ret;
@@ -199,7 +214,7 @@ class ApplicationFiles extends Component{
         if(this.state.data.readOnly){
             return true
         }else{//this.state.data.nodeId==0 && 
-            var h = this.state.file.name == undefined
+            var h = (this.state.file.name == undefined) || (this.state.file.size >= this.state.data.maxFileSize)
             return h
         }
     }
@@ -320,6 +335,21 @@ class ApplicationFiles extends Component{
                             />
             )
         }
+    }
+
+    /**
+     * Place this component to ThingDTO
+     * @param {FileDTO} file
+     * @param {number} index 
+     * @param {boolean} readOnly 
+     * @param {string} identifier 
+     * @param {string} label 
+     * @returns 
+     */
+    static onlyform(files,index,readOnly,identifier,label){
+        this.state.data = files
+        this.state.data.editor = true
+        return place(files,index,readOnly,identifier,label)
     }
 
     render(){

@@ -9,7 +9,9 @@ import org.msh.pharmadex2.dto.CheckListDTO;
 import org.msh.pharmadex2.dto.ContentDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.GisLocationDTO;
+import org.msh.pharmadex2.dto.HostScheduleDTO;
 import org.msh.pharmadex2.dto.LegacyDataDTO;
+import org.msh.pharmadex2.dto.PermitsDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.mock.ChoiceDTO;
@@ -20,11 +22,13 @@ import org.msh.pharmadex2.service.r2.ApplicationService;
 import org.msh.pharmadex2.service.r2.ContentService;
 import org.msh.pharmadex2.service.r2.DeregistrationService;
 import org.msh.pharmadex2.service.r2.DictService;
+import org.msh.pharmadex2.service.r2.InspectionService;
 import org.msh.pharmadex2.service.r2.LegacyDataService;
 import org.msh.pharmadex2.service.r2.SystemService;
 import org.msh.pharmadex2.service.r2.ThingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -50,6 +54,8 @@ public class GuestAPI {
 	private LegacyDataService legacyServ;
 	@Autowired
 	private DeregistrationService deregServ;
+	@Autowired
+	private InspectionService inspectionServ;
 
 
 	/**
@@ -79,7 +85,25 @@ public class GuestAPI {
 	public DictionaryDTO applications(Authentication auth, @RequestBody DictionaryDTO data) throws DataNotFoundException {
 		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
 		try {
-			data=systemServ.applicationsDictionary(data);
+			data=systemServ.applicationsDictionary("dictionary.guest.applications",data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
+	/**
+	 * List of guest inspection applications
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/*/applications/inspections")
+	public DictionaryDTO applicationsInspections(Authentication auth, @RequestBody DictionaryDTO data) throws DataNotFoundException {
+		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
+		try {
+			data=systemServ.applicationsDictionary("dictionary.guest.inspections",data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -97,6 +121,24 @@ public class GuestAPI {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data=systemServ.amendmentDictionary(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
+	/**
+	 * Get a list of permits for a user and permit type given
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/*/permits")
+	public PermitsDTO permits(Authentication auth, @RequestBody PermitsDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		try {
+			data=inspectionServ.permits(user,data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -144,17 +186,35 @@ public class GuestAPI {
 	 * @return
 	 * @throws DataNotFoundException
 	 */
-	@PostMapping("/api/guest/applications/table")
-	public ApplicationsDTO applicatonsTable(Authentication auth, @RequestBody ApplicationsDTO data) throws DataNotFoundException {
+	@PostMapping("/api/guest/applications/table/search={s}")
+	public ApplicationsDTO applicatonsTable(Authentication auth, @RequestBody ApplicationsDTO data, @PathVariable(value = "s") String s) throws DataNotFoundException {
 		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
 		try {
-			data=applServ.applicatonsTable(data, user);
+			data=applServ.applicatonsTable(data, user, s);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
 	}
-
+	/**
+	 * List of amendment applications
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/guest/applications/table/amendments/search={s}")
+	public ApplicationsDTO applicatonsTableAmendment(Authentication auth, @RequestBody ApplicationsDTO data, @PathVariable(value = "s") String s) throws DataNotFoundException {
+		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
+		try {
+			data.setAmendment(true);
+			data=applServ.applicatonsTable(data, user, s);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
 	/**
 	 * submit an application after checklist
 	 * @param auth
@@ -175,14 +235,16 @@ public class GuestAPI {
 
 	/**
 	 * Will we start an application or work in an activity?
+	 * Calculate historyId for the most appropriate history record
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException 
 	 */
 	@PostMapping("/api/*/application/or/activity")
-	public ApplicationOrActivityDTO applicationOrActivity(@RequestBody ApplicationOrActivityDTO data) throws DataNotFoundException{
+	public ApplicationOrActivityDTO applicationOrActivity(Authentication auth,@RequestBody ApplicationOrActivityDTO data) throws DataNotFoundException{
+		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
 		try {
-			data=applServ.applOrAct(data);
+			data=applServ.applOrAct(user,data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -263,6 +325,24 @@ public class GuestAPI {
 	@PostMapping("/api/*/legacy/data")
 	public LegacyDataDTO legacyData(Authentication auth, @RequestBody LegacyDataDTO data) {
 		data=legacyServ.reloadTable(data);
+		return data;
+	}
+	
+	/**
+	 * Legacy data reload the table
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException 
+	 */
+	@PostMapping("/api/*/host/schedule")
+	public HostScheduleDTO hostSchedule(Authentication auth, @RequestBody HostScheduleDTO data) throws DataNotFoundException {
+		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
+		try {
+			data=inspectionServ.hostSchedule(user,data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
 		return data;
 	}
 	

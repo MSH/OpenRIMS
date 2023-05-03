@@ -227,11 +227,15 @@ class ActivitySubmit extends Component{
         if(this.state.data.nextJob==undefined || this.state.labels.locale==undefined){
             return []
         }
+        let color = "info"
+        if(this.state.data.colorAlert != undefined){
+            color = this.state.data.colorAlert
+        }//className="p-0 m-0"
         return(
             <Container fluid>
                  <Row hidden={this.state.data.identifier.length==0}>
                     <Col>
-                        <Alert className="p-0 m-0">
+                        <Alert color={color}>
                             <small>{this.state.data.identifier}</small>
                         </Alert>
                     </Col>
@@ -287,13 +291,7 @@ class ActivitySubmit extends Component{
                         {this.rightBottom()}
                     </Col>
                 </Row>
-                <Row hidden={this.state.data.identifier.length==0}>
-                    <Col>
-                        <Alert className="p-0 m-0">
-                            <small>{this.state.data.identifier}</small>
-                        </Alert>
-                    </Col>
-                </Row>
+               
             </Container>
         )
     }

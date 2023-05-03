@@ -10,7 +10,7 @@ import {
 } from 'reactstrap'
 import Locales from './utils/Locales'
 import Languages from './Languages'
-
+import Fetchers from './utils/Fetchers'
 
 
 /**
@@ -24,6 +24,7 @@ class UserNotAuthMenu extends Component{
                 imguest:"",
                 quickstart:"",
                 login:"",
+                logincompany:'',
                 logout:""
             },
             isOpen:false
@@ -47,10 +48,13 @@ class UserNotAuthMenu extends Component{
               <NavLink href="/login">{this.state.labels.quickstart}</NavLink>
             </NavItem>
             <NavItem>
-              <NavLink href="/form/login">{this.state.labels.login}</NavLink>
+              <NavLink href="/form/login?view=company">{this.state.labels.logincompany}</NavLink>
             </NavItem>
             <NavItem>
-              <NavLink href="/logout">{this.state.labels.logout}</NavLink>
+              <NavLink href="/form/login?view=nmra">{this.state.labels.login}</NavLink>
+            </NavItem>
+            <NavItem>
+              <NavLink onClick={()=>{Fetchers.logout()}}><span style={{cursor:'pointer'}}>{this.state.labels.logout}</span></NavLink>
             </NavItem>
             <NavItem>
                 <Languages />

@@ -28,8 +28,8 @@ public class ReportPage implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC222274183844892720737A")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC222274183844892720737A", strategy="native")	
+	@GeneratedValue(generator="VAC222277187B38344490A607")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC222277187B38344490A607", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	
@@ -47,7 +47,7 @@ public class ReportPage implements Serializable {
 	@Column(name="Lang", nullable=true, length=255)	
 	private String lang;
 	
-	@Column(name="PrefLabel", nullable=true, length=255)	
+	@Column(name="PrefLabel", nullable=true)	
 	private String prefLabel;
 	
 	@Column(name="Owner", nullable=true, length=255)	
@@ -55,6 +55,9 @@ public class ReportPage implements Serializable {
 	
 	@Column(name="State", nullable=true, length=255)	
 	private String state;
+	
+	@Column(name="DictItemID", nullable=false, length=20)	
+	private long dictItemID = 0;
 	
 	private void setID(long value) {
 		this.ID = value;
@@ -150,6 +153,22 @@ public class ReportPage implements Serializable {
 	 */
 	public String getState() {
 		return state;
+	}
+	
+	/**
+	 * For the guest application data modules - ID of concept in the dictionary.guest.applications
+	 * 0 (zero) for the others
+	 */
+	public void setDictItemID(long value) {
+		this.dictItemID = value;
+	}
+	
+	/**
+	 * For the guest application data modules - ID of concept in the dictionary.guest.applications
+	 * 0 (zero) for the others
+	 */
+	public long getDictItemID() {
+		return dictItemID;
 	}
 	
 	public void setReportSession(org.msh.pdex2.model.dwh.ReportSession value) {

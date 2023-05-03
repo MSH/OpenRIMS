@@ -8,10 +8,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.junit.jupiter.api.Test;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pharmadex2.Pharmadex2Application;
-import org.msh.pharmadex2.service.r2.ImportAService;
 import org.msh.pharmadex2.service.r2.LegacyDataService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -26,8 +24,6 @@ public class LegacyDataServiceTest {
 	
 	@Autowired
 	LegacyDataService legacyService;
-	@Autowired
-	ImportAService importAService;
 	
 	
 	//@Test

@@ -1,20 +1,16 @@
 package org.msh.pharmadex2.service.r2;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Type;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import org.apache.commons.lang3.reflect.FieldUtils;
 import org.msh.pdex2.dto.table.Headers;
 import org.msh.pdex2.dto.table.TableHeader;
 import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
-import org.msh.pdex2.model.enums.YesNoNA;
 import org.msh.pdex2.model.i18n.ResourceBundle;
 import org.msh.pdex2.model.i18n.ResourceMessage;
 import org.msh.pdex2.model.r2.Assembly;
@@ -35,7 +31,6 @@ import org.msh.pharmadex2.dto.TileDTO;
 import org.msh.pharmadex2.dto.WorkflowDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
-import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.common.DtoService;
 import org.msh.pharmadex2.service.common.EntityService;
@@ -85,6 +80,9 @@ public class SupervisorService {
 	ResourceMessageRepo resourceMessageRepo;
 	@Autowired
 	ResourceBundleRepo resourceBundleRepo;
+
+	@Value("${variables.properties.edit}")
+	private boolean variablesPropertiesEdit;
 
 	/**
 	 * Create content for administrative tile, using existed supervisor features
@@ -152,7 +150,7 @@ public class SupervisorService {
 		if (activityNode.getActive()) {
 			dto.setUrl("activity.configuration");
 			dto.setNodeId(activityNode.getID());
-			dto = thingServ.createContent(dto, user);
+			//dto = thingServ.createContent(dto, user);
 			path.add(dto);
 		}
 		List<Concept> nextLevel = literalServ.loadOnlyChilds(activityNode);
@@ -171,13 +169,13 @@ public class SupervisorService {
 		return path;
 	}
 	/*	 *//** 2011-11-11 DEPRECATED and useless
-			 * Load activity configuration or user data configuration
-			 * 
-			 * @param data
-			 * @param user
-			 * @return
-			 * @throws ObjectNotFoundException
-			 *//*
+	 * Load activity configuration or user data configuration
+	 * 
+	 * @param data
+	 * @param user
+	 * @return
+	 * @throws ObjectNotFoundException
+	 *//*
 				@Transactional
 				public ThingDTO thingLoad(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 				if(data.getNodeId()>0) {
@@ -265,28 +263,49 @@ public class SupervisorService {
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
-	public DataConfigDTO dataCollectionsLoad(DataConfigDTO data) throws ObjectNotFoundException {
+	public DataConfigDTO dataCollectionsLoad(DataConfigDTO data, String searchStr, String searchStrVars) throws ObjectNotFoundException {
 		Concept root = closureServ.loadRoot(SystemService.DATA_COLLECTIONS_ROOT);
 		if (data.getTable().getHeaders().getHeaders().size() == 0) {
 			data.getTable().setHeaders(headersDataCollections(data.getTable().getHeaders()));
+
+			// только когда снова создаем заголовки, только тогда проверяем был ли текст в строке поиска
+			if(searchStr != null && !searchStr.equals("null") && searchStr.length() > 2) {
+				for(TableHeader th:data.getTable().getHeaders().getHeaders()) {
+					th.setGeneralCondition(searchStr);
+				}
+				data.getTable().setGeneralSearch(searchStr);
+			}
+		}else {
+			//change page should deselect all
+			if(data.getTable().getHeaders().getPage()!=data.getPageNo()) {
+				data.setNodeId(0l);
+				data.setVarNodeId(0l);
+				data.setVarTable(new TableQtb());
+			}
 		}
-		List<Long> selected = new ArrayList<Long>();
-		if (data.getNodeId() > 0) {
-			for (TableRow row : data.getTable().getRows()) {
-				if (row.getSelected()) {
-					selected.add(row.getDbID());
+
+		//load a table
+		jdbcRepo.prepareDictionaryLevel(root.getID());
+		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from _dictlevel", "", "active=true", data.getTable().getHeaders());
+		// set a page with the a currently selected object
+		TableQtb.tablePage(rows, data.getTable());					//determine the size in pages
+		int pages=data.getTable().getHeaders().getPages();
+		int pageSize=data.getTable().getHeaders().getPageSize();
+		int pageNo=0;
+		for(int page=1;page<=pages;page++) {
+			List<TableRow> rows1=TableHeader.fetchPage(rows, page, pageSize);
+			for(TableRow row : rows1) {
+				if(row.getDbID()==data.getNodeId()) {
+					row.setSelected(true);
+					pageNo=page;
+					data.getTable().getHeaders().setPage(page);
 				}
 			}
 		}
-		data.setTable(dictServ.loadTable(root, data.getTable(), selected, false, false));
-		for (TableRow row : data.getTable().getRows()) {
-			if (selected.contains(row.getDbID()) || row.getDbID() == data.getNodeId()) {
-				row.setSelected(true);
-				data.setNodeId(row.getDbID());
-			}
-		}
+		TableQtb.tablePage(rows, data.getTable());				//set the right page
 		// reload variables table, if some selected
-		data = dataCollectionVariablesLoad(data);
+		data = dataCollectionVariablesLoad(data, searchStrVars);
+		data.setPageNo(data.getTable().getHeaders().getPage());
 		return data;
 	}
 
@@ -299,10 +318,12 @@ public class SupervisorService {
 	private Headers headersDataCollections(Headers headers) {
 		headers.getHeaders().clear();
 		headers.getHeaders()
-				.add(TableHeader.instanceOf("identifier", "url", true, true, true, TableHeader.COLUMN_LINK, 0));
+		.add(TableHeader.instanceOf("identifier", "url", true, true, true, TableHeader.COLUMN_LINK, 0));
 		headers.getHeaders()
-				.add(TableHeader.instanceOf("pref", "description", true, true, true, TableHeader.COLUMN_STRING, 0));
+		.add(TableHeader.instanceOf("pref", "description", true, true, true, TableHeader.COLUMN_STRING, 0));
 		headers.setPageSize(20);
+		headers.getHeaders().get(0).setSort(true);
+		headers.getHeaders().get(0).setSortValue(TableHeader.SORT_ASC);
 		return headers;
 	}
 
@@ -373,26 +394,37 @@ public class SupervisorService {
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	public DataConfigDTO dataCollectionVariablesLoad(DataConfigDTO data) throws ObjectNotFoundException {
-		data.setRestricted(false);
+	public DataConfigDTO dataCollectionVariablesLoad(DataConfigDTO data, String searchStr) throws ObjectNotFoundException {
+		data.setRestricted(true);
 		if (data.getNodeId() > 0) {
 			// variables
 			TableQtb table = data.getVarTable();
 			if (table.getHeaders().getHeaders().size() == 0) {
 				table.setHeaders(headersVariables(table.getHeaders()));
+				// только когда снова создаем заголовки, только тогда проверяем был ли текст в строке поиска
+				if(searchStr != null && !searchStr.equals("null") && searchStr.length() > 2) {
+					for(TableHeader th:table.getHeaders().getHeaders()) {
+						th.setGeneralCondition(searchStr);
+					}
+					table.setGeneralSearch(searchStr);
+				}
 			}
-			String where = "av.Active=true and av.nodeID='" + data.getNodeId() + "' and av.lang='"
+			String where = "p.Active=true and p.nodeID='" + data.getNodeId() + "' and p.lang='"
 					+ LocaleContextHolder.getLocale().toString().toUpperCase() + "'";
-			String select="select distinct av.*, c.Label as 'ext' from assm_var av "
-					+ "join assembly a on a.ID=av.assemblyID join concept c on c.ID=a.conceptID";
+			String select="select * from(select distinct av.*, c.Label as 'ext' from assm_var av "
+					+ "join assembly a on a.ID=av.assemblyID join concept c on c.ID=a.conceptID) p";
 			List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", where, table.getHeaders());
 			TableQtb.tablePage(rows, table);
 			table.setSelectable(false);
 			// is edit restricted?
-			Concept conc = closureServ.loadConceptById(data.getNodeId());
-			jdbcRepo.data_url_references(conc.getIdentifier());
-			List<TableRow> rows1 = jdbcRepo.qtbGroupReport("select * from data_url_references", "", "", new Headers());
-			data.setRestricted(rows1.size()>0);	//at least one reference is existed
+			if(!variablesPropertiesEdit) {
+				Concept conc = closureServ.loadConceptById(data.getNodeId());
+				jdbcRepo.data_url_references(conc.getIdentifier());
+				List<TableRow> rows1 = jdbcRepo.qtbGroupReport("select * from data_url_references", "", "", new Headers());
+				data.setRestricted(rows1.size()==0);	//at least one reference is existed
+			}else{
+				data.setRestricted(true);
+			}
 		}
 		return data;
 	}
@@ -403,14 +435,14 @@ public class SupervisorService {
 		headers.getHeaders().add(TableHeader.instanceOf("col", "col", true, true, true, TableHeader.COLUMN_LONG, 0));
 		headers.getHeaders().add(TableHeader.instanceOf("ord", "order", true, true, true, TableHeader.COLUMN_LONG, 0));
 		headers.getHeaders()
-				.add(TableHeader.instanceOf("propertyName", "variables", true, true, true, TableHeader.COLUMN_LINK, 0));
+		.add(TableHeader.instanceOf("propertyName", "variables", true, true, true, TableHeader.COLUMN_LINK, 0));
 		headers.getHeaders()
 		.add(TableHeader.instanceOf("ext", "ext", true, true, true, TableHeader.COLUMN_STRING, 0));
 		headers.getHeaders()
-				.add(TableHeader.instanceOf("clazz", "clazz", true, true, true, TableHeader.COLUMN_STRING, 0));
+		.add(TableHeader.instanceOf("clazz", "clazz", true, true, true, TableHeader.COLUMN_STRING, 0));
 
 		headers.getHeaders()
-				.add(TableHeader.instanceOf("pref", "description", true, true, true, TableHeader.COLUMN_STRING, 0));
+		.add(TableHeader.instanceOf("pref", "description", true, true, true, TableHeader.COLUMN_STRING, 0));
 
 		TableHeader h = headers.getHeaders().get(0);
 		h.setSort(true);
@@ -436,13 +468,14 @@ public class SupervisorService {
 	@Transactional
 	public DataVariableDTO dataCollectionVariableLoad(DataVariableDTO data) throws ObjectNotFoundException {
 		if (data.getNodeId() > 0) {
-			data = initializeClazz(data);
-			data = initializeLogical(data);
 			Concept node = closureServ.loadConceptById(data.getNodeId());
 			if (data.getVarNodeId() > 0) {
 				Concept varNode = closureServ.loadConceptById(data.getVarNodeId());
 				Assembly assm = boilerServ.assemblyByVariable(varNode, true);
 				data = dtoServ.assembly(assm, node, varNode, data);
+			}else {
+				data=dtoServ.initializeLogical(data);
+				data=dtoServ.initializeClazz(data);
 			}
 			return data;
 		} else {
@@ -450,46 +483,9 @@ public class SupervisorService {
 		}
 	}
 
-	/**
-	 * Initialize logical values
-	 * 
-	 * @param data
-	 * @return
-	 */
-	private DataVariableDTO initializeLogical(DataVariableDTO data) {
-		data.getMult().setValue(dtoServ.enumToOptionDTO(YesNoNA.NA, YesNoNA.values()));
-		data.getUnique().setValue(dtoServ.enumToOptionDTO(YesNoNA.NA, YesNoNA.values()));
-		data.getPrefLabel().setValue(dtoServ.enumToOptionDTO(YesNoNA.NA, YesNoNA.values()));
-		data.getRequired().setValue(dtoServ.enumToOptionDTO(YesNoNA.NA, YesNoNA.values()));
-		data.getReadOnly().setValue(dtoServ.enumToOptionDTO(YesNoNA.NA, YesNoNA.values()));
-		return data;
-	}
 
-	/**
-	 * Add all possible classes of a variable. Default is Literal.
-	 * 
-	 * @param data
-	 * @return
-	 */
-	private DataVariableDTO initializeClazz(DataVariableDTO data) {
-		List<String> possible = ThingDTO.thingClazzesNames();
-		if (possible.size() > 0) {
-			OptionDTO optVal = data.getClazz().getValue();
-			optVal.getOptions().clear();
-			optVal.setId(1);
-			optVal.setCode(possible.get(0));
-			int i = 1;
-			for (String nm : possible) {
-				OptionDTO opt = new OptionDTO();
-				opt.setId(i);
-				opt.setCode(nm);
-				optVal.getOptions().add(opt);
-				i++;
-			}
-			data.getClazz().setValue(optVal);
-		}
-		return data;
-	}
+
+
 
 	/**
 	 * Verify and save a definition of variable
@@ -506,17 +502,17 @@ public class SupervisorService {
 				data.getRow().setValue(100l);
 				data.getCol().setValue(100l);
 			}
-			data = validServ.variable(data);
-			if (data.isValid() || (!data.isValid() && !data.isStrict())) {
+			data = validServ.variable(data, true, false);
+			if(data.isValid() || !data.isStrict()) {
 				// save a node
 				Concept node = new Concept();
 				if (data.getVarNodeId() > 0) {
 					node = closureServ.loadConceptById(data.getVarNodeId());
 				}
-				
-				node.setIdentifier(data.getVarName().getValue()+data.getVarNameExt().getValue());
-				node.setLabel(data.getVarNameExt().getValue());
-				
+
+				node.setIdentifier(data.getVarName().getValue().trim()+data.getVarNameExt().getValue());	//deprecated 2023-01-13
+				node.setLabel(data.getVarNameExt().getValue().trim()); //deprecated 2023-01-1
+
 				Concept root = closureServ.loadConceptById(data.getNodeId());
 				node = closureServ.saveToTree(root, node);
 				node = literalServ.prefAndDescription(data.getDescription().getValue(),
@@ -681,7 +677,7 @@ public class SupervisorService {
 	private Headers headerResources(Headers headers) {
 		headers.getHeaders().clear();
 		headers.getHeaders()
-				.add(TableHeader.instanceOf("url", "dataurl", true, true, true, TableHeader.COLUMN_LINK, 0));
+		.add(TableHeader.instanceOf("url", "dataurl", true, true, true, TableHeader.COLUMN_LINK, 0));
 		headers.getHeaders().add(
 				TableHeader.instanceOf("description", "description", true, true, true, TableHeader.COLUMN_STRING, 0));
 		boilerServ.translateHeaders(headers);
@@ -830,9 +826,8 @@ public class SupervisorService {
 						rm = list.get(0);
 						if (list.size() == 1 && rm.getId() == data.getSelectedIds().get(rb.getLocale().toUpperCase())) {
 							// это редактирование записи
-
+							rm.setMessage_key(key);
 							rm.setMessage_value(value);
-
 							resourceMessageRepo.save(rm);
 						} else {
 							data.setValid(false);
@@ -865,7 +860,7 @@ public class SupervisorService {
 		headers.getHeaders().clear();
 		headers.setPageSize(50);
 		headers.getHeaders()
-				.add(TableHeader.instanceOf("message_key", "res_key", true, true, true, TableHeader.COLUMN_LINK, 0));
+		.add(TableHeader.instanceOf("message_key", "res_key", true, true, true, TableHeader.COLUMN_LINK, 0));
 		headers.getHeaders().add(
 				TableHeader.instanceOf("message_value", "res_value", true, true, true, TableHeader.COLUMN_LINK, 0));
 		boilerServ.translateHeaders(headers);
@@ -887,7 +882,7 @@ public class SupervisorService {
 		List<DataVariableDTO> variables = new ArrayList<DataVariableDTO>();
 		DataConfigDTO datas = new DataConfigDTO();
 		datas.setNodeId(data.getNodeId());
-		datas = dataCollectionVariablesLoad(datas);
+		datas = dataCollectionVariablesLoad(datas, "");
 		for (TableRow row : datas.getVarTable().getRows()) {
 			DataVariableDTO dvar = new DataVariableDTO();
 			dvar.setNodeId(datas.getNodeId());
@@ -903,7 +898,7 @@ public class SupervisorService {
 		data = dataCollectionDefinitionSave(data);
 		// new root
 		datas.setNodeId(data.getNodeId());
-		datas = dataCollectionVariablesLoad(datas);
+		datas = dataCollectionVariablesLoad(datas, "");
 		// duplicate a collection
 		for (DataVariableDTO dv : variables) {
 			dv.setNodeId(data.getNodeId());

@@ -5,6 +5,7 @@ import Locales from './utils/Locales'
 import Dictionary from './Dictionary'
 import ApplicationList from './ApplicationList'
 import Navigator from './utils/Navigator'
+import HostSchedule from './HostSchedule'
 
 /**
  * Applications for guest user
@@ -27,7 +28,7 @@ class ApplicationSelect extends Component{
         }
         this.eventProcessor=this.eventProcessor.bind(this)
         this.loadData=this.loadData.bind(this)
-        this.applications=this.applications.bind(this)
+        this.inspectionApplications=this.inspectionApplications.bind(this)
     }
 
     /**
@@ -37,7 +38,7 @@ class ApplicationSelect extends Component{
         let data=event.data
         if(data.subject=="onSelectionChange" && data.from==this.dictionary){
             this.state.data=data.data
-            this.loadData()
+            this.setState(this.state)
         }
     }
     componentDidMount(){
@@ -50,6 +51,9 @@ class ApplicationSelect extends Component{
     loadData(){
         Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName() +"/applications", this.state.data, (query,result)=>{
             this.state.data=result
+            let selected_row=Fetchers.readLocaly("application_selected_row",-1);
+            if(this.state.data.table.rows.length > selected_row && selected_row>-1)
+                this.state.data.table.rows[selected_row].selected=true
             this.setState(this.state)
         })
     }
@@ -61,12 +65,13 @@ class ApplicationSelect extends Component{
     /**
      * Show / hide the list of applications in accrdance with the dictionary choice
      */
-     applications(){
+    inspectionApplications(){
         let dictId=0
         if(this.state.data.table != undefined && Fetchers.isGoodArray(this.state.data.table.rows)){
-            this.state.data.table.rows.forEach(row => {
+            this.state.data.table.rows.forEach((row,index) => {
                 if(row.selected){
                     dictId=row.dbID
+                    Fetchers.writeLocaly("application_selected_row",index);
                 }
             });
         }
@@ -85,14 +90,26 @@ class ApplicationSelect extends Component{
             <Container fluid>
                 <Row>
                     <Col>
-                        <Dictionary
-                            identifier={this.dictionary}
-                            data={this.state.data}
-                            display
-                        />
+                        <Row>
+                            <Col>
+                                <Dictionary
+                                    identifier={this.dictionary}
+                                    data={this.state.data}
+                                    display
+                                />
+                            </Col>
+                        </Row>
+                        <Row>
+                            <Col>
+                                <HostSchedule
+                                    dictURL={'dictionary.host.applications'}
+                                    recipient={this.state.identifier}
+                                />
+                            </Col>
+                        </Row>
                     </Col>
                     <Col>
-                        {this.applications()}
+                        {this.inspectionApplications()}
                     </Col>
                 </Row>
             </Container>

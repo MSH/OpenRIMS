@@ -4,9 +4,10 @@ import PropTypes from 'prop-types'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
 import Navigator from './utils/Navigator'
-import SearchControl from './utils/SearchControl'
+import SearchControlNew from './utils/SearchControlNew'
 import CollectorTable from './utils/CollectorTable'
 import Dictionary from './Dictionary'
+import ApplicationData from './ApplicationData'
 import Pharmadex from './Pharmadex'
 
 /**
@@ -23,6 +24,9 @@ class Links extends Component{
             },
             data:props.data,
             objects:true,   // display objects or classifiers for selected object
+            thing:{         // expand object in read only mode
+                nodeId:0
+            }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
         this.paintTable=this.paintTable.bind(this)
@@ -67,7 +71,7 @@ class Links extends Component{
                         </Col>
                     </Row>
                     <Row>
-                        <Links data={data} recipient={recipient} readOnly={readonly} />
+                        <Links data={data} recipient={recipient} readOnly={readonly || data.readOnly} />
                     </Row>
                 </Col>
             </Row>
@@ -80,6 +84,12 @@ class Links extends Component{
      */
         eventProcessor(event){
             let data=event.data
+            if(data.to==this.state.identifier){
+                if(data.subject=='onApplicationDataClose'){
+                    this.state.thing.nodeId=0
+                    Navigator.message(this.state.identifier, '*', 'openApplicationData', this.state.thing)
+                }
+            }
             if(data.from=='links_dict'){
                 if(data.subject=='onSelectionChange'){
                     this.state.data.selectedLink.dictDto=data.data
@@ -184,8 +194,8 @@ class Links extends Component{
         if(Fetchers.isGoodArray(this.state.data.links)){
             this.state.data.links.forEach((link,index) => {
                 ret.push(
-                    <Breadcrumb key={index}>
-                        <BreadcrumbItem key={index*100}>
+                    <Breadcrumb key={this.state.identifier+index}>
+                        <BreadcrumbItem key={index*100+this.state.identifier}>
                             <div className={className} style={{fontSize:'0.8rem'}}
                                 onClick={()=>{
                                   this.state.data.selectedObj=link.objectID
@@ -195,7 +205,7 @@ class Links extends Component{
                                 {link.objectLabel}
                             </div>
                         </BreadcrumbItem>
-                        <BreadcrumbItem key={index*100+1}>
+                        <BreadcrumbItem key={index*100+1+this.state.identifier}>
                                 {link.dictLabel}
                         </BreadcrumbItem>
                     </Breadcrumb>
@@ -215,12 +225,20 @@ class Links extends Component{
      */
     readOnlyRows(){
         let ret=[]
+        let className="btn btn-link p-0 border-0"
         if(Fetchers.isGoodArray(this.state.data.links)){
             this.state.data.links.forEach((link,index) => {
                 ret.push(
                     <Breadcrumb key={index}>
                         <BreadcrumbItem key={index*100}>
-                            {link.objectLabel}
+                        <div className={className} style={{fontSize:'0.8rem'}}
+                                onClick={()=>{
+                                 this.state.thing.nodeId=link.objectID
+                                 Navigator.message(this.state.identifier, '*', 'openApplicationData', this.state.thing)
+                                }}
+                            >
+                                {link.objectLabel}
+                            </div>
                         </BreadcrumbItem>
                         <BreadcrumbItem key={index*100+1}>
                             {link.dictLabel}
@@ -235,11 +253,12 @@ class Links extends Component{
      * Read only representation
      */
     readOnly(){
-        return(
-            <Container fluid >
-                {this.readOnlyRows()}
-            </Container>
-        )
+            return(
+                <Container fluid >
+                     <ApplicationData data={this.state.thing} recipient={this.state.identifier} narrow modal/>
+                    {this.readOnlyRows()}
+                </Container>
+            )
     }
 
     render(){
@@ -256,7 +275,7 @@ class Links extends Component{
                 <Container fluid className={Pharmadex.settings.activeBorder}>
                     <Row hidden={!this.state.objects} className='m-2'>
                         <Col>
-                            <SearchControl label={this.state.labels.search} table={this.state.data.table} loader={this.loadObjects}/>
+                            <SearchControlNew label={this.state.labels.search} table={this.state.data.table} loader={this.loadObjects}/>
                         </Col>
                         <Col>
                             {this.allSelected()}

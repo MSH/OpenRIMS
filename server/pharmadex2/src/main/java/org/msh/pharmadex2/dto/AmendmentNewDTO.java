@@ -13,6 +13,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties(ignoreUnknown=true)
 public class AmendmentNewDTO extends AllowValidation{
 	private long dictItemId=0;
+	private String permitType;   //type of permit selected for de-registration
 	private long dataNodeId=0;
 	private TableQtb applications = new TableQtb();
 	private TableQtb dataUnits = new TableQtb();
@@ -24,6 +25,12 @@ public class AmendmentNewDTO extends AllowValidation{
 		this.dictItemId = dictItemId;
 	}
 	
+	public String getPermitType() {
+		return permitType;
+	}
+	public void setPermitType(String permitType) {
+		this.permitType = permitType;
+	}
 	public long getDataNodeId() {
 		return dataNodeId;
 	}

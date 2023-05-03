@@ -7,7 +7,7 @@ import Navigator from './utils/Navigator'
 import Pharmadex from './Pharmadex'
 import CollectorTable from './utils/CollectorTable'
 import ButtonUni from './form/ButtonUni'
-import SearchControl from './utils/SearchControl'
+import SearchControlNew from './utils/SearchControlNew'
 import Thing from './Thing'
 import Spinner from './utils/Spinner'
 
@@ -27,6 +27,7 @@ class Persons extends Component{
                 search:'',
                 next:'',
                 marktoremove:'',
+                warningRemove:''
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -182,12 +183,12 @@ class Persons extends Component{
                 <Container fluid>
                     <Row hidden={this.state.data.rtable.rows.length==0}>
                         <Col>
-                            <Row hidden={readOnly}>
+                            <Row>
                                 <Col className='d-flex justify-content-end'>
                                     <h6>{this.state.labels.marktoremove}</h6>
                                 </Col>
                             </Row>
-                            <Row hidden={readOnly}>
+                            <Row>
                                 <Col>
                                     <CollectorTable
                                         tableData={this.state.data.rtable}
@@ -204,6 +205,7 @@ class Persons extends Component{
                                                 }
                                             })
                                             this.setState(this.state)
+                                            Navigator.message(this.state.identifier, this.props.recipient, "onSelectionChange", this.state.data)
                                         }}
                                         linkProcessor={(rowNo)=>{
                                             if(readOnly){
@@ -217,6 +219,7 @@ class Persons extends Component{
                                                 }
                                             })
                                             this.setState(this.state)
+                                            Navigator.message(this.state.identifier, this.props.recipient, "onSelectionChange", this.state.data)
                                         }}
                                         headBackground={Pharmadex.settings.tableHeaderBackground}
                                     />  
@@ -227,17 +230,19 @@ class Persons extends Component{
                     <Row className="mb-1" hidden={this.state.data.readOnly || this.props.readOnly}>
                         <Col xs='12' sm='12' lg='8' xl='8' >
                             <div hidden={this.state.data.table.rows==0 || this.state.data.table.headers.pages<2}>
-                                <SearchControl label={this.state.labels.search} table={this.state.data.table} loader={this.loader}/>
+                                <SearchControlNew label={this.state.labels.search} table={this.state.data.table} loader={this.loader}/>
                             </div>
                         </Col>
                         <Col xs='12' sm='12' lg='2' xl='2' >
                             <div hidden={this.state.selected==0}>
                                 <ButtonUni
                                     onClick={()=>{
-                                        Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/person/suspend", this.state.data, (query,result)=>{
-                                            this.state.data=result
-                                            this.loader()
-                                        })
+                                        Fetchers.alerts(this.state.labels.warningRemove, ()=>{
+                                            Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/person/suspend", this.state.data, (query,result)=>{
+                                                this.state.data=result
+                                                this.loader()
+                                            })
+                                        }, null)
                                     }}
                                     label={this.state.labels.global_suspend}
                                     color="warning"

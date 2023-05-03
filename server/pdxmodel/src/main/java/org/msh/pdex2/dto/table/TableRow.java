@@ -162,7 +162,7 @@ public class TableRow{
 	public String toString() {
 		String ret="";
 		for(TableCell cell : getRow()) {
-			ret=ret+cell.getKey() +"["+cell.getValue()+"], ";
+			ret=ret+cell.getKey() +"["+cell.getOriginalValue()+"], ";
 		}
 		return ret;
 	}

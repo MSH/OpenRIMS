@@ -14,6 +14,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  */
 @JsonIgnoreProperties(ignoreUnknown=true)
 public class AssemblyDTO extends AllowValidation {
+	private boolean hideFromApplicant=false;
 	private String url="";
 	private String dictUrl="";
 	private String auxDataUrl="";
@@ -24,8 +25,6 @@ public class AssemblyDTO extends AllowValidation {
 	private boolean mult=false;
 	private boolean unique=false;
 	private boolean prefLabel = false;
-	private LocalDate minDate=LocalDate.now().minusYears(3);	//default
-	private LocalDate maxDate=LocalDate.now().plusYears(3);
 	//borders for numbers
 	private BigDecimal min = BigDecimal.ZERO;
 	private BigDecimal max = BigDecimal.valueOf(100000000L);
@@ -34,6 +33,12 @@ public class AssemblyDTO extends AllowValidation {
 	//description for help
 	private String description="";
 	
+	public boolean isHideFromApplicant() {
+		return hideFromApplicant;
+	}
+	public void setHideFromApplicant(boolean hideFromApplicant) {
+		this.hideFromApplicant = hideFromApplicant;
+	}
 	public String getUrl() {
 		return url;
 	}

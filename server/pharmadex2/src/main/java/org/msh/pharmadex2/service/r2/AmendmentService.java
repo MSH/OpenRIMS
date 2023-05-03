@@ -722,6 +722,7 @@ public class AmendmentService {
 		return data;
 	}
 
+
 	/**
 	 * Propose a data units for data selected Data selecte is a root node of an
 	 * application data
@@ -925,6 +926,13 @@ public class AmendmentService {
 		TableQtb table = data.getApplications();
 		if (table.getHeaders().getHeaders().size() == 0) {
 			table.setHeaders(headersApplications(table.getHeaders()));
+			if (data.getDataNodeId() > 0) {
+				for(TableRow tr:data.getApplications().getRows()) {
+					if(tr.getDbID() == data.getDataNodeId()) {
+						tr.setSelected(true);
+					}
+				}
+			}
 		}
 		jdbcRepo.applications_hosted_inactive(null, user.getEmail(), true);
 		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from applications_hosted_inactive", "", "", table.getHeaders());
@@ -1599,6 +1607,11 @@ public class AmendmentService {
 				thingAmendmentRepo.save(ta);
 			}
 		}
+	}
+	@Transactional
+	public boolean hasAmendment(Concept applicationData) throws ObjectNotFoundException {
+		Thing thing = boilerServ.thingByNode(applicationData);
+		return thing.getAmendments() != null && thing.getAmendments().size()>0;
 	}
 
 }

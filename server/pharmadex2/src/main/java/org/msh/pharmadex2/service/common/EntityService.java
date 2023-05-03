@@ -1,5 +1,14 @@
 package org.msh.pharmadex2.service.common;
 
+import java.lang.reflect.Field;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Date;
+
+import org.msh.pdex2.dto.table.Headers;
+import org.msh.pdex2.dto.table.TableCell;
+import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.model.r2.Assembly;
 import org.msh.pdex2.model.r2.Checklistr2;
@@ -27,6 +36,8 @@ public class EntityService {
 	private ClosureService closureServ;
 	@Autowired
 	private LiteralService literalServ;
+	@Autowired
+	private BoilerService boilerServ;
 	/**
 	 * Create concept from node
 	 * @param nodeDTO
@@ -85,6 +96,7 @@ public class EntityService {
 	 */
 	@Transactional
 	public Assembly assembly(DataVariableDTO data, Concept node, Assembly assm) {
+		assm.setHidefromapplicant(data.getHidefromapplicant().getValue().getId()==1);
 		assm.setClazz(data.getClazz().getValue().getCode());
 		assm.setCol(data.getCol().getValue().intValue());
 		assm.setDictUrl(data.getDictUrl().getValue());
@@ -103,7 +115,149 @@ public class EntityService {
 		assm.setAuxDataUrl(data.getAuxUrl().getValue());
 		return assm;
 	}
-	
+	/**
+	 * Render any object from a TableQtb row
+	 * Typically for entities
+	 * @param row
+	 * @param obj
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public Object renderFromQtbTable(TableRow row, Object obj) throws ObjectNotFoundException {
+		Field[] flds = obj.getClass().getDeclaredFields();
+		for(TableCell cell : row.getRow()) {
+			Field fld=searchForFiled(flds, cell.getKey());
+			if(fld!=null) {
+				fld = setFieldValue(obj, fld,cell.getOriginalValue());
+			}
+		}
+		return obj;
+	}
+
+	/**
+	 * Set field value to the object given
+	 * We presume that objVal is from known types of TableQtb cells
+	 * @param object to set a value
+	 * @param fld field in the object to set a value
+	 * @param objVal - value to set 
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	Field setFieldValue(Object object, Field fld, Object objVal) throws ObjectNotFoundException {
+		fld.setAccessible(true);
+		try {
+			//integers
+			if(fld.getType().getName().equalsIgnoreCase("int")) {
+				if(objVal instanceof Long){
+					Long lval = (Long) objVal;
+					fld.setInt(object,lval.intValue());
+					return fld;
+				}else {
+					throw new IllegalArgumentException();
+				}
+			}
+			if(fld.getType().getName().equalsIgnoreCase("long")) {
+				if(objVal instanceof Long){
+					Long lval = (Long) objVal;
+					fld.setLong(object,lval.longValue());
+					return fld;
+				}else {
+					throw new IllegalArgumentException();
+				}
+			}
+			if(fld.getType().getName().equalsIgnoreCase("short")) {
+				if(objVal instanceof Long){
+					Long lval = (Long) objVal;
+					fld.setShort(object,lval.shortValue());
+					return fld;
+				}else {
+					throw new IllegalArgumentException();
+				}
+			}
+			if(fld.getType().getName().equalsIgnoreCase("byte")) {
+				if(objVal instanceof Long){
+					Long lval = (Long) objVal;
+					fld.setByte(object,lval.byteValue());
+					return fld;
+				}else {
+					throw new IllegalArgumentException();
+				}
+			}
+			// floating are near impossible
+			if(fld.getType().getName().equalsIgnoreCase("float")) {
+				if(objVal instanceof BigDecimal){
+					BigDecimal lval = (BigDecimal) objVal;
+					fld.setFloat(object,lval.floatValue());
+					return fld;
+				}else {
+					throw new IllegalArgumentException();
+				}
+			}
+			if(fld.getType().getName().equalsIgnoreCase("double")) {
+				if(objVal instanceof BigDecimal){
+					BigDecimal lval = (BigDecimal) objVal;
+					fld.setDouble(object,lval.doubleValue());
+					return fld;
+				}else {
+					throw new IllegalArgumentException();
+				}
+			}
+			//booleans
+			if(fld.getType().getName().equalsIgnoreCase("boolean")) {
+				if(objVal instanceof Boolean){
+					Boolean lval = (Boolean) objVal;
+					fld.setBoolean(object,lval.booleanValue());
+					return fld;
+				}else {
+					throw new IllegalArgumentException();
+				}
+			}
+			//char is impossible in this particular case
+			
+			//date and date time
+			if(fld.getType().getName().equalsIgnoreCase("Date")) {
+				if(objVal instanceof LocalDate){
+					LocalDate lval= (LocalDate) objVal;
+					Date dt = boilerServ.localDateToDate(lval);
+					fld.set(object,dt);
+					return fld;
+				}else {
+					if(objVal instanceof LocalDateTime) {
+						LocalDateTime lval = (LocalDateTime) objVal;
+						Date dt = boilerServ.localDateTimeToDate(lval);
+						fld.set(object,dt);
+						return fld;
+					}else {
+						throw new IllegalArgumentException();
+					}
+				}
+			}
+			//objects
+			fld.set(object,objVal);
+			
+		} catch (IllegalArgumentException | IllegalAccessException e) {
+			throw new ObjectNotFoundException("setFieldValue. Inappropriative field type "+ fld.getName() +
+					"/"+objVal.getClass().getSimpleName(), logger);
+		}
+		return fld;
+	}
+
+	/**
+	 * Search for a field with a name given
+	 * Case insensitive
+	 * @param flds
+	 * @param name
+	 * @return null if not found
+	 */
+	private Field searchForFiled(Field[] flds, String name) {
+		for(Field fld : flds) {
+			if(fld.getName().equalsIgnoreCase(name)) {
+				return fld;
+			}
+		}
+		return null;
+	}
+
 
 
 }

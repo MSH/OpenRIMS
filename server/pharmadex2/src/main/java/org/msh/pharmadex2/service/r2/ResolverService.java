@@ -6,6 +6,8 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -36,6 +38,9 @@ import org.msh.pharmadex2.dto.RegisterDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
 import org.msh.pharmadex2.dto.SchedulerDTO;
 import org.msh.pharmadex2.dto.ThingValuesDTO;
+import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
+import org.msh.pharmadex2.dto.form.FormFieldDTO;
+import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,11 +74,12 @@ public class ResolverService {
 	/**
 	 * Resolve model to values map for using in DocxView
 	 * @param model
+	 * @param user 
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public Map<String, Object> resolveModel(Map<String, Object> model, ResourceDTO fres) throws ObjectNotFoundException {
+	public Map<String, Object> resolveModel(Map<String, Object> model, ResourceDTO fres, UserDetailsDTO user) throws ObjectNotFoundException {
 		boolean hasTable=false;			//should we resolve @form or @changes
 		for(String key : model.keySet()) {
 			if(key.toUpperCase().contains("@FORM") || key.toUpperCase().contains("@CHANGES")){
@@ -83,12 +89,15 @@ public class ResolverService {
 		}
 		Map<String, Object> errors = new LinkedHashMap<String, Object>();
 		Map<String, List<AssemblyDTO>> assemblies = new HashMap<String, List<AssemblyDTO>>();
+		if(!model.containsKey("_ERROR_")) {
+			model.put("_ERROR_", new String());
+		}
 		for(String key :model.keySet()) {
 			if(model.get(key).getClass().getName().contains("Object")) {
 				logger.trace("resolve key "+key);
 				String[] expr = key.split("@");
 				if(expr.length==2) {
-					Map<String, Object> value = resolve(expr[0],fres, assemblies, hasTable);	//first change here in READVARIABLE
+					Map<String, Object> value = resolve(expr[0],fres, assemblies, hasTable, user);	//first change here in READVARIABLE
 					model.put(key, valueToString(value, expr[1]));				//second there
 					errors = resolveError(value, errors);
 				}else {
@@ -177,7 +186,7 @@ public class ResolverService {
 
 
 			if(dataType.equalsIgnoreCase("date") || dataType.equalsIgnoreCase("registered") || dataType.equalsIgnoreCase("expired")
-					||  dataType.equalsIgnoreCase("from") ||  dataType.equalsIgnoreCase("to")) {
+					||  dataType.equalsIgnoreCase("from") ||  dataType.equalsIgnoreCase("to") || dataType.equalsIgnoreCase("today")) {
 				if(data instanceof LocalDate) {
 					LocalDate ld = (LocalDate) data;
 					String ldStr = ld.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM));
@@ -185,7 +194,7 @@ public class ResolverService {
 				}
 			}
 
-			if(dataType.equalsIgnoreCase("dateBS")) {
+			if(dataType.equalsIgnoreCase("dateBS") || dataType.equalsIgnoreCase("todayBS")) {
 				if(data instanceof LocalDate) {
 					LocalDate ld = (LocalDate) data;
 					String ldStr = boilerServ.localDateToNepali(ld, true);
@@ -193,7 +202,7 @@ public class ResolverService {
 				}
 			}
 
-			if(dataType.equalsIgnoreCase("dateBS1")) {
+			if(dataType.equalsIgnoreCase("dateBS1") || dataType.equalsIgnoreCase("todayBS1")) {
 				if(data instanceof LocalDate) {
 					LocalDate ld = (LocalDate) data;
 					String ldStr = boilerServ.localDateToNepali(ld, false);
@@ -238,12 +247,12 @@ public class ResolverService {
 				YesNoNA v = (YesNoNA)data;
 				ret = messages.get(v.getKey());
 			}
-			
+
 			//the rest are always strings
 			if(data instanceof String) {
 				ret=(String) data;
 			}
-			
+
 			return ret;
 		}else {
 			if(value.size()>0) {
@@ -266,63 +275,82 @@ public class ResolverService {
 	 * @param fres - the template with EL expressions
 	 * @param assemblies 
 	 * @param hasTable - should we call ObjectToTable?
+	 * @param user 
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public Map<String, Object> resolve(String expr,  ResourceDTO fres, Map<String, List<AssemblyDTO>> assemblies, boolean hasTable) throws ObjectNotFoundException{
+	public Map<String, Object> resolve(String expr,  ResourceDTO fres, Map<String, List<AssemblyDTO>> assemblies, boolean hasTable, UserDetailsDTO user) throws ObjectNotFoundException{
 		//System.out.println(new Date());
 		Map<String, Object> ret = new LinkedHashMap<String, Object>();
 		long historyId=fres.getHistoryId();
 		if(expr!=null && expr.length()>0) {
 			if(historyId>0) {
 				List<String> urls = Arrays.asList(expr.split("/"));
-				if(urls.size()==0) {
-					return renderServ.root(fres, historyId, assemblies, ret);
+				// the whole document {/@form}, {/@changes} {/@today} {/@todayBS} {/@todayBS1} {@author}
+				if(urls.size()==0) {																	
+					return renderServ.root(fres, historyId, assemblies, hasTable, user, ret);
 				}
-				//Deprecated
-				if(urls.get(0).equalsIgnoreCase("character")) {
-					return resolveCharacter(urls,fres,ret);
-				}
-				//Deprecated
-				if(urls.get(0).equalsIgnoreCase("person")) {
-					//resolve from person node
-					return resolvePerson(urls, fres, ret,assemblies);
-				}
-				if(urls.get(0).equalsIgnoreCase("this")) {
-					//resolve from the current Thing
+				//The current electronic form
+				if(urls.get(0).equalsIgnoreCase("this")) {								
 					if(urls.size()==2) {
 						ret=readVariableFromThing(urls.get(1),fres.getData(),ret);
 						return ret;
 					}else {
-						ret = renderServ.error(expr, "resolve. Invalid expression "+expr,ret);
+						return renderServ.error(expr, "resolve. Invalid expression "+expr,ret);
 					}
-					//top url may belong to application or activity data, but anyway it is a thing
-				}else {
-					//resolve from the top concept
-					long nodeId = fres.getData().getNodeId();
-					if(nodeId==0) {
-						nodeId=fres.getData().getParentId();
-					}
-					Concept topConcept = renderServ.topConcept(urls.get(0), nodeId, historyId,ret);
-					if(topConcept!=null) {
-						if(urls.size()>=1) {
-							ret = plainVariable(ret, urls, topConcept,assemblies, hasTable);					//dive here to add a new EL
-						}else {
-							ret = renderServ.error("resolve. Variable is not defined. "+expr, expr, ret);
-							return ret;
+				}
+				//the current workflow process
+				if(urls.get(0).equalsIgnoreCase("process")) {
+					if(urls.size()>2) {
+						History his = boilerServ.historyById(fres.getHistoryId());
+						List<History> applHis = boilerServ.historyAllByApplication(his.getApplication());
+						String activityUrl=urls.get(1);
+						LocalDate goDate = LocalDate.now().minusYears(100);
+						//select activityData for the most recent resolved activity with the activityUrl given
+						for(History h : applHis) {
+							if(h.getActivityData() != null && h.getGo() != null) {
+								if(boilerServ.localDateFromDate(h.getGo()).isAfter(goDate)) {
+									goDate=boilerServ.localDateFromDate(h.getGo());
+									Concept executor = closureServ.getParent(h.getActivity());
+									Concept actRoot=closureServ.getParent(executor);
+									if(actRoot.getIdentifier().equalsIgnoreCase("activity."+activityUrl)) {
+										//imitate resolving from the main page
+										List<String> newPath=new ArrayList<String>();
+										newPath.add("");
+										newPath.add(urls.get(2));
+										//
+										ret = plainVariable(ret, newPath , h.getActivityData(),assemblies, hasTable);
+										return ret;
+									}
+								}
+							}
 						}
+						return renderServ.error("resolve. Variable is not defined. "+expr, expr, ret);
+					}else {
+						return renderServ.error(expr, "resolve. Invalid expression "+expr,ret);
+					}
+				}
+				//resolve from the top concept
+				long nodeId = fres.getData().getNodeId();
+				if(nodeId==0) {
+					nodeId=fres.getData().getParentId();
+				}
+				Concept topConcept = renderServ.topConcept(urls.get(0), nodeId, historyId,ret);
+				if(topConcept!=null) {
+					if(urls.size()>=1) {
+						ret = plainVariable(ret, urls, topConcept,assemblies, hasTable);					//dive here to add a new EL
+					}else {
+						ret = renderServ.error("resolve. Variable is not defined. "+expr, expr, ret);
+						return ret;
 					}
 				}
 			}else {
 				ret = renderServ.error(expr, "resolve. History ID in ThingDTO is ZERO - wrong software codes, call tech support!",ret);
-				return ret;
 			}
 		}else {
 			ret = renderServ.error(expr, "resolve. Expression is empty",ret);
-			return ret;
 		}
-		//System.out.println(new Date());
 		return ret;
 	}
 
@@ -358,115 +386,7 @@ public class ResolverService {
 		return ret;
 	}
 
-	/**
-	 * Resolve PersonSpecial assignment
-	 * @param urls
-	 * @param fres
-	 * @param ret
-	 * @return
-	 * @deprecated
-	 * @throws ObjectNotFoundException 
-	 */
-	@Transactional
-	private Map<String, Object> resolveCharacter(List<String> urls, ResourceDTO fres, Map<String, Object> ret) throws ObjectNotFoundException {
-		long historyId=fres.getHistoryId();
-		if(urls.size()>2) {		//character/pharmacist/prefLabel@literal
-			if(historyId>0) {
-				History his = boilerServ.historyById(historyId);
-				Thing thing = boilerServ.thingByNode(his.getApplicationData());
-				long characterId = 0;
-				for(ThingThing tt : thing.getThings()) {
-					if(tt.getVarname().equalsIgnoreCase(urls.get(1))) {
-						String idStr = tt.getConcept().getLabel();
-						if(idStr != null) {
-							try {
-								characterId= new Long(idStr);
-							} catch (NumberFormatException e) {
-								//nothing to do
-							}
-						}
-					}
-				}
-				if(characterId>0) {
-					Concept topConcept=closureServ.loadConceptById(characterId);
-					urls=urls.subList(1,urls.size());		//character
-					//search for concept
-					int lastIndex=urls.size()-1;
-					if(lastIndex>=1) {
-						String varName=urls.get(lastIndex);
-						urls=urls.subList(1, lastIndex);
-						Concept var=topConcept;
-						for(String v : urls) {
-							var=nextConcept(v, var,ret);
-						}
-						Map<String, List<AssemblyDTO>> assemblies = new HashMap<String, List<AssemblyDTO>>();
-						ret=readVariable(varName, var, ret,assemblies,true);
-					}else {
-						ret = renderServ.error(urls.toString(), "resolveCharacter. Variable is not defined. "+urls, ret);
-						return ret;
-					}
-				}else {
-					ret = renderServ.error(urls.get(1), "resolveCharacter. character not found. Variable is " + urls.get(1), ret);
-				}
-			}else {
-				ret = renderServ.error("Call Tech Support!","resolveCharacter. HistoryID is zero",ret);
-			}
-		}else {
-			ret = renderServ.error(urls.toString(),"reslveCharacter. Path should contain at least 3 componetns. Actual is " + urls.size(), ret);
-		}
-		return ret;
-	}
-	/**
-	 * Resolve person data
-	 * person/selector/url/variable@convertor
-	 * @param urls
-	 * @param fres
-	 * @param ret 
-	 * @param assemblies2 
-	 * @deprecated
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	@Transactional
-	private Map<String, Object> resolvePerson(List<String> urls, ResourceDTO fres, Map<String, Object> ret, 
-			Map<String, List<AssemblyDTO>> assemblies) throws ObjectNotFoundException {
-		if(urls.size()>=4) {
-			String personSelector = urls.get(1);
-			Set<String> keys = fres.getData().getPersonselection().keySet();
-			long persNodeId=0l;
-			for(String key : keys) {
-				if(key.equalsIgnoreCase(personSelector)) {
-					persNodeId=fres.getData().getPersonselection().get(key);
-					break;
-				}
-			}
-			if(persNodeId>0) {
-				Concept topConcept=closureServ.loadConceptById(persNodeId);
-				if(topConcept!=null) {
-					urls=urls.subList(2,urls.size());		//person + selector name
-					//search for concept
-					int lastIndex=urls.size()-1;
-					if(lastIndex>=1) {
-						String varName=urls.get(lastIndex);
-						urls=urls.subList(1, lastIndex);
-						Concept var=topConcept;
-						for(String v : urls) {
-							var=nextConcept(v, var,ret);
-						}
-						ret=readVariable(varName, var, ret, assemblies,true);				//ADD NEW CLASSESS TO IT!
-					}else {
-						ret = renderServ.error(urls.toString(),"resolve. Variable is not defined. "+urls,ret);
-					}
-				}
-			}else {
-				ret = renderServ.error("Select a person","resolvePerson. Selection not found for selector "+personSelector, ret);
-			}
-			return ret;
-		}else {
-			ret = renderServ.error(urls.toString(),"resolvePerson. Should be at least 4 elements, actually "+urls.size() ,ret);
-			return ret;
-		}
-	}
+
 	/**
 	 * Read values from the current thing passed in FileResourseDTO.data
 	 * @param varName 
@@ -541,7 +461,24 @@ public class ResolverService {
 			value.put("registeredBS1",boilerServ.localDateToNepali(valReg.getRegistration_date().getValue(),false));
 			value.put("expiredBS1",boilerServ.localDateToNepali(valReg.getExpiry_date().getValue(),false));
 		}
-
+		//droplist
+		FormFieldDTO<OptionDTO> dropList= data.getDroplist().get(varName.toUpperCase());
+		if(dropList != null) {
+			if(dropList.getValue().getId()>0) {
+				String code=dropList.getValue().getCode();
+				if(code.isEmpty()|| code==null) {
+					value.put("label"," ");
+				}else {
+					value.put("label", code);
+				}
+				String disc=dropList.getValue().getDescription();
+				if(disc.isEmpty()|| disc==null) {
+					value.put("description"," ");
+				}else {
+					value.put("description", disc);
+				}
+			}
+		}
 		return value;
 	}
 	/**
@@ -583,6 +520,7 @@ public class ResolverService {
 		List<AssemblyDTO> links = assembly(varThing.getUrl(), "links", assemblies);
 		List<AssemblyDTO> things = assembly(varThing.getUrl(), "things", assemblies);
 		List<AssemblyDTO> logical = assembly(varThing.getUrl(), "logical", assemblies);
+		List<AssemblyDTO> droplist = assembly(varThing.getUrl(), "droplist", assemblies);
 
 		for(AssemblyDTO ad : strings) {											//strings are literals
 			if(ad.getPropertyName().equalsIgnoreCase(varName)) {
@@ -710,7 +648,11 @@ public class ResolverService {
 			if(ad.getPropertyName().equalsIgnoreCase(varName)) {
 				YesNoNA ch = renderServ.logicalChoice(varName, var);
 				value.put("choice", ch);
-				return value;
+			}
+		}
+		for(AssemblyDTO dl : droplist) {
+			if(dl.getPropertyName().equalsIgnoreCase(varName)) {
+				value=droplist(dl, varName, var, value);
 			}
 		}
 
@@ -947,7 +889,17 @@ public class ResolverService {
 		List<String> preflabels = new ArrayList<String>();
 		List<String> descr = new ArrayList<String>();
 		List<Long> ids=new ArrayList<Long>();
-		for(ThingDoc td:thing.getDocuments()) {
+		List<ThingDoc> sortedDocuments = new ArrayList<ThingDoc>();
+		sortedDocuments.addAll(thing.getDocuments());
+		Collections.sort(sortedDocuments, new Comparator<ThingDoc>() {
+			@Override
+			public int compare(ThingDoc o1, ThingDoc o2) {
+				Long id1= new Long(o1.getDictNode().getID());
+				Long id2=new Long(o2.getDictNode().getID());
+				return id1.compareTo(id2);
+			}
+		});
+		for(ThingDoc td:sortedDocuments) {
 			if(td.getVarName().equalsIgnoreCase(varName)) {
 				Concept c = td.getConcept();
 				String fname = c.getLabel();
@@ -985,6 +937,10 @@ public class ResolverService {
 
 		return value;
 	}
+	private Comparator Comparable() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 	/**
 	 * Read selected dictionary values
 	 * @param ad 
@@ -1004,6 +960,28 @@ public class ResolverService {
 			}
 		}
 		renderServ.dictionaryValues(value, selected);
+		return value;
+	}
+
+	/**
+	 * Read selected droplists values
+	 * @param ad 
+	 * @param varName
+	 * @param var
+	 * @param value
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public Map<String, Object> droplist(AssemblyDTO ad, String varName, Concept var, Map<String, Object> value) throws ObjectNotFoundException {
+		value.clear();
+		Thing thing = boilerServ.thingByNode(var);
+		for(ThingDict td :thing.getDictionaries()) {
+			if(td.getVarname().equalsIgnoreCase(varName)) {
+				Concept item=td.getConcept();
+				value.put("label",literalServ.readPrefLabel(item));
+				value.put("description",literalServ.readDescription(item));
+			}
+		}
 		return value;
 	}
 

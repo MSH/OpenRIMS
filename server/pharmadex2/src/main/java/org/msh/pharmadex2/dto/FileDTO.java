@@ -45,7 +45,8 @@ public class FileDTO extends AllowValidation{
 	private String mediaType = "";
 	//stored uploads for the current session
 	private Map<Long,Long> linked = new LinkedHashMap<Long, Long>(); // (dictNodeId, nodeId)
-
+	private Long maxFileSize = new Long(0l); //in KBytes
+	
 	public boolean isChanged() {
 		return changed;
 	}
@@ -150,6 +151,12 @@ public class FileDTO extends AllowValidation{
 	}
 	public void setLinked(Map<Long, Long> linked) {
 		this.linked = linked;
+	}
+	public Long getMaxFileSize() {
+		return maxFileSize;
+	}
+	public void setMaxFileSize(Long maxFileSize) {
+		this.maxFileSize = maxFileSize;
 	}	
 	
 }

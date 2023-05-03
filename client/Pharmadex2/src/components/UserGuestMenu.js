@@ -44,27 +44,27 @@ class UserGuestMenu extends Component{
     render(){
       if(this.state.labels.userNameFld == undefined || this.state.data.userNameFld == undefined || this.state.labels.logout.length==0){
         return []
-    }
-        return(
+      }
+      return(
         <Navbar dark expand="md">
-        <NavbarToggler onClick={()=>{this.state.isOpen=!this.state.isOpen; this.setState(this.state)}} className="me-2" />
-        <Collapse isOpen={this.state.isOpen} navbar>
-          <Nav className="me-auto" navbar>
-            <NavItem>
-              <Form inline style={{color:'white'}}>
-                <FieldDisplay mode="text" attribute="userNameFld" component={this} hideEmpty={false} />
-              </Form>
-            </NavItem>
-            <NavItem>
-              <NavLink href="/logout">{this.state.labels.logout}</NavLink>
-            </NavItem>
-            <NavItem>
-                <Languages />
-            </NavItem>
-          </Nav>
-        </Collapse>
-      </Navbar>
-        )
+          <NavbarToggler onClick={()=>{this.state.isOpen=!this.state.isOpen; this.setState(this.state)}} className="me-2" />
+          <Collapse isOpen={this.state.isOpen} navbar>
+            <Nav className="me-auto" navbar>
+              <NavItem>
+                <Form inline style={{color:'white'}}>
+                  <FieldDisplay mode="text" attribute="userNameFld" component={this} hideEmpty={false} />
+                </Form>
+              </NavItem>
+              <NavItem>
+                <NavLink onClick={()=>{Fetchers.logout()}}><span style={{cursor:'pointer'}}>{this.state.labels.logout}</span></NavLink>
+              </NavItem>
+              <NavItem>
+                  <Languages />
+              </NavItem>
+            </Nav>
+          </Collapse>
+        </Navbar>
+      )
     }
 
 

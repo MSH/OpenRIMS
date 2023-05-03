@@ -21,6 +21,7 @@ class AmendmentSelect extends Component{
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
+        this.loadData=this.loadData.bind(this)
         this.applications=this.applications.bind(this)
     }
 
@@ -28,23 +29,30 @@ class AmendmentSelect extends Component{
      * Listen messages from other components
      * @param {Window Event} event 
      */
-        eventProcessor(event){
-            let data=event.data
-            if(data.subject=="onSelectionChange" && data.from==this.state.identifier+"_dict"){
-                this.state.data=data.data
-                this.setState(this.state)
-            }
+    eventProcessor(event){
+        let data=event.data
+        if(data.subject=="onSelectionChange" && data.from==this.state.identifier+"_dict"){
+            this.state.data=data.data
+            this.setState(this.state)
         }
+    }
 
     componentDidMount(){
         window.addEventListener("message",this.eventProcessor)
         Locales.resolveLabels(this)
+        this.loadData()
+        
+    }
+
+    loadData(){
         Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/amendments", this.state.data, (query,result)=>{
             this.state.data=result
+            let selected_row=Fetchers.readLocaly("amendments_selected_row",1);
+            if(this.state.data.table.rows.length > 0)
+                this.state.data.table.rows[selected_row].selected=true
             this.setState(this.state)
         })
     }
-
     componentWillUnmount(){
         window.removeEventListener("message",this.eventProcessor)
     }
@@ -54,14 +62,15 @@ class AmendmentSelect extends Component{
     applications(){
         let amdTypeId=0
         if(this.state.data.table != undefined && Fetchers.isGoodArray(this.state.data.table.rows)){
-            this.state.data.table.rows.forEach(row => {
+            this.state.data.table.rows.forEach((row,index) => {
                 if(row.selected){
                     amdTypeId=row.dbID
+                    Fetchers.writeLocaly("amendments_selected_row", index);
                 }
             });
         }
         if(amdTypeId>0){
-            return <ApplicationList dictItemId={amdTypeId} recipient={this.state.identifier} noadd /> 
+            return <ApplicationList dictItemId={amdTypeId} recipient={this.state.identifier} amend noadd /> 
         }else{
             return []
         }

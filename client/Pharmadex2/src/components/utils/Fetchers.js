@@ -8,6 +8,30 @@ import Alerts from './Alerts'
 class Fetchers{
 
     /**
+     * Show Alert question, after answer YES send request
+     * ansfer NO - nothing
+     */
+    static alerts(alert, ansYES, ansNO){
+        if(alert != undefined && alert.length > 0){
+            Alerts.warning(alert,
+                ()=>{   //yes
+                    ansYES()
+                },
+                ()=>{   //no
+                    if(ansNO != null){
+                        ansNO()
+                    }
+                })
+        }else{
+
+        }
+    }
+
+    
+
+
+
+    /**
      * Post a JSON Query to server with or a spinner
      * set justloaded=true for any object loaded - deep
      * @param {String} api API URL, like "/api/countryDetails"
@@ -61,11 +85,25 @@ class Fetchers{
           })
           .catch(error=> {
               Spinner.hide()
-              Alerts.showSessionTimeOut("Your session has timed out. Please login again", ()=>{window.location="/logout"})
+              Alerts.showSessionTimeOut("Your session has timed out. Please login again", ()=>{Fetchers.logoutTimeOut()})
             }
            ) 
     }
 
+    static logoutTimeOut(){
+        let h = window.location.hash
+        window.document.cookie = "PDX2_SENDURL=" + encodeURIComponent(h);
+
+        window.location="/logout";
+        location.reload();
+    }
+
+    static logout(){
+        window.document.cookie = "PDX2_SENDURL=";
+
+        window.location.hash = ""
+        window.location.href="/logout";
+    }
     /**
      * For this and all objects downto sets justloaded property
      * @param {object} resp - just loaded data
@@ -232,9 +270,16 @@ class Fetchers{
         let str = window.localStorage.getItem(containerName+"_Pharmadex2")
         if(str!=null){
             return JSON.parse(str)
-        }else{
+        }else {
             this.writeLocaly(containerName,state)
             return state
+        }
+    }
+
+    static removeLocaly(containerName){
+        let str = window.localStorage.getItem(containerName+"_Pharmadex2")
+        if(str!=null){
+            window.localStorage.removeItem(containerName+"_Pharmadex2")
         }
     }
     /**

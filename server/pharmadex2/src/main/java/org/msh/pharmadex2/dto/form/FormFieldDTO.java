@@ -20,6 +20,7 @@ public class FormFieldDTO<T> extends FieldSuggest{
 	private T value = null;
 	private int bdScale=2;		//Big decimal scale
 	private boolean mark=false;	//mark this field by color
+	private String detail=""; // 06122022 khomenska auxiliary field, for example for the calendar type depending on the configuration settings
 
 	public FormFieldDTO() {
 		super();
@@ -80,6 +81,14 @@ public class FormFieldDTO<T> extends FieldSuggest{
 
 	public void setMark(boolean mark) {
 		this.mark = mark;
+	}
+
+	public String getDetail() {
+		return detail;
+	}
+
+	public void setDetail(String detail) {
+		this.detail = detail;
 	}
 
 	@Override

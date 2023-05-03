@@ -82,6 +82,6 @@ FieldGuarded.propTypes={
     mode: PropTypes.oneOf(['text','textarea','number']).isRequired, //type of data
     attribute  :PropTypes.string.isRequired,                        //should be component.state.labels[attribute] and component.state.data[attribute]
     component   :PropTypes.object.isRequired,                        //caller component
-    editno:PropTypes.bool.isRequired,    //show read-only data,
+    editno:PropTypes.bool,    //show read-only data,
     //nodeId:PropTypes.number.isRequired         //data collection node id (a data collection consists of variables)
 }

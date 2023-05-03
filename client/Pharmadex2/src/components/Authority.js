@@ -7,7 +7,7 @@ import ButtonUni from './form/ButtonUni'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
 import CollectorTable from './utils/CollectorTable'
-import SearchControl from './utils/SearchControl'
+import SearchControlNew from './utils/SearchControlNew'
 import Pharmadex from './Pharmadex'
 
 /**
@@ -35,7 +35,8 @@ class Authority extends Component{
                 cancel:'',
                 global_details:'',
                 global_suspend:'',
-                arearesponsibility:''
+                arearesponsibility:'',
+                warningRemove:''
             }
         }
         this.createBreadCrumb=this.createBreadCrumb.bind(this)
@@ -132,14 +133,16 @@ class Authority extends Component{
                     <ButtonUni
                             label={this.state.labels.global_suspend}
                             onClick={()=>{
-                            Fetchers.postJSONNoSpinner("/api/admin/organization/suspend", this.state.data,(query,result)=>{
-                                if(this.state.data.valid){
-                                    this.cancel()
-                                }else{
-                                    this.state.data=result
-                                    this.setState(this.state)
-                                }
-                            })
+                                Fetchers.alerts(this.state.labels.warningRemove, ()=>{
+                                    Fetchers.postJSONNoSpinner("/api/admin/organization/suspend", this.state.data,(query,result)=>{
+                                        if(this.state.data.valid){
+                                            this.cancel()
+                                        }else{
+                                            this.state.data=result
+                                            this.setState(this.state)
+                                        }
+                                    })
+                                }, null)
                             }}
                             color="warning"
                             disabled={!this.state.data.node.leaf}
@@ -193,7 +196,7 @@ class Authority extends Component{
                     </Row>
                     <Row className='mt-1 mb-1'>
                         <Col xs='12' sm='12' lg='8' xl='8'>
-                            <SearchControl label={this.state.labels.search} table={this.state.data.table} loader={this.loadTable} />
+                            <SearchControlNew label={this.state.labels.search} table={this.state.data.table} loader={this.loadTable} />
                         </Col>
                         <Col xs='12' sm='12' lg='4' xl='4'>
                             <ButtonGroup size="sm">

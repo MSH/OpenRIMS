@@ -34,6 +34,7 @@ class DictNode extends Component{
                 save:'',
                 cancel:'',
                 global_suspend:'',
+                warningRemove:''
             },
             data:{}
         }
@@ -159,14 +160,16 @@ class DictNode extends Component{
                             label={this.state.labels.global_suspend}
                             color="warning"
                             onClick={()=>{
-                                Fetchers.postJSONNoSpinner("/api/admin/dictionary/node/suspend",this.state.data,(query,result)=>{
-                                    this.state.data=result
-                                    if(this.state.data.valid){
-                                        this.props.onCancel()
-                                    }else{
-                                        this.setState(this.state)
-                                    }
-                                })
+                                Fetchers.alerts(this.state.labels.warningRemove, ()=>{
+                                    Fetchers.postJSONNoSpinner("/api/admin/dictionary/node/suspend",this.state.data,(query,result)=>{
+                                        this.state.data=result
+                                        if(this.state.data.valid){
+                                            this.props.onCancel()
+                                        }else{
+                                            this.setState(this.state)
+                                        }
+                                    })
+                                }, null)
                             }}
                         />
                     </Col>

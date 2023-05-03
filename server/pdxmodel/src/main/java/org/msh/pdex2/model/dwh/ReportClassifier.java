@@ -25,8 +25,8 @@ public class ReportClassifier implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC2222741838448926707376")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC2222741838448926707376", strategy="native")	
+	@GeneratedValue(generator="VAC222277187B38344450A603")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC222277187B38344450A603", strategy="native")	
 	private long ID;
 	
 	@ManyToOne(targetEntity=org.msh.pdex2.model.dwh.ReportPage.class)	
@@ -65,13 +65,13 @@ public class ReportClassifier implements Serializable {
 	@Column(name="DictPrefLabel", nullable=true, length=255)	
 	private String dictPrefLabel;
 	
-	@Column(name="ItemPrefLabel", nullable=true, length=255)	
+	@Column(name="ItemPrefLabel", nullable=true)	
 	private String itemPrefLabel;
 	
-	@Column(name="ItemAltLabel", nullable=true, length=255)	
+	@Column(name="ItemAltLabel", nullable=true)	
 	private String itemAltLabel;
 	
-	@Column(name="PathToItem", nullable=true, length=1024)	
+	@Column(name="PathToItem", nullable=true)	
 	private String pathToItem;
 	
 	private void setID(long value) {

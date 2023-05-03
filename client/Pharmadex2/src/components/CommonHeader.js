@@ -1,6 +1,7 @@
 import React , {Component} from 'react'
 import PropTypes from 'prop-types'
 import {Container, Row, Col} from 'reactstrap'
+import Locales from './utils/Locales'
 import UserNotAuthMenu from './UserNotAuthMenu'
 import UserAuthMenu from './UserAuthMenu'
 import UserGuestMenu from './UserGuestMenu'
@@ -13,6 +14,12 @@ class CommonHeader extends Component{
     constructor(props){
         super(props)
         this.userMenu=this.userMenu.bind(this)
+        this.state={
+            labels:{
+                logo_url:'',
+            }
+        }
+        this.logo=this.logo.bind(this)
     }
 
     /**
@@ -40,13 +47,32 @@ class CommonHeader extends Component{
                 return (<UserAuthMenu />)
         }
     }
+    componentDidMount(){
+        Locales.resolveLabels(this)
+    }
+    /**
+     * To click or not to click?
+     */
+    logo(){
+        if(this.state.labels.logo_url.toUpperCase().startsWith("HTTP")){
+            return(
+                <a href={this.state.labels.logo_url} target='_blank'><img src="api/public/headerlogo" height={60}/> </a>
+            )
+        }else{
+            return(
+                <img src="api/public/headerlogo" height={60}/>
+            )
+        }
+    }
     render(){
-
+        if(this.state.labels.locale==undefined){
+            return []
+        }
         return(
             <Container fluid className="bg-dark">
                 <Row>
                     <Col xs='10' sm='10' lg='2' xl='2' className="d-flex justify-content-start p-0 d-print-none">
-                        <img src="api/public/nmra.svg" height={60}/>
+                        {this.logo()}
                     </Col>
                     <Col xs='2' sm='2' lg='10' xl='10' className="d-flex justify-content-end">
                         {this.userMenu()}

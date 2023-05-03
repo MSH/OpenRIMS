@@ -5,7 +5,7 @@ import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
 import CollectorTable from './utils/CollectorTable'
 import ButtonUni from './form/ButtonUni'
-import SearchControl from './utils/SearchControl'
+import SearchControlNew from './utils/SearchControlNew'
 import Pharmadex from './Pharmadex'
 import Navigator from './utils/Navigator'
 
@@ -49,8 +49,16 @@ class UserLevel extends Component{
      load(){
         this.state.data.conceptId=this.props.conceptId
         this.state.conceptId=this.props.conceptId
-        Fetchers.postJSONNoSpinner("/api/admin/list/users", this.state.data, (query, result)=>{
+
+        let srch = Fetchers.readLocaly("userlevel_search" + this.props.keycomp, "");
+        let api = "/api/admin/list/users/search="
+        if(srch != undefined && srch.length > 0){
+            api += srch
+        }
+
+        Fetchers.postJSONNoSpinner(api, this.state.data, (query, result)=>{
             this.state.data=result
+            Fetchers.writeLocaly("userlevel_search" + this.props.keycomp, "");
             this.setState(this.state.data)
         })
     }
@@ -85,13 +93,14 @@ class UserLevel extends Component{
                 </Row>
             <Row>
                 <Col xs='6' sm='6' lg='8' xl='8'>
-                    <SearchControl label={this.state.labels.search} table={this.state.data.node.table} loader={this.load} />
+                    <SearchControlNew label={this.state.labels.search} table={this.state.data.node.table} loader={this.load} />
                 </Col>
                 <Col xs='6' sm='6' lg='4' xl='4' className="d-flex justify-content-end">
                     <ButtonUni 
                         outline
                         label={this.state.labels.global_add}
                         onClick={()=>{
+                            Fetchers.writeLocaly("userlevel_search" + this.props.keycomp, this.state.data.node.table.generalSearch)
                             Navigator.message(this.props.identifier, "*", "onUserEdit",{conceptId:this.props.conceptId,userId:0})
                         }}
                     />
@@ -103,6 +112,7 @@ class UserLevel extends Component{
                         tableData={this.state.data.node.table}
                         loader={this.load}
                         linkProcessor={(rowNo,cell)=>{
+                            Fetchers.writeLocaly("userlevel_search" + this.props.keycomp, this.state.data.node.table.generalSearch)
                             let rows=this.state.data.node.table.rows
                             Navigator.message(this.props.identifier, "*", "onUserEdit",{conceptId:this.props.conceptId,userId:rows[rowNo].dbID})
                         }}

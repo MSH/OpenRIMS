@@ -49,7 +49,22 @@ public class DictionaryDTO extends AllowValidation{
 	private boolean readOnly=false;
 	// currently selected item
 	private List<OptionDTO> currentSelections = new ArrayList<OptionDTO>();
+	/*private FileDTO file = new FileDTO();
+	private ThingDTO thing = new ThingDTO();
+	
 
+	public ThingDTO getThing() {
+		return thing;
+	}
+	public void setThing(ThingDTO thing) {
+		this.thing = thing;
+	}
+	public FileDTO getFile() {
+		return file;
+	}
+	public void setFile(FileDTO file) {
+		this.file = file;
+	}*/
 	public boolean isChanged() {
 		return changed;
 	}

@@ -89,7 +89,7 @@ public class OptionDTO {
 
 	@Override
 	public String toString() {
-		return (getCode()+". " + getDescription()).trim();
+		return getCode().trim();
 	}
 
 

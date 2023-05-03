@@ -33,8 +33,8 @@ import org.msh.pharmadex2.dto.LinkDTO;
 import org.msh.pharmadex2.dto.LinksDTO;
 import org.msh.pharmadex2.dto.RegisterDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
-import org.msh.pharmadex2.dto.form.FormFieldDTO;
-import org.msh.pharmadex2.dto.form.OptionDTO;
+import org.msh.pharmadex2.dto.UserFormDTO;
+import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.common.DtoService;
 import org.msh.pharmadex2.service.common.ValidationService;
@@ -75,6 +75,8 @@ public class ResolverServiceRender {
 	private JdbcRepository jdbcRepo;
 	@Autowired
 	private LinkService linkServ;
+	@Autowired
+	private PubOrgService pubOrgServ;
 
 	/**
 	 * Render a whole object as a table
@@ -213,7 +215,7 @@ public class ResolverServiceRender {
 				table = presonsTable(asm, var, table);
 			}
 		}
-		
+
 		if(clazz.equalsIgnoreCase("links")) {
 			table = linksTable(asm, var, table);
 		}
@@ -240,7 +242,7 @@ public class ResolverServiceRender {
 				}
 			}
 		}
-		
+
 		if(clazz.equalsIgnoreCase("logical")) {
 			String valStr = literalServ.readValue(varName, var);
 			if(valStr.length() > 0) {
@@ -377,6 +379,12 @@ public class ResolverServiceRender {
 				if(au.getID()>0) {
 					value=addressLevels(value, au);
 				}
+
+				Concept offAddr = boilerServ.adminUnitLevel(pubOrgServ.territoryLevel(), addr);
+				if(offAddr != null) {
+					String item = pubOrgServ.getServiceOffice(offAddr.getID());
+					value.put("office", item);
+				}
 			}
 		}
 		return value;
@@ -497,9 +505,21 @@ public class ResolverServiceRender {
 				}
 				String item = String.join(",", mChoice);
 				value.put("level"+(all.size()-1), item);
-				choices.add("/"+item);
+				if(choices.size()>0) {
+					choices.add("/"+item);
+				}else {
+					choices.add(item);
+				}
 			}
-			value.put("choice", String.join(", ", choices));		
+			value.put("choice", String.join(", ", choices));
+			//TODO by address
+			String it = "";
+			if(pubOrgServ.territoryLevel() >= 1) {
+				if(all.size() > pubOrgServ.territoryLevel()) {
+					it = pubOrgServ.getServiceOffice(all.get(pubOrgServ.territoryLevel()).getID());
+				}
+			}
+			value.put("office", it);
 		}
 		return value;
 	}
@@ -530,21 +550,42 @@ public class ResolverServiceRender {
 	 * @param fres
 	 * @param historyId 
 	 * @param assemblies 
+	 * @param hasTable 
+	 * @param user 
 	 * @param value
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
 	public Map<String, Object> root(ResourceDTO fres, long historyId, Map<String, List<AssemblyDTO>> assemblies, 
-			Map<String, Object> value) throws ObjectNotFoundException {
-		History his=boilerServ.historyById(historyId);
-		if(validServ.isAmendmentWorkflow(his)) {
-			value=rootAmendment(fres, his, assemblies, value);
-		}else {
-			value = rootApplication(fres, historyId, assemblies, value);
+			boolean hasTable, UserDetailsDTO user, Map<String, Object> value) throws ObjectNotFoundException {
+		value=resolveAttributes(user,value);
+		if(hasTable) {
+			History his=boilerServ.historyById(historyId);
+			if(validServ.isAmendmentWorkflow(his)) {
+				value=rootAmendment(fres, his, assemblies, value);
+			}else {
+				value = rootApplication(fres, historyId, assemblies, value);
+			}
 		}
 		return value;
 	}
+	/**
+	 * Resolve attributes for a whole document
+	 * @param user 
+	 * @param value 
+	 * @return
+	 */
+	private Map<String, Object> resolveAttributes(UserDetailsDTO user, Map<String, Object> value) {
+		//today
+		value.put("today", LocalDate.now());
+		value.put("todayBS", boilerServ.localDateToNepali(LocalDate.now(),false));
+		value.put("todayBS1", boilerServ.localDateToNepali(LocalDate.now(),true));
+		value.put("author", user.getName());
+		return value;
+	}
+
+
 	/**
 	 * Amendment application data
 	 * @param fres

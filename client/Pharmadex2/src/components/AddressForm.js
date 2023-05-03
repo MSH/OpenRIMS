@@ -27,6 +27,7 @@ class AddressForm extends Component{
                 global_save:'',
                 global_cancel:'',
                 gisLocation:'',
+                gisView:'',
                 streetaddress:""
             },
             curcenter:undefined,
@@ -150,8 +151,10 @@ class AddressForm extends Component{
     }
 
     markerToString(){
-        var lbl = this.state.labels.gisLocation + ": "
-        if(this.state.data.marker != undefined && this.state.data.marker.lat != undefined){
+        var lbl = ""
+        if(this.state.data.marker != undefined && this.state.data.marker.lat != undefined
+            && this.state.data.marker.lat > 0){
+            lbl = this.state.labels.gisView + ": "
             lbl += this.state.data.marker.lat + "; " + this.state.data.marker.lng
         }
         return lbl
@@ -211,7 +214,7 @@ class AddressForm extends Component{
                             readOnly={this.props.readOnly}
                             display/>
                         </Row>
-                        <Row hidden={!this.props.readOnly}>
+                        <Row >
                             <Col>
                                 <Label style={{fontSize:'0.8rem'}}>{this.markerToString()}</Label>
                             </Col>
@@ -232,7 +235,7 @@ class AddressForm extends Component{
         }
         return []
     }
-}
+}//hidden={!this.props.readOnly}
 export default AddressForm
 AddressForm.propTypes={
     data:PropTypes.object.isRequired,          //AddressDTO object

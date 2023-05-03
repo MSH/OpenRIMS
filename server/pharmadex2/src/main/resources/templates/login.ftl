@@ -178,15 +178,88 @@ span.psw {
   &:active {
     background: #1669F2;
   }
-
-
-
+.success{
+	color:green
+}
+.failure{
+	color:red
+}
+@keyframes blink {
+  50% {
+    opacity: 0.0;
+  }
+}
+.blink {
+	color:blue;
+	font-weight: bold;
+	font-size: 2em;
+  animation: blink 1s step-start 0s infinite;
+}
 </style>
 </head>
 <body>
 
+  <script>
+  <#-- Store user name to a cookie -->
+  window.onsubmit=function(){
+  	document.cookie="username="+document.getElementById('username').value+";max-age=8640"
+  }
+   window.onload= function(){
+   		<#-- store vew parameter to cookie login_vew to distinct company user and nmra user login -->
+   		let params = new URLSearchParams(document.location.search);
+		let name = params.get("view");
+		if(name){
+			document.cookie = "login_view="+name+";max-age=8640"
+		}
+   		 let body = document.body, html = document.documentElement;
+        let height = Math.max(body.scrollHeight, body.offsetHeight,
+            html.clientHeight, html.scrollHeight, html.offsetHeight);
+        parent.postMessage({"FrameHeight": height},"*")
+   		setTimeout(function()
+   				{
+   					document.getElementById("password").value=''
+   				}, 500);
+   		}
+   		<#-- ask for a temporary password -->
+   		const fetcher= function(){
+   			let data={
+   				email:document.getElementById('username').value,
+            	tp:''
+   			}
+   			 document.getElementById("message").innerHTML="<span class='blink'>${continue}</span>"
+			fetch('/api/public/temporary/password' , {
+					credentials: 'include',
+					method: 'POST',          
+		            headers: {
+		                'Accept': 'application/json',
+		                'Content-Type': 'application/json'              
+		            },           
+				body:JSON.stringify(data)
+				})      
+	          .then((response)=>{            
+		            if (response.ok) { 
+		                let resp = response.json()
+		                return(resp);              
+		            }else{
+						 document.getElementById("message").innerHTML="<span class='failure' >Unrecognized system error"+ error+"</span>"
+		            }
+	          })
+	          .then((resp)=>{
+	          			let clazz='success'
+	          			if(!resp.valid){
+	          				clazz='failure'
+	          			}
+	          			 document.getElementById("message").innerHTML="<span class="+clazz+">"+resp.identifier+"</span>"
+						}								
+	          )
+	          .catch((error)=>{
+	              document.getElementById("message").innerHTML="<span class='failure'>bad responce.identifier "+ error+"</span>"
+	            } ) 
+		}
+   </script>  
+
 <div id="id01" >
-  <form class="modal-content animate" action="login" method="POST">
+  <form id="form" class="modal-content animate" action="login" method="POST">
      <div class="container">
 	     <div class="first_flex">
 	     	<h2>${application}</h2>
@@ -203,56 +276,59 @@ span.psw {
 	 </div>
     <div class="container">
 		<div class="first_flex"">
+		<#if "nmra"== view>
+			<label><b>${oath2}</b></label>
+			<ul>
+					<#list providers?keys as key>
+						<#if "Google"==key>
+							<div class="google-btn" onclick="document.getElementById('username').removeAttribute('required');
+						  					window.location.href='${providers[key]}';">
+								<div class="google-icon-wrapper">
+								<img class="google-icon" src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg"/>
+								</div>
+								<label class="btn-text">${Google}</label>
+							</div>
+						<#else>
+							<Button type="button" 
+									onclick="document.getElementById('username').removeAttribute('required');
+						  					window.location.href='${providers[key]}';">
+						  		${key}
+							</Button>
+						</#if>
+					</#list>
+				</ul>
+				<div style="font-size: 0.5em">
+			</#if>
+			<#if "company"==view>
+				<div style="font-size :1em">
+			</#if>
 			<label for="uname"><b>${username}</b></label>
-			<input type="text" id="username" placeholder="${usernamePlease}" name="username" required>
+			<input type="text" id="username" placeholder="${usernamePlease}" name="username" required value=${useremail}>
 					
 			<label for="psw"><b>${password}</b></label>
-			<input type="password" placeholder="${passwordPlease}" name="password" id="password">
-					        
+			<div>
+				<#if "nmra"!= view>
+				<Button type="button"
+				onClick="fetcher()">
+						 ${get_password}
+				</Button>
+				</#if>
+				<input type="password" placeholder="${passwordPlease}" name="password" id="password">
+			</div>
 			<button type="submit">${login}</button>
 			<label>
 				<input type="checkbox" checked="checked" name="remember-me"> ${remember}
 			</label>
 			<br/> <br/><br/>    
-			<label><b>${oath2}</b></label>
-			<ul>
-				<#list providers?keys as key>
-					<#if "Google"==key>
-						<div class="google-btn" onclick="document.getElementById('username').removeAttribute('required');
-					  					window.location.href='${providers[key]}';">
-							<div class="google-icon-wrapper">
-							<img class="google-icon" src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg"/>
-							</div>
-							<label class="btn-text">${Google}</label>
-						</div>
-					<#else>
-						<Button type="button" 
-								onclick="document.getElementById('username').removeAttribute('required');
-					  					window.location.href='${providers[key]}';">
-					  		${key}
-						</Button>
-					</#if>
-				</#list>
-			</ul>
+			 <div id="message">
+			</div>
+			</div>
 			
 		</div>
     </div>
   </form>
-  
+
 </div>
-   <script>
-   window.onload= function(){
-   		 let body = document.body, html = document.documentElement;
-        let height = Math.max(body.scrollHeight, body.offsetHeight,
-            html.clientHeight, html.scrollHeight, html.offsetHeight);
-//        console.log(height)
-        parent.postMessage({"FrameHeight": height},"*")
-   		setTimeout(function()
-   				{
-   					document.getElementById("password").value=''
-   				}, 500);
-   		}
-   </script>  
-     
+
 </body>
 </html>

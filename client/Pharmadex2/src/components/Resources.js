@@ -4,7 +4,7 @@ import PropTypes from 'prop-types'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
 import Navigator from './utils/Navigator'
-import SearchControl from './utils/SearchControl'
+import SearchControlNew from './utils/SearchControlNew'
 import ButtonUni from './form/ButtonUni'
 import Pharmadex from './Pharmadex'
 import CollectorTable from './utils/CollectorTable'
@@ -35,6 +35,8 @@ class Resources extends Component{
                 url:'',
                 configUrl:'',
                 description:'',
+                global_elreference:'',
+                warningRemove:''
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -132,15 +134,17 @@ class Resources extends Component{
                         label={this.state.labels.global_suspend}
                         color="warning"
                         onClick={()=>{
-                            Fetchers.postJSONNoSpinner("/api/admin/resource/definition/suspend", this.state.data, (query, result)=>{
-                                this.state.data=result
-                                if(this.state.data.valid){
-                                    this.state.form=false
-                                    this.loader()
-                                }else{
-                                    this.setState(this.state)
-                                }
-                            })
+                            Fetchers.alerts(this.state.labels.warningRemove, ()=>{
+                                Fetchers.postJSONNoSpinner("/api/admin/resource/definition/suspend", this.state.data, (query, result)=>{
+                                    this.state.data=result
+                                    if(this.state.data.valid){
+                                        this.state.form=false
+                                        this.loader()
+                                    }else{
+                                        this.setState(this.state)
+                                    }
+                                })
+                            }, null)
                         }}
                     />
                 </Col>
@@ -183,7 +187,7 @@ class Resources extends Component{
                     <Col>
                         <Row>
                             <Col xs='12' sm='12' lg='6' xl='6'>
-                                <SearchControl label={this.state.labels.search} table={this.state.data.table} loader={this.loader}/>
+                                <SearchControlNew label={this.state.labels.search} table={this.state.data.table} loader={this.loader}/>
                             </Col>
                             <Col xs='12' sm='12' lg='4' xl='4'>
                             </Col>
@@ -273,8 +277,17 @@ class Resources extends Component{
         return(
             <Container fluid>
                 <Row>
-                    <Col xs='12' sm='12' lg='10' xl='10'/>
-                    <Col xs='12' sm='12' lg='1' xl='1'>
+                    <Col xs='12' sm='12' lg='8' xl='8'/>
+                    <Col xs='12' sm='12' lg='2' xl='2'>
+                        <ButtonUni
+                            label={this.state.labels.global_elreference}
+                            onClick={()=>{
+                                window.open('/api/admin/elreference','_blank').focus()
+                            }}
+                            color="info"
+                        />
+                    </Col>
+                    <Col xs='12' sm='12' lg='2' xl='2'>
                         <div hidden={!this.state.thing}>
                             <ButtonUni
                                 label={this.state.labels.save}
@@ -284,19 +297,6 @@ class Resources extends Component{
                                 }}
                             />
                         </div>
-                    </Col>
-                    <Col className="d-flex justify-content-end" xs='12' sm='12' lg='1' xl='1'>
-                        <ButtonUni
-                            label={this.state.labels.global_cancel}
-                            onClick={()=>{
-                                if(this.state.thing){
-                                    this.closeThing()
-                                }else{
-                                    window.location="/"+Navigator.tabSetName()+"#"+Navigator.tabName()
-                                }
-                            }}
-                            color="info"
-                        />
                     </Col>
                 </Row>
                 <Row>
