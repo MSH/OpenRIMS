@@ -74,7 +74,7 @@ public class ReportAPI {
 		data.setIdentifier("");
 		try {
 			if(thingServ.openThing(data,user)) {
-			data.setThing(thingServ.path(data.getThing()));
+			data.setThing(thingServ.path(user, data.getThing()));
 			}
 			return data;
 		} catch (ObjectNotFoundException e) {

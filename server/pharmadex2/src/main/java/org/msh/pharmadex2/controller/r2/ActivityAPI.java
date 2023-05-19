@@ -36,6 +36,7 @@ import org.msh.pharmadex2.service.r2.MonitoringService;
 import org.msh.pharmadex2.service.r2.PdfService;
 import org.msh.pharmadex2.service.r2.RecieptService;
 import org.msh.pharmadex2.service.r2.ResourceService;
+import org.msh.pharmadex2.service.r2.SubmitService;
 import org.msh.pharmadex2.service.r2.SupervisorService;
 import org.msh.pharmadex2.service.r2.ThingService;
 import org.slf4j.Logger;
@@ -94,6 +95,8 @@ public class ActivityAPI{
 	private LinkService linkServ;
 	@Autowired
 	private RecieptService receiptServ;
+	@Autowired
+	private SubmitService submServ;
 
 	@PostMapping({ "/api/*/my/activities"})
 	public ApplicationsDTO myActivities(Authentication auth, @RequestBody ApplicationsDTO data)
@@ -144,9 +147,9 @@ public class ActivityAPI{
 	
 	@PostMapping("/api/*/my/monitoring/application")
 	public ApplicationsDTO application(Authentication auth, @RequestBody ApplicationsDTO data) throws DataNotFoundException {
-		userServ.userData(auth, new UserDetailsDTO());
+		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
 		try {
-			data.setThing(thingServ.path(data.getThing()));
+			data.setThing(thingServ.path(user,data.getThing()));
 			return data;
 		} catch (ObjectNotFoundException e) {
 					throw new DataNotFoundException(e);
@@ -382,7 +385,8 @@ public class ActivityAPI{
 	public ThingDTO path(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
 		try {
 			//logger.debug("Start path");
-			data = thingServ.path(data);
+			UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+			data = thingServ.path(user,data);
 			//logger.debug("end path");
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
@@ -402,7 +406,8 @@ public class ActivityAPI{
 	@PostMapping({ "/api/*/activity/auxpath"})
 	public ThingDTO auxPath(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
 		try {
-			data = thingServ.auxPath(data);
+			UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+			data = thingServ.auxPath(user, data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -636,7 +641,7 @@ public class ActivityAPI{
 			throws DataNotFoundException {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
-			data = applServ.submitCreateData(user, data);
+			data = submServ.submitCreateData(user, data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -657,7 +662,7 @@ public class ActivityAPI{
 			throws DataNotFoundException {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
-			data=applServ.submitSend(user,data);
+			data=submServ.submitSend(user,data);
 			if(!data.isValid()) {
 				data.setColorAlert("danger");
 			}
@@ -791,7 +796,7 @@ public class ActivityAPI{
 		try {
 			ThingDTO th = new ThingDTO();
 			th.setNodeId(data.getNodeId());
-			thingServ.path(th);
+			thingServ.path(user,th);
 			data.getPath().clear();
 			data.getPath().addAll(th.getPath());
 		} catch (ObjectNotFoundException e) {

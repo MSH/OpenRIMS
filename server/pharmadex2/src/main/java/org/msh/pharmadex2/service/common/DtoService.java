@@ -560,6 +560,7 @@ public class DtoService {
 	public DataVariableDTO assemblyToDto(Assembly assm, DataVariableDTO data) {
 		data=initializeLogical(data);
 		data=initializeClazz(data);
+		data.getPublicavailable().setValue(logicalOpt(assm.getPublicavailable(), data.getPublicavailable().getValue()));
 		data.getHidefromapplicant().setValue(logicalOpt(assm.getHidefromapplicant(), data.getHidefromapplicant().getValue()));
 		data.getClazz().setValue(optionCodeVal(assm.getClazz(), data.getClazz().getValue()));
 		data.getCol().setValue(new Long(assm.getCol()));
@@ -585,6 +586,7 @@ public class DtoService {
 	 * @return
 	 */
 	public DataVariableDTO initializeLogical(DataVariableDTO data) {
+		data.getPublicavailable().setValue(enumToOptionDTO(YesNoNA.NA, YesNoNA.values()));
 		data.getHidefromapplicant().setValue(enumToOptionDTO(YesNoNA.NA, YesNoNA.values()));
 		data.getMult().setValue(enumToOptionDTO(YesNoNA.NA, YesNoNA.values()));
 		data.getUnique().setValue(enumToOptionDTO(YesNoNA.NA, YesNoNA.values()));
@@ -677,6 +679,7 @@ public class DtoService {
 	@Transactional
 	public AssemblyDTO assemblyDto(Assembly assm) throws ObjectNotFoundException {
 		AssemblyDTO ret = new AssemblyDTO();
+		ret.setPublicAvailable(assm.getPublicavailable());
 		ret.setHideFromApplicant(assm.getHidefromapplicant());
 		ret.setDictUrl(stringVal(assm.getDictUrl()));
 		ret.setFileTypes(stringVal(assm.getFileTypes()));

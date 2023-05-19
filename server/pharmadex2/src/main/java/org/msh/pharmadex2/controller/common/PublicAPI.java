@@ -14,6 +14,7 @@ import org.msh.pdex2.i18n.Messages;
 import org.msh.pharmadex2.dto.AboutDTO;
 import org.msh.pharmadex2.dto.AskForPass;
 import org.msh.pharmadex2.dto.ContentDTO;
+import org.msh.pharmadex2.dto.PublicPermitDTO;
 import org.msh.pharmadex2.dto.SystemImageDTO;
 import org.msh.pharmadex2.dto.UserFormDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
@@ -64,8 +65,7 @@ public class PublicAPI{
 	private ResourceService resourceServ;
 	@Autowired
 	private ReportService reportServ;
-	@Autowired
-	private SystemService systemServ;
+
 
 	@Value("${app.buildTime}")
 	private String buildTime;
@@ -306,6 +306,23 @@ public class PublicAPI{
 	@PostMapping(value="/api/public/temporary/password")
 	public AskForPass temporaryPassword(@RequestBody AskForPass data){
 		data=userService.temporaryPassword(data);
+		return data;
+	}
+	
+	/**
+	 * ASk for a temporary password
+	 * @return
+	 * @throws DataNotFoundException
+	 * @throws IOException
+	 */
+	@PostMapping(value="/api/public/permit/data")
+	public PublicPermitDTO permitData(Authentication auth, @RequestBody PublicPermitDTO data) throws DataNotFoundException{
+		try {
+			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+			data=reportServ.permitData(user, data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
 		return data;
 	}
 }

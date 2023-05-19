@@ -58,7 +58,7 @@ public class PdfService {
 	public List<ThingDTO> buildListThings(UserDetailsDTO user, ThingDTO mainThing) throws ObjectNotFoundException{
 		List<ThingDTO> list = new ArrayList<ThingDTO>();
 
-		List<ThingDTO> path = thingServ.path(mainThing).getPath();
+		List<ThingDTO> path = thingServ.path(user, mainThing).getPath();
 		for(ThingDTO thing:path) {
 			if(thing.getNodeId() > 0) {
 				//thing = thingServ.loadThing(thing, user);
@@ -76,7 +76,7 @@ public class PdfService {
 								thingPerson.setNodeId(tp.getConcept().getID());
 								thingPerson.setReadOnly(true);
 								thingPerson = thingServ.loadThing(thingPerson, user);
-								thingPerson = thingServ.path(thingPerson);
+								thingPerson = thingServ.path(user, thingPerson);
 								list.addAll(thingPerson.getPath());
 								//list.add(thingPerson);
 							}

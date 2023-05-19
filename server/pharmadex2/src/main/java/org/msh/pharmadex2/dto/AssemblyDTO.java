@@ -14,6 +14,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  */
 @JsonIgnoreProperties(ignoreUnknown=true)
 public class AssemblyDTO extends AllowValidation {
+	private boolean publicAvailable=false;
 	private boolean hideFromApplicant=false;
 	private String url="";
 	private String dictUrl="";
@@ -32,7 +33,13 @@ public class AssemblyDTO extends AllowValidation {
 	private String fileTypes=""; //see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/accept
 	//description for help
 	private String description="";
-	
+
+	public boolean isPublicAvailable() {
+		return publicAvailable;
+	}
+	public void setPublicAvailable(boolean publicAvailable) {
+		this.publicAvailable = publicAvailable;
+	}
 	public boolean isHideFromApplicant() {
 		return hideFromApplicant;
 	}

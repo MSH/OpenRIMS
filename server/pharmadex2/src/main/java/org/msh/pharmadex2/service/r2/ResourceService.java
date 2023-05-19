@@ -146,15 +146,19 @@ public class ResourceService {
 	public ResourceDTO table(AssemblyDTO res, ResourceDTO resDto) throws ObjectNotFoundException {
 		Concept node = resourceNode(res.getUrl());
 		Thing thing=boilerServ.thingByNode(node, new Thing());
-		if(thing.getDocuments().size()>0) {
-			ThingDoc td = thing.getDocuments().iterator().next();
-			TableQtb table = resDto.getTable();
-			String select ="select * from resource_read";
-			Concept dictRoot = closureServ.getParent(td.getDictNode());
-			jdbcRepo.resource_read(dictRoot.getID());
-			List<TableRow> rows= jdbcRepo.qtbGroupReport(select, "", "resurl='"+thing.getUrl()+"'", table.getHeaders());
-			TableQtb.tablePage(rows, table);
-			table.setSelectable(false);
+		TableQtb table = resDto.getTable();
+		String select ="select * from resource_read";
+		for(ThingDoc td :thing.getDocuments()) {
+			if(td.getDictNode().getActive()) {
+				Concept dictRoot=closureServ.getParent(td.getDictNode());
+				if(dictRoot.getActive()) {
+					jdbcRepo.resource_read(dictRoot.getID());
+					List<TableRow> rows= jdbcRepo.qtbGroupReport(select, "", "resurl='"+thing.getUrl()+"'", table.getHeaders());
+					TableQtb.tablePage(rows, table);
+					table.setSelectable(false);
+					break;
+				}
+			}
 		}
 		return resDto;
 	}

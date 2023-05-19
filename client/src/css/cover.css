@@ -1,0 +1,15 @@
+.cover {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0.70;
+    background: #eee;
+    z-index: 1070;
+    display: none;
+    align-content: center;
+ }
+ .th{
+     font-weight: normal !important
+ }

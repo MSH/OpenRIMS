@@ -48,11 +48,9 @@ public class SystemService {
 	public static final String DICTIONARY_GUEST_DEREGISTRATION = "dictionary.guest.deregistration";
 	public static final String DICTIONARY_GUEST_AMENDMENTS = "dictionary.guest.amendments";
 	public static final String DICTIONARY_GUEST_APPLICATIONS = "dictionary.guest.applications";
-	public static final String DICTIONARY_GUEST_RENEWAL = "dictionary.guest.renewal";
 	public static final String DICTIONARY_GUEST_INSPECTIONS = "dictionary.guest.inspections";
 	public static final String DICTIONARY_SHUTDOWN_APPLICATIONS = "dictionary.shutdown.applications";
 	public static final String DICTIONARY_HOST_APPLICATIONS = "dictionary.host.applications";
-	public static final String DICTIONARY_HOST_INSPECTIONS = "dictionary.host.inspections";
 	public static final String DICTIONARY_INSPECTIONS="dictionary.inspections";
 	public static final String DICTIONARY_SYSTEM_LIFECYCLE = "dictionary.system.lifecycle";
 	public static final String DICTIONARY_SYSTEM_SUBMIT = "dictionary.system.submit";
@@ -217,27 +215,6 @@ public class SystemService {
 		String descr = literalServ.readDescription(root);
 		if (prefLabel.length() == 0) {
 			prefLabel = messages.get("amdmt_type");
-			descr = "";
-		}
-		literalServ.prefAndDescription(prefLabel, descr, root);
-		data = dictServ.createDictionary(data);
-		return data;
-	}
-
-	/**
-	 * Create or get dictionary for renewal processes
-	 * 
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	public DictionaryDTO renewalDict(DictionaryDTO data) throws ObjectNotFoundException {
-		data.setUrl(DICTIONARY_GUEST_RENEWAL);
-		Concept root = closureServ.loadRoot(data.getUrl());
-		String prefLabel = literalServ.readPrefLabel(root);
-		String descr = literalServ.readDescription(root);
-		if (prefLabel.length() == 0) {
-			prefLabel = messages.get("renew");
 			descr = "";
 		}
 		literalServ.prefAndDescription(prefLabel, descr, root);
@@ -469,6 +446,7 @@ public class SystemService {
 		}
 		// create level
 		systemDictNode(root, DICTIONARY_GUEST_APPLICATIONS, messages.get("guest"));
+		systemDictNode(root, DICTIONARY_GUEST_INSPECTIONS, messages.get("inspections"));
 		systemDictNode(root, DICTIONARY_GUEST_AMENDMENTS, messages.get("amdmt_type"));
 		systemDictNode(root, DICTIONARY_GUEST_DEREGISTRATION, messages.get(FINAL_DEREGISTRATION));
 		systemDictNode(root, DICTIONARY_HOST_APPLICATIONS, messages.get("host"));
@@ -650,7 +628,6 @@ public class SystemService {
 	public List<Concept> guestWorkflows(String appicationUrl) throws ObjectNotFoundException {
 		List<Concept> ret = new ArrayList<Concept>();
 		ret = guestWorkflow(DICTIONARY_GUEST_APPLICATIONS, appicationUrl, ret);
-		ret = guestWorkflow(DICTIONARY_GUEST_RENEWAL, appicationUrl, ret);
 		ret = guestWorkflow(DICTIONARY_GUEST_AMENDMENTS, appicationUrl, ret);
 		ret = guestWorkflow(DICTIONARY_GUEST_DEREGISTRATION, appicationUrl, ret);
 		return ret;
@@ -707,13 +684,12 @@ public class SystemService {
 	private List<String> inspectionDictUrs() {
 		List<String> ret = new ArrayList<String>();
 		ret.add(SystemService.DICTIONARY_GUEST_INSPECTIONS);
-		ret.add(SystemService.DICTIONARY_HOST_INSPECTIONS);
 		ret.add(SystemService.DICTIONARY_INSPECTIONS);
 		return ret;
 	}
 
 	/**
-	 * Guest, Host and Shutdown
+	 * Guest, Host, Shutdown, etc.
 	 * 
 	 * @throws ObjectNotFoundException
 	 */
@@ -736,6 +712,7 @@ public class SystemService {
 		ret.add(DICTIONARY_GUEST_AMENDMENTS);
 		ret.add(DICTIONARY_GUEST_DEREGISTRATION);
 		ret.add(DICTIONARY_SHUTDOWN_APPLICATIONS);
+		ret.add(DICTIONARY_GUEST_INSPECTIONS);
 		return ret;
 	}
 

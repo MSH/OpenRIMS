@@ -1402,5 +1402,25 @@ public class JdbcRepository {
 		proc.execute(params);
 		
 	}
+	/**
+	Has applData open activities directly or indirectly
+	First usage is ApplicationService.singletonCondition
+	@usage
+	call has_activities('dictionary.host.applications','epharmadex@gmail.com',20005);
+	or
+	call has_activities('dictionary.host.applications',null,null);
+	or
+	call has_activities(null,null,null);
+	select * from has_activities;
+	**/
+	public void has_activities(String dictURL, String email, Long applDataID) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("has_activities");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("email", email);
+		params.addValue("dictURL", dictURL);
+		params.addValue("applDataID",applDataID);
+		proc.execute(params);
+	}
 
 }

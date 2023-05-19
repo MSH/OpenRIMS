@@ -1613,5 +1613,15 @@ public class AmendmentService {
 		Thing thing = boilerServ.thingByNode(applicationData);
 		return thing.getAmendments() != null && thing.getAmendments().size()>0;
 	}
+	/**
+	 * Is it ask for inspection application?
+	 * @param application dictionary item
+	 * @return
+	 */
+	@Transactional
+	public boolean isAskForInspection(Concept applDict) {
+		Concept parent = closureServ.getParent(applDict);
+		return parent.getIdentifier().equalsIgnoreCase(SystemService.DICTIONARY_GUEST_INSPECTIONS);
+	}
 
 }

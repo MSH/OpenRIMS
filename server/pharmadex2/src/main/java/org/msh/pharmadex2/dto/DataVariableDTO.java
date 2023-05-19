@@ -16,10 +16,12 @@ public class DataVariableDTO extends AllowValidation {
 	private long nodeId=0;
 	//the key
 	private long varNodeId=0;
-	//variable name
-	private FormFieldDTO<String> varName = FormFieldDTO.of("");
+	// available for public view
+	private FormFieldDTO<OptionDTO> publicavailable = FormFieldDTO.of(new OptionDTO());
 	// hide it from an applicant
 	private FormFieldDTO<OptionDTO> hidefromapplicant = FormFieldDTO.of(new OptionDTO());
+	//variable name
+	private FormFieldDTO<String> varName = FormFieldDTO.of("");
 	//variable name extension
 	private FormFieldDTO<String> varNameExt = FormFieldDTO.of("");
 	//Help text
@@ -63,6 +65,12 @@ public class DataVariableDTO extends AllowValidation {
 		this.varName = varName;
 	}
 	
+	public FormFieldDTO<OptionDTO> getPublicavailable() {
+		return publicavailable;
+	}
+	public void setPublicavailable(FormFieldDTO<OptionDTO> publicavailable) {
+		this.publicavailable = publicavailable;
+	}
 	public FormFieldDTO<OptionDTO> getHidefromapplicant() {
 		return hidefromapplicant;
 	}

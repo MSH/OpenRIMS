@@ -26,6 +26,7 @@ import org.msh.pharmadex2.dto.LayoutCellDTO;
 import org.msh.pharmadex2.dto.LayoutRowDTO;
 import org.msh.pharmadex2.dto.ReportConfigDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
+import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.common.DtoService;
 import org.slf4j.Logger;
@@ -86,6 +87,8 @@ public class AssemblyService {
 	private AssemblyRepo assmRepo;
 	@Autowired
 	private JdbcRepository jdbcRepo;
+	@Autowired
+	private AccessControlService accessServ;
 
 	/**
 	 * Auxiliary literals for a user (MOCK!!!)
@@ -192,6 +195,14 @@ public class AssemblyService {
 				fld.setPropertyName("addressurl");
 				ret.add(fld);	
 			}
+			{
+				AssemblyDTO fld = new AssemblyDTO();
+				fld.setRequired(false);
+				fld.setReadOnly(false);
+				fld.setTextArea(false);
+				fld.setPropertyName("concurrenturl");
+				ret.add(fld);	
+			}
 			{// notes to mail 26.11.2022
 				AssemblyDTO fld = new AssemblyDTO();
 				fld.setRequired(false);
@@ -271,7 +282,6 @@ public class AssemblyService {
 		}
 
 		if(url.equalsIgnoreCase(SystemService.DICTIONARY_HOST_APPLICATIONS)
-				|| url.equalsIgnoreCase(SystemService.DICTIONARY_HOST_INSPECTIONS)
 				|| url.equalsIgnoreCase(SystemService.DICTIONARY_INSPECTIONS)
 				) {
 			{
@@ -296,7 +306,6 @@ public class AssemblyService {
 		 */
 		if(url.equalsIgnoreCase(SystemService.DICTIONARY_GUEST_APPLICATIONS)
 				|| url.equalsIgnoreCase(SystemService.DICTIONARY_GUEST_AMENDMENTS)
-				|| url.equalsIgnoreCase(SystemService.DICTIONARY_GUEST_RENEWAL)
 				|| url.equalsIgnoreCase(SystemService.DICTIONARY_GUEST_DEREGISTRATION)
 				|| url.equalsIgnoreCase(SystemService.DICTIONARY_GUEST_INSPECTIONS)
 				) {
@@ -731,6 +740,7 @@ public class AssemblyService {
 				cell1.getVariables().add(HIDECHECKLIST_FLD);	//2023-02-13
 				cell1.getVariables().add("dataurl");
 				cell1.getVariables().add("addressurl");
+				cell1.getVariables().add("concurrenturl");			//2023-05-04
 				cell1.getVariables().add("attention");
 				cell1.getVariables().add("attnote");// notes to mail 26.11.2022
 				row.getCells().add(cell1);
@@ -1569,6 +1579,25 @@ public class AssemblyService {
 			cell.getVariables().add(key);
 		}
 		ret.add(row);
+		return ret;
+	}
+	/**
+	 * Load data configurations and then apply user restrictions on it
+	 * @param url
+	 * @param user
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public List<Assembly> loadDataConfiguration(String url, UserDetailsDTO user) throws ObjectNotFoundException {
+		List<Assembly> assms = loadDataConfiguration(url);
+		List<Assembly> ret=new ArrayList<Assembly>();
+		for(Assembly assm :assms) {
+			AssemblyDTO assmDTO = dtoServ.assemblyDto(assm);
+			if(accessServ.allowAssembly(assmDTO, user)) {
+				ret.add(assm);
+			}
+		}
 		return ret;
 	}
 }

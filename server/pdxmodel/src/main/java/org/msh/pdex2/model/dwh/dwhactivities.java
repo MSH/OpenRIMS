@@ -28,12 +28,12 @@ public class dwhactivities implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC222277187B383444F0A60C")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC222277187B383444F0A60C", strategy="native")	
+	@GeneratedValue(generator="VAC2222771882F86B33D099FF")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222771882F86B33D099FF", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	
-	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.SAVE_UPDATE, org.hibernate.annotations.CascadeType.LOCK})	
+	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.ALL, org.hibernate.annotations.CascadeType.DELETE_ORPHAN})	
 	@JoinColumns({ @JoinColumn(name="reportsessionID") })	
 	@org.hibernate.annotations.Index(name="byApplication")	
 	@Basic(fetch=FetchType.LAZY)	

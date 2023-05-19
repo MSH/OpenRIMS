@@ -1,5 +1,8 @@
 package org.msh.pharmadex2.service.r2;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import org.msh.pdex2.dto.table.Headers;
@@ -8,17 +11,21 @@ import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
+import org.msh.pdex2.model.r2.Assembly;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.ApplicationEventsDTO;
 import org.msh.pharmadex2.dto.ApplicationHistoryDTO;
+import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.CheckListDTO;
+import org.msh.pharmadex2.dto.PublicPermitDTO;
 import org.msh.pharmadex2.dto.ReportConfigDTO;
 import org.msh.pharmadex2.dto.ReportDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
+import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.common.DtoService;
 import org.slf4j.Logger;
@@ -60,6 +67,10 @@ public class ReportService {
 	private RegisterService registerServ;
 	@Autowired
 	private DWHService dwhServ;
+	@Autowired
+	private ThingService thingServ;
+	@Autowired
+	private AssemblyService assemblyServ;
 
 
 	@Value("${link.report.datastudio.pharms:\"\"}")
@@ -699,6 +710,61 @@ public class ReportService {
 
 	public String getLinkReport() {
 		return linkReport;
+	}
+	/**
+	 * Get public available permit data
+	 * @param user 
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public PublicPermitDTO permitData(UserDetailsDTO user, PublicPermitDTO data) throws ObjectNotFoundException {
+		jdbcRepo.application_history(data.getPermitDataID());
+		String select = "select * from application_history where go is not null";
+		Headers headers = new Headers();
+		headers.getHeaders().add(TableHeader.instanceOf("go", TableHeader.COLUMN_LOCALDATE));
+		headers.getHeaders().add(TableHeader.instanceOf("activityDataID", TableHeader.COLUMN_LONG));
+		headers.getHeaders().add(TableHeader.instanceOf("workflow", TableHeader.COLUMN_STRING));
+		headers.getHeaders().add(TableHeader.instanceOf("activity", TableHeader.COLUMN_STRING));
+		headers.getHeaders().get(0).setSort(true);
+		headers.getHeaders().get(0).setSortValue(TableHeader.SORT_ASC);
+		List<TableRow> hisRows = jdbcRepo.qtbGroupReport(select, "", "", headers);
+		if(!hisRows.isEmpty()) {
+			//the application
+			History his = boilerServ.historyById(hisRows.get(0).getDbID());
+			ThingDTO applDTO = applServ.createApplication(his);
+			applDTO = thingServ.path(user,applDTO);
+			if(!applDTO.getPath().isEmpty()) {
+				data.setTitle(applDTO.getApplName());
+				data.setDescription(applDTO.getApplDescr());
+				data.setApplication(applDTO.getPath());
+			}else {
+				throw new ObjectNotFoundException("Application is empty. Permti Data ID is "+data.getPermitDataID(),logger);
+			}
+			//the history
+			data.getApplHistory().clear();
+			for(TableRow hisRow : hisRows) {
+				Object actDataID = hisRow.getCellByKey("activityDataID").getOriginalValue();
+				if(actDataID != null && actDataID instanceof Long && (Long)actDataID>0) {
+					History h = boilerServ.historyById(hisRow.getDbID());
+					List<Assembly> assms=assemblyServ.loadDataConfiguration(h.getDataUrl(), user);
+					if(!assms.isEmpty()) {
+						ThingDTO dt = applServ.createLoadActivityData(h,true);
+						String title = hisRow.getCellByKey("go").getValue()
+								+ "  "
+								+  hisRow.getCellByKey("workflow").getValue()
+								+"/"
+								+hisRow.getCellByKey("activity").getValue();
+						dt.setTitle(title);
+						data.getApplHistory().add(dt);
+					}
+				}
+			}
+		}else {
+			throw new ObjectNotFoundException("History for permit not found. Permti Data ID is "+data.getPermitDataID(),logger);
+		}
+		return data;
 	}
 
 }

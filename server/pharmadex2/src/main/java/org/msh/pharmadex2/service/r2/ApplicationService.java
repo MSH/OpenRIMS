@@ -3,10 +3,10 @@ package org.msh.pharmadex2.service.r2;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
+//import java.util.HashMap;
+//import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
+//import java.util.Map;
 
 import org.msh.pdex2.dto.table.Headers;
 import org.msh.pdex2.dto.table.TableCell;
@@ -16,15 +16,15 @@ import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.old.User;
-import org.msh.pdex2.model.r2.Assembly;
+//import org.msh.pdex2.model.r2.Assembly;
 import org.msh.pdex2.model.r2.Checklistr2;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.model.r2.Scheduler;
 import org.msh.pdex2.model.r2.Thing;
 import org.msh.pdex2.model.r2.ThingDict;
-import org.msh.pdex2.model.r2.ThingPerson;
-import org.msh.pdex2.model.r2.ThingScheduler;
+//import org.msh.pdex2.model.r2.ThingPerson;
+//import org.msh.pdex2.model.r2.ThingScheduler;
 import org.msh.pdex2.model.r2.ThingThing;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.r2.Checklistr2Repo;
@@ -36,9 +36,9 @@ import org.msh.pharmadex2.dto.ActivityToRun;
 import org.msh.pharmadex2.dto.ApplicationHistoryDTO;
 import org.msh.pharmadex2.dto.ApplicationOrActivityDTO;
 import org.msh.pharmadex2.dto.ApplicationsDTO;
-import org.msh.pharmadex2.dto.AssemblyDTO;
+//import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.CheckListDTO;
-import org.msh.pharmadex2.dto.DictionaryDTO;
+//import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.QuestionDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.WorkflowParamDTO;
@@ -53,7 +53,7 @@ import org.msh.pharmadex2.service.common.ValidationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.i18n.LocaleContextHolder;
+//import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -105,10 +105,8 @@ public class ApplicationService {
 	private PubOrgService pubOrgServ;
 	@Autowired
 	private AssemblyService assmServ;
-	@Autowired
-	private AccessControlService accessControlServ;
-	@Autowired
-	private MailService mailService;
+	//@Autowired
+	//private MailService mailService;
 
 	/**
 	 * recreate only a table for selected applications
@@ -266,35 +264,6 @@ public class ApplicationService {
 		headers.setPageSize(20);
 		return headers;
 	}
-
-	/**
-	 * Create headers for application list
-	 * 
-	 * @param headers
-	 * @param present present or scheduled
-	 * @return
-	 */
-	private Headers createHeaders(Headers headers, boolean present) {
-		headers.getHeaders()
-		.add(TableHeader.instanceOf("come", "scheduled", true, true, true, TableHeader.COLUMN_LOCALDATE, 0));
-		if (present) {
-			headers.getHeaders()
-			.add(TableHeader.instanceOf("days", "days", true, true, true, TableHeader.COLUMN_LONG, 0));
-		}
-
-		headers.getHeaders().add(
-				TableHeader.instanceOf("activityurl", "activity", true, false, false, TableHeader.COLUMN_I18LINK, 0));
-
-		headers.getHeaders()
-		.add(TableHeader.instanceOf("pref", "global_name", true, true, true, TableHeader.COLUMN_STRING, 0));
-		headers.getHeaders()
-		.add(TableHeader.instanceOf("notes", "description", true, true, true, TableHeader.COLUMN_STRING, 0));
-
-		headers.getHeaders().get(0).setSortValue(TableHeader.SORT_DESC);
-		headers = boilerServ.translateHeaders(headers);
-		return headers;
-	}
-
 	/**
 	 * Create application information table
 	 * 
@@ -331,7 +300,7 @@ public class ApplicationService {
 			data.setTable(table);
 			//build table events ika30012023
 			TableQtb tableEv = data.getTableEv();
-			boolean applicant=accessControlServ.isApplicant(user);
+			boolean applicant=accServ.isApplicant(user);
 			if (tableEv.getHeaders().getHeaders().size() == 0) {
 				tableEv.setHeaders(historyHeaders(tableEv.getHeaders(), user, manager));
 				//eliminate links for applicants
@@ -439,7 +408,7 @@ public class ApplicationService {
 		if (data.getHistoryId() > 0) {
 			History his = boilerServ.historyById(data.getHistoryId());
 			if (his.getActivity() != null) {
-				if(accessControlServ.checklistAllowed(his.getActConfig(),user)) {
+				if(accServ.checklistAllowed(his.getActConfig(),user)) {
 					data.setActivityNodeId(his.getActivity().getID());
 					data.setApplNodeId(his.getApplication().getID());
 					// determine owner and application's url
@@ -516,293 +485,6 @@ public class ApplicationService {
 		}
 		return data;
 	}
-
-	/**
-	 * Submit an application to the NMRA from an applicant
-	 * 
-	 * @param data
-	 * @param user
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	@Transactional
-	public CheckListDTO submit(CheckListDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
-		if (data.getHistoryId() > 0) {
-			// get workflow configuration root
-			History curHis = boilerServ.historyById(data.getHistoryId());
-			if(!singeltonCondition(curHis)) {
-				data.setValid(false);
-				data.setIdentifier(messages.get("singletonError"));
-				return data;
-			}
-			Concept applRoot = closureServ.loadParents(curHis.getApplication()).get(0);
-			String applUrl = applRoot.getIdentifier();
-			Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
-			List<Concept> nextActs = loadActivities(configRoot);
-			data = (CheckListDTO) validServ.workflowConfig(nextActs, configRoot, data);
-			if (data.isValid()) {
-				//boolean fullValid = fullValidation(curHis, user);
-				boolean fullValid=checkPagesDefined(curHis.getApplicationData());
-				if(fullValid) {
-					if (nextActs.size() > 0) {
-						List<ActivityToRun> toRun = activitiesToRun(data, applUrl, curHis, nextActs);
-						//finish the current activity and run others
-						if(toRun.size()>0 && data.isValid()) {
-							Concept userConcept = userServ.userConcept(user);
-							if(userConcept != null) {
-								curHis.setExecutor(userConcept);
-							}
-							curHis = closeActivity(curHis, false);
-							// tracking by an applicant
-							activityTrackRun(null, curHis, applUrl, user.getEmail()); 
-							// monitoring by the all supervisors as a last resort
-							activityMonitoringRun(null, curHis, applUrl); 
-							// run activities
-							for(ActivityToRun act :toRun ) {
-								for (String email : act.getExecutors()) {
-									activityCreate(null, act.getConfig(), curHis, email, String.join(",",act.getFallBack()));
-								}
-							}
-						}else {
-							if(data.isValid()) {
-								data.setValid(false);
-								data.setIdentifier(messages.get("badconfiguration") + applUrl);
-							}
-						}
-					} else {
-						data.setValid(false);
-						data.setIdentifier(messages.get("badconfiguration") + " " + "activities");
-					}
-				}else {
-					data.setValid(false);
-					data.setIdentifier(messages.get("errorApplNotFull"));
-				}
-			}
-			return data;
-		} else {
-			throw new ObjectNotFoundException("submit. History record id is ZERO", logger);
-		}
-	}
-
-	/**
-	 * Have all pages been defined?
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	@Transactional			// may become public in the future
-	private boolean checkPagesDefined(Concept data) throws ObjectNotFoundException {
-		boolean ret = true;
-		//check persons on the first page
-		if(!checkPagesPersonDefined(data)) {
-			return false;
-		}
-		// get thing
-		Thing thing = new Thing();
-		thing=boilerServ.thingByNode(data, thing);
-		if(thing.getID()>0) {
-			// get all pages
-			Map<String,Concept> pages =new LinkedHashMap<String, Concept>();
-			for(ThingThing tt : thing.getThings()) {
-				pages.put(tt.getUrl().toUpperCase(),tt.getConcept());
-			}
-			// get data configuration URL
-			Concept owner = closureServ.getParent(data);
-			if(owner != null) {
-				Concept root=closureServ.getParent(owner);
-				if(root != null) {
-					List<Assembly> assms =assmServ.loadDataConfiguration(root.getIdentifier());
-					for(Assembly assm :assms) {
-						if(assm.getClazz().equalsIgnoreCase("things")) {
-							String url = assm.getUrl();
-							Concept page = pages.get(url.toUpperCase());
-							if(page==null) {
-								return false;
-							}else {
-								if(!checkPagesPersonDefined(page)) {
-									return false;
-								}
-							}
-						}
-					}
-				}else {
-					ret=false;
-				}
-			}else {
-				ret=false;
-			}
-		}else {
-			ret=false;
-		}
-		return ret;
-	}
-
-	/**
-	 * check "persons" (in general 1:m)
-	 * @param page
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	@Transactional
-	private boolean checkPagesPersonDefined(Concept page) throws ObjectNotFoundException {
-		Thing pThing = new Thing();
-		pThing=boilerServ.thingByNode(page, pThing);
-		for(ThingPerson tp : pThing.getPersons()) {
-			if (!checkPagesDefined(tp.getConcept())){
-				return false;
-			}
-		}
-		return true;
-	}
-
-	/**
-	 * 20122022 khomka
-	 * complete verification of all Things
-	 * @param curHis
-	 * @param user
-	 * @return
-	 * @throws ObjectNotFoundException
-	 * @deprecated
-	 */
-	private boolean fullValidation(History curHis, UserDetailsDTO user) throws ObjectNotFoundException {
-		Concept node = closureServ.loadConceptById(curHis.getApplicationData().getID());
-		Thing thing = new Thing();
-		thing = boilerServ.thingByNode(node, thing);
-		ThingDTO dto = new ThingDTO();
-		dto.setUrl(thing.getUrl());
-		dto.setNodeId(node.getID());
-		dto = thingServ.createContent(dto, user);
-		dto.setStrings(dtoServ.readAllStrings(dto.getStrings(), node));
-		dto.setLiterals(dtoServ.readAllLiterals(dto.getLiterals(), node));
-		dto.setDates(dtoServ.readAllDates(dto.getDates(), node));
-		dto.setNumbers(dtoServ.readAllNumbers(dto.getNumbers(), node));
-		dto.setLogical(dtoServ.readAllLogical(dto.getLogical(), node));
-
-		//dto.getThings().remove("classifiers");
-
-		dto = validServ.thing(dto, false);
-		List<AssemblyDTO> thinfAss = validServ.loadThingByConfig(dto);
-		for(AssemblyDTO ass :thinfAss) {
-			if(ass.isRequired()) {
-				ThingDTO th = dto.getThings().get(ass.getPropertyName());
-				Concept thnode= closureServ.loadConceptById(th.getNodeId());
-				if(th != null) {
-					th = thingServ.createContent(th, user);
-					th.setStrings(dtoServ.readAllStrings(th.getStrings(), thnode));
-					th.setLiterals(dtoServ.readAllLiterals(th.getLiterals(), thnode));
-					th.setDates(dtoServ.readAllDates(th.getDates(), thnode));
-					th.setNumbers(dtoServ.readAllNumbers(th.getNumbers(), thnode));
-					th.setLogical(dtoServ.readAllLogical(th.getLogical(), thnode));
-
-					th = validServ.thing(th, false);
-					if(!th.isValid()) {
-						return false;
-					}
-
-					boolean valid = validThings(th, user);
-					if(!valid) {
-						return false;
-					}
-				}else {// 20122022 khomka Нужна эта ветка - вдруг в конфигурации Thing есть, а в аппликации его нет
-					return false;
-				}
-			}
-		}
-		return true;
-	}
-
-	private boolean validThings(ThingDTO th, UserDetailsDTO user) throws ObjectNotFoundException {
-		Map<ThingDTO, Concept> mapThing = new HashMap<ThingDTO, Concept>();
-
-		if(th.getPersons() != null && th.getPersons().keySet() != null && th.getPersons().keySet().size() > 0) {
-			for(String key:th.getPersons().keySet()) {
-				if(th.getPersons().get(key).getTable() != null && th.getPersons().get(key).getTable().getRows() != null) {
-					List<TableRow> rows = th.getPersons().get(key).getTable().getRows();
-					for(TableRow row:rows) {
-						Long personID = row.getDbID();
-						if(personID > 0) {
-							Concept pnode = closureServ.loadConceptById(personID);
-							Thing pth = new Thing();
-							pth = boilerServ.thingByNode(pnode, pth);
-							ThingDTO pthdto = new ThingDTO();
-							pthdto.setUrl(pth.getUrl());
-							pthdto.setNodeId(pnode.getID());
-
-							mapThing.put(pthdto, pnode);
-						}else {
-							return false;
-						}
-					}
-				}else {
-					return false;
-				}
-			}
-		}
-
-		if(th.getThings() != null && th.getThings().keySet() != null && th.getThings().keySet().size() > 0) {
-			for(String key:th.getThings().keySet()) {
-				ThingDTO vdto = th.getThings().get(key);
-				if(vdto.getNodeId() > 0) {
-					Concept vnode = closureServ.loadConceptById(vdto.getNodeId());
-					mapThing.put(vdto, vnode);
-				}else {
-					return false;
-				}
-			}
-		}
-
-		if(mapThing.keySet() != null && mapThing.keySet().size() > 0) {
-			for(ThingDTO thingDTO:mapThing.keySet()) {
-				Concept nodeDTO = mapThing.get(thingDTO);
-
-				thingDTO = thingServ.createContent(thingDTO, user);
-				thingDTO.setStrings(dtoServ.readAllStrings(thingDTO.getStrings(), nodeDTO));
-				thingDTO.setLiterals(dtoServ.readAllLiterals(thingDTO.getLiterals(), nodeDTO));
-				thingDTO.setDates(dtoServ.readAllDates(thingDTO.getDates(), nodeDTO));
-				thingDTO.setNumbers(dtoServ.readAllNumbers(thingDTO.getNumbers(), nodeDTO));
-				thingDTO.setLogical(dtoServ.readAllLogical(thingDTO.getLogical(), nodeDTO));
-
-				thingDTO = validServ.thing(thingDTO, false);
-				if(!thingDTO.isValid()) {
-					return false;
-				}
-
-				boolean v = validThings(thingDTO, user);
-				if(!v)
-					return v;
-			}
-		}
-
-		return true;
-	}
-
-
-	/**
-	 * It is impossible running more than one modification and/or de-registration against the same object
-	 * in addition it is possible running modification and de-registration only if any host application is running
-	 * Guest may be running without any condition
-	 * Host runs automatically
-	 * @param curHis
-	 * @return true if condition is 
-	 * @throws ObjectNotFoundException 
-	 */
-	@Transactional
-	public boolean singeltonCondition(History curHis) throws ObjectNotFoundException {
-		if(amendmentServ.hasAmendment(curHis.getApplicationData())) {
-			Concept applData = amendmentServ.initialApplicationData(curHis.getApplicationData());
-			Headers headers = new Headers();
-			headers.getHeaders().add(TableHeader.instanceOf("url", TableHeader.COLUMN_STRING));
-			// check host
-			jdbcRepo.guestPlusHost(applData.getID());
-			List<TableRow> rowsHost= jdbcRepo.qtbGroupReport("select * from guestPlusHost", "", "", headers);
-			jdbcRepo.dregPlusModi(applData.getID());
-			List<TableRow> rowsModi= jdbcRepo.qtbGroupReport("select * from dregPlusModi", "", "", headers);
-			return rowsHost.size()!=0 && rowsModi.size()==0;
-		}else {
-			return true;
-		}
-	}
-
 	/**
 	 * Collect necessary data about activities to run
 	 * @param data to inform about errors
@@ -911,7 +593,7 @@ public class ApplicationService {
 	 * @param applUrl
 	 * @throws ObjectNotFoundException
 	 */
-	private void activityMonitoringRun(Date scheduled, History curHis, String applUrl) throws ObjectNotFoundException {
+	public void activityMonitoringRun(Date scheduled, History curHis, String applUrl) throws ObjectNotFoundException {
 		// get all supervisors
 		List<String> svEmails = new ArrayList<String>();
 		List<User> supers = userServ.loadUsersByRole("ROLE_ADMIN");
@@ -946,7 +628,7 @@ public class ApplicationService {
 	 * @param user
 	 * @throws ObjectNotFoundException
 	 */
-	private void activityTrackRun(Date scheduled, History curHis, String applUrl, String usersEmail)
+	public void activityTrackRun(Date scheduled, History curHis, String applUrl, String usersEmail)
 			throws ObjectNotFoundException {
 		// activity control
 		Concept activity = createActivityNode("activity.trace", usersEmail);
@@ -1004,7 +686,7 @@ public class ApplicationService {
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	private Concept adminUnit(Concept actConf, History curHis) throws ObjectNotFoundException {
+	public Concept adminUnit(Concept actConf, History curHis) throws ObjectNotFoundException {
 		Concept ret = null;
 		if (actConf != null) {
 			String addrUrl = literalServ.readValue("addressurl", actConf);
@@ -1268,7 +950,7 @@ public class ApplicationService {
 		return curHis;
 	}
 
-	/**
+	/** 
 	 * Load all activities in the workflow
 	 * 
 	 * @param root root activity in the configuration
@@ -1326,7 +1008,7 @@ public class ApplicationService {
 					his=h;	//suppose..
 					if(h.getGo()==null ) {
 						Concept worker = closureServ.getParent(h.getActivity());
-						if(accessControlServ.sameEmail(user.getEmail(), worker.getIdentifier())){
+						if(accServ.sameEmail(user.getEmail(), worker.getIdentifier())){
 							data.setHistoryId(h.getID());
 							data.setApplication(false);
 							return data;
@@ -1357,6 +1039,7 @@ public class ApplicationService {
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
+	@SuppressWarnings("unused")
 	@Transactional
 	public ActivityDTO activityLoad(ActivityDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		data.setGuest(accServ.isApplicant(user));
@@ -1370,14 +1053,14 @@ public class ApplicationService {
 		if (accServ.applicationAllowed(allHis, user) || true) {
 			// application is compiled as a list of data items
 			ThingDTO applDTO = createApplication(curHis);
-			applDTO = thingServ.path(applDTO);
+			applDTO = thingServ.path(user, applDTO);
 			data.setApplication(applDTO.getPath());
 			// all completed activities
 			ThingDTO dto = new ThingDTO();
 			for (History his : allHis) {
 				if (his.getGo() != null && his.getID() != curHis.getID() && !his.getCancelled()) {
 					dto = createActivity(user, his, true);
-					ThingDTO dt = createLoadActivityData(data, his, user, true);
+					ThingDTO dt = createLoadActivityData(his, true);
 					data.getPath().add(dto);
 					data.getData().add(dt);
 					if(his.getActivity()!=null) {
@@ -1408,13 +1091,13 @@ public class ApplicationService {
 				}
 				data.setHost(validServ.isHostApplication(curHis.getApplDict()));
 				dto = createActivity(user, curHis, false);
-				ThingDTO dt = createLoadActivityData(data, curHis, user, false);
+				ThingDTO dt = createLoadActivityData(curHis,false);
 				data.getPath().add(dto);
 				data.getData().add(dt);
 				Concept exec=closureServ.getParent(curHis.getActivity());
 				data.getExecutors().add(userServ.nameByEmail(exec.getIdentifier()));
 				//2023-03-17 data edit condition 
-				boolean writable = accessControlServ.sameEmail(user.getEmail(), exec.getIdentifier()) && curHis.getGo()==null;
+				boolean writable = accServ.sameEmail(user.getEmail(), exec.getIdentifier()) && curHis.getGo()==null;
 				dt.setReadOnly(!writable);
 				dto.setReadOnly(!writable);
 				//2023-03-17
@@ -1446,7 +1129,7 @@ public class ApplicationService {
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	private ThingDTO createLoadActivityData(ActivityDTO data, History history, UserDetailsDTO user, boolean readOnly)
+	public ThingDTO createLoadActivityData(History history, boolean readOnly)
 			throws ObjectNotFoundException {
 		ThingDTO dto = new ThingDTO();
 		if (history.getDataUrl() != null && history.getDataUrl().length() > 0) {
@@ -1593,584 +1276,6 @@ public class ApplicationService {
 		return data;
 	}
 
-	/**
-	 * Create data for activity submit form Send-submit is not here
-	 * 
-	 * @param user
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	@Transactional
-	public ActivitySubmitDTO submitCreateData(UserDetailsDTO user, ActivitySubmitDTO data)
-			throws ObjectNotFoundException {
-		data.setApplicant(accServ.isApplicant(user));
-		if (data.getHistoryId() > 0) {
-			// common data preparation logic - cleanup, etc
-			if (data.isReload()) { // reload all three tables
-				data.getActions().getRows().clear(); // list of possible actions
-				data.getExecs().getRows().clear(); // list of all possible executors of the action selected
-				data.getNextJob().getRows().clear(); // list of possible next activities of the action selected
-				data.setReload(false);
-			}
-			if (data.isReloadExecs()) { // reload only executors, because a new activity has been selected
-				data.getExecs().getRows().clear();
-				data.setReloadExecs(false);
-			}
-			// create lists for choices
-			// who am I?
-			History his = boilerServ.historyById(data.getHistoryId());
-			// for trace and monitoring only re-assign is allowed
-			if (!data.isReassign() && his.getActConfig() == null) {
-				data.setReassign(true);
-			}
-			Concept userConc = closureServ.getParent(his.getActivity());
-			//
-			if (accServ.isMyActivity(his.getActivity(), user) || accServ.isSupervisor(user)) {
-				if (data.getActions().getRows().size() == 0) {
-					data = createActions(user, data); // list of actions allowed
-				}
-				// determine the selected activity
-				int selected = -1;
-				for (TableRow row : data.getActions().getRows()) {
-					if (row.getSelected()) {
-						Long ls = new Long(row.getDbID());
-						selected = ls.intValue();
-					}
-				}
-//				systemDictNode(root, "0", messages.get("continue"));
-//				systemDictNode(root, "1", messages.get("route_action"));
-//				systemDictNode(root, "2", messages.get("newactivity"));
-//				systemDictNode(root, "3", messages.get("cancel"));
-//				systemDictNode(root, "4", messages.get("approve"));
-//				systemDictNode(root, "5", messages.get("reject"));
-//				systemDictNode(root, "6", messages.get("reassign"));
-//				systemDictNode(root, "7", messages.get("amendment"));
-//				systemDictNode(root, "8", messages.get("deregistration"));
-//				systemDictNode(root, "9", messages.get("revokepermit"));
-				data.getScheduled().getRows().clear();
-				switch (selected) {
-				case 0:
-					data = nextJobChoice(his, user, data);
-					data.getExecs().getRows().clear();// ika24062022
-					data = executorsNextChoice(his, user, data, false);
-					break;
-				case 1:
-					data.getNextJob().getRows().clear();
-					data.getExecs().getRows().clear();// ika24062022
-					data = executorsThisChoice(his, user, data);
-					break;
-				case 2:
-					data = nextJobChoice(his, user, data);
-					data.getExecs().getRows().clear();// ika24062022
-					data = executorsNextChoice(his, user, data, false);
-					break;
-				case 3:
-					data.getNextJob().getRows().clear();
-					data.getExecs().getRows().clear();
-					break;
-				case 4:
-					data.getNextJob().getRows().clear();
-					data.getExecs().getRows().clear();
-					data = scheduled(his, data);
-					break;
-				case 5:
-					data.getNextJob().getRows().clear();
-					data.getExecs().getRows().clear();
-					break;
-				case 6:
-					data.getNextJob().getRows().clear();
-					data.getExecs().getRows().clear();// ika24062022
-					data = executorsThisChoice(his, user, data);
-					break;
-				case 7:
-					data.getNextJob().getRows().clear();
-					data.getExecs().getRows().clear();
-					data = scheduled(his, data);
-					break;
-				case 8:
-					data = nextJobChoice(his, user, data);
-					data.getExecs().getRows().clear();// ika24062022
-					data = executorsNextChoice(his, user, data, false);
-					break;
-				case 9:
-					data.getExecs().getRows().clear();
-					data.getNextJob().getRows().clear();
-					data = executorsNMRA(his, user, data);
-					break;
-				default:
-					data.getExecs().getRows().clear();
-					data.getNextJob().getRows().clear();
-				}
-				return data;
-			} else {
-				throw new ObjectNotFoundException("submitCreateData. Access denied. current_user/should_be "
-						+ user.getEmail() + "/" + userConc.getIdentifier(), logger);
-			}
-		} else {
-			throw new ObjectNotFoundException("submitCreateData. History ID is ZERO", logger);
-		}
-	}
-
-	/**
-	 * Create list of scheduled runs in the host lifecycle stage Approve has been
-	 * selected
-	 * 
-	 * @param his  - current history record
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	@Transactional
-	public ActivitySubmitDTO scheduled(History his, ActivitySubmitDTO data) throws ObjectNotFoundException {
-		// any data may contain the scheduler(s)
-		TableQtb table = data.getScheduled();
-		if (table.getHeaders().getHeaders().size() == 0) {
-			table.setHeaders(headersSchedule(table.getHeaders()));
-		}
-		table.getRows().clear();
-		// String nextStage = systemServ.nextStageByApplDict(his,true);
-		List<History> allHis = boilerServ.historyAllByApplication(his.getApplication());
-
-		for (History h : allHis) {
-			if (!h.getCancelled()) { // don't mind cancelled!
-				if (h.getActivityData() != null) {
-					Thing th = boilerServ.thingByNode(h.getActivityData());
-					for (ThingScheduler ts : th.getSchedulers()) {
-						Scheduler sch = boilerServ.schedulerByNode(ts.getConcept());
-						String process = sch.getProcessUrl();
-						LocalDate sched = boilerServ.localDateFromDate(sch.getScheduled());
-						TableRow row = TableRow.instanceOf(ts.getID()); // we need only unique long
-						row.getRow().add(TableCell.instanceOf("processes", process));
-						row.getRow().add(TableCell.instanceOf("scheduled", sched, LocaleContextHolder.getLocale()));
-						table.getRows().add(row);
-					}
-				}
-			}
-		}
-		table.setSelectable(false);
-		boilerServ.translateRows(table);
-		return data;
-	}
-
-	/**
-	 * Headers for scheduled table
-	 * 
-	 * @param headers
-	 * @return
-	 */
-	private Headers headersSchedule(Headers headers) {
-		headers.getHeaders().clear();
-		/*	headers.getHeaders().add(TableHeader.instanceOf(
-					"stages",
-					"stages",
-					true,
-					false,
-					false,
-					TableHeader.COLUMN_I18,
-					0));*/
-		headers.getHeaders()
-		.add(TableHeader.instanceOf("processes", "processes", true, false, false, TableHeader.COLUMN_I18, 0));
-		headers.getHeaders().add(
-				TableHeader.instanceOf("scheduled", "scheduled", true, false, false, TableHeader.COLUMN_LOCALDATE, 0));
-		headers = boilerServ.translateHeaders(headers);
-		return headers;
-	}
-
-	/**
-	 * create executor's choice for this activity. To re-assign
-	 * 
-	 * @param his
-	 * @param user
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	private ActivitySubmitDTO executorsThisChoice(History his, UserDetailsDTO user, ActivitySubmitDTO data)
-			throws ObjectNotFoundException {
-		Concept actConfig = his.getActConfig();
-		if (actConfig == null) {
-			// the activity is first
-			actConfig = his.getApplConfig();
-		}
-		data.setExecs(executorsTable(his, actConfig, data.getExecs(), false));
-		return data;
-	}
-
-	/**
-	 * create executor's choice for this activity. To revokePermit
-	 * 
-	 * @param his
-	 * @param user
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	private ActivitySubmitDTO executorsNMRA(History his, UserDetailsDTO user, ActivitySubmitDTO data)
-			throws ObjectNotFoundException {
-		/*we need to get a concept of process configuration RevokePermit*/
-		Concept nodeApplData = his.getApplicationData();
-		Thing thing = new Thing();
-		thing = boilerServ.thingByNode(nodeApplData, thing);
-		String processUrl = thing.getUrl();
-		Concept dictConc = systemServ.revokepermitDictNode(processUrl);
-		processUrl = literalServ.readValue(LiteralService.APPLICATION_URL, dictConc);
-
-		Concept actConfig = closureServ.loadRoot("configuration." + processUrl);
-		if (actConfig == null) {
-			return data;
-		}
-		TableQtb exec=executorsTable(his, actConfig, data.getExecs(), true);
-
-		data.setExecs(exec);
-		return data;
-	}
-
-	/**
-	 * Propose all possible executors for activity selected
-	 * 
-	 * @param his
-	 * @param user
-	 * @param data
-	 * @param limitToAU limit to the administrative unit
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	@Transactional
-	private ActivitySubmitDTO executorsNextChoice(History his, UserDetailsDTO user, ActivitySubmitDTO data,
-			boolean limitToAU) throws ObjectNotFoundException {
-		Long nextActConfId = data.nextActivity();
-		if (nextActConfId > 0) {
-			Concept actConf = closureServ.loadConceptById(nextActConfId);
-			data.getExecs().getRows().clear();
-			data.setExecs(executorsTable(his, actConf, data.getExecs(), limitToAU));
-		} else {
-			data.getExecs().getRows().clear();
-		}
-		return data;
-	}
-
-	/**
-	 * Propose all possible foreground activities, mark next
-	 * 
-	 * @param his
-	 * @param user
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	private ActivitySubmitDTO nextJobChoice(History his, UserDetailsDTO user, ActivitySubmitDTO data)
-			throws ObjectNotFoundException {
-		if (data.getNextJob().getRows().size() == 0) {
-			data = nextJobsTable(his, data); // create new table
-		}
-		return data;
-	}
-
-	/**
-	 * Create a set of allowed actions using dictionary.system.submit
-	 * systemDictNode(root, "0", messages.get("continue")); systemDictNode(root,
-	 * "1", messages.get("route_action")); systemDictNode(root, "2",
-	 * messages.get("newactivity")); systemDictNode(root, "3",
-	 * messages.get("cancel")); systemDictNode(root, "4", messages.get("approve"));
-	 * systemDictNode(root, "5", messages.get("reject")); systemDictNode(root, "6",
-	 * messages.get("reassign")); systemDictNode(root, "7",
-	 * messages.get("amendment"));
-	 * 
-	 * @param user
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	@Transactional
-	public ActivitySubmitDTO createActions(UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
-		History curHis = boilerServ.historyById(data.getHistoryId());
-		List<String> allowed = new ArrayList<String>();
-		if (accessControlServ.isSupervisor(user)) {
-			// NMRA supervisor ------------------------------------------------------------
-			data = validServ.submitNext(curHis, user, data);
-			if (data.isValid()) {
-				allowed.add("0"); // supervisor next activiti workflow ika27.03.2023			}
-				data = validServ.actionCancel(curHis, data);
-			}
-			if (data.isValid()) {
-				allowed.add("3"); // cancel
-			}
-			data = validServ.actionNew(curHis, data);
-			if (data.isValid()) {
-				allowed.add("2"); // new activity, any activity
-			}
-			data = validServ.actionReassign(curHis, data);
-			if (data.isValid()) {
-				allowed.add("6"); // reassign the executor
-			}
-			if(hasShutdown(curHis,amendmentServ.initialApplicationData(curHis.getApplicationData()))) {
-				allowed.add("9"); // revoke the permit
-			}
-			//like any other user ---------------------------------------------------
-			data = validServ.submitApprove(curHis, user, data, null); 
-			if (data.isValid()){ 
-				allowed.add("4"); 
-			}
-			data = validServ.submitDeregistration(curHis, user, data);
-			if (data.isValid()) {
-				allowed.add("8"); // implement a deregistration
-			}
-			
-		} else {
-			if (data.isApplicant()) {
-				data = validServ.submitNext(curHis, user, data);
-				if (data.isValid()) {
-					allowed.add("0"); // applicant is restricted to submit next and has not rights to select
-					// activity/executor
-				}
-			} else {
-				data = validServ.submitNext(curHis, user, data);//ika06122022
-				if (data.isValid()) {
-					data = validServ.submitAmendment(curHis, user, data);
-					if (!data.isValid()) {
-						allowed.add("0"); // next activity
-					}
-				}
-				data = validServ.submitRoute(curHis, user, data);
-				if (data.isValid()) {
-					allowed.add("1"); // route to another executor
-				}
-				data = validServ.submitApprove(curHis, user, data, null);
-				if (data.isValid()) {
-					allowed.add("4");
-				}
-				data = validServ.submitAmendment(curHis, user, data);
-				if (data.isValid()) {
-					allowed.add("7"); // implement an amendment
-				}
-				data = validServ.submitReject(curHis, user, data);
-				if (data.isValid()) {
-					allowed.add("5");
-				}
-				data = validServ.submitDeregistration(curHis, user, data);
-				if (data.isValid()) {
-					allowed.add("8"); // implement an amendment
-				}
-			}
-		}
-
-		DictionaryDTO actDict = systemServ.submitActionDictionary();
-		TableQtb dictTable = actDict.getTable();
-		List<Concept> items = new ArrayList<Concept>();
-		for (TableRow row : dictTable.getRows()) {
-			Concept conc = closureServ.loadConceptById(row.getDbID());
-			if (allowed.contains(conc.getIdentifier())) {
-				items.add(conc);
-			}
-		}
-		data = actionsTable(items, data);
-		data.clearErrors();
-		return data;
-	}
-
-	/**
-	 * Table contains all submit actions possible in this case
-	 * 
-	 * @param items
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	@Transactional
-	public ActivitySubmitDTO actionsTable(List<Concept> items, ActivitySubmitDTO data) throws ObjectNotFoundException {
-		TableQtb table = data.getActions();
-		if (table.getHeaders().getHeaders().size() == 0) {
-			table.setHeaders(headersActions(table.getHeaders()));
-		}
-		for (Concept item : items) {
-			TableRow row = new TableRow();
-			try {
-				long dbID = Long.parseLong(item.getIdentifier());
-				row.setDbID(dbID);
-				String pref = literalServ.readPrefLabel(item);
-				String descr = literalServ.readDescription(item);
-				row.getRow().add(TableCell.instanceOf("pref", pref));
-				row.getRow().add(TableCell.instanceOf("description", descr));
-				// if(dbID==0) {
-				// row.setSelected(true);
-				// }
-				table.getRows().add(row);
-				table.setSelectable(!data.isApplicant());
-			} catch (NumberFormatException e) {
-				throw new ObjectNotFoundException(
-						"actionsTable. Invalid action code code/id " + item.getIdentifier() + "/" + item.getID(),
-						logger);
-			}
-		}
-		return data;
-	}
-
-	/**
-	 * Headers for actions table
-	 * 
-	 * @param headers
-	 * @return
-	 */
-	private Headers headersActions(Headers headers) {
-		headers.getHeaders()
-		.add(TableHeader.instanceOf("pref", "label_actions", true, false, false, TableHeader.COLUMN_STRING, 0));
-		headers.getHeaders().add(
-				TableHeader.instanceOf("description", "description", true, false, false, TableHeader.COLUMN_STRING, 0));
-		headers.setPageSize(50);
-		boilerServ.translateHeaders(headers);
-		return headers;
-	}
-
-	/**
-	 * Table contains all possible executors of the next activity
-	 * 
-	 * @param actConf
-	 * @param his
-	 * @param execTable
-	 * @param limitToAU limit to admin unit
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	public TableQtb executorsTable(History curHis, Concept actConf, TableQtb execTable, boolean limitToAU)
-			throws ObjectNotFoundException {
-		if (execTable.getRows().size() == 0) {
-			Concept role = assmServ.activityExecutorRole(actConf);
-			if (!accServ.isApplicantRole(role)) {
-				Concept applDict = curHis.getApplDict();
-				Concept admUnit = adminUnit(actConf, curHis);
-				if (role != null && applDict != null) {
-					String where = "";
-					if (admUnit != null && limitToAU) {
-						where = "auid='" + admUnit.getID() + "'";
-					} else {
-						where = "";
-					}
-					String select = "select distinct ID, username, email, orgname, local from executors_select";
-					jdbcRepo.executors_select(role.getID(), applDict.getID());
-					// real executors
-					execTable.setHeaders(headersExecutors(execTable.getHeaders()));
-					List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", where, execTable.getHeaders());
-					if (rows.size() == 0) {
-						logger.warn("An executor not found - search for office secretaries. Activity config ID is "
-								+ actConf.getID());
-						role = systemServ.loadRole(SystemService.ROLE_SECRETARY);
-						jdbcRepo.executors_select(role.getID(), applDict.getID());
-						rows = jdbcRepo.qtbGroupReport(select, "", where, execTable.getHeaders());
-					}
-					if (rows.size() == 0) {
-						logger.warn(
-								"an executor not found - send to supervisors in the central office. Activity config ID is "
-										+ actConf.getID());
-						role = systemServ.loadRole(SystemService.ROLE_ADMIN);
-						jdbcRepo.executors_select(role.getID(), applDict.getID());
-						where = "auid is null";
-						rows = jdbcRepo.qtbGroupReport(select, "", where, execTable.getHeaders());
-					}
-					execTable.setSelectable(true);
-					TableQtb.tablePage(rows, execTable);
-				}
-			} else {
-				Concept parent = closureServ.getParent(curHis.getApplicationData());
-				String applicant = parent.getIdentifier();
-				execTable.setHeaders(headersExecutors(execTable.getHeaders()));
-				List<TableRow> rows = new ArrayList<TableRow>();
-				List<TableCell> cells = new ArrayList<TableCell>();
-				TableRow row = new TableRow();
-				TableCell cell = new TableCell();
-				cell.setKey("username");
-				cell.setValue("APPLICANT");
-				cells.add(cell);
-				TableCell cell1 = new TableCell();
-				cell1.setKey("orgname");
-				cell1.setValue("-----");
-				cells.add(cell1);
-				TableCell cell2 = new TableCell();
-				cell2.setKey("email");
-				cell2.setValue(applicant);
-				cells.add(cell2);
-				row.setRow(cells);
-				row.setSelected(true);
-				rows.add(row);
-
-				execTable.setSelectable(true);
-
-				TableQtb.tablePage(rows, execTable);
-			}
-		} else {
-			execTable.getRows().clear();
-		}
-		return execTable;
-	}
-
-	/**
-	 * Headers for Executor's table
-	 * 
-	 * @param headers
-	 * @return
-	 */
-	public Headers headersExecutors(Headers headers) {
-		headers.getHeaders().clear();
-		headers.getHeaders().add(
-				TableHeader.instanceOf("username", "global_name", true, false, false, TableHeader.COLUMN_STRING, 0));
-		headers.getHeaders().add(TableHeader.instanceOf("orgname", "organizationauthority", true, false, false,
-				TableHeader.COLUMN_STRING, 0));
-		headers.getHeaders().add(
-				TableHeader.instanceOf("email", "executor_email", true, false, false, TableHeader.COLUMN_STRING, 0));
-		headers = boilerServ.translateHeaders(headers);
-		headers.setPageSize(Integer.MAX_VALUE);
-		return headers;
-	}
-
-	/**
-	 * Create nextJob table if needed
-	 * 
-	 * @param his  activity configuration root
-	 * @param data table with all foreground activities in this application
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	@Transactional
-	private ActivitySubmitDTO nextJobsTable(History his, ActivitySubmitDTO data) throws ObjectNotFoundException {
-		TableQtb table = data.getNextJob();
-		if (table.getRows().size() == 0) {
-			List<Concept> path = closureServ.loadParents(his.getActConfig());
-			table.setHeaders(headersNextJob(table.getHeaders()));
-			// jdbcRepo.workflowActivities(his.getApplConfig().getID());
-			jdbcRepo.workflowActivities(path.get(0).getID());
-			List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from workflow_activities", "", "bg!=1",
-					table.getHeaders());
-			table.setSelectable(true);
-			TableQtb.tablePage(rows, table);
-			// mark next activity
-			for (int i = 0; i < table.getRows().size(); i++) {
-				if (table.getRows().get(i).getDbID() == his.getActConfig().getID()) {
-					if (i + 1 < table.getRows().size()) {
-						table.getRows().get(i + 1).setSelected(true);
-						break;
-					}
-				}
-			}
-		}
-		return data;
-	}
-
-	/**
-	 * headers for next
-	 * 
-	 * @param headers
-	 * @return
-	 */
-	private Headers headersNextJob(Headers headers) {
-		headers.getHeaders().clear();
-		headers.getHeaders()
-		.add(TableHeader.instanceOf("pref", "activity", true, false, false, TableHeader.COLUMN_STRING, 0));
-		headers.getHeaders()
-		.add(TableHeader.instanceOf("descr", "description", true, false, false, TableHeader.COLUMN_STRING, 0));
-		headers = boilerServ.translateHeaders(headers);
-		headers.setPageSize(Integer.MAX_VALUE);
-		return headers;
-	}
 
 	/**
 	 * Is selected activity traced or monitoring (not configurable) activity
@@ -2192,383 +1297,6 @@ public class ApplicationService {
 		}
 	}
 
-	/**
-	 * Submit an activity in a workflow
-	 * The submit action is defined by the code of an activity
-	 * This code should be selected by a user from the left upper table
-	 * The content of the left upper table is calculated before  
-	 * 
-	 * @param user
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException
-	 * @throws JsonProcessingException
-	 */
-	@Transactional
-	public ActivitySubmitDTO submitSend(UserDetailsDTO user, ActivitySubmitDTO data)
-			throws ObjectNotFoundException, JsonProcessingException {
-		History curHis = boilerServ.historyById(data.getHistoryId());
-		data.clearErrors();
-		if (accServ.isActivityExecutor(curHis.getActivity(), user) || accServ.isSupervisor(user)) {
-			int actCode = data.actionSelected();
-			if (data.isApplicant()) {
-				actCode = 0;
-			}
-			;
-			/*Possible activity codes from SystemService.submitActionDictionary 
-			 systemDictNode(root, "0", messages.get("continue"));
-			systemDictNode(root, "1", messages.get("route_action"));
-			systemDictNode(root, "2", messages.get("newactivity"));
-			systemDictNode(root, "3", messages.get("cancel"));
-			systemDictNode(root, "4", messages.get("approve"));
-			systemDictNode(root, "5", messages.get("reject"));
-			systemDictNode(root, "6", messages.get("reassign"));
-			systemDictNode(root, "7", messages.get("amendment"));
-			systemDictNode(root, "8", messages.get("deregistration"));
-			systemDictNode(root, "9", messages.get("revokepermit"));*/
-			switch (actCode) {
-			case 0: // NMRA executor continue workflow from the activity selected
-				data = validServ.submitNext(curHis, user, data);
-				if(data.isValid()) {
-					if (accServ.isApplicant(user)) {
-						data = submitNext(curHis, user, data);
-					} else {
-						sendEmailAttention(user, curHis, data);
-						data = validServ.submitNextData(curHis, user, data);
-						data = submitNext(curHis, user, data);
-					}
-				}
-				return data;
-			case 1: // NMRA executor route the activity to other executor
-				data = validServ.submitRoute(curHis, user, data);
-				data = validServ.submitReAssign(curHis, user, data);
-				if(data.isValid()) {
-					data = submitReAssign(curHis, user, data);
-				}
-				return data;
-			case 2: // NMRA executor initiate an additional activity for others NMRA executors or
-				// for the applicant
-				data = checkApplicantExecutor(data, curHis);
-				data = validServ.submitAddActivity(curHis, user, data);
-				data = validServ.submitAddActivityData(curHis, user, data);
-				if(data.isValid()) {
-					data = submitAddActivity(curHis, user, data);
-				}
-				return data;
-			case 3:
-				data = validServ.actionCancel(curHis, data);
-				data = validServ.actionCancelData(curHis, data);
-				if(data.isValid()) {
-					data = actionCancel(curHis, data);
-				}
-				return data;
-			case 4:
-				data = submitSendApprove(data, user, curHis); //validation is inside
-				return data;
-			case 5:
-				data = validServ.submitReject(curHis, user, data);
-				data = validServ.submitRejectData(curHis, user, data);
-				if(data.isValid()) {
-					data = submitReject(curHis, user, data);
-				}
-				return data;
-			case 6:
-				data = validServ.actionReassign(curHis, data);
-				data = validServ.submitReAssign(curHis, user, data);
-				if(data.isValid()) {
-					data = submitReAssign(curHis, user, data);
-				}
-				return data;
-			case 7:
-				data = validServ.submitAmendment(curHis, user, data);
-				if (data.isValid()) {
-					sendEmailAttention(user, curHis, data);
-					data = isAmended(curHis, user, data);
-					data = submitApprove(curHis, user, data);
-				}
-				return data;
-			case 8:
-				data = validServ.submitDeregistration(curHis, user, data);
-				data = validServ.submitDeregistrationData(curHis, data);
-				if (data.isValid()) {
-					sendEmailAttention(user, curHis, data);
-					data = submitDeregistration(curHis, user, data);
-				}
-				return data;
-			case 9:
-				data = validServ.submitRevokePermit(curHis, user, data);
-				if(data.isValid()) {
-					data = submitRevokePermit(curHis, user, data);
-				}
-				return data;
-			default:
-				data.setIdentifier(messages.get("pleaseselectaction"));
-				data.setValid(false);
-				return data;
-			}
-		} else {
-			throw new ObjectNotFoundException("submitSend. Access denied", logger);
-		}
-	}
-
-	/**
-	 * 10.11.2022 khomenska
-	 *  Approve action
-	 * @throws JsonProcessingException 
-	 */
-	private ActivitySubmitDTO submitSendApprove(ActivitySubmitDTO data, UserDetailsDTO user, History curHis) throws ObjectNotFoundException, JsonProcessingException{
-		Concept applRoot = closureServ.loadParents(curHis.getApplication()).get(0);
-		String applUrl = applRoot.getIdentifier();
-		Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
-		List<Concept> nextActs = loadActivities(configRoot);
-		data = validServ.submitApprove(curHis, user, data, nextActs);
-		if(data.isValid()) {
-			data = submitApprove(curHis, user, data);
-			sendEmailAttention(user, curHis, data);
-		}
-		return data;
-	}
-
-	private void sendEmailAttention(UserDetailsDTO user, History curHis, ActivitySubmitDTO data)
-			throws ObjectNotFoundException {
-		// 23.10.2022
-		boolean attentionActivity = validServ.isActivityAttention(curHis.getActConfig());
-		if (attentionActivity) {
-			String applicantEmail = accessControlServ.applicantEmailByApplication(curHis.getApplication());
-			String applName = literalServ.readPrefLabel(curHis.getApplicationData());
-			String curActivity = literalServ.readPrefLabel(curHis.getActConfig());
-			String nextActivity = "";
-			if (data.getNextJob().getRows() != null && data.getNextJob().getRows().size() > 0) {
-				for (TableRow r : data.getNextJob().getRows()) {
-					if (r.getSelected()) {
-						nextActivity = r.getCellByKey("pref").getValue();
-						break;
-					}
-				}
-			}
-
-			String attnote = literalServ.readValue("attnote", curHis.getActConfig());
-			String res = mailService.createAttentionMail(user, applicantEmail, applName, curActivity, nextActivity, attnote);
-			String notes = data.getNotes().getValue();
-			if(notes != null || !notes.isEmpty()) {
-				notes += " (" + res + ")";
-			}else notes = res;
-			data.getNotes().setValue(notes);
-			data.getNotes().setMark(true);
-			data.getNotes().setReadOnly(true);
-			data.getNotes().setTextArea(true);
-		}
-	}
-
-	/**
-	 * Make de-registration things
-	 * 
-	 * @param curHis
-	 * @param user
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	@Transactional
-	private ActivitySubmitDTO submitDeregistration(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
-			throws ObjectNotFoundException {
-		if (data.isValid()) {
-			closeActivity(curHis, false);
-			cancelUsersActivities(user, curHis);
-			Concept deregData = amendmentServ.amendedConcept(curHis.getApplicationData());
-			if(deregData.getID()==0) {
-				deregData=amendmentServ.initialApplicationData(curHis.getApplicationData());
-			}
-			cancelDataActivities(deregData, true); // cancel all activities, include monitoring
-			List<Long> executors = data.executors();
-			long actConfId = data.nextActivity();
-			if (actConfId > 0) {
-				Concept actConf = closureServ.loadConceptById(actConfId);
-				if (executors.size() > 0) {
-					for (Long execId : executors) {
-						Concept userConc = closureServ.loadConceptById(execId);
-						activityCreate(null, actConf, curHis, userConc.getIdentifier(), data.getNotes().getValue());
-					}
-				}
-			}
-		}
-		return data;
-	}
-
-	@Transactional
-	private ActivitySubmitDTO submitApproveRevoke(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
-			throws ObjectNotFoundException, JsonProcessingException {
-		/*	Concept applicant = closureServ.getParent(curHis.getApplicationData());
-			rejectApplication(curHis, applicant.getIdentifier(), data);
-		
-			sendEmailAttention(user, curHis, data);*/
-
-		return submitReject(curHis, user, data);
-	}
-
-	/**
-	 * Cancel all activities related to application data
-	 * 
-	 * @param applicationData - application data
-	 * @param all             - remove all activities
-	 * @throws ObjectNotFoundException
-	 */
-	@Transactional
-	private void cancelDataActivities(Concept applicationData, boolean all) throws ObjectNotFoundException {
-		List<History> hisList = boilerServ.historyAll(applicationData);
-		for (History his : hisList) {
-			if (all) {
-				closeActivity(his, true);
-			} else {
-				if (his.getActConfig() != null) {
-					closeActivity(his, true);
-				}
-			}
-		}
-	}
-
-	/**
-	 * Is this amendment fully implemented?
-	 * 
-	 * @param curHis
-	 * @param user
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	@Transactional
-	public ActivitySubmitDTO isAmended(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
-			throws ObjectNotFoundException {
-		Concept amended = amendmentServ.amendedConcept(curHis.getApplicationData());
-		Concept amendment = amendmentServ.amendmentConcept(curHis.getApplicationData(), amended);
-		if (!amendmentServ.compareConcepts(amendment, amended)) {
-			data.setValid(false);
-			data.setIdentifier(messages.get("amendmentisnotimplemented"));
-		}
-		return data;
-	}
-
-	/**
-	 * Special case when executor for this activity defined as an applicant
-	 * 
-	 * @param data
-	 * @return applicant executor email or empty string
-	 * @throws ObjectNotFoundException
-	 */
-	@Transactional
-	private ActivitySubmitDTO checkApplicantExecutor(ActivitySubmitDTO data, History curHis)
-			throws ObjectNotFoundException {
-		if (data.getExecs().getRows().size() == 0) { // no executors defined, suspect an applicant
-			long addAct = data.nextActivity();
-			if (addAct > 0) {
-				Concept actConfig = closureServ.loadConceptById(addAct);
-				Thing thing = new Thing();
-				thing = boilerServ.thingByNode(actConfig, thing);
-				if (thing.getID() > 0) {
-					for (ThingDict td : thing.getDictionaries()) {
-						if (td.getVarname().equalsIgnoreCase("executives")) {
-							if (td.getConcept().getIdentifier().equalsIgnoreCase("APPLICANT")) {
-								data.setApplicantEmail(accServ.applicantEmailByApplication(curHis.getApplication()));
-							}
-						}
-					}
-				}
-			}
-		}
-		return data;
-	}
-
-	/**
-	 * Reject an application and move it to the applicant
-	 * 
-	 * @param curHis
-	 * @param user
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException
-	 * @throws JsonProcessingException
-	 */
-	@Transactional
-	private ActivitySubmitDTO submitReject(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
-			throws ObjectNotFoundException, JsonProcessingException {
-		Concept applicant = closureServ.getParent(curHis.getApplicationData());
-		rejectApplication(curHis, applicant.getIdentifier(), data);
-		//sendEmailAttention(user, curHis, data);
-		return data;
-	}
-
-	/**
-	 * RevokePermit an application and move it to the NMRA users
-	 * dictionary.shutdown.applications
-	 * @param curHis
-	 * @param user
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException
-	 * @throws JsonProcessingException
-	 */
-	@Transactional
-	private ActivitySubmitDTO submitRevokePermit(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
-			throws ObjectNotFoundException, JsonProcessingException {
-		/*close previous scheduled REJECT THIS CODE 31/03/2023 IKA
-		List<History> hisAllScheduled = boilerServ.historyAllByApplData(curHis.getApplicationData());
-		for (History act : hisAllScheduled) {
-			closeActivity(act, (act.getActConfig() != null));
-		}
-		closeActivity(curHis, true);
-		 */
-		Concept nodeApplData = curHis.getApplicationData();
-		Thing thing = new Thing();
-		thing = boilerServ.thingByNode(nodeApplData, thing);
-		String processUrl = thing.getUrl();
-		Concept dictConc = systemServ.revokepermitDictNode(processUrl);
-		if(dictConc!=null) {
-			processUrl = literalServ.readValue(LiteralService.APPLICATION_URL, dictConc);
-			data = createRevokePermitApplication(curHis, processUrl, dictConc, data);
-			if (!data.isValid()) {
-				return data;
-			}
-			return data;
-		} else {
-			throw new ObjectNotFoundException("submitRevokePermit. revokepermitDictNode("+processUrl+") is NULL", logger);
-		}
-	}
-
-	/**
-	 * Reject the current application
-	 * 
-	 * @param curHis
-	 * @param applicantEmail
-	 * @param data
-	 * @throws ObjectNotFoundException
-	 * @throws JsonProcessingException
-	 */
-	@Transactional
-	private void rejectApplication(History curHis, String applicantEmail, ActivitySubmitDTO data)
-			throws ObjectNotFoundException, JsonProcessingException {
-		// cancel all histories, close the current
-		List<History> allHist = boilerServ.historyAll(curHis.getApplicationData());
-		for (History h : allHist) {
-			if (h.getGo() == null) {
-				closeActivity(h, h.getID() != curHis.getID());
-			}
-		}
-		// create new application
-		ThingDTO tdto = new ThingDTO();
-		tdto.setNodeId(curHis.getApplicationData().getID());
-		Concept applicant = closureServ.getParent(curHis.getApplication());
-		Concept application = closureServ.getParent(applicant);
-		tdto.setApplicationUrl(application.getIdentifier());
-		tdto.setApplDictNodeId(curHis.getApplDict().getID());
-		UserDetailsDTO user = new UserDetailsDTO();
-		user.setEmail(applicantEmail);
-		tdto = thingServ.loadThing(tdto, user);
-		tdto = thingServ.createApplication(tdto, applicantEmail, curHis.getApplicationData());
-		// add notes to the history data
-		History his = boilerServ.historyById(tdto.getHistoryId());
-		his.setPrevNotes(data.getNotes().getValue());
-		his = boilerServ.saveHistory(his);
-	}
 
 	/**
 	 * Cancel all opened activities in this workflow
@@ -2590,172 +1318,6 @@ public class ApplicationService {
 	}
 
 	/**
-	 * Submit to approve
-	 * 
-	 * @TODO not implemented yet
-	 * @param curHis
-	 * @param user
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException
-	 * @throws JsonProcessingException 
-	 */
-	@Transactional
-	public ActivitySubmitDTO submitApprove(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
-			throws ObjectNotFoundException, JsonProcessingException {
-		if (systemServ.isGuest(curHis)) {
-			data = submitGuest(curHis, data);
-			return data;
-		}
-		if (systemServ.isHost(curHis)) {
-			data = submitHost(curHis, data);
-			return data;
-		}
-		if (systemServ.isAmend(curHis)) {
-			data = submitAmend(curHis, data);
-			return data;
-		}
-		if (systemServ.isDeregistration(curHis)) {
-			data.clearErrors();
-			//cancellActivities(curHis); This danger operation
-			data=submitDeregistration(curHis, user, data);
-			return data;
-		}
-		if(systemServ.isShutdown(curHis)) {
-			data.clearErrors();
-			data=submitApproveRevoke(curHis, user, data);
-			return data;
-		}
-		data.setIdentifier(messages.get("invalidstage"));
-		data.setValid(false);
-		return data;
-	}
-
-	/**
-	 * Submit an amendment
-	 * 
-	 * @param curHis
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	private ActivitySubmitDTO submitAmend(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
-		data = submitGuest(curHis, data);
-		return data;
-	}
-
-	/**
-	 * Submit Host application, create another scheduled host application Currently
-	 * it is the same as submit guest
-	 * 
-	 * @param curHis
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	private ActivitySubmitDTO submitHost(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
-		data = submitGuest(curHis, data);
-		return data;
-	}
-
-	/**
-	 * Submit guest application
-	 * 
-	 * @param curHis
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	@Transactional
-	public ActivitySubmitDTO submitGuest(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
-		if (data.isValid()) {
-			data=verifyScheduledGuestHost(curHis, data);
-			if(data.isValid()) {
-				cancellActivities(curHis);
-				data = runScheduledGuestHost(curHis, data);
-			}
-		}
-		return data;
-	}
-	/**
-	 * Verify scheduled applications if ones
-	 * @param curHis
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	@Transactional
-	private ActivitySubmitDTO verifyScheduledGuestHost(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
-		if(isGuestOrHostFinalize(curHis)) {
-			if(data.getScheduled().getRows().size()>0) {
-				for (TableRow row : data.getScheduled().getRows()) {
-					ThingScheduler ts = boilerServ.thingSchedulerById(row.getDbID());
-					Scheduler sch = boilerServ.schedulerByNode(ts.getConcept());
-					String applUrl=sch.getProcessUrl();
-					Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
-					List<Concept> nextActs = loadActivities(configRoot);
-					data = (ActivitySubmitDTO) validServ.workflowConfig(nextActs, configRoot, data);
-				}
-			}else {
-				data.addError(messages.get("scheduled_requerd"));
-			}
-		}
-		return data;
-	}
-	/**
-	 * Is it guest or host application?
-	 * @param curHis
-	 * @return
-	 */
-	private boolean isGuestOrHostFinalize(History curHis) {
-		boolean ret=false;
-		try {
-			if(validServ.isActivitySubmitApprove(curHis)) {
-				Concept dictItem = curHis.getApplDict();
-				if(dictItem!=null) {
-					Concept dict=closureServ.getParent(dictItem);
-					ret = dict.getIdentifier().equalsIgnoreCase(SystemService.DICTIONARY_GUEST_APPLICATIONS) || 
-							dict.getIdentifier().equalsIgnoreCase(SystemService.DICTIONARY_HOST_APPLICATIONS);
-				}
-			}
-		} catch (ObjectNotFoundException e) {
-			//nothing to do
-		}
-		return ret;
-	}
-
-
-	/**
-	 * Run scheduled activities as well as related trace and monitoring ones Close
-	 * all scheduled workflows with the same URL and data, but not this yet
-	 * 
-	 * @param curHis
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	@Transactional
-	private ActivitySubmitDTO runScheduledGuestHost(History curHis, ActivitySubmitDTO data)
-			throws ObjectNotFoundException {
-		for (TableRow row : data.getScheduled().getRows()) {
-			ThingScheduler ts = boilerServ.thingSchedulerById(row.getDbID());
-			Scheduler sch = boilerServ.schedulerByNode(ts.getConcept());
-			Concept dictConc = systemServ.hostDictNode(sch.getProcessUrl());
-			// close previous scheduled
-			Concept appldata = amendmentServ.initialApplicationData(curHis.getApplicationData());
-			List<History> prevActivities = boilerServ.activities(sch.getProcessUrl(), appldata);
-			for (History act : prevActivities) {
-				closeActivity(act, true);
-			}
-			data = createHostApplication(curHis, sch, dictConc, data);
-			if (!data.isValid()) {
-				return data;
-			}
-		}
-		return data;
-	}
-
-	/**
 	 * Create a new host application and the first activity for it
 	 * The application URL comes from the scheduler
 	 * @param prevHis
@@ -2765,7 +1327,7 @@ public class ApplicationService {
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
-	private ActivitySubmitDTO createHostApplication(History prevHis, Scheduler sch, Concept dictConc,
+	public ActivitySubmitDTO createHostApplication(History prevHis, Scheduler sch, Concept dictConc,
 			ActivitySubmitDTO data) throws ObjectNotFoundException {
 		//create and save the application
 		String applUrl = sch.getProcessUrl();
@@ -2822,7 +1384,7 @@ public class ApplicationService {
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
-	private ActivitySubmitDTO createRevokePermitApplication(History prevHis, String applUrl, Concept dictConc,
+	public ActivitySubmitDTO createRevokePermitApplication(History prevHis, String applUrl, Concept dictConc,
 			ActivitySubmitDTO data) throws ObjectNotFoundException {
 		Concept applRoot = closureServ.loadRoot(applUrl);
 
@@ -2847,7 +1409,6 @@ public class ApplicationService {
 				Concept actConfig = nextActs.get(0);
 				History curHis = createHostHistorySample(prevHis, applConc, dictConc, configRoot);
 				activityCreate(null, actConfig, curHis, owner.getIdentifier(), data.getNotes().getValue());
-
 
 				//List<ActivityToRun> toRun = activitiesToRun(data, applUrl, prevHis, nextActs);
 				//if(toRun.size()>0 && data.isValid()) {
@@ -2899,183 +1460,6 @@ public class ApplicationService {
 		his.setApplicationData(amendmentServ.initialApplicationData(prevHis.getApplicationData()));
 		return his;
 	}
-
-	/**
-	 * Cancel all opened activities for the current application, but close the
-	 * current
-	 * 
-	 * @param curHis
-	 * @throws ObjectNotFoundException
-	 */
-	@Transactional
-	public void cancellActivities(History curHis) throws ObjectNotFoundException {
-		List<History> allHis = boilerServ.historyAllByApplication(curHis.getApplication());
-		// close activities in the current
-		for (History his : allHis) {
-			if (his.getID() != curHis.getID() && his.getGo() == null) {
-				closeActivity(his, true);
-			}
-		}
-		closeActivity(curHis, false);
-	}
-
-	/**
-	 * Cancel and activity
-	 * 
-	 * @param curHis
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	private ActivitySubmitDTO actionCancel(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
-		closeActivity(curHis, true);
-		return data;
-	}
-
-	/**
-	 * re-route this activity to others executors. Data will be lost!
-	 * 
-	 * @param curHis
-	 * @param user
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	@Transactional
-	public ActivitySubmitDTO submitReAssign(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
-			throws ObjectNotFoundException {
-		if (data.isValid() && curHis.getActConfig() != null) { // wrong, monitoring and trace can`t be reassigned
-			// determine activity configuration
-			Concept actConfig = curHis.getActConfig();
-			if (actConfig == null) {
-				actConfig = curHis.getApplConfig();
-			}
-			List<Long> executors = data.executors();
-
-			// create activities, the first will contain the reference to the data of the reassigned one
-			boolean moveData=true;
-			for (Long execId : executors) {
-				Concept userConc = closureServ.loadConceptById(execId);
-				History newHis=activityCreate(null, actConfig, curHis, userConc.getIdentifier(), data.getNotes().getValue());
-				if(newHis !=null) {		//not reassign to the same executor
-					//the first activity will inherit the data if one
-					if(moveData && curHis.getActivityData()!=null) {
-						newHis.setActivityData(curHis.getActivityData());
-						moveData=false;
-					}
-					//previous notes may be added too
-					if(curHis.getPrevNotes()!=null) {
-						String prevNotes=curHis.getPrevNotes();
-						if(newHis.getPrevNotes()!=null) {
-							prevNotes=prevNotes+"/ "+newHis.getPrevNotes();
-						}
-						newHis.setPrevNotes(prevNotes);
-					}
-					newHis= boilerServ.saveHistory(newHis);
-					//closeActivity(curHis, true); 24032023 ika
-					stopOneActivity(curHis, true);
-				}
-			}
-		}
-		return data;
-	}
-
-	/**
-	 * Submit to the next activity selected by user
-	 * 
-	 * @param curHis
-	 * @param user
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	private ActivitySubmitDTO submitNext(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
-			throws ObjectNotFoundException {
-		if (data.isValid()) {
-			if (accServ.isApplicant(user)) {
-				// restore next activity and executor's list
-				data.getNextJob().getRows().clear();
-				data.getExecs().getRows().clear();
-				data = nextJobChoice(curHis, user, data);
-				data = executorsNextChoice(curHis, user, data, true);
-				for (TableRow row : data.getExecs().getRows()) {
-					row.setSelected(true); // TODO more smart may be needed, because an applicant has no choice
-				}
-			}
-			closeActivity(curHis, false);
-			submitAddActivity(curHis, user, data);
-		}
-		return data;
-	}
-
-	/**
-	 * Add activities for all executors listed In case next activity is
-	 * Finalize.AMEND - implement the amendment
-	 * 
-	 * @param curHis
-	 * @param user
-	 * @param data
-	 * @throws ObjectNotFoundException
-	 */
-	public ActivitySubmitDTO submitAddActivity(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
-			throws ObjectNotFoundException {
-		if (data.isValid()) {
-			//cancelUsersActivities(user, curHis); 2023-03-01
-			List<Long> executors = data.executors();
-			long actConfId = data.nextActivity();
-			Concept actConf = closureServ.loadConceptById(actConfId);
-			if (executors.size() > 0) {
-				data = amendmentServ.implement(curHis, actConf, data, user); // is it amendment?
-				if (data.isValid()) {
-					for (Long execId : executors) {
-						// ika => execId=0 !!! APPLICANT
-						String identifierUser = "";
-						if (execId == 0) {
-							identifierUser = data.getExecs().getRows().get(0).getRow().get(2).getValue();
-						} else {
-							Concept userConc = closureServ.loadConceptById(execId);
-							identifierUser = userConc.getIdentifier();
-						}
-						activityCreate(null, actConf, curHis, identifierUser, data.getNotes().getValue());
-					}
-				}
-			} else {
-				if (data.getApplicantEmail().length() > 0) {
-					// send to applicant
-					activityCreate(null, actConf, curHis, data.getApplicantEmail(), data.getNotes().getValue());
-				} else {
-					// user sends activity to himself
-					data = amendmentServ.implement(curHis, actConf, data, user); // is it amendment?
-					if (data.isValid()) {
-						activityCreate(null, actConf, curHis, user.getEmail(), data.getNotes().getValue());
-					}
-				}
-			}
-		}
-		return data;
-	}
-
-	/**
-	 * Cancel all activities opened for this user, except monitoring!
-	 * 
-	 * @param user
-	 * @param curHis
-	 * @throws ObjectNotFoundException
-	 */
-	private void cancelUsersActivities(UserDetailsDTO user, History curHis) throws ObjectNotFoundException {
-		List<History> allHis = boilerServ.historyAllByApplication(curHis.getApplication());
-		for (History his : allHis) {
-			if (his.getGo() == null || his.getCancelled()) {
-				Concept uconc = closureServ.getParent(his.getActivity());
-				if (accServ.sameEmail(uconc.getIdentifier(), user.getEmail())) {
-					if (his.getActConfig() != null) {
-						closeActivity(his, true);
-					}
-				}
-			}
-		}
-	}
-
 	/**
 	 * Try to done parallel activity or inform that this activity is the last
 	 * (data.done=false)
@@ -3227,13 +1611,13 @@ public class ApplicationService {
 		}
 		return data;
 	}
-	/**
+	/** MOVED TO SUBMITSERVICE 0052023 IK
 	 * Can I revoke my permission?
 	 * @param curHis 
 	 * @param applData 
 	 * @return yes|no
 	 * @throws ObjectNotFoundException 
-	 */
+	 
 	@Transactional
 	public boolean hasShutdown( History curHis, Concept applData) throws ObjectNotFoundException {
 		Concept root=boilerServ.getRootTree(applData);
@@ -3258,5 +1642,1607 @@ public class ApplicationService {
 			return true;
 		}
 		return false;
+	}*/
+	/** MOVED TO SUBMITSERVICE 03052023 IK
+	 * Submit an application to the NMRA from an applicant
+	 * 
+	 * @param data
+	 * @param user
+	 * @return
+	 * @throws ObjectNotFoundException
+	 
+	@Transactional
+	public CheckListDTO submit(CheckListDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		if (data.getHistoryId() > 0) {
+			// get workflow configuration root
+			History curHis = boilerServ.historyById(data.getHistoryId());
+			if(!singeltonCondition(curHis)) {
+				data.setValid(false);
+				data.setIdentifier(messages.get("singletonError"));
+				return data;
+			}
+			Concept applRoot = closureServ.loadParents(curHis.getApplication()).get(0);
+			String applUrl = applRoot.getIdentifier();
+			Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
+			List<Concept> nextActs = loadActivities(configRoot);
+			data = (CheckListDTO) validServ.workflowConfig(nextActs, configRoot, data);
+			if (data.isValid()) {
+				//boolean fullValid = fullValidation(curHis, user);
+				boolean fullValid=checkPagesDefined(curHis.getApplicationData());
+				if(fullValid) {
+					if (nextActs.size() > 0) {
+						List<ActivityToRun> toRun = activitiesToRun(data, applUrl, curHis, nextActs);
+						//finish the current activity and run others
+						if(toRun.size()>0 && data.isValid()) {
+							Concept userConcept = userServ.userConcept(user);
+							if(userConcept != null) {
+								curHis.setExecutor(userConcept);
+							}
+							curHis = closeActivity(curHis, false);
+							// tracking by an applicant
+							activityTrackRun(null, curHis, applUrl, user.getEmail()); 
+							// monitoring by the all supervisors as a last resort
+							activityMonitoringRun(null, curHis, applUrl); 
+							// run activities
+							for(ActivityToRun act :toRun ) {
+								for (String email : act.getExecutors()) {
+									activityCreate(null, act.getConfig(), curHis, email, String.join(",",act.getFallBack()));
+								}
+							}
+						}else {
+							if(data.isValid()) {
+								data.setValid(false);
+								data.setIdentifier(messages.get("badconfiguration") + applUrl);
+							}
+						}
+					} else {
+						data.setValid(false);
+						data.setIdentifier(messages.get("badconfiguration") + " " + "activities");
+					}
+				}else {
+					data.setValid(false);
+					data.setIdentifier(messages.get("errorApplNotFull"));
+				}
+			}
+			return data;
+		} else {
+			throw new ObjectNotFoundException("submit. History record id is ZERO", logger);
+		}
+	}*/
+
+	/** MOVED TO SUBMITSERVICE 03052023 IK
+	 * Have all pages been defined?
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 
+	@Transactional			// may become public in the future
+	private boolean checkPagesDefined(Concept data) throws ObjectNotFoundException {
+		boolean ret = true;
+		//check persons on the first page
+		if(!checkPagesPersonDefined(data)) {
+			return false;
+		}
+		// get thing
+		Thing thing = new Thing();
+		thing=boilerServ.thingByNode(data, thing);
+		if(thing.getID()>0) {
+			// get all pages
+			Map<String,Concept> pages =new LinkedHashMap<String, Concept>();
+			for(ThingThing tt : thing.getThings()) {
+				pages.put(tt.getUrl().toUpperCase(),tt.getConcept());
+			}
+			// get data configuration URL
+			Concept owner = closureServ.getParent(data);
+			if(owner != null) {
+				Concept root=closureServ.getParent(owner);
+				if(root != null) {
+					List<Assembly> assms =assmServ.loadDataConfiguration(root.getIdentifier());
+					for(Assembly assm :assms) {
+						if(assm.getClazz().equalsIgnoreCase("things")) {
+							String url = assm.getUrl();
+							Concept page = pages.get(url.toUpperCase());
+							if(page==null) {
+								return false;
+							}else {
+								if(!checkPagesPersonDefined(page)) {
+									return false;
+								}
+							}
+						}
+					}
+				}else {
+					ret=false;
+				}
+			}else {
+				ret=false;
+			}
+		}else {
+			ret=false;
+		}
+		return ret;
+	}*/
+
+	/** MOVED TO SUBMITSERVICE 03052023 IK
+	 * check "persons" (in general 1:m)
+	 * @param page
+	 * @return
+	 * @throws ObjectNotFoundException
+	 
+	@Transactional
+	private boolean checkPagesPersonDefined(Concept page) throws ObjectNotFoundException {
+		Thing pThing = new Thing();
+		pThing=boilerServ.thingByNode(page, pThing);
+		for(ThingPerson tp : pThing.getPersons()) {
+			if (!checkPagesDefined(tp.getConcept())){
+				return false;
+			}
+		}
+		return true;
+	}*/
+	/** MOVED SUBMITSERVICE 03052023 IK
+	 * It is impossible running more than one modification and/or de-registration against the same object
+	 * in addition it is possible running modification and de-registration only if any host application is running
+	 * Guest may be running without any condition
+	 * Host runs automatically
+	 * @param curHis
+	 * @return true if condition is 
+	 * @throws ObjectNotFoundException 
+	 
+	@Transactional
+	public boolean singeltonCondition(History curHis) throws ObjectNotFoundException {
+		if(amendmentServ.hasAmendment(curHis.getApplicationData())) {
+			Concept applData = amendmentServ.initialApplicationData(curHis.getApplicationData());
+			Headers headers = new Headers();
+			headers.getHeaders().add(TableHeader.instanceOf("url", TableHeader.COLUMN_STRING));
+			// check host
+			jdbcRepo.guestPlusHost(applData.getID());
+			List<TableRow> rowsHost= jdbcRepo.qtbGroupReport("select * from guestPlusHost", "", "", headers);
+			jdbcRepo.dregPlusModi(applData.getID());
+			List<TableRow> rowsModi= jdbcRepo.qtbGroupReport("select * from dregPlusModi", "", "", headers);
+			return rowsHost.size()!=0 && rowsModi.size()==0;
+		}else {
+			return true;
+		}
+	}*/
+	/** MOVED TO SUBMITSERVICE 03.05.2023 IK
+	 * Create data for activity submit form Send-submit is not here
+	 * 
+	 * @param user
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 
+	@Transactional
+	public ActivitySubmitDTO submitCreateData(UserDetailsDTO user, ActivitySubmitDTO data)
+			throws ObjectNotFoundException {
+		data.setApplicant(accServ.isApplicant(user));
+		if (data.getHistoryId() > 0) {
+			// common data preparation logic - cleanup, etc
+			if (data.isReload()) { // reload all three tables
+				data.getActions().getRows().clear(); // list of possible actions
+				data.getExecs().getRows().clear(); // list of all possible executors of the action selected
+				data.getNextJob().getRows().clear(); // list of possible next activities of the action selected
+				data.setReload(false);
+			}
+			if (data.isReloadExecs()) { // reload only executors, because a new activity has been selected
+				data.getExecs().getRows().clear();
+				data.setReloadExecs(false);
+			}
+			// create lists for choices
+			// who am I?
+			History his = boilerServ.historyById(data.getHistoryId());
+			// for trace and monitoring only re-assign is allowed
+			if (!data.isReassign() && his.getActConfig() == null) {
+				data.setReassign(true);
+			}
+			Concept userConc = closureServ.getParent(his.getActivity());
+			//
+			if (accServ.isMyActivity(his.getActivity(), user) || accServ.isSupervisor(user)) {
+				if (data.getActions().getRows().size() == 0) {
+					data = createActions(user, data); // list of actions allowed
+				}
+				// determine the selected activity
+				int selected = -1;
+				for (TableRow row : data.getActions().getRows()) {
+					if (row.getSelected()) {
+						Long ls = new Long(row.getDbID());
+						selected = ls.intValue();
+					}
+				}
+//				systemDictNode(root, "0", messages.get("continue"));
+//				systemDictNode(root, "1", messages.get("route_action"));
+//				systemDictNode(root, "2", messages.get("newactivity"));
+//				systemDictNode(root, "3", messages.get("cancel"));
+//				systemDictNode(root, "4", messages.get("approve"));
+//				systemDictNode(root, "5", messages.get("reject"));
+//				systemDictNode(root, "6", messages.get("reassign"));
+//				systemDictNode(root, "7", messages.get("amendment"));
+//				systemDictNode(root, "8", messages.get("deregistration"));
+//				systemDictNode(root, "9", messages.get("revokepermit"));
+				data.getScheduled().getRows().clear();
+				switch (selected) {
+				case 0:
+					data = nextJobChoice(his, user, data);
+					data.getExecs().getRows().clear();// ika24062022
+					data = executorsNextChoice(his, user, data, false);
+					break;
+				case 1:
+					data.getNextJob().getRows().clear();
+					data.getExecs().getRows().clear();// ika24062022
+					data = executorsThisChoice(his, user, data);
+					break;
+				case 2:
+					data = nextJobChoice(his, user, data);
+					data.getExecs().getRows().clear();// ika24062022
+					data = executorsNextChoice(his, user, data, false);
+					break;
+				case 3:
+					data.getNextJob().getRows().clear();
+					data.getExecs().getRows().clear();
+					break;
+				case 4:
+					data.getNextJob().getRows().clear();
+					data.getExecs().getRows().clear();
+					data = scheduled(his, data);
+					break;
+				case 5:
+					data.getNextJob().getRows().clear();
+					data.getExecs().getRows().clear();
+					break;
+				case 6:
+					data.getNextJob().getRows().clear();
+					data.getExecs().getRows().clear();// ika24062022
+					data = executorsThisChoice(his, user, data);
+					break;
+				case 7:
+					data.getNextJob().getRows().clear();
+					data.getExecs().getRows().clear();
+					data = scheduled(his, data);
+					break;
+				case 8:
+					data = nextJobChoice(his, user, data);
+					data.getExecs().getRows().clear();// ika24062022
+					data = executorsNextChoice(his, user, data, false);
+					break;
+				case 9:
+					data.getExecs().getRows().clear();
+					data.getNextJob().getRows().clear();
+					data = executorsNMRA(his, user, data);
+					break;
+				default:
+					data.getExecs().getRows().clear();
+					data.getNextJob().getRows().clear();
+				}
+				return data;
+			} else {
+				throw new ObjectNotFoundException("submitCreateData. Access denied. current_user/should_be "
+						+ user.getEmail() + "/" + userConc.getIdentifier(), logger);
+			}
+		} else {
+			throw new ObjectNotFoundException("submitCreateData. History ID is ZERO", logger);
+		}
 	}
+*/
+	/** MOVED TO SUBMIT SERVICE 03052023 IK
+	 * Create list of scheduled runs in the host lifecycle stage Approve has been
+	 * selected
+	 * 
+	 * @param his  - current history record
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 
+	@Transactional
+	public ActivitySubmitDTO scheduled(History his, ActivitySubmitDTO data) throws ObjectNotFoundException {
+		// any data may contain the scheduler(s)
+		TableQtb table = data.getScheduled();
+		if (table.getHeaders().getHeaders().size() == 0) {
+			table.setHeaders(headersSchedule(table.getHeaders()));
+		}
+		table.getRows().clear();
+		// String nextStage = systemServ.nextStageByApplDict(his,true);
+		List<History> allHis = boilerServ.historyAllByApplication(his.getApplication());
+
+		for (History h : allHis) {
+			if (!h.getCancelled()) { // don't mind cancelled!
+				if (h.getActivityData() != null) {
+					Thing th = boilerServ.thingByNode(h.getActivityData());
+					for (ThingScheduler ts : th.getSchedulers()) {
+						Scheduler sch = boilerServ.schedulerByNode(ts.getConcept());
+						String process = sch.getProcessUrl();
+						LocalDate sched = boilerServ.localDateFromDate(sch.getScheduled());
+						TableRow row = TableRow.instanceOf(ts.getID()); // we need only unique long
+						row.getRow().add(TableCell.instanceOf("processes", process));
+						row.getRow().add(TableCell.instanceOf("scheduled", sched, LocaleContextHolder.getLocale()));
+						table.getRows().add(row);
+					}
+				}
+			}
+		}
+		table.setSelectable(false);
+		boilerServ.translateRows(table);
+		return data;
+	}*/
+
+	/** MOVED TO SUBMITSERVICE 03052023 IK 
+	 * Headers for scheduled table
+	 * 
+	 * @param headers
+	 * @return
+	 
+	private Headers headersSchedule(Headers headers) {
+		headers.getHeaders().clear();
+		*	headers.getHeaders().add(TableHeader.instanceOf(
+					"stages",
+					"stages",
+					true,
+					false,
+					false,
+					TableHeader.COLUMN_I18,
+					0));*
+		headers.getHeaders()
+		.add(TableHeader.instanceOf("processes", "processes", true, false, false, TableHeader.COLUMN_I18, 0));
+		headers.getHeaders().add(
+				TableHeader.instanceOf("scheduled", "scheduled", true, false, false, TableHeader.COLUMN_LOCALDATE, 0));
+		headers = boilerServ.translateHeaders(headers);
+		return headers;
+	}*/
+
+	/** MOVED TO SUBMITSERVICE 03052023 IK 
+	 * create executor's choice for this activity. To re-assign
+	 * 
+	 * @param his
+	 * @param user
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 
+	private ActivitySubmitDTO executorsThisChoice(History his, UserDetailsDTO user, ActivitySubmitDTO data)
+			throws ObjectNotFoundException {
+		Concept actConfig = his.getActConfig();
+		if (actConfig == null) {
+			// the activity is first
+			actConfig = his.getApplConfig();
+		}
+		data.setExecs(executorsTable(his, actConfig, data.getExecs(), false));
+		return data;
+	}*/
+
+	/** MOVED TO SUBMITSERVICE 03052023 IK
+	 * create executor's choice for this activity. To revokePermit
+	 * 
+	 * @param his
+	 * @param user
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 
+	private ActivitySubmitDTO executorsNMRA(History his, UserDetailsDTO user, ActivitySubmitDTO data)
+			throws ObjectNotFoundException {
+		*we need to get a concept of process configuration RevokePermit*
+		Concept nodeApplData = his.getApplicationData();
+		Thing thing = new Thing();
+		thing = boilerServ.thingByNode(nodeApplData, thing);
+		String processUrl = thing.getUrl();
+		Concept dictConc = systemServ.revokepermitDictNode(processUrl);
+		processUrl = literalServ.readValue(LiteralService.APPLICATION_URL, dictConc);
+
+		Concept actConfig = closureServ.loadRoot("configuration." + processUrl);
+		if (actConfig == null) {
+			return data;
+		}
+		TableQtb exec=executorsTable(his, actConfig, data.getExecs(), true);
+
+		data.setExecs(exec);
+		return data;
+	}*/
+
+	/** MOVED TO SUBMITSERVICE 03052023 IK
+	 * Propose all possible executors for activity selected
+	 * 
+	 * @param his
+	 * @param user
+	 * @param data
+	 * @param limitToAU limit to the administrative unit
+	 * @return
+	 * @throws ObjectNotFoundException
+	 
+	@Transactional
+	private ActivitySubmitDTO executorsNextChoice(History his, UserDetailsDTO user, ActivitySubmitDTO data,
+			boolean limitToAU) throws ObjectNotFoundException {
+		Long nextActConfId = data.nextActivity();
+		if (nextActConfId > 0) {
+			Concept actConf = closureServ.loadConceptById(nextActConfId);
+			data.getExecs().getRows().clear();
+			data.setExecs(executorsTable(his, actConf, data.getExecs(), limitToAU));
+		} else {
+			data.getExecs().getRows().clear();
+		}
+		return data;
+	}*/
+
+	/** MOVED TO SUBMITSERVICE 03052023 IK
+	 * Propose all possible foreground activities, mark next
+	 * 
+	 * @param his
+	 * @param user
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 
+	private ActivitySubmitDTO nextJobChoice(History his, UserDetailsDTO user, ActivitySubmitDTO data)
+			throws ObjectNotFoundException {
+		if (data.getNextJob().getRows().size() == 0) {
+			data = nextJobsTable(his, data); // create new table
+		}
+		return data;
+	}*/
+
+	/** MOVED TO SUBMITSERVICE 03052023 IK
+	 * Create a set of allowed actions using dictionary.system.submit
+	 * systemDictNode(root, "0", messages.get("continue")); systemDictNode(root,
+	 * "1", messages.get("route_action")); systemDictNode(root, "2",
+	 * messages.get("newactivity")); systemDictNode(root, "3",
+	 * messages.get("cancel")); systemDictNode(root, "4", messages.get("approve"));
+	 * systemDictNode(root, "5", messages.get("reject")); systemDictNode(root, "6",
+	 * messages.get("reassign")); systemDictNode(root, "7",
+	 * messages.get("amendment"));
+	 * 
+	 * @param user
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 
+	@Transactional
+	public ActivitySubmitDTO createActions(UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
+		History curHis = boilerServ.historyById(data.getHistoryId());
+		List<String> allowed = new ArrayList<String>();
+		if (accessControlServ.isSupervisor(user)) {
+			// NMRA supervisor ------------------------------------------------------------
+			data = validServ.submitNext(curHis, user, data);
+			if (data.isValid()) {
+				allowed.add("0"); // supervisor next activiti workflow ika27.03.2023			}
+				data = validServ.actionCancel(curHis, data);
+			}
+			if (data.isValid()) {
+				allowed.add("3"); // cancel
+			}
+			data = validServ.actionNew(curHis, data);
+			if (data.isValid()) {
+				allowed.add("2"); // new activity, any activity
+			}
+			data = validServ.actionReassign(curHis, data);
+			if (data.isValid()) {
+				allowed.add("6"); // reassign the executor
+			}
+			if(hasShutdown(curHis,amendmentServ.initialApplicationData(curHis.getApplicationData()))) {
+				allowed.add("9"); // revoke the permit
+			}
+			//like any other user ---------------------------------------------------
+			data = validServ.submitApprove(curHis, user, data, null); 
+			if (data.isValid()){ 
+				allowed.add("4"); 
+			}
+			data = validServ.submitDeregistration(curHis, user, data);
+			if (data.isValid()) {
+				allowed.add("8"); // implement a deregistration
+			}
+			
+		} else {
+			if (data.isApplicant()) {
+				data = validServ.submitNext(curHis, user, data);
+				if (data.isValid()) {
+					allowed.add("0"); // applicant is restricted to submit next and has not rights to select
+					// activity/executor
+				}
+			} else {
+				data = validServ.submitNext(curHis, user, data);//ika06122022
+				if (data.isValid()) {
+					data = validServ.submitAmendment(curHis, user, data);
+					if (!data.isValid()) {
+						allowed.add("0"); // next activity
+					}
+				}
+				data = validServ.submitRoute(curHis, user, data);
+				if (data.isValid()) {
+					allowed.add("1"); // route to another executor
+				}
+				data = validServ.submitApprove(curHis, user, data, null);
+				if (data.isValid()) {
+					allowed.add("4");
+				}
+				data = validServ.submitAmendment(curHis, user, data);
+				if (data.isValid()) {
+					allowed.add("7"); // implement an amendment
+				}
+				data = validServ.submitReject(curHis, user, data);
+				if (data.isValid()) {
+					allowed.add("5");
+				}
+				data = validServ.submitDeregistration(curHis, user, data);
+				if (data.isValid()) {
+					allowed.add("8"); // implement an amendment
+				}
+			}
+		}
+
+		DictionaryDTO actDict = systemServ.submitActionDictionary();
+		TableQtb dictTable = actDict.getTable();
+		List<Concept> items = new ArrayList<Concept>();
+		for (TableRow row : dictTable.getRows()) {
+			Concept conc = closureServ.loadConceptById(row.getDbID());
+			if (allowed.contains(conc.getIdentifier())) {
+				items.add(conc);
+			}
+		}
+		data = actionsTable(items, data);
+		data.clearErrors();
+		return data;
+	}
+*/
+	/** MOVED TO SUBMITSERVICE 03052023 IK
+	 * Table contains all submit actions possible in this case
+	 * 
+	 * @param items
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 
+	@Transactional
+	public ActivitySubmitDTO actionsTable(List<Concept> items, ActivitySubmitDTO data) throws ObjectNotFoundException {
+		TableQtb table = data.getActions();
+		if (table.getHeaders().getHeaders().size() == 0) {
+			table.setHeaders(headersActions(table.getHeaders()));
+		}
+		for (Concept item : items) {
+			TableRow row = new TableRow();
+			try {
+				long dbID = Long.parseLong(item.getIdentifier());
+				row.setDbID(dbID);
+				String pref = literalServ.readPrefLabel(item);
+				String descr = literalServ.readDescription(item);
+				row.getRow().add(TableCell.instanceOf("pref", pref));
+				row.getRow().add(TableCell.instanceOf("description", descr));
+				// if(dbID==0) {
+				// row.setSelected(true);
+				// }
+				table.getRows().add(row);
+				table.setSelectable(!data.isApplicant());
+			} catch (NumberFormatException e) {
+				throw new ObjectNotFoundException(
+						"actionsTable. Invalid action code code/id " + item.getIdentifier() + "/" + item.getID(),
+						logger);
+			}
+		}
+		return data;
+	}*/
+
+	/** MOVED TO SUBMITSERVICE 03052023 IK
+	 * Headers for actions table
+	 * 
+	 * @param headers
+	 * @return
+	 
+	private Headers headersActions(Headers headers) {
+		headers.getHeaders()
+		.add(TableHeader.instanceOf("pref", "label_actions", true, false, false, TableHeader.COLUMN_STRING, 0));
+		headers.getHeaders().add(
+				TableHeader.instanceOf("description", "description", true, false, false, TableHeader.COLUMN_STRING, 0));
+		headers.setPageSize(50);
+		boilerServ.translateHeaders(headers);
+		return headers;
+	}*/
+
+	/** MOVED TO SUBMITSERVICE 03052023 IK
+	 * Table contains all possible executors of the next activity
+	 * 
+	 * @param actConf
+	 * @param his
+	 * @param execTable
+	 * @param limitToAU limit to admin unit
+	 * @return
+	 * @throws ObjectNotFoundException
+	 
+	public TableQtb executorsTable(History curHis, Concept actConf, TableQtb execTable, boolean limitToAU)
+			throws ObjectNotFoundException {
+		if (execTable.getRows().size() == 0) {
+			Concept role = assmServ.activityExecutorRole(actConf);
+			if (!accServ.isApplicantRole(role)) {
+				Concept applDict = curHis.getApplDict();
+				Concept admUnit = adminUnit(actConf, curHis);
+				if (role != null && applDict != null) {
+					String where = "";
+					if (admUnit != null && limitToAU) {
+						where = "auid='" + admUnit.getID() + "'";
+					} else {
+						where = "";
+					}
+					String select = "select distinct ID, username, email, orgname, local from executors_select";
+					jdbcRepo.executors_select(role.getID(), applDict.getID());
+					// real executors
+					execTable.setHeaders(headersExecutors(execTable.getHeaders()));
+					List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", where, execTable.getHeaders());
+					if (rows.size() == 0) {
+						logger.warn("An executor not found - search for office secretaries. Activity config ID is "
+								+ actConf.getID());
+						role = systemServ.loadRole(SystemService.ROLE_SECRETARY);
+						jdbcRepo.executors_select(role.getID(), applDict.getID());
+						rows = jdbcRepo.qtbGroupReport(select, "", where, execTable.getHeaders());
+					}
+					if (rows.size() == 0) {
+						logger.warn(
+								"an executor not found - send to supervisors in the central office. Activity config ID is "
+										+ actConf.getID());
+						role = systemServ.loadRole(SystemService.ROLE_ADMIN);
+						jdbcRepo.executors_select(role.getID(), applDict.getID());
+						where = "auid is null";
+						rows = jdbcRepo.qtbGroupReport(select, "", where, execTable.getHeaders());
+					}
+					execTable.setSelectable(true);
+					TableQtb.tablePage(rows, execTable);
+				}
+			} else {
+				Concept parent = closureServ.getParent(curHis.getApplicationData());
+				String applicant = parent.getIdentifier();
+				execTable.setHeaders(headersExecutors(execTable.getHeaders()));
+				List<TableRow> rows = new ArrayList<TableRow>();
+				List<TableCell> cells = new ArrayList<TableCell>();
+				TableRow row = new TableRow();
+				TableCell cell = new TableCell();
+				cell.setKey("username");
+				cell.setValue("APPLICANT");
+				cells.add(cell);
+				TableCell cell1 = new TableCell();
+				cell1.setKey("orgname");
+				cell1.setValue("-----");
+				cells.add(cell1);
+				TableCell cell2 = new TableCell();
+				cell2.setKey("email");
+				cell2.setValue(applicant);
+				cells.add(cell2);
+				row.setRow(cells);
+				row.setSelected(true);
+				rows.add(row);
+
+				execTable.setSelectable(true);
+
+				TableQtb.tablePage(rows, execTable);
+			}
+		} else {
+			execTable.getRows().clear();
+		}
+		return execTable;
+	}*/
+
+	/** MOVED TO SUBMITSERVICE 03052023 IK
+	 * Headers for Executor's table
+	 * 
+	 * @param headers
+	 * @return
+	 
+	public Headers headersExecutors(Headers headers) {
+		headers.getHeaders().clear();
+		headers.getHeaders().add(
+				TableHeader.instanceOf("username", "global_name", true, false, false, TableHeader.COLUMN_STRING, 0));
+		headers.getHeaders().add(TableHeader.instanceOf("orgname", "organizationauthority", true, false, false,
+				TableHeader.COLUMN_STRING, 0));
+		headers.getHeaders().add(
+				TableHeader.instanceOf("email", "executor_email", true, false, false, TableHeader.COLUMN_STRING, 0));
+		headers = boilerServ.translateHeaders(headers);
+		headers.setPageSize(Integer.MAX_VALUE);
+		return headers;
+	}*/
+
+	/** MOVED TO SUBMITSERVICE 03052023 IK
+	 * Create nextJob table if needed
+	 * 
+	 * @param his  activity configuration root
+	 * @param data table with all foreground activities in this application
+	 * @return
+	 * @throws ObjectNotFoundException
+	 
+	@Transactional
+	private ActivitySubmitDTO nextJobsTable(History his, ActivitySubmitDTO data) throws ObjectNotFoundException {
+		TableQtb table = data.getNextJob();
+		if (table.getRows().size() == 0) {
+			List<Concept> path = closureServ.loadParents(his.getActConfig());
+			table.setHeaders(headersNextJob(table.getHeaders()));
+			// jdbcRepo.workflowActivities(his.getApplConfig().getID());
+			jdbcRepo.workflowActivities(path.get(0).getID());
+			List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from workflow_activities", "", "bg!=1",
+					table.getHeaders());
+			table.setSelectable(true);
+			TableQtb.tablePage(rows, table);
+			// mark next activity
+			for (int i = 0; i < table.getRows().size(); i++) {
+				if (table.getRows().get(i).getDbID() == his.getActConfig().getID()) {
+					if (i + 1 < table.getRows().size()) {
+						table.getRows().get(i + 1).setSelected(true);
+						break;
+					}
+				}
+			}
+		}
+		return data;
+	}*/
+
+	/** MOVED TO SUBMITSERVICE 03052023 IK
+	 * headers for next
+	 * 
+	 * @param headers
+	 * @return
+	 
+	private Headers headersNextJob(Headers headers) {
+		headers.getHeaders().clear();
+		headers.getHeaders()
+		.add(TableHeader.instanceOf("pref", "activity", true, false, false, TableHeader.COLUMN_STRING, 0));
+		headers.getHeaders()
+		.add(TableHeader.instanceOf("descr", "description", true, false, false, TableHeader.COLUMN_STRING, 0));
+		headers = boilerServ.translateHeaders(headers);
+		headers.setPageSize(Integer.MAX_VALUE);
+		return headers;
+	}*/
+	/** MOVED TO SUBMITSERVICE 03052023 IK
+	 * Submit an activity in a workflow
+	 * The submit action is defined by the code of an activity
+	 * This code should be selected by a user from the left upper table
+	 * The content of the left upper table is calculated before  
+	 * 
+	 * @param user
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 * @throws JsonProcessingException
+	 
+	@Transactional
+	public ActivitySubmitDTO submitSend(UserDetailsDTO user, ActivitySubmitDTO data)
+			throws ObjectNotFoundException, JsonProcessingException {
+		History curHis = boilerServ.historyById(data.getHistoryId());
+		data.clearErrors();
+		if (accServ.isActivityExecutor(curHis.getActivity(), user) || accServ.isSupervisor(user)) {
+			int actCode = data.actionSelected();
+			if (data.isApplicant()) {
+				actCode = 0;
+			}
+			;
+			*Possible activity codes from SystemService.submitActionDictionary 
+			 systemDictNode(root, "0", messages.get("continue"));
+			systemDictNode(root, "1", messages.get("route_action"));
+			systemDictNode(root, "2", messages.get("newactivity"));
+			systemDictNode(root, "3", messages.get("cancel"));
+			systemDictNode(root, "4", messages.get("approve"));
+			systemDictNode(root, "5", messages.get("reject"));
+			systemDictNode(root, "6", messages.get("reassign"));
+			systemDictNode(root, "7", messages.get("amendment"));
+			systemDictNode(root, "8", messages.get("deregistration"));
+			systemDictNode(root, "9", messages.get("revokepermit"));*
+			switch (actCode) {
+			case 0: // NMRA executor continue workflow from the activity selected
+				data = validServ.submitNext(curHis, user, data);
+				if(data.isValid()) {
+					if (accServ.isApplicant(user)) {
+						data = submitNext(curHis, user, data);
+					} else {
+						sendEmailAttention(user, curHis, data);
+						data = validServ.submitNextData(curHis, user, data);
+						data = submitNext(curHis, user, data);
+					}
+				}
+				return data;
+			case 1: // NMRA executor route the activity to other executor
+				data = validServ.submitRoute(curHis, user, data);
+				data = validServ.submitReAssign(curHis, user, data);
+				if(data.isValid()) {
+					data = submitReAssign(curHis, user, data);
+				}
+				return data;
+			case 2: // NMRA executor initiate an additional activity for others NMRA executors or
+				// for the applicant
+				data = checkApplicantExecutor(data, curHis);
+				data = validServ.submitAddActivity(curHis, user, data);
+				data = validServ.submitAddActivityData(curHis, user, data);
+				if(data.isValid()) {
+					data = submitAddActivity(curHis, user, data);
+				}
+				return data;
+			case 3:
+				data = validServ.actionCancel(curHis, data);
+				data = validServ.actionCancelData(curHis, data);
+				if(data.isValid()) {
+					data = actionCancel(curHis, data);
+				}
+				return data;
+			case 4:
+				data = submitSendApprove(data, user, curHis); //validation is inside
+				return data;
+			case 5:
+				data = validServ.submitReject(curHis, user, data);
+				data = validServ.submitRejectData(curHis, user, data);
+				if(data.isValid()) {
+					data = submitReject(curHis, user, data);
+				}
+				return data;
+			case 6:
+				data = validServ.actionReassign(curHis, data);
+				data = validServ.submitReAssign(curHis, user, data);
+				if(data.isValid()) {
+					data = submitReAssign(curHis, user, data);
+				}
+				return data;
+			case 7:
+				data = validServ.submitAmendment(curHis, user, data);
+				if (data.isValid()) {
+					sendEmailAttention(user, curHis, data);
+					data = isAmended(curHis, user, data);
+					data = submitApprove(curHis, user, data);
+				}
+				return data;
+			case 8:
+				data = validServ.submitDeregistration(curHis, user, data);
+				data = validServ.submitDeregistrationData(curHis, data);
+				if (data.isValid()) {
+					sendEmailAttention(user, curHis, data);
+					data = submitDeregistration(curHis, user, data);
+				}
+				return data;
+			case 9:
+				data = validServ.submitRevokePermit(curHis, user, data);
+				if(data.isValid()) {
+					data = submitRevokePermit(curHis, user, data);
+				}
+				return data;
+			default:
+				data.setIdentifier(messages.get("pleaseselectaction"));
+				data.setValid(false);
+				return data;
+			}
+		} else {
+			throw new ObjectNotFoundException("submitSend. Access denied", logger);
+		}
+	}*/
+
+	/** MOVED TO SUBMITSERVICE 03052023 IK
+	 * 10.11.2022 khomenska
+	 *  Approve action
+	 * @throws JsonProcessingException 
+	 
+	private ActivitySubmitDTO submitSendApprove(ActivitySubmitDTO data, UserDetailsDTO user, History curHis) throws ObjectNotFoundException, JsonProcessingException{
+		Concept applRoot = closureServ.loadParents(curHis.getApplication()).get(0);
+		String applUrl = applRoot.getIdentifier();
+		Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
+		List<Concept> nextActs = loadActivities(configRoot);
+		data = validServ.submitApprove(curHis, user, data, nextActs);
+		if(data.isValid()) {
+			data = submitApprove(curHis, user, data);
+			sendEmailAttention(user, curHis, data);
+		}
+		return data;
+	}*/
+/** MOVED TO SUBMITSERVICE 03052023 IK
+	private void sendEmailAttention(UserDetailsDTO user, History curHis, ActivitySubmitDTO data)
+			throws ObjectNotFoundException {
+		// 23.10.2022
+		boolean attentionActivity = validServ.isActivityAttention(curHis.getActConfig());
+		if (attentionActivity) {
+			String applicantEmail = accServ.applicantEmailByApplication(curHis.getApplication());
+			String applName = literalServ.readPrefLabel(curHis.getApplicationData());
+			String curActivity = literalServ.readPrefLabel(curHis.getActConfig());
+			String nextActivity = "";
+			if (data.getNextJob().getRows() != null && data.getNextJob().getRows().size() > 0) {
+				for (TableRow r : data.getNextJob().getRows()) {
+					if (r.getSelected()) {
+						nextActivity = r.getCellByKey("pref").getValue();
+						break;
+					}
+				}
+			}
+
+			String attnote = literalServ.readValue("attnote", curHis.getActConfig());
+			String res = mailService.createAttentionMail(user, applicantEmail, applName, curActivity, nextActivity, attnote);
+			String notes = data.getNotes().getValue();
+			if(notes != null || !notes.isEmpty()) {
+				notes += " (" + res + ")";
+			}else notes = res;
+			data.getNotes().setValue(notes);
+			data.getNotes().setMark(true);
+			data.getNotes().setReadOnly(true);
+			data.getNotes().setTextArea(true);
+		}
+	}*/
+
+	/** MOVED TO SUBMITSERVICE 0052023 IK
+	 * Make de-registration things
+	 * 
+	 * @param curHis
+	 * @param user
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 
+	@Transactional
+	private ActivitySubmitDTO submitDeregistration(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
+			throws ObjectNotFoundException {
+		if (data.isValid()) {
+			closeActivity(curHis, false);
+			cancelUsersActivities(user, curHis);
+			Concept deregData = amendmentServ.amendedConcept(curHis.getApplicationData());
+			if(deregData.getID()==0) {
+				deregData=amendmentServ.initialApplicationData(curHis.getApplicationData());
+			}
+			cancelDataActivities(deregData, true); // cancel all activities, include monitoring
+			List<Long> executors = data.executors();
+			long actConfId = data.nextActivity();
+			if (actConfId > 0) {
+				Concept actConf = closureServ.loadConceptById(actConfId);
+				if (executors.size() > 0) {
+					for (Long execId : executors) {
+						Concept userConc = closureServ.loadConceptById(execId);
+						activityCreate(null, actConf, curHis, userConc.getIdentifier(), data.getNotes().getValue());
+					}
+				}
+			}
+		}
+		return data;
+	}*/
+/** MOVED TO SUBMITSERVICE 0052023 IK
+	@Transactional
+	private ActivitySubmitDTO submitApproveRevoke(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
+			throws ObjectNotFoundException, JsonProcessingException {
+		//	Concept applicant = closureServ.getParent(curHis.getApplicationData());
+		//	rejectApplication(curHis, applicant.getIdentifier(), data);
+		
+		//	sendEmailAttention(user, curHis, data);
+
+		return submitReject(curHis, user, data);
+	}*/
+
+	/** MOVED TO SUBMITSERVICE 03052023 IK
+	 * Cancel all activities related to application data
+	 * 
+	 * @param applicationData - application data
+	 * @param all             - remove all activities
+	 * @throws ObjectNotFoundException
+	 
+	@Transactional
+	private void cancelDataActivities(Concept applicationData, boolean all) throws ObjectNotFoundException {
+		List<History> hisList = boilerServ.historyAll(applicationData);
+		for (History his : hisList) {
+			if (all) {
+				closeActivity(his, true);
+			} else {
+				if (his.getActConfig() != null) {
+					closeActivity(his, true);
+				}
+			}
+		}
+	}*/
+
+	/** MOVED TO SUBMITSERVICE 03052023 IK
+	 * Is this amendment fully implemented?
+	 * 
+	 * @param curHis
+	 * @param user
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 
+	@Transactional
+	public ActivitySubmitDTO isAmended(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
+			throws ObjectNotFoundException {
+		Concept amended = amendmentServ.amendedConcept(curHis.getApplicationData());
+		Concept amendment = amendmentServ.amendmentConcept(curHis.getApplicationData(), amended);
+		if (!amendmentServ.compareConcepts(amendment, amended)) {
+			data.setValid(false);
+			data.setIdentifier(messages.get("amendmentisnotimplemented"));
+		}
+		return data;
+	}*/
+
+	/** MOVED TO SUBMITSERVICE 03052023 IK
+	 * Special case when executor for this activity defined as an applicant
+	 * 
+	 * @param data
+	 * @return applicant executor email or empty string
+	 * @throws ObjectNotFoundException
+	 
+	@Transactional
+	private ActivitySubmitDTO checkApplicantExecutor(ActivitySubmitDTO data, History curHis)
+			throws ObjectNotFoundException {
+		if (data.getExecs().getRows().size() == 0) { // no executors defined, suspect an applicant
+			long addAct = data.nextActivity();
+			if (addAct > 0) {
+				Concept actConfig = closureServ.loadConceptById(addAct);
+				Thing thing = new Thing();
+				thing = boilerServ.thingByNode(actConfig, thing);
+				if (thing.getID() > 0) {
+					for (ThingDict td : thing.getDictionaries()) {
+						if (td.getVarname().equalsIgnoreCase("executives")) {
+							if (td.getConcept().getIdentifier().equalsIgnoreCase("APPLICANT")) {
+								data.setApplicantEmail(accServ.applicantEmailByApplication(curHis.getApplication()));
+							}
+						}
+					}
+				}
+			}
+		}
+		return data;
+	}*/
+
+	/** MOVED TO SUBMITSERVICE 03052023 IK
+	 * Reject an application and move it to the applicant
+	 * 
+	 * @param curHis
+	 * @param user
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 * @throws JsonProcessingException
+	 
+	@Transactional
+	private ActivitySubmitDTO submitReject(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
+			throws ObjectNotFoundException, JsonProcessingException {
+		Concept applicant = closureServ.getParent(curHis.getApplicationData());
+		rejectApplication(curHis, applicant.getIdentifier(), data);
+		//sendEmailAttention(user, curHis, data);
+		return data;
+	}*/
+
+	/** MOVED TO SUBMITSERVICE 03052023 IK
+	 * RevokePermit an application and move it to the NMRA users
+	 * dictionary.shutdown.applications
+	 * @param curHis
+	 * @param user
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 * @throws JsonProcessingException
+	 
+	@Transactional
+	private ActivitySubmitDTO submitRevokePermit(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
+			throws ObjectNotFoundException, JsonProcessingException {
+		*close previous scheduled REJECT THIS CODE 31/03/2023 IKA
+		List<History> hisAllScheduled = boilerServ.historyAllByApplData(curHis.getApplicationData());
+		for (History act : hisAllScheduled) {
+			closeActivity(act, (act.getActConfig() != null));
+		}
+		closeActivity(curHis, true);
+		 *
+		Concept nodeApplData = curHis.getApplicationData();
+		Thing thing = new Thing();
+		thing = boilerServ.thingByNode(nodeApplData, thing);
+		String processUrl = thing.getUrl();
+		Concept dictConc = systemServ.revokepermitDictNode(processUrl);
+		if(dictConc!=null) {
+			processUrl = literalServ.readValue(LiteralService.APPLICATION_URL, dictConc);
+			data = createRevokePermitApplication(curHis, processUrl, dictConc, data);
+			if (!data.isValid()) {
+				return data;
+			}
+			return data;
+		} else {
+			throw new ObjectNotFoundException("submitRevokePermit. revokepermitDictNode("+processUrl+") is NULL", logger);
+		}
+	}*/
+
+	/** MOVED TO SUBMITSERVICE 03052023 IK
+	 * Reject the current application
+	 * 
+	 * @param curHis
+	 * @param applicantEmail
+	 * @param data
+	 * @throws ObjectNotFoundException
+	 * @throws JsonProcessingException
+	 
+	@Transactional
+	private void rejectApplication(History curHis, String applicantEmail, ActivitySubmitDTO data)
+			throws ObjectNotFoundException, JsonProcessingException {
+		// cancel all histories, close the current
+		List<History> allHist = boilerServ.historyAll(curHis.getApplicationData());
+		for (History h : allHist) {
+			if (h.getGo() == null) {
+				closeActivity(h, h.getID() != curHis.getID());
+			}
+		}
+		// create new application
+		ThingDTO tdto = new ThingDTO();
+		tdto.setNodeId(curHis.getApplicationData().getID());
+		Concept applicant = closureServ.getParent(curHis.getApplication());
+		Concept application = closureServ.getParent(applicant);
+		tdto.setApplicationUrl(application.getIdentifier());
+		tdto.setApplDictNodeId(curHis.getApplDict().getID());
+		UserDetailsDTO user = new UserDetailsDTO();
+		user.setEmail(applicantEmail);
+		tdto = thingServ.loadThing(tdto, user);
+		tdto = thingServ.createApplication(tdto, applicantEmail, curHis.getApplicationData());
+		// add notes to the history data
+		History his = boilerServ.historyById(tdto.getHistoryId());
+		his.setPrevNotes(data.getNotes().getValue());
+		his = boilerServ.saveHistory(his);
+	}*/
+	/** MOVED TO SUBMITSERVICE 03052023 IK
+	 * Submit to approve
+	 * 
+	 * @TODO not implemented yet
+	 * @param curHis
+	 * @param user
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 * @throws JsonProcessingException 
+	 
+	@Transactional
+	public ActivitySubmitDTO submitApprove(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
+			throws ObjectNotFoundException, JsonProcessingException {
+		if (systemServ.isGuest(curHis)) {
+			data = submitGuest(curHis, data);
+			return data;
+		}
+		if (systemServ.isHost(curHis)) {
+			data = submitHost(curHis, data);
+			return data;
+		}
+		if (systemServ.isAmend(curHis)) {
+			data = submitAmend(curHis, data);
+			return data;
+		}
+		if (systemServ.isDeregistration(curHis)) {
+			data.clearErrors();
+			//cancellActivities(curHis); This danger operation
+			data=submitDeregistration(curHis, user, data);
+			return data;
+		}
+		if(systemServ.isShutdown(curHis)) {
+			data.clearErrors();
+			data=submitApproveRevoke(curHis, user, data);
+			return data;
+		}
+		data.setIdentifier(messages.get("invalidstage"));
+		data.setValid(false);
+		return data;
+	}*/
+
+	/** MOVED SUBMITSERVICE 03052023 IK
+	 * Submit an amendment
+	 * 
+	 * @param curHis
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 
+	private ActivitySubmitDTO submitAmend(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
+		data = submitGuest(curHis, data);
+		return data;
+	}*/
+
+	/** MOVED SUBMITSERVICE 03052023 IK
+	 * Submit Host application, create another scheduled host application Currently
+	 * it is the same as submit guest
+	 * 
+	 * @param curHis
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 
+	private ActivitySubmitDTO submitHost(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
+		data = submitGuest(curHis, data);
+		return data;
+	}*/
+
+	/** MOVED SUBMITSERVICE 03052023 IK
+	 * Submit guest application
+	 * 
+	 * @param curHis
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 
+	@Transactional
+	public ActivitySubmitDTO submitGuest(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
+		if (data.isValid()) {
+			data=verifyScheduledGuestHost(curHis, data);
+			if(data.isValid()) {
+				cancellActivities(curHis);
+				data = runScheduledGuestHost(curHis, data);
+			}
+		}
+		return data;
+	}*/
+	/** MOVED SUBMITSERVICE 03052023 IK
+	 * Verify scheduled applications if ones
+	 * @param curHis
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 
+	@Transactional
+	private ActivitySubmitDTO verifyScheduledGuestHost(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
+		if(isGuestOrHostFinalize(curHis)) {
+			if(data.getScheduled().getRows().size()>0) {
+				for (TableRow row : data.getScheduled().getRows()) {
+					ThingScheduler ts = boilerServ.thingSchedulerById(row.getDbID());
+					Scheduler sch = boilerServ.schedulerByNode(ts.getConcept());
+					String applUrl=sch.getProcessUrl();
+					Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
+					List<Concept> nextActs = loadActivities(configRoot);
+					data = (ActivitySubmitDTO) validServ.workflowConfig(nextActs, configRoot, data);
+				}
+			}else {
+				data.addError(messages.get("scheduled_requerd"));
+			}
+		}
+		return data;
+	}*/
+	/** MOVED SUBMITSERVICE 03052023 IK
+	 * Is it guest or host application?
+	 * @param curHis
+	 * @return
+	 
+	private boolean isGuestOrHostFinalize(History curHis) {
+		boolean ret=false;
+		try {
+			if(validServ.isActivitySubmitApprove(curHis)) {
+				Concept dictItem = curHis.getApplDict();
+				if(dictItem!=null) {
+					Concept dict=closureServ.getParent(dictItem);
+					ret = dict.getIdentifier().equalsIgnoreCase(SystemService.DICTIONARY_GUEST_APPLICATIONS) || 
+							dict.getIdentifier().equalsIgnoreCase(SystemService.DICTIONARY_HOST_APPLICATIONS);
+				}
+			}
+		} catch (ObjectNotFoundException e) {
+			//nothing to do
+		}
+		return ret;
+	}*/
+
+
+	/** MOVED SUBMITsERVICE 03052023 IK
+	 * Run scheduled activities as well as related trace and monitoring ones Close
+	 * all scheduled workflows with the same URL and data, but not this yet
+	 * 
+	 * @param curHis
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 
+	@Transactional
+	private ActivitySubmitDTO runScheduledGuestHost(History curHis, ActivitySubmitDTO data)
+			throws ObjectNotFoundException {
+		for (TableRow row : data.getScheduled().getRows()) {
+			ThingScheduler ts = boilerServ.thingSchedulerById(row.getDbID());
+			Scheduler sch = boilerServ.schedulerByNode(ts.getConcept());
+			Concept dictConc = systemServ.hostDictNode(sch.getProcessUrl());
+			// close previous scheduled
+			Concept appldata = amendmentServ.initialApplicationData(curHis.getApplicationData());
+			List<History> prevActivities = boilerServ.activities(sch.getProcessUrl(), appldata);
+			for (History act : prevActivities) {
+				closeActivity(act, true);
+			}
+			data = createHostApplication(curHis, sch, dictConc, data);
+			if (!data.isValid()) {
+				return data;
+			}
+		}
+		return data;
+	}*/
+	/** MOVED SUBMITSERVICE 03052023 IK
+	 * Cancel all opened activities for the current application, but close the
+	 * current
+	 * 
+	 * @param curHis
+	 * @throws ObjectNotFoundException
+	 
+	@Transactional
+	public void cancellActivities(History curHis) throws ObjectNotFoundException {
+		List<History> allHis = boilerServ.historyAllByApplication(curHis.getApplication());
+		// close activities in the current
+		for (History his : allHis) {
+			if (his.getID() != curHis.getID() && his.getGo() == null) {
+				closeActivity(his, true);
+			}
+		}
+		closeActivity(curHis, false);
+	}*/
+	/** MOVED TO SUBMITSERVICE 03052023 IK
+	 * re-route this activity to others executors. Data will be lost!
+	 * 
+	 * @param curHis
+	 * @param user
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 
+	@Transactional
+	public ActivitySubmitDTO submitReAssign(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
+			throws ObjectNotFoundException {
+		if (data.isValid() && curHis.getActConfig() != null) { // wrong, monitoring and trace can`t be reassigned
+			// determine activity configuration
+			Concept actConfig = curHis.getActConfig();
+			if (actConfig == null) {
+				actConfig = curHis.getApplConfig();
+			}
+			List<Long> executors = data.executors();
+
+			// create activities, the first will contain the reference to the data of the reassigned one
+			boolean moveData=true;
+			for (Long execId : executors) {
+				Concept userConc = closureServ.loadConceptById(execId);
+				History newHis=activityCreate(null, actConfig, curHis, userConc.getIdentifier(), data.getNotes().getValue());
+				if(newHis !=null) {		//not reassign to the same executor
+					//the first activity will inherit the data if one
+					if(moveData && curHis.getActivityData()!=null) {
+						newHis.setActivityData(curHis.getActivityData());
+						moveData=false;
+					}
+					//previous notes may be added too
+					if(curHis.getPrevNotes()!=null) {
+						String prevNotes=curHis.getPrevNotes();
+						if(newHis.getPrevNotes()!=null) {
+							prevNotes=prevNotes+"/ "+newHis.getPrevNotes();
+						}
+						newHis.setPrevNotes(prevNotes);
+					}
+					newHis= boilerServ.saveHistory(newHis);
+					//closeActivity(curHis, true); 24032023 ika
+					stopOneActivity(curHis, true);
+				}
+			}
+		}
+		return data;
+	}*/
+
+	/** MOVED TO SUBMITSERVICE 03052023 IK
+	 * Submit to the next activity selected by user
+	 * 
+	 * @param curHis
+	 * @param user
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 
+	private ActivitySubmitDTO submitNext(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
+			throws ObjectNotFoundException {
+		if (data.isValid()) {
+			if (accServ.isApplicant(user)) {
+				// restore next activity and executor's list
+				data.getNextJob().getRows().clear();
+				data.getExecs().getRows().clear();
+				data = nextJobChoice(curHis, user, data);
+				data = executorsNextChoice(curHis, user, data, true);
+				for (TableRow row : data.getExecs().getRows()) {
+					row.setSelected(true); // TODO more smart may be needed, because an applicant has no choice
+				}
+			}
+			closeActivity(curHis, false);
+			submitAddActivity(curHis, user, data);
+		}
+		return data;
+	}*/
+
+	/** MOVED TO SUBMITSERVICE 03052023 IK
+	 * Add activities for all executors listed In case next activity is
+	 * Finalize.AMEND - implement the amendment
+	 * 
+	 * @param curHis
+	 * @param user
+	 * @param data
+	 * @throws ObjectNotFoundException
+	 
+	public ActivitySubmitDTO submitAddActivity(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
+			throws ObjectNotFoundException {
+		if (data.isValid()) {
+			//cancelUsersActivities(user, curHis); 2023-03-01
+			List<Long> executors = data.executors();
+			long actConfId = data.nextActivity();
+			Concept actConf = closureServ.loadConceptById(actConfId);
+			if (executors.size() > 0) {
+				data = amendmentServ.implement(curHis, actConf, data, user); // is it amendment?
+				if (data.isValid()) {
+					for (Long execId : executors) {
+						// ika => execId=0 !!! APPLICANT
+						String identifierUser = "";
+						if (execId == 0) {
+							identifierUser = data.getExecs().getRows().get(0).getRow().get(2).getValue();
+						} else {
+							Concept userConc = closureServ.loadConceptById(execId);
+							identifierUser = userConc.getIdentifier();
+						}
+						activityCreate(null, actConf, curHis, identifierUser, data.getNotes().getValue());
+					}
+				}
+			} else {
+				if (data.getApplicantEmail().length() > 0) {
+					// send to applicant
+					activityCreate(null, actConf, curHis, data.getApplicantEmail(), data.getNotes().getValue());
+				} else {
+					// user sends activity to himself
+					data = amendmentServ.implement(curHis, actConf, data, user); // is it amendment?
+					if (data.isValid()) {
+						activityCreate(null, actConf, curHis, user.getEmail(), data.getNotes().getValue());
+					}
+				}
+			}
+		}
+		return data;
+	}*/
+
+	/** MOVED SUBMITSERVICE 03052023 IK
+	 * Cancel all activities opened for this user, except monitoring!
+	 * 
+	 * @param user
+	 * @param curHis
+	 * @throws ObjectNotFoundException
+	 
+	private void cancelUsersActivities(UserDetailsDTO user, History curHis) throws ObjectNotFoundException {
+		List<History> allHis = boilerServ.historyAllByApplication(curHis.getApplication());
+		for (History his : allHis) {
+			if (his.getGo() == null || his.getCancelled()) {
+				Concept uconc = closureServ.getParent(his.getActivity());
+				if (accServ.sameEmail(uconc.getIdentifier(), user.getEmail())) {
+					if (his.getActConfig() != null) {
+						closeActivity(his, true);
+					}
+				}
+			}
+		}
+	}*/
+	/** NOT USED
+	 * Create headers for application list
+	 * 
+	 * @param headers
+	 * @param present present or scheduled
+	 * @return
+	 
+	private Headers createHeaders(Headers headers, boolean present) {
+		headers.getHeaders()
+		.add(TableHeader.instanceOf("come", "scheduled", true, true, true, TableHeader.COLUMN_LOCALDATE, 0));
+		if (present) {
+			headers.getHeaders()
+			.add(TableHeader.instanceOf("days", "days", true, true, true, TableHeader.COLUMN_LONG, 0));
+		}
+
+		headers.getHeaders().add(
+				TableHeader.instanceOf("activityurl", "activity", true, false, false, TableHeader.COLUMN_I18LINK, 0));
+
+		headers.getHeaders()
+		.add(TableHeader.instanceOf("pref", "global_name", true, true, true, TableHeader.COLUMN_STRING, 0));
+		headers.getHeaders()
+		.add(TableHeader.instanceOf("notes", "description", true, true, true, TableHeader.COLUMN_STRING, 0));
+
+		headers.getHeaders().get(0).setSortValue(TableHeader.SORT_DESC);
+		headers = boilerServ.translateHeaders(headers);
+		return headers;
+	}*/
+	/** NOT USED
+	 * 20122022 khomka
+	 * complete verification of all Things
+	 * @param curHis
+	 * @param user
+	 * @return
+	 * @throws ObjectNotFoundException
+	 * @deprecated
+	 
+	private boolean fullValidation(History curHis, UserDetailsDTO user) throws ObjectNotFoundException {
+		Concept node = closureServ.loadConceptById(curHis.getApplicationData().getID());
+		Thing thing = new Thing();
+		thing = boilerServ.thingByNode(node, thing);
+		ThingDTO dto = new ThingDTO();
+		dto.setUrl(thing.getUrl());
+		dto.setNodeId(node.getID());
+		dto = thingServ.createContent(dto, user);
+		dto.setStrings(dtoServ.readAllStrings(dto.getStrings(), node));
+		dto.setLiterals(dtoServ.readAllLiterals(dto.getLiterals(), node));
+		dto.setDates(dtoServ.readAllDates(dto.getDates(), node));
+		dto.setNumbers(dtoServ.readAllNumbers(dto.getNumbers(), node));
+		dto.setLogical(dtoServ.readAllLogical(dto.getLogical(), node));
+
+		//dto.getThings().remove("classifiers");
+
+		dto = validServ.thing(dto, false);
+		List<AssemblyDTO> thinfAss = validServ.loadThingByConfig(dto);
+		for(AssemblyDTO ass :thinfAss) {
+			if(ass.isRequired()) {
+				ThingDTO th = dto.getThings().get(ass.getPropertyName());
+				Concept thnode= closureServ.loadConceptById(th.getNodeId());
+				if(th != null) {
+					th = thingServ.createContent(th, user);
+					th.setStrings(dtoServ.readAllStrings(th.getStrings(), thnode));
+					th.setLiterals(dtoServ.readAllLiterals(th.getLiterals(), thnode));
+					th.setDates(dtoServ.readAllDates(th.getDates(), thnode));
+					th.setNumbers(dtoServ.readAllNumbers(th.getNumbers(), thnode));
+					th.setLogical(dtoServ.readAllLogical(th.getLogical(), thnode));
+
+					th = validServ.thing(th, false);
+					if(!th.isValid()) {
+						return false;
+					}
+
+					boolean valid = validThings(th, user);
+					if(!valid) {
+						return false;
+					}
+				}else {// 20122022 khomka Нужна эта ветка - вдруг в конфигурации Thing есть, а в аппликации его нет
+					return false;
+				}
+			}
+		}
+		return true;
+	}*/
+/** NOT USED
+	private boolean validThings(ThingDTO th, UserDetailsDTO user) throws ObjectNotFoundException {
+		Map<ThingDTO, Concept> mapThing = new HashMap<ThingDTO, Concept>();
+
+		if(th.getPersons() != null && th.getPersons().keySet() != null && th.getPersons().keySet().size() > 0) {
+			for(String key:th.getPersons().keySet()) {
+				if(th.getPersons().get(key).getTable() != null && th.getPersons().get(key).getTable().getRows() != null) {
+					List<TableRow> rows = th.getPersons().get(key).getTable().getRows();
+					for(TableRow row:rows) {
+						Long personID = row.getDbID();
+						if(personID > 0) {
+							Concept pnode = closureServ.loadConceptById(personID);
+							Thing pth = new Thing();
+							pth = boilerServ.thingByNode(pnode, pth);
+							ThingDTO pthdto = new ThingDTO();
+							pthdto.setUrl(pth.getUrl());
+							pthdto.setNodeId(pnode.getID());
+
+							mapThing.put(pthdto, pnode);
+						}else {
+							return false;
+						}
+					}
+				}else {
+					return false;
+				}
+			}
+		}
+
+		if(th.getThings() != null && th.getThings().keySet() != null && th.getThings().keySet().size() > 0) {
+			for(String key:th.getThings().keySet()) {
+				ThingDTO vdto = th.getThings().get(key);
+				if(vdto.getNodeId() > 0) {
+					Concept vnode = closureServ.loadConceptById(vdto.getNodeId());
+					mapThing.put(vdto, vnode);
+				}else {
+					return false;
+				}
+			}
+		}
+
+		if(mapThing.keySet() != null && mapThing.keySet().size() > 0) {
+			for(ThingDTO thingDTO:mapThing.keySet()) {
+				Concept nodeDTO = mapThing.get(thingDTO);
+
+				thingDTO = thingServ.createContent(thingDTO, user);
+				thingDTO.setStrings(dtoServ.readAllStrings(thingDTO.getStrings(), nodeDTO));
+				thingDTO.setLiterals(dtoServ.readAllLiterals(thingDTO.getLiterals(), nodeDTO));
+				thingDTO.setDates(dtoServ.readAllDates(thingDTO.getDates(), nodeDTO));
+				thingDTO.setNumbers(dtoServ.readAllNumbers(thingDTO.getNumbers(), nodeDTO));
+				thingDTO.setLogical(dtoServ.readAllLogical(thingDTO.getLogical(), nodeDTO));
+
+				thingDTO = validServ.thing(thingDTO, false);
+				if(!thingDTO.isValid()) {
+					return false;
+				}
+
+				boolean v = validThings(thingDTO, user);
+				if(!v)
+					return v;
+			}
+		}
+
+		return true;
+	}*/
+	/** CANCELED 03052023 IK
+	 * Cancel and activity
+	 * 
+	 * @param curHis
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 
+	private ActivitySubmitDTO actionCancel(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
+		closeActivity(curHis, true);
+		return data;
+	}*/
 }

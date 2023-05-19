@@ -28,12 +28,12 @@ public class dwhworkflows implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC222277187B38344500A60D")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC222277187B38344500A60D", strategy="native")	
+	@GeneratedValue(generator="VAC2222771882F86B34009A00")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222771882F86B34009A00", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	
-	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.SAVE_UPDATE, org.hibernate.annotations.CascadeType.LOCK})	
+	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.ALL, org.hibernate.annotations.CascadeType.DELETE_ORPHAN})	
 	@JoinColumns({ @JoinColumn(name="reportsessionID") })	
 	@Basic(fetch=FetchType.LAZY)	
 	private org.msh.pdex2.model.dwh.ReportSession reportSession;
@@ -53,6 +53,15 @@ public class dwhworkflows implements Serializable {
 	@Column(name="ApplicationID", nullable=true, length=20)	
 	private long applicationID;
 	
+	@Column(name="WorkflowDictUrl", nullable=true, length=255)	
+	private String workflowDictUrl;
+	
+	@Column(name="WorkflowDictName", nullable=true, length=255)	
+	private String workflowDictName;
+	
+	@Column(name="WorkflowUrl", nullable=true, length=255)	
+	private String workflowUrl;
+	
 	private void setID(long value) {
 		this.ID = value;
 	}
@@ -63,6 +72,36 @@ public class dwhworkflows implements Serializable {
 	
 	public long getORMID() {
 		return getID();
+	}
+	
+	public void setWorkflowDictUrl(String value) {
+		this.workflowDictUrl = value;
+	}
+	
+	public String getWorkflowDictUrl() {
+		return workflowDictUrl;
+	}
+	
+	public void setWorkflowDictName(String value) {
+		this.workflowDictName = value;
+	}
+	
+	public String getWorkflowDictName() {
+		return workflowDictName;
+	}
+	
+	/**
+	 * URL of workflow
+	 */
+	public void setWorkflowUrl(String value) {
+		this.workflowUrl = value;
+	}
+	
+	/**
+	 * URL of workflow
+	 */
+	public String getWorkflowUrl() {
+		return workflowUrl;
 	}
 	
 	/**

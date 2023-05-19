@@ -28,8 +28,8 @@ public class ThingIngredient implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC222277187B383443E0A5FC")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC222277187B383443E0A5FC", strategy="native")	
+	@GeneratedValue(generator="VAC2222771882F86B31A099EF")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222771882F86B31A099EF", strategy="native")	
 	private long ID;
 	
 	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	

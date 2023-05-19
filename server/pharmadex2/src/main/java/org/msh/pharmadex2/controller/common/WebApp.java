@@ -212,7 +212,7 @@ public class WebApp {
 		}
 	}
 
-	@GetMapping({"/landing","/admin","/moderator","/guest","/screener","/inspector","/accountant","/reviewer", "/secretary"})
+	@GetMapping({"/landing","/admin","/moderator","/guest","/screener","/inspector","/accountant","/reviewer", "/secretary", "/public"})
 	public ModelAndView landing() {
 		return createWithBundles("application");
 	}

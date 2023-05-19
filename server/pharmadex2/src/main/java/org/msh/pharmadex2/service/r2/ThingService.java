@@ -148,7 +148,7 @@ public class ThingService {
 
 	@Value("${spring.servlet.multipart.max-file-size}" )
 	String maxFileSize;
-	
+
 	/**
 	 * Create a new thing
 	 * @param data
@@ -190,7 +190,7 @@ public class ThingService {
 	 */
 	@Transactional
 	public ThingDTO createContent(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
-		List<Assembly> assemblies =assemblyServ.loadDataConfiguration(data.getUrl());
+		List<Assembly> assemblies =assemblyServ.loadDataConfiguration(data.getUrl(), user);
 		//literals
 		List<AssemblyDTO> headings = assemblyServ.auxHeadings(data.getUrl(),assemblies);
 		data.getHeading().clear();
@@ -212,7 +212,7 @@ public class ThingService {
 		}*/
 		data=dtoServ.createStrings(data,strings, thisApplicant);
 
-		List<AssemblyDTO> literals = assemblyServ.auxLiterals(data.getUrl());
+		List<AssemblyDTO> literals = assemblyServ.auxLiterals(data.getUrl(),assemblies);
 		data=dtoServ.createLiterals(data, literals, thisApplicant);
 		//dates
 		List<AssemblyDTO> dates=assemblyServ.auxDates(data.getUrl(),assemblies);
@@ -244,7 +244,7 @@ public class ThingService {
 		data=createResources(resources,data);
 		//things
 		List<AssemblyDTO> things = assemblyServ.auxThings(data.getUrl(),assemblies);
-		data=createThings(things,data);
+		data=createThings(things,user,data);
 		//persons
 		List<AssemblyDTO> persons =assemblyServ.auxPersons(data.getUrl(),assemblies);
 		data=createPersons(persons, data);
@@ -619,19 +619,22 @@ public class ThingService {
 	 * Create things DTO for this thing DTO
 	 * Try to read ones if existing
 	 * @param asms - assemblyDTOs
+	 * @param user 
 	 * @param data supposed that data.url is defined
 	 * @TODO creation table of things!!!!!
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	private ThingDTO createThings(List<AssemblyDTO> asms, ThingDTO data) throws ObjectNotFoundException {
+	private ThingDTO createThings(List<AssemblyDTO> asms, UserDetailsDTO user, ThingDTO data) throws ObjectNotFoundException {
 		data.getThings().clear();
 		for(AssemblyDTO asm: asms) {
-			ThingDTO dto = ThingDTO.createIncluded(data, asm);
-			dto.setTitle(messages.get(asm.getPropertyName()));
-			dto.setVarName(asm.getPropertyName());
-			dto.setApplicationUrl(data.getApplicationUrl());
-			data.getThings().put(asm.getPropertyName(), dto);
+			if(accessControlServ.allowAssembly(asm,user)) {
+				ThingDTO dto = ThingDTO.createIncluded(data, asm);
+				dto.setTitle(messages.get(asm.getPropertyName()));
+				dto.setVarName(asm.getPropertyName());
+				dto.setApplicationUrl(data.getApplicationUrl());
+				data.getThings().put(asm.getPropertyName(), dto);
+			}
 		}
 		Thing thing = new Thing();
 		if(data.getNodeId()>0) {
@@ -664,9 +667,6 @@ public class ThingService {
 		data.getDocuments().clear();
 		//prepare files
 		for(AssemblyDTO asm : files) {
-			if(accessControlServ.isApplicant(user) && asm.isHideFromApplicant()) {
-				continue;				// do not render hidden components!
-			}
 			FileDTO fdto=new FileDTO();
 			fdto.setAccept(asm.getFileTypes());
 			fdto.setReadOnly(data.isReadOnly());
@@ -766,8 +766,8 @@ public class ThingService {
 		}
 		Thing thing = new Thing();
 		thing = boilerServ.thingByNode(node, thing);
-		//String email="";
-		jdbcRepo.filelist(dict.getID(),thing.getID(),data.getUrl(), data.getVarName(),user.getEmail());        //  email);
+		String email="";
+		jdbcRepo.filelist(dict.getID(),thing.getID(),data.getUrl(), data.getVarName(),email);        //  email);
 		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from _filelist", "","", data.getTable().getHeaders());
 		TableQtb.tablePage(rows, data.getTable());
 		for(TableRow row : rows) {
@@ -1907,12 +1907,13 @@ public class ThingService {
 
 	/**
 	 * Create a path to fill-out form
+	 * @param user 
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public ThingDTO path(ThingDTO data) throws ObjectNotFoundException {
+	public ThingDTO path(UserDetailsDTO user, ThingDTO data) throws ObjectNotFoundException {
 		//application name and description
 		if(data.getApplDictNodeId()>0) {
 			Concept adictNode = closureServ.loadConceptById(data.getApplDictNodeId());
@@ -1962,7 +1963,7 @@ public class ThingService {
 			}
 		}
 		data.getPath().clear();
-		List<ThingDTO> path = createPath(data, new ArrayList<ThingDTO>(),-1);
+		List<ThingDTO> path = createPath(data, user, new ArrayList<ThingDTO>(),-1);
 		data.getPath().addAll(path);
 		for(ThingDTO dto : data.getPath()) {
 			dto.setModiUnitId(data.getModiUnitId());
@@ -1974,26 +1975,27 @@ public class ThingService {
 	/**
 	 * Create a path recursive
 	 * @param dto thing dto to include to the path
+	 * @param user 
 	 * @param path path itself
 	 * @param parentIndex index of thing dto, -1 is no parent 
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	public List<ThingDTO> createPath(ThingDTO dto, List<ThingDTO> path, int parentIndex) throws ObjectNotFoundException {
+	public List<ThingDTO> createPath(ThingDTO dto, UserDetailsDTO user, List<ThingDTO> path, int parentIndex) throws ObjectNotFoundException {
 		dto.setParentIndex(parentIndex);
 		if(path.size()==0) {
 			path.add(deepCloneThing(dto));	//will be included to path property of the dto
 		}
 		List<Assembly> assemblies =assemblyServ.loadDataConfiguration(dto.getUrl());
 		List<AssemblyDTO> things = assemblyServ.auxThings(dto.getUrl(),assemblies);
-		dto = createThings(things, dto);
+		dto = createThings(things, user, dto);
 		Set<String> keys = dto.getThings().keySet();	//variables names
 		int nextParIndex = path.size()-1;
 		for(String key : keys) {
 			ThingDTO dto1 = dto.getThings().get(key);
 			path.add(dto1);
-			path = createPath(dto1,path,nextParIndex);
+			path = createPath(dto1,user, path,nextParIndex);
 		}
 		return path;
 	}
@@ -2197,17 +2199,18 @@ public class ThingService {
 	 *This path represents a loop in a main path to add/edit multiply things
 	 *The auxiliary path is differ from the main path, because it calculates dynamically, depends of a user's choice
 	 * For current, the auxiliary path is possible only for Person  
+	 * @param user 
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public ThingDTO auxPath(ThingDTO data) throws ObjectNotFoundException {
+	public ThingDTO auxPath(UserDetailsDTO user, ThingDTO data) throws ObjectNotFoundException {
 		if(data.getNodeId()>0) {
 			//create/load a core thing for auxiliary path (only for persons yet)
 			PersonDTO pdto = data.getPersons().get(data.getAuxPathVar());
 			if(pdto != null) {
-				data=auxPathPerson(pdto,data);
+				data=auxPathPerson(pdto,user, data);
 			}
 			return data;
 		}else {
@@ -2217,13 +2220,14 @@ public class ThingService {
 
 	/**
 	 * 
+	 * @param user 
 	 * @param pdto
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	private ThingDTO auxPathPerson(PersonDTO personDTO, ThingDTO data) throws ObjectNotFoundException {
+	private ThingDTO auxPathPerson(PersonDTO personDTO, UserDetailsDTO user, ThingDTO data) throws ObjectNotFoundException {
 		//load a thing
 		Concept node = closureServ.loadConceptById(data.getNodeId());
 		Thing thing = boilerServ.thingByNode(node);
@@ -2250,7 +2254,7 @@ public class ThingService {
 				coreDTO.setHistoryId(data.getHistoryId());
 				coreDTO.setVarName(personDTO.getVarName());
 				//calculate path and place it to auxiliary path of the thing
-				List<ThingDTO> path = createPath(coreDTO, new ArrayList<ThingDTO>(),-1);
+				List<ThingDTO> path = createPath(coreDTO, user, new ArrayList<ThingDTO>(),-1);
 				data.getAuxPath().clear();
 				data.getAuxPath().addAll(path);
 			}else {

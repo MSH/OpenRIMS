@@ -228,6 +228,7 @@ public class DictService {
 				0));
 		ret.getHeaders().get(0).setSortValue(TableHeader.SORT_ASC);
 		ret= boilerServ.translateHeaders(ret);
+		ret.setPageSize(4);
 		return ret;
 	}
 

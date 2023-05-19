@@ -19,6 +19,7 @@ import org.msh.pdex2.model.r2.Thing;
 import org.msh.pdex2.model.r2.ThingThing;
 import org.msh.pdex2.model.r2.UserDict;
 import org.msh.pdex2.services.r2.ClosureService;
+import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.auth.UserRoleDto;
@@ -489,6 +490,30 @@ public class AccessControlService {
 		}else {
 			return true;
 		}
+	}
+	/**
+	 * Check hide from applicant and public available
+	 * @param asm
+	 * @param user
+	 * @return
+	 */
+	public boolean allowAssembly(AssemblyDTO asm, UserDetailsDTO user) {
+		if(isPublic(user)) {
+			return asm.isPublicAvailable();
+		}else {
+			if(isApplicant(user)) {
+				return !asm.isHideFromApplicant();
+			}
+		}
+		return true;
+	}
+	/**
+	 * Is this not-logged-in
+	 * @param user
+	 * @return
+	 */
+	private boolean isPublic(UserDetailsDTO user) {
+		return user.getEmail().isEmpty() && user.getLogin().isEmpty();
 	}
 
 }

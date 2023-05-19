@@ -3,7 +3,7 @@ package org.msh.pharmadex2.controller.r2;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pharmadex2.dto.AmendmentNewDTO;
 import org.msh.pharmadex2.dto.ApplicationOrActivityDTO;
-import org.msh.pharmadex2.dto.ApplicationSelectDTO;
+//import org.msh.pharmadex2.dto.ApplicationSelectDTO;
 import org.msh.pharmadex2.dto.ApplicationsDTO;
 import org.msh.pharmadex2.dto.CheckListDTO;
 import org.msh.pharmadex2.dto.ContentDTO;
@@ -24,8 +24,9 @@ import org.msh.pharmadex2.service.r2.DeregistrationService;
 import org.msh.pharmadex2.service.r2.DictService;
 import org.msh.pharmadex2.service.r2.InspectionService;
 import org.msh.pharmadex2.service.r2.LegacyDataService;
+import org.msh.pharmadex2.service.r2.SubmitService;
 import org.msh.pharmadex2.service.r2.SystemService;
-import org.msh.pharmadex2.service.r2.ThingService;
+//import org.msh.pharmadex2.service.r2.ThingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -33,15 +34,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+//import com.fasterxml.jackson.core.JsonProcessingException;
 @RestController
 public class GuestAPI {
 	@Autowired
 	private ContentService contentService;
 	@Autowired
 	private UserService userServ;
-	@Autowired
-	private ThingService thingServ;
 	@Autowired
 	private ApplicationService applServ;
 	@Autowired
@@ -56,7 +55,8 @@ public class GuestAPI {
 	private DeregistrationService deregServ;
 	@Autowired
 	private InspectionService inspectionServ;
-
+	@Autowired
+	private SubmitService submServ;
 
 	/**
 	 * Tiles for landing page
@@ -83,7 +83,7 @@ public class GuestAPI {
 	 */
 	@PostMapping("/api/*/applications")
 	public DictionaryDTO applications(Authentication auth, @RequestBody DictionaryDTO data) throws DataNotFoundException {
-		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
+		//UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data=systemServ.applicationsDictionary("dictionary.guest.applications",data);
 		} catch (ObjectNotFoundException e) {
@@ -101,7 +101,7 @@ public class GuestAPI {
 	 */
 	@PostMapping("/api/*/applications/inspections")
 	public DictionaryDTO applicationsInspections(Authentication auth, @RequestBody DictionaryDTO data) throws DataNotFoundException {
-		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
+		//UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data=systemServ.applicationsDictionary("dictionary.guest.inspections",data);
 		} catch (ObjectNotFoundException e) {
@@ -118,7 +118,7 @@ public class GuestAPI {
 	 */
 	@PostMapping("/api/*/amendments")
 	public DictionaryDTO amendments(Authentication auth, @RequestBody DictionaryDTO data) throws DataNotFoundException {
-		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		//UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data=systemServ.amendmentDictionary(data);
 		} catch (ObjectNotFoundException e) {
@@ -146,23 +146,6 @@ public class GuestAPI {
 	}
 	
 	/**
-	 * Dictionary of all possible renewals
-	 * @param auth
-	 * @param data
-	 * @return
-	 * @throws DataNotFoundException 
-	 */
-	@PostMapping("/api/*/renewal")
-	public DictionaryDTO renewal(Authentication auth, @RequestBody DictionaryDTO data) throws DataNotFoundException {
-		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
-		try {
-			data=systemServ.renewalDict(data);
-		} catch (ObjectNotFoundException e) {
-			throw new DataNotFoundException(e);
-		}
-		return data;
-	}
-	/**
 	 * Dictionary of all possible de-registration
 	 * @param auth
 	 * @param data
@@ -171,7 +154,7 @@ public class GuestAPI {
 	 */
 	@PostMapping("/api/*/deregistration")
 	public DictionaryDTO deregistration(Authentication auth, @RequestBody DictionaryDTO data) throws DataNotFoundException {
-		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		//UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data=systemServ.deregistrationDict(data);
 		} catch (ObjectNotFoundException e) {
@@ -226,7 +209,7 @@ public class GuestAPI {
 	public CheckListDTO applicationSubmit(Authentication auth, @RequestBody CheckListDTO data) throws DataNotFoundException {
 		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
 		try {
-			data=applServ.submit(data,user);
+			data=submServ.submit(data,user);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -276,7 +259,7 @@ public class GuestAPI {
 	 */
 	@PostMapping("/api/guest/mock/choice")
 	public ChoiceDTO mockChoice(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException{
-		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
+		//UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
 		DictionaryDTO dict = data.getDictionaries().get("workflows");
 		ChoiceDTO ret;
 		try {

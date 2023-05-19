@@ -30,8 +30,8 @@ public class Assembly implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC222277187B383442A0A5EC")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC222277187B383442A0A5EC", strategy="native")	
+	@GeneratedValue(generator="VAC2222771882F86B30C099DF")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222771882F86B30C099DF", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
@@ -87,6 +87,9 @@ public class Assembly implements Serializable {
 	
 	@Column(name="Hidefromapplicant", nullable=false, length=1)	
 	private boolean hidefromapplicant = false;
+	
+	@Column(name="Publicavailable", nullable=false, length=1)	
+	private boolean publicavailable = false;
 	
 	private void setID(long value) {
 		this.ID = value;
@@ -298,6 +301,20 @@ public class Assembly implements Serializable {
 	
 	public boolean getHidefromapplicant() {
 		return hidefromapplicant;
+	}
+	
+	/**
+	 * This component is available for public view
+	 */
+	public void setPublicavailable(boolean value) {
+		this.publicavailable = value;
+	}
+	
+	/**
+	 * This component is available for public view
+	 */
+	public boolean getPublicavailable() {
+		return publicavailable;
 	}
 	
 	public void setPropertyName(org.msh.pdex2.model.r2.Concept value) {
