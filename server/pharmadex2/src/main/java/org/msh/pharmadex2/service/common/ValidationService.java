@@ -106,7 +106,6 @@ public class ValidationService {
 	private JdbcRepository jdbcRepo;
 	@Autowired
 	private DeregistrationService deregServ;
-	
 
 	/**
 	 * ^[a-z]{1,} - первый символ всегда буква
@@ -291,21 +290,12 @@ public class ValidationService {
 				}else {
 					dict.clearErrors();
 				}*/
-				if(dict.getTable().getRows().size() > 0) {
-					boolean isHasSelect = false;
-					for(TableRow r:dict.getTable().getRows()) {
-						if(r.getSelected()) {
-							isHasSelect = true;
-						break;
-						}
-					}
-					if(!isHasSelect) {
-						dict.setValid(false);
-						dict.setStrict(strict);
-						dict.setIdentifier(messages.get("error_dictionaryempty") +". "+ description);
-					}
-				}else {
+				if(dict.getPrevSelected().size() > 0) {
 					dict.clearErrors();
+				}else{
+					dict.setValid(false);
+					dict.setStrict(strict);
+					dict.setIdentifier(messages.get("error_dictionaryempty") +". "+ description);
 				}
 			}else {
 				dict.clearErrors();
