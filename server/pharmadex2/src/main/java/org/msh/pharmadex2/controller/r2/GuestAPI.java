@@ -86,6 +86,7 @@ public class GuestAPI {
 		//UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data=systemServ.applicationsDictionary("dictionary.guest.applications",data);
+			data=dictService.page(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -104,6 +105,7 @@ public class GuestAPI {
 		//UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data=systemServ.applicationsDictionary("dictionary.guest.inspections",data);
+			data=dictService.page(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -121,6 +123,7 @@ public class GuestAPI {
 		//UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data=systemServ.amendmentDictionary(data);
+			data=dictService.page(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}

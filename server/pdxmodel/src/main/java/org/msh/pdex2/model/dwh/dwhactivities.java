@@ -28,8 +28,8 @@ public class dwhactivities implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC2222771882F86B33D099FF")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC2222771882F86B33D099FF", strategy="native")	
+	@GeneratedValue(generator="VAC2222771884EAAE2A103E66")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222771884EAAE2A103E66", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	
@@ -61,6 +61,18 @@ public class dwhactivities implements Serializable {
 	@org.hibernate.annotations.Index(name="byApplication")	
 	private long applicationID;
 	
+	@Column(name="ActivityUrl", nullable=true, length=255)	
+	private String activityUrl;
+	
+	@Column(name="ActivityID", nullable=false, length=20)	
+	private long activityID;
+	
+	@Column(name="ActivityConfigID", nullable=false, length=20)	
+	private long activityConfigID;
+	
+	@Column(name="DepartmentID", nullable=false, length=20)	
+	private long departmentID;
+	
 	private void setID(long value) {
 		this.ID = value;
 	}
@@ -71,6 +83,50 @@ public class dwhactivities implements Serializable {
 	
 	public long getORMID() {
 		return getID();
+	}
+	
+	/**
+	 * ID of an application for grouping purpose
+	 */
+	public void setApplicationID(long value) {
+		this.applicationID = value;
+	}
+	
+	/**
+	 * ID of an application for grouping purpose
+	 */
+	public long getApplicationID() {
+		return applicationID;
+	}
+	
+	public void setActivityConfigID(long value) {
+		this.activityConfigID = value;
+	}
+	
+	public long getActivityConfigID() {
+		return activityConfigID;
+	}
+	
+	/**
+	 * Activity URL from the activity config
+	 */
+	public void setActivityUrl(String value) {
+		this.activityUrl = value;
+	}
+	
+	/**
+	 * Activity URL from the activity config
+	 */
+	public String getActivityUrl() {
+		return activityUrl;
+	}
+	
+	public void setActivityID(long value) {
+		this.activityID = value;
+	}
+	
+	public long getActivityID() {
+		return activityID;
 	}
 	
 	/**
@@ -129,6 +185,14 @@ public class dwhactivities implements Serializable {
 		return department;
 	}
 	
+	public void setDepartmentID(long value) {
+		this.departmentID = value;
+	}
+	
+	public long getDepartmentID() {
+		return departmentID;
+	}
+	
 	/**
 	 * Activity executor's email
 	 */
@@ -155,20 +219,6 @@ public class dwhactivities implements Serializable {
 	 */
 	public String getLang() {
 		return lang;
-	}
-	
-	/**
-	 * ID of an application for grouping purpose
-	 */
-	public void setApplicationID(long value) {
-		this.applicationID = value;
-	}
-	
-	/**
-	 * ID of an application for grouping purpose
-	 */
-	public long getApplicationID() {
-		return applicationID;
 	}
 	
 	public void setReportSession(org.msh.pdex2.model.dwh.ReportSession value) {

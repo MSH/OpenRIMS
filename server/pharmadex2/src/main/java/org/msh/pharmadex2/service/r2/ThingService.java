@@ -767,6 +767,9 @@ public class ThingService {
 		Thing thing = new Thing();
 		thing = boilerServ.thingByNode(node, thing);
 		String email="";
+		if(thing.getID()==0) {
+			email=user.getEmail();				//stored unsaved only for this user
+		}
 		jdbcRepo.filelist(dict.getID(),thing.getID(),data.getUrl(), data.getVarName(),email);        //  email);
 		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from _filelist", "","", data.getTable().getHeaders());
 		TableQtb.tablePage(rows, data.getTable());

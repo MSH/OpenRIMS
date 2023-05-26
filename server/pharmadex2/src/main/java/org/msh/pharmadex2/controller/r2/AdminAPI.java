@@ -246,6 +246,10 @@ public class AdminAPI {
 	public UserElementDTO userLoad(@RequestBody UserElementDTO data) throws DataNotFoundException {
 		try {
 			data = userService.userLoad(data);
+			dictServ.page(data.getRoles());
+			for(String key : data.getApplDicts().keySet()) {
+				dictServ.page(data.getApplDicts().get(key));
+			}
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}

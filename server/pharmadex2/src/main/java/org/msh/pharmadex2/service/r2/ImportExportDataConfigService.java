@@ -397,7 +397,7 @@ public class ImportExportDataConfigService {
 			if(dto.isValid() || !dto.isStrict()) {
 				good.add(assm);
 			}else {
-				throw new ObjectNotFoundException(row.toString(),logger);
+				throw new ObjectNotFoundException(mess.get(dto.getIdentifier()) + " "+row.toString(),logger);
 			}
 		}
 		//if all are good, save all

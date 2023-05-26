@@ -28,8 +28,8 @@ public class ReportPage implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC2222771882F86B326099FA")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC2222771882F86B326099FA", strategy="native")	
+	@GeneratedValue(generator="VAC2222771884EAAE29C03E61")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222771884EAAE29C03E61", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	
@@ -58,6 +58,9 @@ public class ReportPage implements Serializable {
 	
 	@Column(name="DictItemID", nullable=false, length=20)	
 	private long dictItemID = 0;
+	
+	@Column(name="DataModule", nullable=true, length=255)	
+	private String DataModule;
 	
 	private void setID(long value) {
 		this.ID = value;
@@ -97,6 +100,20 @@ public class ReportPage implements Serializable {
 	 */
 	public String getDataModuleUrl() {
 		return dataModuleUrl;
+	}
+	
+	/**
+	 * Name of the application
+	 */
+	public void setDataModule(String value) {
+		this.DataModule = value;
+	}
+	
+	/**
+	 * Name of the application
+	 */
+	public String getDataModule() {
+		return DataModule;
 	}
 	
 	/**

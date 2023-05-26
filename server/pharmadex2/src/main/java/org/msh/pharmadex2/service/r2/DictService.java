@@ -228,7 +228,7 @@ public class DictService {
 				0));
 		ret.getHeaders().get(0).setSortValue(TableHeader.SORT_ASC);
 		ret= boilerServ.translateHeaders(ret);
-		ret.setPageSize(4);
+		ret.setPageSize(Integer.MAX_VALUE);			//will be fine tuned for on-screen representation
 		return ret;
 	}
 
@@ -1224,6 +1224,23 @@ public class DictService {
 					}
 				}
 			}
+		}
+		return data;
+	}
+	/**
+	 * Adjust a page size in a dictionary table, if needed
+	 * Default value is 4
+	 * @param data
+	 * @return
+	 */
+	public DictionaryDTO page(DictionaryDTO data) {
+		TableQtb table = data.getTable();
+		if(table.getHeaders().getPageSize()==Integer.MAX_VALUE) {
+			List<TableRow> rows = new ArrayList<TableRow>();
+			rows.addAll(table.getRows());
+			table.getRows().clear();
+			table.getHeaders().setPageSize(4);
+			TableQtb.tablePage(rows, table);
 		}
 		return data;
 	}

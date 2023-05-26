@@ -100,6 +100,7 @@ public class CommonAPI {
 	public DictionaryDTO dictionaryLoad(@RequestBody DictionaryDTO data) throws DataNotFoundException {
 			try {
 				data=dictServ.load(data);
+				data=dictServ.page(data);
 			} catch (ObjectNotFoundException e) {
 				throw new DataNotFoundException(e);
 			}
@@ -116,6 +117,7 @@ public class CommonAPI {
 	public DictionaryDTO dictionaryLoadTable(@RequestBody DictionaryDTO data) throws DataNotFoundException {
 			try {
 				data=dictServ.loadTable(data);
+				data=dictServ.page(data);
 			} catch (ObjectNotFoundException e) {
 				throw new DataNotFoundException(e);
 			}
@@ -132,6 +134,7 @@ public class CommonAPI {
 	public DictionaryDTO dictionaryLoadPath(@RequestBody DictionaryDTO data) throws DataNotFoundException {
 			try {
 				data=dictServ.loadPath(data);
+				data=dictServ.page(data);
 			} catch (ObjectNotFoundException e) {
 				throw new DataNotFoundException(e);
 			}
@@ -148,6 +151,7 @@ public class CommonAPI {
 	public DictionaryDTO dictionaryLoadRoot(@RequestBody DictionaryDTO data) throws DataNotFoundException {
 			try {
 				data=dictServ.rootDictionary(data);
+				data=dictServ.page(data);
 			} catch (ObjectNotFoundException e) {
 				throw new DataNotFoundException(e);
 			}
@@ -164,6 +168,7 @@ public class CommonAPI {
 	public DictionaryDTO dictionaryLoadNext(@RequestBody DictionaryDTO data) throws DataNotFoundException {
 			try {
 				data=dictServ.nextDictionary(data);
+				data=dictServ.page(data);
 			} catch (ObjectNotFoundException e) {
 				throw new DataNotFoundException(e);
 			}

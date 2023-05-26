@@ -21,7 +21,7 @@ public class DataConfigDTO extends AllowValidation {
 	private TableQtb table=new TableQtb();
 	//table for a data url variables
 	private TableQtb varTable=new TableQtb();
-	//edit restricted because of external refs.
+	//edit restricted because of external refs. For future extension. Currently, always true
 	private boolean restricted=true;
 	
 	public long getNodeId() {
