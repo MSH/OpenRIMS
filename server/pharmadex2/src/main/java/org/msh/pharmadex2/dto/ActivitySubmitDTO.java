@@ -32,6 +32,7 @@ public class ActivitySubmitDTO extends AllowValidation{
 		private boolean reassign=false;			//re-assign and cancel only
 		private boolean reject=false;				//reject and return to user for clarification
 		private String colorAlert = "info"; // color Alert message
+		private boolean monitoring=false;			//request actions in monitoring pages
 		
 		public String getColorAlert() {
 			return colorAlert;
@@ -158,5 +159,11 @@ public class ActivitySubmitDTO extends AllowValidation{
 		}
 		public void setReject(boolean reject) {
 			this.reject = reject;
+		}
+		public boolean isMonitoring() {
+			return monitoring;
+		}
+		public void setMonitoring(boolean monitoring) {
+			this.monitoring = monitoring;
 		}
 }

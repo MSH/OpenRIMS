@@ -58,7 +58,7 @@ public class ApplicationServiceTest {
 	public void activitiesAndExcutors() throws ObjectNotFoundException {
 		//get all activities
 		Concept configRoot = closureServ.loadRoot("configuration.application.workflow.junit");
-		List<Concept> nextActs = applServ.loadActivities(configRoot);
+		List<Concept> nextActs = boilerServ.loadActivities(configRoot);
 		//search for a first not submitted application
 		Concept root = closureServ.loadRoot("workflow.junit.test");	
 		List<Concept> emails=closureServ.loadLevel(root);

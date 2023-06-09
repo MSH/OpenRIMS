@@ -123,7 +123,7 @@ public class ApplicationService {
 			String appUrl = literalServ.readValue("applicationurl", dictItem);
 			String dataUrl = literalServ.readValue("dataurl", dictItem);
 			if(data.isAmendment()) {
-				data.setTable(createAmendmentsTable(appUrl, dataUrl, user.getEmail(), data.getTable(), searchStr));
+				data.setTable(amendmentServ.createAmendmentsTable(dataUrl, user.getEmail(), data.getTable(), searchStr));
 			}else {
 				data.setTable(createApplicationsTable(appUrl, dataUrl, user.getEmail(), data.getTable(), searchStr));
 			}
@@ -184,58 +184,7 @@ public class ApplicationService {
 		return table;
 	}
 	
-	/**
-	 * Create a table with list of amendments
-	 * 
-	 * @param appUrl
-	 * @param email
-	 * @param string
-	 * @param table
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	private TableQtb createAmendmentsTable(String appUrl, String dataUrl, String email, TableQtb table, String searchStr)
-			throws ObjectNotFoundException {
-		if (table.getHeaders().getHeaders().size() == 0) {
-			table.setHeaders(createApplicationsTableHeaders(table.getHeaders()));
-			// только когда снова создаем заголовки, только тогда проверяем был ли текст в строке поиска
-			if(searchStr != null && !searchStr.equals("null") && searchStr.length() > 2) {
-				for(TableHeader th:table.getHeaders().getHeaders()) {
-					th.setGeneralCondition(searchStr);
-				}
-				table.setGeneralSearch(searchStr);
-			}
-		}else {
-			if(table.getGeneralSearch().equals("onSelDict")) {
-				table.setGeneralSearch("");
-				for(TableHeader th:table.getHeaders().getHeaders()) {
-					th.setGeneralCondition(table.getGeneralSearch());
-					if(th.getConditionS().length() > 0) {
-						th.setConditionS("");
-						th.setFilterActive(false);
-					}
-				}
-			}
-		}
-		
-		jdbcRepo.amendments_applicant(dataUrl,email);
-		String select = "select * from amendments_applicant";
-		List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", "", table.getHeaders());
-		TableQtb.tablePage(rows, table);
-		table = boilerServ.translateRows(table);
-		table.setSelectable(false);
-		//paint color
-		for(TableRow row : table.getRows()) {
-			for(TableCell cell :row.getRow()) {
-				if(cell.getKey().equalsIgnoreCase("term")) {
-					if(cell.getIntValue()<0) {
-						cell.setStyleClass("text-danger");
-					}
-				}
-			}
-		}
-		return table;
-	}
+
 	
 	/**
 	 * Create headers for applicant applications table
@@ -950,31 +899,6 @@ public class ApplicationService {
 		return curHis;
 	}
 
-	/** 
-	 * Load all activities in the workflow
-	 * 
-	 * @param root root activity in the configuration
-	 * @return
-	 */
-	@Transactional
-	public List<Concept> loadActivities(Concept root) {
-		List<Concept> ret = new ArrayList<Concept>();
-		if (root != null) {
-			// load all
-			List<Concept> all = new ArrayList<Concept>();
-			List<Concept> childs = literalServ.loadOnlyChilds(root);
-			all.add(root);
-			while (childs.size() > 0) {
-				if (childs.get(0).getActive()) {
-					all.add(childs.get(0));
-				}
-				childs = literalServ.loadOnlyChilds(childs.get(0));
-			}
-			ret.addAll(all);
-		}
-		return ret;
-	}
-
 	/**
 	 * Application or workflow activity?
 	 * Determine the history as well
@@ -1341,10 +1265,18 @@ public class ApplicationService {
 		applConc.setIdentifier(applConc.getID() + "");
 		applConc = closureServ.saveToTree(owner, applConc);
 		//run activities
+		// 30.05.2023 khomenska change validation workflow
+		data = (ActivitySubmitDTO)validServ.validWorkFlowConfig(data, applUrl, true);
+				
+		/*30.05.2023
 		Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
-		List<Concept> nextActs = loadActivities(configRoot);
-		data = (ActivitySubmitDTO) validServ.workflowConfig(nextActs, configRoot, data);
+		List<Concept> nextActs = boilerServ.loadActivities(configRoot);
+		data = (ActivitySubmitDTO) validServ.workflowConfig(nextActs, configRoot, data);*/
+				
 		if (data.isValid()) {
+			Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
+			List<Concept> nextActs = boilerServ.loadActivities(configRoot);
+			
 			if (nextActs.size() > 0) {
 				List<ActivityToRun> toRun = activitiesToRun(data, applUrl, prevHis, nextActs);
 				if(toRun.size()>0 && data.isValid()) {
@@ -1370,7 +1302,10 @@ public class ApplicationService {
 				data.setIdentifier(mess);
 			}
 		} else {
-			logger.error(applUrl + " " + data.getIdentifier());
+			String mess= messages.get("badconfiguration") +" "+applUrl;
+			logger.error(mess);
+			data.setValid(false);
+			data.setIdentifier(mess);
 		}
 		return data;
 	}
@@ -1385,38 +1320,41 @@ public class ApplicationService {
 	 * @throws ObjectNotFoundException
 	 */
 	public ActivitySubmitDTO createRevokePermitApplication(History prevHis, String applUrl, Concept dictConc,
-			ActivitySubmitDTO data) throws ObjectNotFoundException {
+			ActivitySubmitDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		Concept applRoot = closureServ.loadRoot(applUrl);
 
 		Concept owner = new Concept();
-		List<Long> executors = data.executors();
-		if (executors.size() > 0) {
-			Concept userConc = closureServ.loadConceptById(executors.get(0));
-			owner.setIdentifier(userConc.getIdentifier());
-		}
-
-		owner = closureServ.saveToTree(applRoot, owner);
+			owner.setIdentifier(user.getEmail());
+			owner = closureServ.saveToTree(applRoot, owner);
 		Concept applConc = new Concept();
 		applConc = closureServ.save(applConc);
 		applConc.setIdentifier(applConc.getID() + "");
 		applConc = closureServ.saveToTree(owner, applConc);
 		//run activities
+		// 30.05.2023 khomenska  change validation workflow
+		data = (ActivitySubmitDTO)validServ.validWorkFlowConfig(data, applUrl, false);
+		
+		/*30.05.2023
 		Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
-		List<Concept> nextActs = loadActivities(configRoot);
-		data = (ActivitySubmitDTO) validServ.workflowConfig(nextActs, configRoot, data);
+		List<Concept> nextActs = boilerServ.loadActivities(configRoot);
+		data = (ActivitySubmitDTO) validServ.workflowConfig(nextActs, configRoot, data);*/
 		if (data.isValid()) {
+			Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
+			List<Concept> nextActs = boilerServ.loadActivities(configRoot);
+			
 			if (nextActs.size() > 0) {
 				Concept actConfig = nextActs.get(0);
 				History curHis = createHostHistorySample(prevHis, applConc, dictConc, configRoot);
 				activityCreate(null, actConfig, curHis, owner.getIdentifier(), data.getNotes().getValue());
-
-				//List<ActivityToRun> toRun = activitiesToRun(data, applUrl, prevHis, nextActs);
-				//if(toRun.size()>0 && data.isValid()) {
+/*
+				List<ActivityToRun> toRun = activitiesToRun(data, applUrl, prevHis, nextActs);
+				if(toRun.size()>0 && data.isValid()) {
 				//History curHis = createHostHistorySample(prevHis, applConc, dictConc, configRoot);
-				//activityTrackRun(null, curHis, applUrl, applicantEmail); // tracking by an applicant
-				//activityMonitoringRun(null, curHis, applUrl); // monitoring by the all supervisors
+				
+				activityTrackRun(null, curHis, applUrl, data.getApplicantEmail()); // tracking by an applicant
+				activityMonitoringRun(null, curHis, applUrl); // monitoring by the all supervisors
 				// run activities
-				/*for(ActivityToRun act :toRun ) {
+				for(ActivityToRun act :toRun ) {///
 						for (String email : act.getExecutors()) {
 							activityCreate(null, act.getConfig(), curHis, email, String.join(",",act.getFallBack()));
 						}
@@ -1434,7 +1372,10 @@ public class ApplicationService {
 				data.setIdentifier(mess);
 			}
 		} else {
-			logger.error(applUrl + " " + data.getIdentifier());
+			String mess= messages.get("badconfiguration") +" "+applUrl;
+			logger.error(mess);
+			data.setValid(false);
+			data.setIdentifier(mess);
 		}
 		return data;
 	}

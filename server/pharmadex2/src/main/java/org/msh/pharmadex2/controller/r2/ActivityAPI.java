@@ -22,13 +22,13 @@ import org.msh.pharmadex2.dto.PersonDTO;
 import org.msh.pharmadex2.dto.PersonSpecialDTO;
 import org.msh.pharmadex2.dto.RegisterDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
-import org.msh.pharmadex2.dto.SubmitRecieptDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.ThingValuesDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.exception.DataNotFoundException;
 import org.msh.pharmadex2.service.common.UserService;
 import org.msh.pharmadex2.service.common.ValidationService;
+import org.msh.pharmadex2.service.r2.AccessControlService;
 import org.msh.pharmadex2.service.r2.ApplicationService;
 import org.msh.pharmadex2.service.r2.IrkaServices;
 import org.msh.pharmadex2.service.r2.LinkService;
@@ -56,6 +56,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -93,14 +94,16 @@ public class ActivityAPI{
 	private IrkaServices irkaServ;
 	@Autowired
 	private LinkService linkServ;
-	@Autowired
-	private RecieptService receiptServ;
+	
 	@Autowired
 	private SubmitService submServ;
+	@Autowired
+	private AccessControlService accServ;
 
 	@PostMapping({ "/api/*/my/activities"})
-	public ApplicationsDTO myActivities(Authentication auth, @RequestBody ApplicationsDTO data)
+	public ApplicationsDTO myActivities(Authentication auth, UriComponentsBuilder uri,@RequestBody ApplicationsDTO data)
 			throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		data = applServ.myActivities(data, user);
 		return data;
@@ -116,8 +119,9 @@ public class ActivityAPI{
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping({ "/api/*/my/monitoring/type={t}&search={s}"})
-	public ApplicationsDTO myMonitoringActual(Authentication auth, @RequestBody ApplicationsDTO data, @PathVariable(value = "t") String t, @PathVariable(value = "s") String s)
+	public ApplicationsDTO myMonitoringActual(Authentication auth, UriComponentsBuilder uri,@RequestBody ApplicationsDTO data, @PathVariable(value = "t") String t, @PathVariable(value = "s") String s)
 			throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data = monitoringServ.myMonitoring(data, user, t, s);
@@ -126,8 +130,8 @@ public class ActivityAPI{
 		}
 		return data;
 	}
-	
-	
+
+
 	/**
 	 * Get the latest history ID by the application data ID
 	 * @param auth
@@ -136,30 +140,33 @@ public class ActivityAPI{
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping({ "/api/*/my/monitoring/convinient/history"})
-	public Long myMonitoring(Authentication auth, @RequestBody Long applID)
+	public Long myMonitoring(Authentication auth, UriComponentsBuilder uri, @RequestBody Long applID)
 			throws DataNotFoundException {
-			try {
-				return monitoringServ.convinientHistory(applID);
-			} catch (ObjectNotFoundException e) {
-				throw new DataNotFoundException(e);
-			}
+		accServ.allowAuthenticated(auth, uri);
+		try {
+			return monitoringServ.convinientHistory(applID);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
 	}
-	
+
 	@PostMapping("/api/*/my/monitoring/application")
-	public ApplicationsDTO application(Authentication auth, @RequestBody ApplicationsDTO data) throws DataNotFoundException {
+	public ApplicationsDTO application(Authentication auth, UriComponentsBuilder uri, @RequestBody ApplicationsDTO data) throws DataNotFoundException {
 		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
+		accServ.allowAuthenticated(auth, uri);
 		try {
 			data.setThing(thingServ.path(user,data.getThing()));
 			return data;
 		} catch (ObjectNotFoundException e) {
-					throw new DataNotFoundException(e);
+			throw new DataNotFoundException(e);
 		}
 	}
-	
+
 	@PostMapping("/api/*/my/monitoring/actual/excel")
-	public ModelAndView myMonitoringActualExcel(Authentication auth, 
+	public ModelAndView myMonitoringActualExcel(Authentication auth, UriComponentsBuilder uri, 
 			@RequestBody ApplicationsDTO data,
 			HttpServletResponse response) throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		data.getTable().getHeaders().setPageSize(Integer.MAX_VALUE);
 		try {
@@ -182,9 +189,10 @@ public class ActivityAPI{
 	}
 
 	@PostMapping("/api/*/my/monitoring/scheduled/excel")
-	public ModelAndView myMonitoringScheduledExcel(Authentication auth, 
+	public ModelAndView myMonitoringScheduledExcel(Authentication auth, UriComponentsBuilder uri,
 			@RequestBody ApplicationsDTO data,
 			HttpServletResponse response) throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		data.getScheduled().getHeaders().setPageSize(Integer.MAX_VALUE);
 		try {
@@ -205,11 +213,12 @@ public class ActivityAPI{
 		response.setHeader("filename", "monitoring_scheduled.xlsx");       
 		return new ModelAndView(new ExcelView(), model);
 	}
-	
+
 	@PostMapping("/api/*/my/monitoring/fullsearch/excel")
-	public ModelAndView myMonitoringFullsearchExcel(Authentication auth, 
+	public ModelAndView myMonitoringFullsearchExcel(Authentication auth, UriComponentsBuilder uri, 
 			@RequestBody ApplicationsDTO data,
 			HttpServletResponse response) throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		data.getScheduled().getHeaders().setPageSize(Integer.MAX_VALUE);
 		try {
@@ -230,9 +239,9 @@ public class ActivityAPI{
 		response.setHeader("filename", "monitoring_fullsearch.xlsx");       
 		return new ModelAndView(new ExcelView(), model);
 	}
-	
-	
-	
+
+
+
 	/**
 	 * Load the activity Creates a path the bread crumb reads
 	 * 
@@ -242,7 +251,8 @@ public class ActivityAPI{
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping({ "/api/*/activity/load"})
-	public ActivityDTO activityLoad(Authentication auth, @RequestBody ActivityDTO data) throws DataNotFoundException {
+	public ActivityDTO activityLoad(Authentication auth, UriComponentsBuilder uri, @RequestBody ActivityDTO data) throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data = applServ.activityLoad(data, user);
@@ -261,8 +271,9 @@ public class ActivityAPI{
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping({ "/api/*/application/checklist/save"})
-	public CheckListDTO checklistSave(Authentication auth, @RequestBody CheckListDTO data)
+	public CheckListDTO checklistSave(Authentication auth, UriComponentsBuilder uri, @RequestBody CheckListDTO data)
 			throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data = applServ.checklistSave(data, user);
@@ -281,8 +292,9 @@ public class ActivityAPI{
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping({ "/api/*/application/history"})
-	public ApplicationHistoryDTO applicationHistory(Authentication auth, @RequestBody ApplicationHistoryDTO data)
+	public ApplicationHistoryDTO applicationHistory(Authentication auth, UriComponentsBuilder uri, @RequestBody ApplicationHistoryDTO data)
 			throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
 		try {
 			UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 			data = applServ.applicationInformationTable(user, data, true);
@@ -291,7 +303,7 @@ public class ActivityAPI{
 		}
 		return data;
 	}
-	
+
 	/**
 	 * Reload history
 	 * 
@@ -301,8 +313,9 @@ public class ActivityAPI{
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping({ "/api/*/application/manager/history"})
-	public ApplicationHistoryDTO applicationManagerHistory(Authentication auth, @RequestBody ApplicationHistoryDTO data)
+	public ApplicationHistoryDTO applicationManagerHistory(Authentication auth, UriComponentsBuilder uri, @RequestBody ApplicationHistoryDTO data)
 			throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
 		try {
 			UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 			data = applServ.applicationInformationTable(user, data, true);
@@ -321,8 +334,9 @@ public class ActivityAPI{
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping({ "/api/*/thing/load"})
-	public ThingDTO thingLoad(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
+	public ThingDTO thingLoad(Authentication auth, UriComponentsBuilder uri, @RequestBody ThingDTO data) throws DataNotFoundException {
 		//logger.debug("start thing");
+		accServ.allowAuthenticated(auth, uri);
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			if (data.getNodeId() == 0) {
@@ -334,7 +348,7 @@ public class ActivityAPI{
 			//e.getMessage();
 			throw new DataNotFoundException( "Foo Not Found", e);
 			//throw new ResponseStatusException(
-			        //HttpStatus.NOT_FOUND, "Foo Not Found", e);
+			//HttpStatus.NOT_FOUND, "Foo Not Found", e);
 		}
 		//logger.debug("end thing");
 		return data;
@@ -349,7 +363,8 @@ public class ActivityAPI{
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping({ "/api/*/thing/save"})
-	public ThingDTO thingSaveOthers(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
+	public ThingDTO thingSaveOthers(Authentication auth, UriComponentsBuilder uri, @RequestBody ThingDTO data) throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
 		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
 		try {
 			if(data.getParentId()>0) {
@@ -364,7 +379,8 @@ public class ActivityAPI{
 	}
 
 	@PostMapping({ "/api/*/thing/validate"})
-	public ThingDTO thingValidate(@RequestBody ThingDTO data) throws DataNotFoundException {
+	public ThingDTO thingValidate(Authentication auth, UriComponentsBuilder uri,@RequestBody ThingDTO data) throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
 		try {
 			data = validServ.thing(data,true);
 		} catch (ObjectNotFoundException e) {
@@ -381,8 +397,9 @@ public class ActivityAPI{
 	 * @return
 	 * @throws DataNotFoundException
 	 */
-	@PostMapping({ "/api/*/activity/path"})
-	public ThingDTO path(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
+	@PostMapping("/api/*/activity/path")
+	public ThingDTO path(Authentication auth, UriComponentsBuilder uri, @RequestBody ThingDTO data) throws DataNotFoundException {
+		accServ.allowAuthenticated(auth,uri);
 		try {
 			//logger.debug("Start path");
 			UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
@@ -404,7 +421,8 @@ public class ActivityAPI{
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping({ "/api/*/activity/auxpath"})
-	public ThingDTO auxPath(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
+	public ThingDTO auxPath(Authentication auth, UriComponentsBuilder uri, @RequestBody ThingDTO data) throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
 		try {
 			UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 			data = thingServ.auxPath(user, data);
@@ -423,7 +441,8 @@ public class ActivityAPI{
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping({ "/api/*/thing/file/load"})
-	public FileDTO fileLoad(Authentication auth, @RequestBody FileDTO data) throws DataNotFoundException {
+	public FileDTO fileLoad(Authentication auth, UriComponentsBuilder uri, @RequestBody FileDTO data) throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data = thingServ.fileLoad(data, user);
@@ -445,26 +464,27 @@ public class ActivityAPI{
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping({ "/api/*/thing/file/save"})
-	public FileDTO thingFileSave(Authentication auth, @RequestParam("dto") String jsonDto,
+	public FileDTO thingFileSave(Authentication auth, UriComponentsBuilder uri, @RequestParam("dto") String jsonDto,
 			@RequestParam("file") MultipartFile file) throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
 		FileDTO data = new FileDTO();
 		try {
 			UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 			data = objectMapper.readValue(jsonDto, FileDTO.class);
 			byte[] fileBytes = new byte[0];
 			//if (file.isPresent()) {
-				fileBytes = file.getBytes();
-				data.setFileSize(file.getSize());
-				data.setFileName(file.getOriginalFilename());
-				data.setMediaType(file.getContentType());
-				data = thingServ.fileSave(data, user, fileBytes);
+			fileBytes = file.getBytes();
+			data.setFileSize(file.getSize());
+			data.setFileName(file.getOriginalFilename());
+			data.setMediaType(file.getContentType());
+			data = thingServ.fileSave(data, user, fileBytes);
 			//}
 		} catch (ObjectNotFoundException | IOException e) {
 			throw new DataNotFoundException();
 		}
 		return data;
 	}
-    
+
 	/**
 	 * load a table with files
 	 * 
@@ -474,7 +494,7 @@ public class ActivityAPI{
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping({ "/api/*/thing/files" })
-	public FileDTO thingFiles(Authentication auth, @RequestBody FileDTO data) throws DataNotFoundException {
+	public FileDTO thingFiles(Authentication auth, UriComponentsBuilder uri, @RequestBody FileDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data = thingServ.thingFiles(data, user);
@@ -494,7 +514,7 @@ public class ActivityAPI{
 	 * @throws ObjectNotFoundException
 	 */
 	@RequestMapping(value = { "/api/*/application/file/download/id={id}"}, method = RequestMethod.GET)
-	public ResponseEntity<Resource> applicationFileDownload(@PathVariable(value = "id", required = true) Long fileresId)
+	public ResponseEntity<Resource> applicationFileDownload(Authentication auth, UriComponentsBuilder uri,@PathVariable(value = "id", required = true) Long fileresId)
 			throws DataNotFoundException, ObjectNotFoundException {
 		try {
 			return thingServ.fileDownload(fileresId);
@@ -512,7 +532,7 @@ public class ActivityAPI{
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping({ "/api/*/application/checklist/load"})
-	public CheckListDTO checklistLoad(Authentication auth, @RequestBody CheckListDTO data)
+	public CheckListDTO checklistLoad(Authentication auth, UriComponentsBuilder uri,@RequestBody CheckListDTO data)
 			throws DataNotFoundException {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
@@ -532,7 +552,7 @@ public class ActivityAPI{
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping({ "/api/*/person/table/load"})
-	public PersonDTO personTableLoad(Authentication auth, @RequestBody PersonDTO data) throws DataNotFoundException {
+	public PersonDTO personTableLoad(Authentication auth, UriComponentsBuilder uri, @RequestBody PersonDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data = thingServ.personTableLoad(data, user);
@@ -549,8 +569,9 @@ public class ActivityAPI{
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping({ "/api/*/person/suspend"})
-	public PersonDTO personSuspend(Authentication auth, @RequestBody PersonDTO data) throws DataNotFoundException {
+	public PersonDTO personSuspend(Authentication auth, UriComponentsBuilder uri, @RequestBody PersonDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		accServ.allowAuthenticated(auth, uri);
 		try {
 			data = thingServ.personSuspend(data, user);
 		} catch (ObjectNotFoundException e) {
@@ -558,7 +579,7 @@ public class ActivityAPI{
 		}
 		return data;
 	}
-	
+
 	/**
 	 * Download a resource Apply variables to a template, if applicable
 	 * 
@@ -569,8 +590,9 @@ public class ActivityAPI{
 	 */
 	@Deprecated
 	@RequestMapping(value = { "/api/*/resource/download/param={param}"}, method = RequestMethod.GET)
-	public ResponseEntity<Resource> resourceDownload(@PathVariable(value = "param", required = true) String jsonStr)
+	public ResponseEntity<Resource> resourceDownload(Authentication auth, UriComponentsBuilder uri,@PathVariable(value = "param", required = true) String jsonStr)
 			throws DataNotFoundException, ObjectNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
 		try {
 			ResourceDTO resDto = objectMapper.readValue(jsonStr, ResourceDTO.class);
 			ResourceDTO fres = resourceServ.prepareResourceDownload(resDto);
@@ -591,8 +613,9 @@ public class ActivityAPI{
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/*/resource/download/form")
-	public ResponseEntity<Resource> resourceDownloadForm(@RequestBody ResourceDTO data,Authentication auth)
+	public ResponseEntity<Resource> resourceDownloadForm(Authentication auth, UriComponentsBuilder uri,@RequestBody ResourceDTO data)
 			throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
 		try {
 			UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 			ResourceDTO fres = resourceServ.prepareResourceDownload(data);
@@ -616,8 +639,9 @@ public class ActivityAPI{
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping({ "/api/*/thing/values/extract"})
-	public ThingValuesDTO thingValuesExtract(Authentication auth, @RequestBody ThingDTO thing)
+	public ThingValuesDTO thingValuesExtract(Authentication auth, UriComponentsBuilder uri, @RequestBody ThingDTO thing)
 			throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		ThingValuesDTO data = new ThingValuesDTO();
 		try {
@@ -637,8 +661,9 @@ public class ActivityAPI{
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping({ "/api/*/activity/submit/create/data"})
-	public ActivitySubmitDTO submitCreateData(Authentication auth, @RequestBody ActivitySubmitDTO data)
+	public ActivitySubmitDTO submitCreateData(Authentication auth, UriComponentsBuilder uri, @RequestBody ActivitySubmitDTO data)
 			throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data = submServ.submitCreateData(user, data);
@@ -658,8 +683,9 @@ public class ActivityAPI{
 	@PostMapping({ 
 		"/api/*/activity/submit/send"
 	})
-	public ActivitySubmitDTO submitSend(Authentication auth, @RequestBody ActivitySubmitDTO data)
+	public ActivitySubmitDTO submitSend(Authentication auth, UriComponentsBuilder uri, @RequestBody ActivitySubmitDTO data)
 			throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data=submServ.submitSend(user,data);
@@ -682,8 +708,9 @@ public class ActivityAPI{
 	@PostMapping({ 
 		"/api/*/activity/background/done"
 	})
-	public ActivityDTO activityBackgroundDone(Authentication auth, @RequestBody ActivityDTO data)
+	public ActivityDTO activityBackgroundDone(Authentication auth, UriComponentsBuilder uri, @RequestBody ActivityDTO data)
 			throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data=applServ.activityBackgroundDone(user,data);
@@ -702,8 +729,9 @@ public class ActivityAPI{
 	@PostMapping({ 
 		"/api/*/activity/done"
 	})
-	public ActivityDTO activityDone(Authentication auth, @RequestBody ActivityDTO data)
+	public ActivityDTO activityDone(Authentication auth, UriComponentsBuilder uri, @RequestBody ActivityDTO data)
 			throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data=applServ.activityDone(user,data);
@@ -722,8 +750,9 @@ public class ActivityAPI{
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping({ "/api/*/activity/history/is/monitoring" })
-	public ActivityDTO historyIsMonitorind(Authentication auth, @RequestBody ActivityDTO data)
+	public ActivityDTO historyIsMonitorind(Authentication auth, UriComponentsBuilder uri, @RequestBody ActivityDTO data)
 			throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data = applServ.activityHistoryIsMonitoring(user, data);
@@ -732,10 +761,11 @@ public class ActivityAPI{
 		}
 		return data;
 	}
-	
+
 	@RequestMapping(value = { "/api/*/activity/printprev"})
-	public ThingDTO printprev(Authentication auth, @RequestBody ThingDTO data)
+	public ThingDTO printprev(Authentication auth, UriComponentsBuilder uri, @RequestBody ThingDTO data)
 			throws DataNotFoundException, ObjectNotFoundException, IOException {
+		accServ.allowAuthenticated(auth, uri);
 		try {
 			UserDetailsDTO user = new UserDetailsDTO();
 			user = userServ.userData(auth, user);
@@ -744,7 +774,7 @@ public class ActivityAPI{
 			throw new DataNotFoundException(e);
 		}
 	}
-	
+
 	/**
 	 * Load histroy data
 	 * @param auth
@@ -753,8 +783,9 @@ public class ActivityAPI{
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/*/activity/history/data")
-	public ActivityHistoryDataDTO historyData(Authentication auth, @RequestBody ActivityHistoryDataDTO data)
+	public ActivityHistoryDataDTO historyData(Authentication auth, UriComponentsBuilder uri, @RequestBody ActivityHistoryDataDTO data)
 			throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data=applServ.activityHistoryData(data, user);
@@ -771,8 +802,9 @@ public class ActivityAPI{
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/*/application/person/special/load")
-	public PersonSpecialDTO personSpecialLoad(Authentication auth, @RequestBody PersonSpecialDTO data)
+	public PersonSpecialDTO personSpecialLoad(Authentication auth, UriComponentsBuilder uri, @RequestBody PersonSpecialDTO data)
 			throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data=thingServ.personSpecialLoad(data, user);
@@ -781,7 +813,7 @@ public class ActivityAPI{
 		}
 		return data;
 	}
-	
+
 	/**
 	 * Data unit's things to display
 	 * @param auth
@@ -790,8 +822,9 @@ public class ActivityAPI{
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/*/activity/amendment/path")
-	public DataUnitDTO amendmentPath(Authentication auth, @RequestBody DataUnitDTO data)
+	public DataUnitDTO amendmentPath(Authentication auth, UriComponentsBuilder uri, @RequestBody DataUnitDTO data)
 			throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			ThingDTO th = new ThingDTO();
@@ -804,7 +837,7 @@ public class ActivityAPI{
 		}
 		return data;
 	}
-	
+
 	/**
 	 * Save an application data under the user
 	 * 
@@ -814,7 +847,8 @@ public class ActivityAPI{
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping({ "/api/*/thing/save/application" })
-	public ThingDTO thingSaveGuest(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
+	public ThingDTO thingSaveGuest(Authentication auth, UriComponentsBuilder uri, @RequestBody ThingDTO data) throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data = thingServ.saveUnderOwner(data, user);
@@ -831,7 +865,8 @@ public class ActivityAPI{
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping({ "/api/*/thing/refresh" })
-	public ThingDTO thingRefresh(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
+	public ThingDTO thingRefresh(Authentication auth, UriComponentsBuilder uri, @RequestBody ThingDTO data) throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
 		//TODO code
 		return data;
 	}
@@ -839,8 +874,9 @@ public class ActivityAPI{
 	 * 
 	 */
 	@PostMapping({ "/api/*/register/number/new" })
-	public RegisterDTO registerNumberNew(Authentication auth, @RequestBody RegisterDTO data) throws DataNotFoundException {
+	public RegisterDTO registerNumberNew(Authentication auth, UriComponentsBuilder uri, @RequestBody RegisterDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		accServ.allowAuthenticated(auth, uri);
 		//data.getReg_number().setValue("1234");
 		data=irkaServ.registerNumberNew(user,data);
 		return data;
@@ -853,7 +889,7 @@ public class ActivityAPI{
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping({ "/api/*/links/table" })
-	public LinksDTO linksTable(Authentication auth, @RequestBody LinksDTO data) throws DataNotFoundException {
+	public LinksDTO linksTable(Authentication auth, UriComponentsBuilder uri, @RequestBody LinksDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data=linkServ.loadObjectsTable(data);
@@ -870,7 +906,8 @@ public class ActivityAPI{
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping({ "/api/*/links/selectrow" })
-	public LinksDTO linksSelectRow(Authentication auth, @RequestBody LinksDTO data) throws DataNotFoundException {
+	public LinksDTO linksSelectRow(Authentication auth, UriComponentsBuilder uri, @RequestBody LinksDTO data) throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data=linkServ.selectRow(data);
@@ -879,9 +916,10 @@ public class ActivityAPI{
 		}
 		return data;
 	}
-	
+
 	@PostMapping({ "/api/*/links/dictionary/select" })
-	public LinksDTO linksDictionarySelect(Authentication auth, @RequestBody LinksDTO data) throws DataNotFoundException {
+	public LinksDTO linksDictionarySelect(Authentication auth, UriComponentsBuilder uri, @RequestBody LinksDTO data) throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data=linkServ.dictionarySelect(data);
@@ -890,22 +928,6 @@ public class ActivityAPI{
 		}
 		return data;
 	}
-	
-	/**
-	 * Get data submit reciept
-	 * @param auth
-	 * @param data
-	 * @return
-	 * @throws DataNotFoundException
-	 */
-	@PostMapping({ "/api/*/submit/reciept" })
-	public SubmitRecieptDTO submitReciept(Authentication auth, @RequestBody SubmitRecieptDTO data) throws DataNotFoundException {
-		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
-		try {
-			data=receiptServ.submitReciept(user, data);
-		} catch (ObjectNotFoundException e) {
-			throw new DataNotFoundException(e);
-		}
-		return data;
-	}
+
+
 }

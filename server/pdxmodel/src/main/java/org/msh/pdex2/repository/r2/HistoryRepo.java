@@ -1,5 +1,6 @@
 package org.msh.pdex2.repository.r2;
 
+import java.sql.Date;
 import java.util.List;
 
 import org.msh.pdex2.model.r2.Concept;
@@ -19,4 +20,6 @@ public interface HistoryRepo extends CrudRepository<History, Long> {
 	List<History> findAllByApplicationDataOrderByCome(Concept applicationData);
 
 	List<History> findAllByApplicationDataAndGo(Concept applicationData, java.util.Date go);
+
+	List<History> findAllByApplDictIDAndGo(long dbID, Date date);
 }

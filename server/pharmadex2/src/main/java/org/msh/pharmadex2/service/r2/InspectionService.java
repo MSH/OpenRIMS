@@ -1,6 +1,5 @@
 package org.msh.pharmadex2.service.r2;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.msh.pdex2.dto.table.Headers;
@@ -34,6 +33,8 @@ public class InspectionService {
 	private JdbcRepository jdbcRepo;
 	@Autowired
 	private BoilerService boilerServ;
+	@Autowired
+	DeregistrationService dataFilter;	//we use the same data filtering logic
 	/**
 	 * Load actual and going to be actual permits by a type and a user given 
 	 * @param user
@@ -48,14 +49,16 @@ public class InspectionService {
 			Concept item = closureServ.loadConceptById(data.getDictItemId());
 			data.setPermitType(literalServ.readPrefLabel(item));
 			//create a table with permits
-			String dataUrl=literalServ.readValue("url", item);
-			jdbcRepo.applications_applicant(dataUrl, user.getEmail());
+			String url=literalServ.readValue("url", item);
+			String applDataUrl = literalServ.readValue("dataurl", item);
+			jdbcRepo.applications_applicant(url, user.getEmail());
 			String select = "select ID, prefLabel,tcategory from applications_applicant"; 
 			String where=  "category in ('NOTSUBMITTED', 'ACTIVE')";
 			if(data.getTable().getHeaders().getHeaders().size()==0) {
 				data.getTable().setHeaders(permitTableHeaders(data.getTable().getHeaders()));
 			}
 			List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", where, data.getTable().getHeaders());
+			rows=dataFilter.excludeProcessing(applDataUrl, user.getEmail(),rows);
 			TableQtb.tablePage(rows, data.getTable());
 			boilerServ.translateRows(data.getTable());
 			data.getTable().setSelectable(false);

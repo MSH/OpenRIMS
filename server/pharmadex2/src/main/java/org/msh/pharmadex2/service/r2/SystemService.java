@@ -17,12 +17,15 @@ import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.auth.UserRoleDto;
 import org.msh.pharmadex2.dto.form.OptionDTO;
+import org.msh.pharmadex2.exception.DataNotFoundException;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * Responsible for hard coded system setting In contrast AssemblyService.
@@ -79,6 +82,18 @@ public class SystemService {
 	public static String ROLE_APPLICANT = "APPLICANT";
 	public static String[] ROLES = { ROLE_ADMIN, "ROLE_MODERATOR", "ROLE_REVIEWER", "ROLE_INSPECTOR", "ROLE_ACCOUNTANT",
 			"ROLE_SCREENER", ROLE_SECRETARY, ROLE_APPLICANT };
+	/**
+	 * list of NMRA actors to use in ..mapping.. annotations 
+	 */
+	public static final String ACTORS_NMRA = String.join(",",ROLES).toLowerCase().replace("role_", "");
+	/**
+	 * list of all authenticated actors to use in ..mapping.. annotations
+	 */
+	public static final String ACTORS_AUTHENTICATED= ACTORS_NMRA+",guest";
+	/**
+	 * List of all possible actors to use in ..mapping.. annotations
+	 */
+	public static final String ACTORS_ALL=ACTORS_AUTHENTICATED+",public";
 
 	@Autowired
 	private DictService dictServ;
@@ -294,7 +309,7 @@ public class SystemService {
 			literalServ.createUpdateLiteral("type", "system", root);
 		}
 		List<Concept> level = literalServ.loadOnlyChilds(root);
-		if (level.size() != 10) {
+		if (level.size() != 11) {
 			// create level
 			systemDictNode(root, "0", messages.get("continue"));
 			systemDictNode(root, "1", messages.get("route_action"));
@@ -306,6 +321,7 @@ public class SystemService {
 			systemDictNode(root, "7", messages.get("amendment"));
 			systemDictNode(root, "8", messages.get("deregistration"));
 			systemDictNode(root, "9", messages.get("revokepermit"));
+			systemDictNode(root, "10", messages.get("decline"));
 		}
 		ret = dictServ.createDictionary(ret);
 		ret.setMult(false);
@@ -747,36 +763,5 @@ public class SystemService {
 		}
 		return ret;
 	}
-	/*
-	 * 2022-10-20 don't need it anymore
-	 * 	*//**
-			 * Check and store full address under a selected
-			 * 
-			 * @param addrUrl - url under which addresses are stored
-			 * @return
-			 * @throws ObjectNotFoundException
-			 *//*
-				@Transactional
-				public String storeFullAddress(String addressUrl) throws ObjectNotFoundException {
-				String message=messages.get("global.success");
-				Concept root = closureServ.loadRoot(addressUrl);
-				List<Concept> owners = closureServ.loadLevel(root);
-				for(Concept owner : owners) {
-					List<Concept> addresses = closureServ.loadLevel(owner);
-					for(Concept addr : addresses) {
-						Thing thing = boilerServ.thingByNode(addr);
-						Set<ThingDict> tdset=thing.getDictionaries();
-						if(tdset.size()==1) {
-							ThingDict td =tdset.iterator().next();
-							//System.out.println(addr.getLabel()+ " " + dictServ.dictPath("en_us", td.getConcept()));
-							dictServ.storePath(td.getConcept(), addr);
-						}else {
-							message=messages.get("global_fail");
-						}
-					}
-				}
-				return message;
-				}*/
-
 
 }

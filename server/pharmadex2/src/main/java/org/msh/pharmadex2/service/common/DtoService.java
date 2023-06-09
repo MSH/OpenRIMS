@@ -283,9 +283,6 @@ public class DtoService {
 		data.getLiterals().clear();
 		if(literals != null) {
 			for(AssemblyDTO ad : literals) {
-				if(thisApplicant && ad.isHideFromApplicant()) {
-					continue;
-				}
 				FormFieldDTO<String> fld = FormFieldDTO.of("", ad.isReadOnly(), ad.isTextArea());
 				data.getLiterals().put(ad.getPropertyName(), fld);
 			}
@@ -302,9 +299,6 @@ public class DtoService {
 		data.getStrings().clear();
 		if(strings != null) {
 			for(AssemblyDTO ad : strings) {
-				if(thisApplicant && ad.isHideFromApplicant()) {
-				continue;
-			}
 				FormFieldDTO<String> fld = FormFieldDTO.of("", ad.isReadOnly(), ad.isTextArea());
 				data.getStrings().put(ad.getPropertyName(), fld);
 			}
@@ -323,9 +317,6 @@ public class DtoService {
 		data.getDates().clear();
 		if(dates != null) {
 			for(AssemblyDTO date :dates) {
-				if(thisApplicant && date.isHideFromApplicant()) {
-					continue;
-				}
 				FormFieldDTO<LocalDate> fld = FormFieldDTO.of(LocalDate.now());
 				fld.setReadOnly(date.isReadOnly());
 				fld.setDetail(getCalendarType(date));

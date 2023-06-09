@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.msh.pdex2.dto.table.TableQtb;
+import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pharmadex2.dto.form.AllowValidation;
 /**
  * It allows selection from a dictionary level and adding a new level to the selection
@@ -49,6 +50,14 @@ public class DictionaryDTO extends AllowValidation{
 	private boolean readOnly=false;
 	// currently selected item
 	private List<OptionDTO> currentSelections = new ArrayList<OptionDTO>();
+	private List<TableRow> allrows = new ArrayList<TableRow>();
+	
+	public List<TableRow> getAllrows() {
+		return allrows;
+	}
+	public void setAllrows(List<TableRow> allrows) {
+		this.allrows = allrows;
+	}
 	/*private FileDTO file = new FileDTO();
 	private ThingDTO thing = new ThingDTO();
 	

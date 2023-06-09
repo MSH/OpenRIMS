@@ -44,6 +44,7 @@ import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.r2.FileResourceRepo;
 import org.msh.pdex2.repository.r2.HistoryRepo;
 import org.msh.pdex2.repository.r2.ThingRepo;
+import org.msh.pdex2.repository.r2.ThingThingRepo;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AddressDTO;
 import org.msh.pharmadex2.dto.AddressValuesDTO;
@@ -145,6 +146,8 @@ public class ThingService {
 	private UserService userServ;
 	@PersistenceContext
 	EntityManager entityManager;
+	@Autowired
+	private ThingThingRepo thingThingRepo;
 
 	@Value("${spring.servlet.multipart.max-file-size}" )
 	String maxFileSize;
@@ -850,9 +853,6 @@ public class ThingService {
 		data.getDictionaries().clear();
 		//restore dictionaries
 		for(AssemblyDTO dicta : dictas) {
-			if(accessControlServ.isApplicant(user) && dicta.isHideFromApplicant()) {
-				continue;
-			}
 			DictionaryDTO dict = new DictionaryDTO();
 			dict.setUrl(dicta.getUrl());
 			dict.setVarName(dicta.getPropertyName());
@@ -1947,8 +1947,26 @@ public class ThingService {
 		}else {
 			//amendment related
 			if(data.getModiUnitId()>0) {
+				/* 07.06.2023 khomenska
 				Concept conc=closureServ.loadConceptById(data.getModiUnitId());
 				String prefLabel=literalServ.readPrefLabel(conc);
+				data.setPrefLabel(prefLabel);
+				data.getLiterals().put("prefLabel", FormFieldDTO.of(prefLabel));*/
+				
+				Concept conc=closureServ.loadConceptById(data.getModiUnitId());
+				String prefLabel = literalServ.readPrefLabel(conc);
+				if(prefLabel == "") {
+					List<ThingThing> list = thingThingRepo.findByConcept(conc);
+					if(list != null && list.size() > 0) {
+						ThingThing thth = list.get(0);
+						List<Thing> lst = thingRepo.findByThings(thth);
+						if(lst != null && lst.size() > 0) {
+							conc = lst.get(0).getConcept();
+							prefLabel = literalServ.readPrefLabel(conc);
+						}
+					}
+					
+				}
 				data.setPrefLabel(prefLabel);
 				data.getLiterals().put("prefLabel", FormFieldDTO.of(prefLabel));
 			}

@@ -42,7 +42,6 @@ import org.msh.pharmadex2.dto.PersonSelectorDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
-import org.msh.pharmadex2.service.common.ValidationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,8 +73,6 @@ public class AmendmentService {
 	private Messages mess;
 	@Autowired
 	private ThingAmendmentRepo thingAmendmentRepo;
-	@Autowired
-	private ValidationService validServ;
 
 	/**
 	 * Save an amendment data
@@ -147,8 +144,8 @@ public class AmendmentService {
 
 	/**
 	 * Search for of amended data in the original application unit using amendment application
-	 * It is presumed that the link to
-	 * ameded data is always at the root thing!
+	 * For amendment applications the amended data may be on any application's page
+	 * To get the whole permit data ID, please use {@link AmendmentService#initialApplicationData(Concept)}
 	 * 
 	 * @param applicationData amendment application
 	 * @return ID>0 if found, otherwise ID==0
@@ -609,7 +606,8 @@ public class AmendmentService {
 		Thing th = boilerServ.thingByNode(activityConfig);
 		for (ThingDict td : th.getDictionaries()) {
 			if (td.getUrl().equalsIgnoreCase(SystemService.DICTIONARY_SYSTEM_FINALIZATION)) {
-				if (td.getConcept().getIdentifier().equalsIgnoreCase(SystemService.FINAL_AMEND)) {
+				if (td.getConcept().getIdentifier().equalsIgnoreCase(SystemService.FINAL_AMEND)
+						|| td.getConcept().getIdentifier().equalsIgnoreCase(SystemService.FINAL_ACCEPT)) {
 					return true;
 				}
 			}
@@ -1622,6 +1620,85 @@ public class AmendmentService {
 	public boolean isAskForInspection(Concept applDict) {
 		Concept parent = closureServ.getParent(applDict);
 		return parent.getIdentifier().equalsIgnoreCase(SystemService.DICTIONARY_GUEST_INSPECTIONS);
+	}
+	/**
+	 * Create a table with list of amendments
+	 * 
+	 * @param appUrl
+	 * @param email
+	 * @param string
+	 * @param table
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	public TableQtb createAmendmentsTable(String dataUrl, String email, TableQtb table, String searchStr)
+			throws ObjectNotFoundException {
+		if (table.getHeaders().getHeaders().size() == 0) {
+			table.setHeaders(createAmendmentTableHeaders(table.getHeaders()));
+			if(searchStr != null && !searchStr.equals("null") && searchStr.length() > 2) {
+				for(TableHeader th:table.getHeaders().getHeaders()) {
+					th.setGeneralCondition(searchStr);
+				}
+				table.setGeneralSearch(searchStr);
+			}
+		}else {
+			if(table.getGeneralSearch().equals("onSelDict")) {
+				table.setGeneralSearch("");
+				for(TableHeader th:table.getHeaders().getHeaders()) {
+					th.setGeneralCondition(table.getGeneralSearch());
+					if(th.getConditionS().length() > 0) {
+						th.setConditionS("");
+						th.setFilterActive(false);
+					}
+				}
+			}
+		}
+		
+		jdbcRepo.amendments_applicant(dataUrl,email);
+		String select = "select * from amendments_applicant";
+		List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", "", table.getHeaders());
+		TableQtb.tablePage(rows, table);
+		table = boilerServ.translateRows(table);
+		table.setSelectable(false);
+		//paint color
+		for(TableRow row : table.getRows()) {
+			for(TableCell cell :row.getRow()) {
+				if(cell.getKey().equalsIgnoreCase("term")) {
+					if(cell.getIntValue()<0) {
+						cell.setStyleClass("text-danger");
+					}
+				}
+			}
+		}
+		return table;
+	}
+	
+	/**
+	 * Create headers for applicant applications table
+	 * @param headers
+	 * @return
+	 */
+	private Headers createAmendmentTableHeaders(Headers headers) {
+		headers.getHeaders().add(TableHeader.instanceOf(
+				"come",
+				"scheduled",
+				true, true, true, TableHeader.COLUMN_LOCALDATE, 0));
+		headers.getHeaders().add(TableHeader.instanceOf(
+				"term",
+				"days",
+				true, true, true, TableHeader.COLUMN_LONG, 0));
+		headers.getHeaders().add(TableHeader.instanceOf(
+				"prefLabel",
+				"prefLabel",
+				true, true, true, TableHeader.COLUMN_LINK, 0));
+		headers.getHeaders().add(TableHeader.instanceOf(
+				"tcategory",
+				"category",
+				true, true, true, TableHeader.COLUMN_STRING, 0));
+		headers.getHeaders().get(0).setSortValue(TableHeader.SORT_DESC);
+		headers = boilerServ.translateHeaders(headers);
+		headers.setPageSize(20);
+		return headers;
 	}
 
 }

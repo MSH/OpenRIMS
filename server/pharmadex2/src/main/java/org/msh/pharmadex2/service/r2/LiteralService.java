@@ -34,6 +34,7 @@ public class LiteralService {
 	public static final String PREF_NAME = "prefLabel";
 	public static final String URL = "URL";
 	public static final String APPLICATION_URL = "applicationurl";
+	public static final String DATA_URL = "dataurl";
 
 	public static final String ICON_URL = "iconurl";
 	public static final String MORE_URL = "moreurl";

@@ -31,11 +31,14 @@ import org.msh.pdex2.model.r2.Assembly;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.model.r2.Register;
+import org.msh.pdex2.model.r2.Scheduler;
 import org.msh.pdex2.model.r2.Thing;
 import org.msh.pdex2.model.r2.ThingDict;
+import org.msh.pdex2.model.r2.ThingScheduler;
 import org.msh.pdex2.model.r2.ThingThing;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.common.UserRepo;
+import org.msh.pdex2.repository.r2.HistoryRepo;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.ActivitySubmitDTO;
 import org.msh.pharmadex2.dto.AddressDTO;
@@ -62,12 +65,14 @@ import org.msh.pharmadex2.dto.RootNodeDTO;
 import org.msh.pharmadex2.dto.SchedulerDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.UserElementDTO;
+import org.msh.pharmadex2.dto.VerifItemDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.form.AllowValidation;
 import org.msh.pharmadex2.dto.form.FieldSuggest;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.service.r2.AccessControlService;
+import org.msh.pharmadex2.service.r2.AmendmentService;
 import org.msh.pharmadex2.service.r2.AssemblyService;
 import org.msh.pharmadex2.service.r2.DeregistrationService;
 import org.msh.pharmadex2.service.r2.LiteralService;
@@ -105,8 +110,13 @@ public class ValidationService {
 	@Autowired
 	private JdbcRepository jdbcRepo;
 	@Autowired
+	private DeregistrationService dregServ;
+	@Autowired
+	private AmendmentService amendmentServ;
+	@Autowired
+	private HistoryRepo historyRepo;
 	private DeregistrationService deregServ;
-
+	
 	/**
 	 * ^[a-z]{1,} - первый символ всегда буква
 	 * [a-z0-9]* - далее буква или цыфра или _ или .
@@ -1058,6 +1068,7 @@ public class ValidationService {
 	 * @param data 
 	 * @throws ObjectNotFoundException 
 	 */
+	/* 30.05.2023 khomenska move to validWorkFlowConfig
 	@Transactional
 	public AllowValidation workflowConfig(List<Concept> activities, Concept configRoot, AllowValidation data) throws ObjectNotFoundException {
 		data.clearErrors();
@@ -1089,7 +1100,7 @@ public class ValidationService {
 				if(schedulers != null && schedulers.size() > 0) {
 					hasSchedulers = true;
 				}*/
-			}else {
+	/* 30.05.2023}else {
 				data.setIdentifier(messages.get("badconfiguration")+"ThingID is ZERO config root is " + configRoot.getID());
 				data.setValid(false);
 				return data;
@@ -1103,7 +1114,9 @@ public class ValidationService {
 			return data;
 		}
 		return data;
-	}
+	}*/
+	
+	
 	/**
 	 * Validate the data collection definition
 	 * @param data
@@ -1687,17 +1700,17 @@ public class ValidationService {
 	@Transactional
 	public ActivitySubmitDTO actionNew(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		data.clearErrors();
-		if(!data.isReassign()) {
+		//if(!data.isReassign()) {
 			if(isActivityBackground(curHis.getActConfig()) || isActivityForeground(curHis.getActConfig())) {
 				return data;
 			}
-		}
+		//}
 		data.setIdentifier(messages.get("error_finishmonia"));
 		data.setValid(false);
 		return data;
 	}
 	/**
-	 * Supervisor can reassign executor:
+	 * Supervisor & NMRA can reassign executor:
 	 * <ul>
 	 * <li> only for opened foreground and background activities
 	 * </ul>
@@ -1732,10 +1745,10 @@ public class ValidationService {
 	@Transactional
 	public ActivitySubmitDTO submitNext(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		data.clearErrors();
-		if(!deregServ.isDeregistrationActivity(curHis)) {//1
-			if(!deregServ.isRevokeActivity(curHis)) {
-				if(!data.isReject()) {
-					if(!data.isReassign()) {//2
+		//if(!deregServ.isDeregistrationActivity(curHis)) {//1
+			//if(!deregServ.isRevokeActivity(curHis)) {
+				//if(!data.isReject()) {
+				//	if(!data.isReassign()) {//2
 						
 						Concept exec = closureServ.getParent(curHis.getActivity());
 						if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {
@@ -1745,10 +1758,10 @@ public class ValidationService {
 								}
 							}
 						}
-					}//2
-				}
-			}
-		}//1
+					//}//2
+				//}
+			//}
+		//}//1
 		data.setIdentifier(messages.get("error_sendsent"));
 		data.setValid(false);
 		return data;
@@ -1805,20 +1818,6 @@ public class ValidationService {
 					if(curHis.getGo()==null) {
 						if(isActivitySubmitApprove(curHis)) {
 							return data;
-							/*	if(nextActs != null) {//TODO khomenska 09112022
-									if(validateConfigurationRegister(nextActs)) {
-										return data;
-									}else {
-										String w = messages.get("badconfiguration") + " " + messages.get("notFoundRegisters");
-										data.setIdentifier(w);
-										data.setColorAlert("danger");
-										logger.info(w);
-										data.setValid(false);
-										return data;
-									}
-								}else {
-									return data;
-								}*/
 						}
 					}
 				}
@@ -1831,7 +1830,11 @@ public class ValidationService {
 	}
 
 	public boolean isActivitySubmitApprove(History curHis) throws ObjectNotFoundException {
-		return isActivityFinalAction(curHis, SystemService.FINAL_ACCEPT) || isActivityFinalAction(curHis, SystemService.FINAL_COMPANY);
+		//return isActivityFinalAction(curHis, SystemService.FINAL_ACCEPT) || isActivityFinalAction(curHis, SystemService.FINAL_COMPANY);
+		return isActivityFinalAction(curHis, SystemService.FINAL_DEREGISTRATION)
+		|| isActivityFinalAction(curHis, SystemService.FINAL_ACCEPT) 
+		|| isActivityFinalAction(curHis, SystemService.FINAL_COMPANY)
+		|| isActivityFinalAction(curHis, SystemService.FINAL_AMEND);
 	}
 
 	/**
@@ -1894,7 +1897,9 @@ public class ValidationService {
 				if(isAmendmentWorkflow(curHis)) {
 					if(isActivityForeground(curHis.getActConfig())) {
 						if(curHis.getGo()==null) {
-							if(isActivityFinalAction(curHis, SystemService.FINAL_AMEND)) {
+							if(isActivityFinalAction(curHis, SystemService.FINAL_AMEND) 
+									|| isActivityFinalAction(curHis, SystemService.FINAL_ACCEPT)
+									|| isActivityFinalAction(curHis, SystemService.FINAL_COMPANY)) {
 								return data;
 							}else {
 								data.setIdentifier(messages.get("error_activityinappropriate"));
@@ -1928,26 +1933,29 @@ public class ValidationService {
 		data.clearErrors();
 		if(!data.isReassign()) {
 			Concept exec = closureServ.getParent(curHis.getActivity());
-			if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {
-				if(deregServ.isDeregisterWorkflow(curHis)) {
-					if(deregServ.isDeregistrationActivity(curHis)) {
+			//if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {
+				//if(deregServ.isDeregisterWorkflow(curHis)) {
+					//if(deregServ.isDeregistrationActivity(curHis) 
+						if(isActivityFinalAction(curHis, SystemService.FINAL_DEREGISTRATION)
+							|| isActivityFinalAction(curHis, SystemService.FINAL_ACCEPT) 
+							|| isActivityFinalAction(curHis, SystemService.FINAL_COMPANY)) {
 						return data;
 					}else {
 						data.setIdentifier(messages.get("error_workflowinappropriate"));
 						data.setValid(false);
 					}
-				}else {
+				/*}else {
 					data.setIdentifier(messages.get("error_workflowinappropriate"));
 					data.setValid(false);
-				}
+				}*/
 			}else {
 				data.setIdentifier(messages.get("error_accessdenied"));
 				data.setValid(false);
 			}
-		}else {
+		/*}else {
 			data.setIdentifier(messages.get("error_workflowinappropriate"));
 			data.setValid(false);
-		}
+		}*/
 		return data;
 	}
 	/**
@@ -2077,6 +2085,52 @@ public class ValidationService {
 		}
 		return data;
 	}
+	
+	/**
+	 * Is there an action to decline
+	 * @param curHis
+	 * @param data
+	 * @param executors
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public boolean submitDecline(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
+			return isActivityFinalAction(curHis,SystemService.FINAL_DECLINE);
+	}
+	
+	/**
+	 * Common check for submit decline
+	 * 
+	 * @param curHis
+	 * @param data
+	 * @param executors
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public ActivitySubmitDTO submitDeclineData(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
+		data.clearErrors();
+		
+		long nextActConfId = data.nextActivity();
+		List<Long> executors = data.executors();
+		//if(nextActConfId>0 && executors.size()>0) {
+			Concept exec = closureServ.getParent(curHis.getActivity());
+			if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {
+				if(isActivityFinalAction(curHis,SystemService.FINAL_DECLINE)) {
+					return data;
+				}else {
+					data.setIdentifier(messages.get("error_workflowinappropriate"));
+					data.setValid(false);
+				}
+			}else {
+				data.setIdentifier(messages.get("error_accessdenied"));
+				data.setValid(false);
+			}
+			return data;
+		//}
+		//error(data, messages.get("error_nextactivitydata"), true);
+		//return data;
+	}
+	
 	/**
 	 * Re-assign to the next user
 	 * The same as submit to next
@@ -2107,12 +2161,8 @@ public class ValidationService {
 	 */
 	public ActivitySubmitDTO submitRevokePermit(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		data.clearErrors();
-		List<Long> executors = data.executors();
-		if(executors.size() == 1) {
-			data = submitNotesIsMandatory(curHis, data);
-			return data;
-		}
-		error(data, messages.get("error_execs"), true);
+		data = submitNotesIsMandatory(curHis, data);
+		
 		return data;
 	}
 
@@ -2346,5 +2396,298 @@ public class ValidationService {
 		}
 		return data;
 	}
-
+	
+	/**
+	 * verification workflow configuration before create new application
+	 * @param data
+	 * @param user
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public VerifItemDTO verifAddApplication(VerifItemDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		data.clearErrors();
+		data.setValid(true);
+		
+		// valid configuration
+		Concept dictNode = closureServ.loadConceptById(data.getApplDictNodeId());
+		String url = literalServ.readValue("applicationurl", dictNode);
+		
+		data = (VerifItemDTO)validWorkFlowConfig(data, url, true);
+		
+		return data;
+	}
+	
+	/**
+	 * verification workflow configuration before create new Modification
+	 * @param data
+	 * @param user
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public VerifItemDTO amendmentsVerifAdd(VerifItemDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		data.clearErrors();
+		data.setValid(true);
+		
+		Concept dictNode = closureServ.loadConceptById(data.getApplDictNodeId());
+		String url = literalServ.readValue("applicationurl", dictNode);
+		
+		data = (VerifItemDTO)validWorkFlowConfig(data, url, false);
+		if(data.isValid()) {
+			data = hasModificationOrDeregProcess(data, user);
+		}
+		
+		return data;
+	}
+	
+	/**
+	 * verification workflow configuration before create new Deregistration
+	 * @param data
+	 * @param user
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public VerifItemDTO verifAddDeregistration(VerifItemDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		data.clearErrors();
+		data.setValid(true);
+		
+		Concept dictNode = closureServ.loadConceptById(data.getApplDictNodeId());
+		String url = literalServ.readValue("applicationurl", dictNode);
+		
+		data = (VerifItemDTO)validWorkFlowConfig(data, url, false);
+		if(data.isValid()) {
+			data = hasModificationOrDeregProcess(data, user);
+		}
+		
+		return data;
+	}
+	
+	public AllowValidation validWorkFlowConfig(AllowValidation data, String urlConfig,/*Long dictNodeID, */boolean findScheduler) throws ObjectNotFoundException {		
+		/*Concept dictNode = closureServ.loadConceptById(dictNodeID);
+		Concept dictRoot = closureServ.loadParents(dictNode).get(0);
+		String url = literalServ.readValue("applicationurl", dictNode);*/
+		Concept rootConfig = closureServ.loadRoot("configuration." + urlConfig.toLowerCase());
+		List<Concept> nextActs = boilerServ.loadActivities(rootConfig);
+		
+		data = validActivities(nextActs, findScheduler, data, rootConfig);
+		
+		return data;
+	}
+	
+	private AllowValidation validWorkFlowConfigScheduler(AllowValidation data, Long thingSchedID) throws ObjectNotFoundException {		
+		ThingScheduler ts = boilerServ.thingSchedulerById(thingSchedID);
+		Scheduler sch = boilerServ.schedulerByNode(ts.getConcept());
+		String applUrl = sch.getProcessUrl();
+		Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
+		List<Concept> nextActs = boilerServ.loadActivities(configRoot);
+		// TODO configRoot надо понять что вместно него писать
+		data = validActivities(nextActs, true, data, configRoot);
+		
+		return data;
+	}
+	
+	private AllowValidation validActivities(List<Concept> nextActs, boolean findScheduler, AllowValidation data, Concept configRoot) throws ObjectNotFoundException {		
+		boolean hasFinal = false;
+		boolean hasScheduler = false;
+		if(nextActs != null && nextActs.size() > 0) {
+			for(Concept c:nextActs) {
+				data = validThingInWorkflowConfig(c, configRoot, data);
+				if(!data.isValid()) {
+					return data;
+				}
+				
+				// Нам нужна хотябы одна активность в отметкой ФИНАЛ на всю конфигурацию
+				if(!hasFinal) {
+					hasFinal = hasFinals(c);
+				}
+				
+				if(findScheduler) {
+					// проверяем если шедулера нет в предыдущих активностях. Нам нужен хотябы один на всю конфигурацию
+					if(!hasScheduler) {
+						hasScheduler = hasSchedulers(c);
+					}
+				}
+			}
+			if(!hasFinal) {
+				data.setIdentifier(messages.get("badconfiguration")+" Configuration has not Finalization activity. Config root is " + configRoot.getIdentifier());
+				data.setValid(false);
+				return data;
+			}
+			if(findScheduler && !findScheduler) {
+				data.setIdentifier(messages.get("badconfiguration")+" Configuration has not Scheduler process. Config root is " + configRoot.getIdentifier());
+				data.setValid(false);
+				return data;
+			}
+		}else {
+			data.setIdentifier(messages.get("badconfiguration")+" Empty path in configuration. Config root is " + configRoot.getIdentifier());
+			data.setValid(false);
+			return data;
+		}
+		return data;
+	}
+	
+	/**
+	 * application has proces modification
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	private VerifItemDTO hasModificationOrDeregProcess(VerifItemDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		data.clearErrors();
+		data.setValid(true);
+		
+		History curHis = new History();
+		Concept c = closureServ.loadConceptById(data.getApplID());
+		curHis.setApplicationData(c);
+		Concept dict = closureServ.loadConceptById(data.getApplDictNodeId());
+		curHis.setApplDict(dict);
+		
+		if(amendmentServ.isAskForInspection(curHis.getApplDict())) {
+			//TODO
+		}else {
+			//de-registration or modification
+			Concept applData = amendmentServ.initialApplicationData(curHis.getApplicationData());
+			Headers headers = new Headers();
+			headers.getHeaders().add(TableHeader.instanceOf("url", TableHeader.COLUMN_STRING));
+			// check guest
+			jdbcRepo.guestPlusHost(applData.getID());
+			List<TableRow> rowsHost= jdbcRepo.qtbGroupReport("select * from guestPlusHost", "", "", headers);
+			jdbcRepo.dregPlusModi(applData.getID());
+			List<TableRow> rowsModi= jdbcRepo.qtbGroupReport("select * from dregPlusModi", "", "", headers);
+			
+			if(rowsHost.size() > 0 || rowsModi.size() > 0) {
+				data.setValid(false);
+				data.setIdentifier(messages.get("singletonError"));
+				
+				return data;
+			}
+		}
+		
+		return data;
+	}
+	
+	@Transactional
+	private AllowValidation validThingInWorkflowConfig(Concept activity, Concept dictRoot, AllowValidation data) throws ObjectNotFoundException {
+		data.clearErrors();
+		data.setValid(true);
+		//each activity definition should has prefLabel,activityurl, checklisturl
+		if(activity != null && activity.getID() > 0){
+			String prefLabel=literalServ.readPrefLabel(activity);
+			String activityUrl = literalServ.readValue("activityurl", activity);
+			String checklisturl = literalServ.readValue("checklisturl", activity);
+			//String dataurl = literalServ.readValue("dataurl", activity);
+			if(prefLabel.length()==0
+					|| activityUrl.length()==0
+					|| checklisturl.length()==0){
+				data.setIdentifier(messages.get("badconfiguration")+"/"+messages.get("error_preflabel")+"/"+activityUrl+"/"+checklisturl);
+				data.setValid(false);
+				return data;
+			}
+			Thing thing = boilerServ.thingByNode(activity);
+			if(thing.getID() > 0) {
+				if(thing.getDictionaries().size()==0) {
+					data.setIdentifier(messages.get("badconfiguration")+" ROLES ZERO config root is " + dictRoot.getIdentifier());
+					data.setValid(false);
+					return data;
+				}
+			}else {
+				data.setIdentifier(messages.get("badconfiguration")+"ThingID is ZERO config root is " + dictRoot.getIdentifier());
+				data.setValid(false);
+				return data;
+			}
+		}
+		return data;
+	}
+	
+	private boolean hasSchedulers(Concept c) throws ObjectNotFoundException {
+		boolean hasSchedulers = false;
+		String dataurl = literalServ.readValue("dataurl", c);
+		List<Assembly> assemblies = assemblyServ.loadDataConfiguration(dataurl);
+		List<AssemblyDTO> schedulers = assemblyServ.auxSchedulers(dataurl, assemblies);
+		if(schedulers != null && schedulers.size() > 0) {
+			hasSchedulers = true;
+		}
+		
+		return hasSchedulers;
+	}
+	
+	private boolean hasFinals(Concept c) throws ObjectNotFoundException {
+		boolean hasFinalization = false;
+		
+		Thing thing = boilerServ.thingByNode(c);
+				
+		for(ThingDict dict : thing.getDictionaries()) {
+			if(dict.getUrl().equalsIgnoreCase(SystemService.DICTIONARY_SYSTEM_FINALIZATION)){
+				if(!dict.getConcept().getIdentifier().equalsIgnoreCase(SystemService.FINAL_NO)){
+					return true;
+				}
+			}
+		}
+				
+		return hasFinalization;
+	}
+	
+	/**
+	 * Is it guest or host application?
+	 * @param curHis
+	 * @return
+	 */
+	private boolean isGuestOrHostFinalize(History curHis) {
+		boolean ret=false;
+		try {
+			if(isActivitySubmitApprove(curHis)) {
+				Concept dictItem = curHis.getApplDict();
+				if(dictItem != null) {
+					Concept dict = closureServ.getParent(dictItem);
+					ret = dict.getIdentifier().equalsIgnoreCase(SystemService.DICTIONARY_GUEST_APPLICATIONS) || 
+							dict.getIdentifier().equalsIgnoreCase(SystemService.DICTIONARY_HOST_APPLICATIONS);
+				}
+			}
+		} catch (ObjectNotFoundException e) {
+			//nothing to do
+		}
+		return ret;
+	}
+	
+	/**
+	 * Verify scheduled applications if ones
+	 * @param curHis
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public ActivitySubmitDTO verifyScheduledGuestHost(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
+		if(isGuestOrHostFinalize(curHis)) {
+			if(data.getScheduled().getRows().size() > 0) {
+				for (TableRow row : data.getScheduled().getRows()) {
+					// verif every Scheduler
+					data = (ActivitySubmitDTO)validWorkFlowConfigScheduler(data, row.getDbID());
+					if(!data.isValid()) {//TODO verif
+						data.addError(data.getIdentifier());
+					}
+				}
+			}else {
+				data.setValid(false);
+				data.addError(messages.get("badconfiguration")+messages.get("scheduled_requerd"));
+			}
+		}
+		return data;
+		/* old version
+		 if(isGuestOrHostFinalize(curHis)) {
+			if(data.getScheduled().getRows().size() > 0) {
+				for (TableRow row : data.getScheduled().getRows()) {
+					ThingScheduler ts = boilerServ.thingSchedulerById(row.getDbID());
+					Scheduler sch = boilerServ.schedulerByNode(ts.getConcept());
+					String applUrl=sch.getProcessUrl();
+					Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
+					List<Concept> nextActs = boilerServ.loadActivities(configRoot);
+					data = (ActivitySubmitDTO) validServ.workflowConfig(nextActs, configRoot, data);
+				}
+			}else {
+				data.addError(messages.get("scheduled_requerd"));
+			}
+		}
+		return data;
+		 */
+	}
 }

@@ -12,11 +12,15 @@ import org.msh.pharmadex2.dto.GisLocationDTO;
 import org.msh.pharmadex2.dto.HostScheduleDTO;
 import org.msh.pharmadex2.dto.LegacyDataDTO;
 import org.msh.pharmadex2.dto.PermitsDTO;
+import org.msh.pharmadex2.dto.SubmitRecieptDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
+import org.msh.pharmadex2.dto.VerifItemDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.mock.ChoiceDTO;
 import org.msh.pharmadex2.exception.DataNotFoundException;
 import org.msh.pharmadex2.service.common.UserService;
+import org.msh.pharmadex2.service.common.ValidationService;
+import org.msh.pharmadex2.service.r2.AccessControlService;
 import org.msh.pharmadex2.service.r2.AmendmentService;
 import org.msh.pharmadex2.service.r2.ApplicationService;
 import org.msh.pharmadex2.service.r2.ContentService;
@@ -24,6 +28,7 @@ import org.msh.pharmadex2.service.r2.DeregistrationService;
 import org.msh.pharmadex2.service.r2.DictService;
 import org.msh.pharmadex2.service.r2.InspectionService;
 import org.msh.pharmadex2.service.r2.LegacyDataService;
+import org.msh.pharmadex2.service.r2.RecieptService;
 import org.msh.pharmadex2.service.r2.SubmitService;
 import org.msh.pharmadex2.service.r2.SystemService;
 //import org.msh.pharmadex2.service.r2.ThingService;
@@ -33,6 +38,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.UriComponentsBuilder;
 
 //import com.fasterxml.jackson.core.JsonProcessingException;
 @RestController
@@ -57,6 +63,12 @@ public class GuestAPI {
 	private InspectionService inspectionServ;
 	@Autowired
 	private SubmitService submServ;
+	@Autowired
+	private RecieptService receiptServ;
+	@Autowired
+	private ValidationService validServ;
+	@Autowired
+	private AccessControlService accessServ;
 
 	/**
 	 * Tiles for landing page
@@ -81,7 +93,7 @@ public class GuestAPI {
 	 * @return
 	 * @throws DataNotFoundException
 	 */
-	@PostMapping("/api/*/applications")
+	@PostMapping("/api/guest/applications")
 	public DictionaryDTO applications(Authentication auth, @RequestBody DictionaryDTO data) throws DataNotFoundException {
 		//UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
 		try {
@@ -100,7 +112,7 @@ public class GuestAPI {
 	 * @return
 	 * @throws DataNotFoundException
 	 */
-	@PostMapping("/api/*/applications/inspections")
+	@PostMapping("/api/guest/applications/inspections")
 	public DictionaryDTO applicationsInspections(Authentication auth, @RequestBody DictionaryDTO data) throws DataNotFoundException {
 		//UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
 		try {
@@ -118,7 +130,7 @@ public class GuestAPI {
 	 * @return
 	 * @throws DataNotFoundException 
 	 */
-	@PostMapping("/api/*/amendments")
+	@PostMapping("/api/guest/amendments")
 	public DictionaryDTO amendments(Authentication auth, @RequestBody DictionaryDTO data) throws DataNotFoundException {
 		//UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
@@ -137,7 +149,7 @@ public class GuestAPI {
 	 * @return
 	 * @throws DataNotFoundException
 	 */
-	@PostMapping("/api/*/permits")
+	@PostMapping("/api/guest/permits")
 	public PermitsDTO permits(Authentication auth, @RequestBody PermitsDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
@@ -155,7 +167,7 @@ public class GuestAPI {
 	 * @return
 	 * @throws DataNotFoundException 
 	 */
-	@PostMapping("/api/*/deregistration")
+	@PostMapping("/api/guest/deregistration")
 	public DictionaryDTO deregistration(Authentication auth, @RequestBody DictionaryDTO data) throws DataNotFoundException {
 		//UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
@@ -189,12 +201,12 @@ public class GuestAPI {
 	 * @return
 	 * @throws DataNotFoundException
 	 */
-	@PostMapping("/api/guest/applications/table/amendments/search={s}")
-	public ApplicationsDTO applicatonsTableAmendment(Authentication auth, @RequestBody ApplicationsDTO data, @PathVariable(value = "s") String s) throws DataNotFoundException {
+	@PostMapping("/api/guest/applications/table/amendments")
+	public ApplicationsDTO applicatonsTableAmendments(Authentication auth, @RequestBody ApplicationsDTO data) throws DataNotFoundException {
 		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data.setAmendment(true);
-			data=applServ.applicatonsTable(data, user, s);
+			data=applServ.applicatonsTable(data, user, "");
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -227,8 +239,9 @@ public class GuestAPI {
 	 * @throws DataNotFoundException 
 	 */
 	@PostMapping("/api/*/application/or/activity")
-	public ApplicationOrActivityDTO applicationOrActivity(Authentication auth,@RequestBody ApplicationOrActivityDTO data) throws DataNotFoundException{
+	public ApplicationOrActivityDTO applicationOrActivity(Authentication auth, UriComponentsBuilder uri,@RequestBody ApplicationOrActivityDTO data) throws DataNotFoundException{
 		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
+		accessServ.allowAuthenticated(auth, uri);
 		try {
 			data=applServ.applOrAct(user,data);
 		} catch (ObjectNotFoundException e) {
@@ -291,7 +304,7 @@ public class GuestAPI {
 		return data;
 	}
 	
-	@PostMapping("/api/*/deregistration/propose/add")
+	@PostMapping("/api/guest/deregistration/propose/add")
 	public AmendmentNewDTO deregistrationProposeAdd(Authentication auth, @RequestBody AmendmentNewDTO data) throws DataNotFoundException {
 		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
 			try {
@@ -308,7 +321,7 @@ public class GuestAPI {
 	 * @param data
 	 * @return
 	 */
-	@PostMapping("/api/*/legacy/data")
+	@PostMapping("/api/guest/legacy/data")
 	public LegacyDataDTO legacyData(Authentication auth, @RequestBody LegacyDataDTO data) {
 		data=legacyServ.reloadTable(data);
 		return data;
@@ -321,7 +334,7 @@ public class GuestAPI {
 	 * @return
 	 * @throws DataNotFoundException 
 	 */
-	@PostMapping("/api/*/host/schedule")
+	@PostMapping("/api/guest/host/schedule")
 	public HostScheduleDTO hostSchedule(Authentication auth, @RequestBody HostScheduleDTO data) throws DataNotFoundException {
 		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
 		try {
@@ -331,5 +344,78 @@ public class GuestAPI {
 		}
 		return data;
 	}
+	/**
+	 * Get data submit reciept
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping({ "/api/guest/submit/reciept" })
+	public SubmitRecieptDTO submitReciept(Authentication auth, UriComponentsBuilder uri, @RequestBody SubmitRecieptDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		try {
+			data=receiptServ.submitReciept(user, data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
 	
+	/**
+	 * before Add new application
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/*/application/verif/add")
+	public VerifItemDTO verifAdd(Authentication auth, @RequestBody VerifItemDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		try {
+			data = validServ.verifAddApplication(data, user);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+
+		return data;
+	}
+	
+	/**
+	 * before Add new modification application
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/*/amendments/verif/add")
+	public VerifItemDTO amendmentsVerifAdd(Authentication auth, @RequestBody VerifItemDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		try {
+			data = validServ.amendmentsVerifAdd(data, user);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+
+		return data;
+	}
+	
+	/**
+	 * before Add new deregistration application
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/*/deregistration/verif/add")
+	public VerifItemDTO verifAddDereg(Authentication auth, @RequestBody VerifItemDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		try {
+			data = validServ.verifAddDeregistration(data, user);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+
+		return data;
+	}
 }

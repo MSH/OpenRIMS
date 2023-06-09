@@ -22,6 +22,7 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.junit.jupiter.api.Test;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
+import org.msh.pharmadex2.service.r2.SystemService;
 import org.springframework.mail.javamail.InternetAddressEditor;
 
 import com.github.binodnme.dateconverter.converter.DateConverter;
@@ -103,6 +104,12 @@ public class ElStupido {
 	public void genericClass() {
 		FormFieldDTO<Long> ffld = new FormFieldDTO<Long>();
 		System.out.println(ffld.getValue());
+	}
+	@Test
+	public void javaConst() {
+		System.out.println(SystemService.ACTORS_NMRA);
+		System.out.println(SystemService.ACTORS_AUTHENTICATED);
+		System.out.println(SystemService.ACTORS_ALL);
 	}
 	
 }

@@ -1,14 +1,11 @@
 package org.msh.pharmadex2.service.common;
 
-import java.text.DateFormat;
 import java.text.DecimalFormat;
-import java.text.Format;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.ArrayList;
@@ -74,15 +71,11 @@ import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.FileResourceDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
-import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.service.r2.LiteralService;
-import org.msh.pharmadex2.service.r2.SystemService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.data.domain.Sort;
-import org.springframework.format.datetime.DateFormatter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -307,6 +300,15 @@ public class BoilerService {
 			return retl.get(0);
 		}
 		throw new ObjectNotFoundException("loadThingByNode. Thing not found. Node id is " +node.getID());
+	}
+	
+	@Transactional
+	public ThingThing thingThingByNode(Concept node) throws ObjectNotFoundException {
+		List<ThingThing> retl= thingThingRepo.findByConcept(node);
+		if(retl.size() > 0) {
+			return retl.get(0);
+		}
+		throw new ObjectNotFoundException("loadThingThingByNode. Thing not found. Node id is " +node.getID());
 	}
 
 
@@ -1436,5 +1438,32 @@ public class BoilerService {
 		root=closureServ.getParent(root);
 		return root;
 	}
+	
+	/** 
+	 * Load all activities in the workflow
+	 * 
+	 * @param root root activity in the configuration
+	 * @return
+	 */
+	@Transactional
+	public List<Concept> loadActivities(Concept root) {
+		List<Concept> ret = new ArrayList<Concept>();
+		if (root != null) {
+			// load all
+			List<Concept> all = new ArrayList<Concept>();
+			List<Concept> childs = literalServ.loadOnlyChilds(root);
+			all.add(root);
+			while (childs.size() > 0) {
+				if (childs.get(0).getActive()) {
+					all.add(childs.get(0));
+				}
+				childs = literalServ.loadOnlyChilds(childs.get(0));
+			}
+			ret.addAll(all);
+		}
+		return ret;
+	}
 
+
+	
 }

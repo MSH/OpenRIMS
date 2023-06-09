@@ -90,11 +90,15 @@ public abstract class AllowValidation{
 						valid=valid&&(!ofield.isError());
 					}
 				}
+				this.setValid(valid);
 			} catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
 				throw new ObjectNotFoundException(e, LoggerFactory.getLogger(AllowValidation.class));
 			}
 		}
+		/* 06062023 khomenska
+		 * при рекурсии теряем значение false
 		this.setValid(valid);
+		*/
 	}
 	/**
 	 * Clear all errors in this and included objects

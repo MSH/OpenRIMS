@@ -197,7 +197,7 @@ public class DictService {
 	 */
 	public Headers createHeaders(Headers ret, boolean readOnly) {
 		ret.getHeaders().clear();
-		ret.setPageSize(20);
+		ret.setPageSize(4);
 		int firstHeader=TableHeader.COLUMN_LINK;
 		if(readOnly) {
 			firstHeader=TableHeader.COLUMN_STRING;

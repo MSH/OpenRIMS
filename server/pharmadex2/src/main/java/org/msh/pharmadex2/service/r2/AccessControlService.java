@@ -25,14 +25,17 @@ import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.auth.UserRoleDto;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.dto.form.OptionDTO;
+import org.msh.pharmadex2.exception.DataNotFoundException;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.common.DtoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.util.UriComponentsBuilder;
 /**
  * Responsible for determine access rights to things
  * @author alexk
@@ -429,7 +432,7 @@ public class AccessControlService {
 	 * @return
 	 */
 	@Transactional
-	private boolean isEmployee(UserDetailsDTO user) {
+	public boolean isEmployee(UserDetailsDTO user) {
 		if(user.getGranted().size()>0) {
 			if(user.getGranted().get(0).getAuthority().toUpperCase().contains("GUEST")) {
 				return false;
@@ -514,6 +517,21 @@ public class AccessControlService {
 	 */
 	private boolean isPublic(UserDetailsDTO user) {
 		return user.getEmail().isEmpty() && user.getLogin().isEmpty();
+	}
+	
+	/**
+	 * Allow only authenticated actors - guest + nmra
+	 * We do need this, because it is impossible to use something except * in the request mapping annotations :( 
+	 * @param auth
+	 * @param uri
+	 * @throws DataNotFoundException 
+	 */
+	public void allowAuthenticated(Authentication auth, UriComponentsBuilder uri) throws DataNotFoundException {
+		if(auth.isAuthenticated()) {
+			return;
+		}else {
+			throw new DataNotFoundException("Page not found");
+		}
 	}
 
 }
