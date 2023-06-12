@@ -107,7 +107,7 @@ class CheckList extends Component{
                         if(this.state.data.valid){
                             Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.success, color:'success'})
                             //Navigator.message(this.state.identifier, this.props.recipient, "cancelThing", {})
-                            Navigator.message(this.state.identifier, this.props.recipient, "afterSubmit", {})
+                            Navigator.message(this.state.identifier, this.props.recipient, "afterSubmit", this.state.data)
                         }else{
                             Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'danger'})
                             this.setState(this.state)

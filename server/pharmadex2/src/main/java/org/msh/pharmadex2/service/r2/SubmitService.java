@@ -29,7 +29,9 @@ import org.msh.pharmadex2.dto.ActivityToRun;
 import org.msh.pharmadex2.dto.CheckListDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
+import org.msh.pharmadex2.dto.VerifItemDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
+import org.msh.pharmadex2.dto.form.AllowValidation;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.common.UserService;
 import org.msh.pharmadex2.service.common.ValidationService;
@@ -124,25 +126,25 @@ public class SubmitService {
 						selected = ls.intValue();
 					}
 				}
-//				systemDictNode(root, "0", messages.get("continue"));
-//				systemDictNode(root, "1", messages.get("route_action"));
-//				systemDictNode(root, "2", messages.get("newactivity"));
-//				systemDictNode(root, "3", messages.get("cancel"));
-//				systemDictNode(root, "4", messages.get("approve"));
-//				systemDictNode(root, "5", messages.get("reject"));
-//				systemDictNode(root, "6", messages.get("reassign"));
-//				systemDictNode(root, "7", messages.get("amendment"));
-//				systemDictNode(root, "8", messages.get("deregistration"));
-//				systemDictNode(root, "9", messages.get("revokepermit"));
-//				systemDictNode(root, "10", messages.get("decline"));
+				//				systemDictNode(root, "0", messages.get("continue"));
+				//				systemDictNode(root, "1", messages.get("route_action"));
+				//				systemDictNode(root, "2", messages.get("newactivity"));
+				//				systemDictNode(root, "3", messages.get("cancel"));
+				//				systemDictNode(root, "4", messages.get("approve"));
+				//				systemDictNode(root, "5", messages.get("reject"));
+				//				systemDictNode(root, "6", messages.get("reassign"));
+				//				systemDictNode(root, "7", messages.get("amendment"));
+				//				systemDictNode(root, "8", messages.get("deregistration"));
+				//				systemDictNode(root, "9", messages.get("revokepermit"));
+				//				systemDictNode(root, "10", messages.get("decline"));
 				data.getScheduled().getRows().clear();
 				switch (selected) {
 				case 0:
 					//submit(Continue) NMRA || Applicant
 					if(accServ.isEmployee(user)) {
-					data = nextJobChoice(his, user, data);
-					data.getExecs().getRows().clear();// ika24062022
-					data = executorsNextChoice(his, user, data, false);
+						data = nextJobChoice(his, user, data);
+						data.getExecs().getRows().clear();// ika24062022
+						data = executorsNextChoice(his, user, data, false);
 					}
 					if(accServ.isApplicant(user)) {
 						data.getNextJob().getRows().clear();
@@ -150,12 +152,12 @@ public class SubmitService {
 						data = executorsThisChoice(his, user, data);
 					}
 					break;
-				/*case 1:
+					/*case 1:
 					data.getNextJob().getRows().clear();
 					data.getExecs().getRows().clear();// ika24062022
 					data = executorsThisChoice(his, user, data);
 					break;
-					*/
+					 */
 				case 2:
 					//button&Monitoring (new_action) NMRA || Supervisor
 					data = nextJobChoice(his, user, data);
@@ -178,19 +180,19 @@ public class SubmitService {
 						data.getExecs().getRows().clear();
 						data.getNextJob().getRows().clear();
 					}else {
-					//submit (Approve) NMRA - isGuest, isModification, isHost
-					data.getNextJob().getRows().clear();
-					data.getExecs().getRows().clear();
-					data = scheduled(his, data);
-					break;
+						//submit (Approve) NMRA - isGuest, isModification, isHost
+						data.getNextJob().getRows().clear();
+						data.getExecs().getRows().clear();
+						data = scheduled(his, data);
+						break;
 					}
-				/*case 7:
+					/*case 7:
 					data.getNextJob().getRows().clear();
 					data.getExecs().getRows().clear();
 					data = scheduled(his, data);
 					break;
-					*/
-				/*case 8:
+					 */
+					/*case 8:
 					//submit (Approve) NMRA - isDeregistration
 					data = nextJobChoice(his, user, data);
 					data.getExecs().getRows().clear();// ika24062022
@@ -250,16 +252,16 @@ public class SubmitService {
 	@Transactional
 	public ActivitySubmitDTO createActions(UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		List<String> allowed = new ArrayList<String>();
-		
-			if(data.isMonitoring()) {//monitoring
-				allowed.addAll(submitMonitoringAction(user, data));
-			}
-			else if(data.isReassign() || data.isReject()) {//button
-				allowed.addAll(submitButtonAction(user, data));
-			}else {//submit
-				allowed.addAll(submitAction(user, data));
-			}//submit
-		
+
+		if(data.isMonitoring()) {//monitoring
+			allowed.addAll(submitMonitoringAction(user, data));
+		}
+		else if(data.isReassign() || data.isReject()) {//button
+			allowed.addAll(submitButtonAction(user, data));
+		}else {//submit
+			allowed.addAll(submitAction(user, data));
+		}//submit
+
 		/*if (accServ.isSupervisor(user)) {
 			// NMRA supervisor ------------------------------------------------------------
 			data = validServ.submitNext(curHis, user, data);
@@ -295,7 +297,7 @@ public class SubmitService {
 			if (data.isValid()) {
 				allowed.add("8"); // implement a deregistration
 			}
-			
+
 		} else {
 			if (data.isApplicant()) {
 				data = validServ.submitNext(curHis, user, data);
@@ -355,7 +357,7 @@ public class SubmitService {
 			data = validServ.submitNext(curHis, user, data);
 			if (data.isValid()) {
 				allowed.add("0"); // applicant is restricted to submit next and has not rights to select
-					// activity/executor
+				// activity/executor
 			}
 			if(accServ.isEmployee(user)) {//NMRA
 				if(systemServ.isHost(curHis)) {
@@ -393,7 +395,7 @@ public class SubmitService {
 					allowed.add("0");
 				}
 			}
-			
+
 		}//!No
 		return allowed;
 	}
@@ -405,7 +407,7 @@ public class SubmitService {
 				if(!systemServ.isHost(curHis) || !systemServ.isShutdown(curHis)) {
 					//data = validServ.submitReject(curHis, user, data);
 					//if (data.isValid()) {
-						allowed.add("5");
+					allowed.add("5");
 					//}
 				}
 			}else {
@@ -445,7 +447,7 @@ public class SubmitService {
 		}
 		return allowed;
 	}
-	
+
 	/**
 	 * Propose all possible foreground activities, mark next
 	 * 
@@ -837,100 +839,89 @@ public class SubmitService {
 		if (data.getHistoryId() > 0) {
 			// get workflow configuration root
 			History curHis = boilerServ.historyById(data.getHistoryId());
-			if(!singeltonCondition(user, curHis)) {
-				data.setValid(false);
-				data.setIdentifier(messages.get("singletonError"));
-				return data;
-			}
-			Concept applRoot = closureServ.loadParents(curHis.getApplication()).get(0);
-			String applUrl = applRoot.getIdentifier();
-			// 30.05.2023 khomenska change validation workflow
-			data = (CheckListDTO)validServ.validWorkFlowConfig(data, applUrl, true);
-					
-			/*30.05.2023
-			Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
-			List<Concept> nextActs = boilerServ.loadActivities(configRoot);
-			data = (ActivitySubmitDTO) validServ.workflowConfig(nextActs, configRoot, data);*/
-					
-			if (data.isValid()) {
-				Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
-				List<Concept> nextActs = boilerServ.loadActivities(configRoot);
-				
-				//boolean fullValid = fullValidation(curHis, user);
-				boolean fullValid=checkPagesDefined(curHis.getApplicationData());
-				if(fullValid) {
-					if (nextActs.size() > 0) {
-						List<ActivityToRun> toRun = appServ.activitiesToRun(data, applUrl, curHis, nextActs);
-						//finish the current activity and run others
-						if(toRun.size()>0 && data.isValid()) {
-							Concept userConcept = userServ.userConcept(user);
-							if(userConcept != null) {
-								curHis.setExecutor(userConcept);
-							}
-							curHis = appServ.closeActivity(curHis, false);
-							// tracking by an applicant
-							appServ.activityTrackRun(null, curHis, applUrl, user.getEmail()); 
-							// monitoring by the all supervisors as a last resort
-							appServ.activityMonitoringRun(null, curHis, applUrl); 
-							// run activities
-							for(ActivityToRun act :toRun ) {
-								for (String email : act.getExecutors()) {
-									appServ.activityCreate(null, act.getConfig(), curHis, email, String.join(",",act.getFallBack()));
+			data=(CheckListDTO) submitCondition(curHis,data, user);
+			if(data.isValid()) {
+				Concept applRoot = closureServ.loadParents(curHis.getApplication()).get(0);
+				String applUrl = applRoot.getIdentifier();
+				// 30.05.2023 khomenska change validation workflow
+				data = (CheckListDTO)validServ.validWorkFlowConfig(data, applUrl, true);
+				if (data.isValid()) {
+					Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
+					List<Concept> nextActs = boilerServ.loadActivities(configRoot);
+					boolean fullValid=checkPagesDefined(curHis.getApplicationData());
+					if(fullValid) {
+						if (nextActs.size() > 0) {
+							List<ActivityToRun> toRun = appServ.activitiesToRun(data, applUrl, curHis, nextActs);
+							//finish the current activity and run others
+							if(toRun.size()>0 && data.isValid()) {
+								Concept userConcept = userServ.userConcept(user);
+								if(userConcept != null) {
+									curHis.setExecutor(userConcept);
+								}
+								curHis = appServ.closeActivity(curHis, false);
+								// tracking by an applicant
+								appServ.activityTrackRun(null, curHis, applUrl, user.getEmail()); 
+								// monitoring by the all supervisors as a last resort
+								appServ.activityMonitoringRun(null, curHis, applUrl); 
+								// run activities
+								for(ActivityToRun act :toRun ) {
+									for (String email : act.getExecutors()) {
+										appServ.activityCreate(null, act.getConfig(), curHis, email, String.join(",",act.getFallBack()));
+									}
+								}
+							}else {
+								if(data.isValid()) {
+									data.setValid(false);
+									data.setIdentifier(messages.get("badconfiguration") + applUrl);
 								}
 							}
-						}else {
-							if(data.isValid()) {
-								data.setValid(false);
-								data.setIdentifier(messages.get("badconfiguration") + applUrl);
-							}
+						} else {
+							data.setValid(false);
+							data.setIdentifier(messages.get("badconfiguration") + " " + "activities");
 						}
-					} else {
+					}else {
 						data.setValid(false);
-						data.setIdentifier(messages.get("badconfiguration") + " " + "activities");
+						data.setIdentifier(messages.get("errorApplNotFull"));
 					}
-				}else {
-					data.setValid(false);
-					data.setIdentifier(messages.get("errorApplNotFull"));
 				}
+
+			} else {
+				throw new ObjectNotFoundException("submit. History record id is ZERO", logger);
 			}
-			return data;
-		} else {
-			throw new ObjectNotFoundException("submit. History record id is ZERO", logger);
 		}
+		return data;
 	}
 	/**
-	 * It is impossible running more than one modification and/or de-registration against the same object
-	 * in addition it is possible running modification and de-registration only if any host application is running
-	 * Guest may be running without any condition
-	 * Host runs automatically
-	 * @param user 
+	 * Check submit conditions yet another time just before submitting
 	 * @param curHis
-	 * @return true if condition is 
-	 * @throws ObjectNotFoundException 
+	 * @param data
+	 * @param user
+	 * @return
+	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	public boolean singeltonCondition(UserDetailsDTO user,History curHis) throws ObjectNotFoundException {
-		if(amendmentServ.hasAmendment(curHis.getApplicationData())) {
-			Concept applData = amendmentServ.initialApplicationData(curHis.getApplicationData());
-			if(amendmentServ.isAskForInspection(curHis.getApplDict())) {
-				// ask for an inspection application may be only one
-				jdbcRepo.has_activities(SystemService.DICTIONARY_GUEST_INSPECTIONS, user.getEmail(),applData.getID());
-				List<TableRow> rows=jdbcRepo.qtbGroupReport("select * from has_activities", "", "", new Headers());
-				return rows.isEmpty();
-			}else {
-				//de-registration or modification
-				Headers headers = new Headers();
-				headers.getHeaders().add(TableHeader.instanceOf("url", TableHeader.COLUMN_STRING));
-				// check host
-				jdbcRepo.guestPlusHost(applData.getID());
-				List<TableRow> rowsHost= jdbcRepo.qtbGroupReport("select * from guestPlusHost", "", "", headers);
-				jdbcRepo.dregPlusModi(applData.getID());
-				List<TableRow> rowsModi= jdbcRepo.qtbGroupReport("select * from dregPlusModi", "", "", headers);
-				return rowsHost.size()==0 && rowsModi.size()==0;
-			}
-		}else {
-			return true;
+	private AllowValidation submitCondition(History curHis, AllowValidation data, UserDetailsDTO user) throws ObjectNotFoundException {
+		Concept applDict=curHis.getApplDict();
+		Concept applicationData=curHis.getApplicationData();
+		Concept dict = closureServ.getParent(applDict);
+		if(dict.getIdentifier().equalsIgnoreCase(SystemService.DICTIONARY_GUEST_APPLICATIONS)
+				|| dict.getIdentifier().equalsIgnoreCase(SystemService.DICTIONARY_HOST_APPLICATIONS)) {
+			// new permit and hosts are allowed unconditionally
+			return data;
 		}
+		if(dict.getIdentifier().equalsIgnoreCase(SystemService.DICTIONARY_GUEST_AMENDMENTS)
+				|| dict.getIdentifier().equalsIgnoreCase(SystemService.DICTIONARY_GUEST_DEREGISTRATION)
+				|| dict.getIdentifier().equalsIgnoreCase(SystemService.DICTIONARY_GUEST_INSPECTIONS)) {
+			VerifItemDTO dto = new VerifItemDTO();
+			dto.setApplDictNodeId(applDict.getID());
+			dto.setApplID(applicationData.getID());
+			dto=validServ.verifAddDeristrationModificationInspection(dto,curHis);
+			if(!dto.isValid()) {
+				data.addError(dto.getIdentifier());
+			}
+			return data;
+		}
+		return data;
 	}
 	/**
 	 * check "persons" (in general 1:m)
@@ -1021,7 +1012,7 @@ public class SubmitService {
 				//add verification Add a check for belonging to the Modification
 				//(then add to the finalization check for Amendment & Acceptance) ik 23.05.2023
 				if(systemServ.isAmend(curHis)){
-				data = amendmentServ.implement(curHis, actConf, data, user); // is it amendment?
+					data = amendmentServ.implement(curHis, actConf, data, user); // is it amendment?
 				}
 				if (data.isValid()) {
 					for (Long execId : executors) {
@@ -1045,7 +1036,7 @@ public class SubmitService {
 					//add verification Add a check for belonging to the Modification
 					//(then add to the finalization check for Amendment & Acceptance) ik 23.05.2023
 					if(systemServ.isAmend(curHis)){
-					data = amendmentServ.implement(curHis, actConf, data, user); // is it amendment?
+						data = amendmentServ.implement(curHis, actConf, data, user); // is it amendment?
 					}
 					if (data.isValid()) {
 						appServ.activityCreate(null, actConf, curHis, user.getEmail(), data.getNotes().getValue());
@@ -1102,7 +1093,7 @@ public class SubmitService {
 					}
 				}
 				return data;
-			/*case 1: // NMRA executor route the activity to other executor
+				/*case 1: // NMRA executor route the activity to other executor
 				data = validServ.submitRoute(curHis, user, data);
 				data = validServ.submitReAssign(curHis, user, data);
 				if(data.isValid()) {
@@ -1157,7 +1148,7 @@ public class SubmitService {
 					data = submitReAssign(curHis, user, data);
 				}
 				return data;
-			/*case 7:
+				/*case 7:
 				data = validServ.submitAmendment(curHis, user, data);
 				if (data.isValid()) {
 					sendEmailAttention(user, curHis, data);
@@ -1165,7 +1156,7 @@ public class SubmitService {
 					data = submitApprove(curHis, user, data);
 				}
 				return data;*/
-			/*case 8:
+				/*case 8:
 				//submit (Approve) NMRA - isDeregistration, isShutdown
 				data = validServ.submitDeregistration(curHis, user, data);
 				data = validServ.submitDeregistrationData(curHis, data);
@@ -1188,8 +1179,8 @@ public class SubmitService {
 					if(systemServ.isShutdown(curHis)) {
 						cancellActivities(curHis);
 					}else {
-					sendEmailAttention(user, curHis, data);
-					data = submitDeclineGuest(curHis, user, data);
+						sendEmailAttention(user, curHis, data);
+						data = submitDeclineGuest(curHis, user, data);
 					}
 				}
 				return data;
@@ -1396,7 +1387,7 @@ public class SubmitService {
 		}
 		return data;
 	}
-	
+
 	@Transactional
 	private ActivitySubmitDTO submitDeclineGuest(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
 			throws ObjectNotFoundException, JsonProcessingException {
@@ -1423,7 +1414,7 @@ public class SubmitService {
 		}
 		return data;
 	}
-	
+
 	/**
 	 * Submit to approve
 	 * 
@@ -1584,7 +1575,7 @@ public class SubmitService {
 		his.setPrevNotes(data.getNotes().getValue());
 		his = boilerServ.saveHistory(his);
 	}
-	
+
 	private void closeAllHistory(History curHis) throws ObjectNotFoundException {
 		// cancel all histories, close the current
 		List<History> allHist = boilerServ.historyAll(curHis.getApplicationData());
@@ -1613,7 +1604,7 @@ public class SubmitService {
 		}
 		return data;
 	}
-	
+
 	/**
 	 * Submit an amendment
 	 * 
@@ -1697,7 +1688,7 @@ public class SubmitService {
 		}
 		appServ.closeActivity(curHis, false);
 	}
-	
+
 	/**
 	 * Run scheduled activities as well as related trace and monitoring ones Close
 	 * all scheduled workflows with the same URL and data, but not this yet

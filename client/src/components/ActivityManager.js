@@ -51,10 +51,12 @@ class ActivityManager extends Component{
                 application_nextEv:''
             },
             history:{ //history table
-                historyId:this.props.historyId
+                historyId:this.props.historyId,
+               // monitoring:this.props.monitoring
             },
             data:{  //breadcrumb and data ActivityDTO.java
-                historyId:this.props.historyId
+                historyId:this.props.historyId,
+                //monitoring:this.props.monitoring
             },
             color:"success",
             fullcollapse:[]
@@ -405,7 +407,9 @@ class ActivityManager extends Component{
             return(
                 <Row>
                     <Col>
-                        <ActivitySubmit historyId={this.state.data.historyId} reject={this.state.reject} reassign={this.state.reassign} supervisor={this.state.supervisor} recipient={this.state.identifier} />
+                        <ActivitySubmit historyId={this.state.data.historyId} reject={this.state.reject} 
+                        reassign={this.state.reassign} supervisor={this.state.supervisor} 
+                        recipient={this.state.identifier} monitoring={this.props.monitoring}/>
                     </Col>
                 </Row>
             )
@@ -497,7 +501,8 @@ class ActivityManager extends Component{
                             this.setState(this.state)
                            }, ()=>{})
                          }}
-                        >{this.state.labels.route_action}</Button>{' '}
+                         //action reassign
+                        >{this.state.labels.route_action}</Button>{' '} 
 
                         <Button size="sm" hidden={!this.state.conclude || this.state.send || this.state.data.guest || this.state.data.host|| this.state.data.finalization}
                             className="mr-1" color="warning"
@@ -506,6 +511,7 @@ class ActivityManager extends Component{
                                 this.state.reject=true
                                 Navigator.message(this.state.identifier,"*","saveChecklistSilent",{})
                             }}
+                            //action return to applicant
                         >{this.state.labels.return_action}</Button>{' '}
 
                         <Button size="sm" hidden={!(this.state.conclude && this.state.data.background)}
@@ -586,6 +592,7 @@ class ActivityManager extends Component{
                     this.state.hist=!this.state.hist
                     this.state.send=true
                     this.state.data.historyId=this.state.history.tableEv.rows[rowNo].dbID
+                   // this.state.data.monitoring=this.state.history.monitoring
                     this.setState(this.state)
                 }}
             />
@@ -673,5 +680,6 @@ class ActivityManager extends Component{
 export default ActivityManager
 ActivityManager.propTypes={
     historyId:PropTypes.number.isRequired,  //ID of History table entry
-    recipient:PropTypes.string,  //recepient for messaging   
+    recipient:PropTypes.string,  //recepient for messaging  
+    monitoring:PropTypes.bool 
 }

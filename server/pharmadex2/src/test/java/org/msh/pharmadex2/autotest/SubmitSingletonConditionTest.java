@@ -1,5 +1,7 @@
 package org.msh.pharmadex2.autotest;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import org.junit.jupiter.api.Test;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pharmadex2.Pharmadex2Application;
@@ -25,6 +27,6 @@ public class SubmitSingletonConditionTest {
 	 * @throws ObjectNotFoundException
 	 */
 	public void rule1() throws ObjectNotFoundException {
-		boolean ret = autoTest.singletonConditionRule1();
+		assertTrue(autoTest.singletonConditionRule1());
 	}
 }

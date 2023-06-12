@@ -19,7 +19,6 @@ import java.util.regex.Pattern;
 import javax.imageio.ImageIO;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
-
 import org.msh.pdex2.dto.table.Headers;
 import org.msh.pdex2.dto.table.TableHeader;
 import org.msh.pdex2.dto.table.TableRow;
@@ -38,7 +37,6 @@ import org.msh.pdex2.model.r2.ThingScheduler;
 import org.msh.pdex2.model.r2.ThingThing;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.common.UserRepo;
-import org.msh.pdex2.repository.r2.HistoryRepo;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.ActivitySubmitDTO;
 import org.msh.pharmadex2.dto.AddressDTO;
@@ -74,7 +72,6 @@ import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.service.r2.AccessControlService;
 import org.msh.pharmadex2.service.r2.AmendmentService;
 import org.msh.pharmadex2.service.r2.AssemblyService;
-import org.msh.pharmadex2.service.r2.DeregistrationService;
 import org.msh.pharmadex2.service.r2.LiteralService;
 import org.msh.pharmadex2.service.r2.SystemService;
 import org.slf4j.Logger;
@@ -110,13 +107,7 @@ public class ValidationService {
 	@Autowired
 	private JdbcRepository jdbcRepo;
 	@Autowired
-	private DeregistrationService dregServ;
-	@Autowired
 	private AmendmentService amendmentServ;
-	@Autowired
-	private HistoryRepo historyRepo;
-	private DeregistrationService deregServ;
-	
 	/**
 	 * ^[a-z]{1,} - первый символ всегда буква
 	 * [a-z0-9]* - далее буква или цыфра или _ или .
@@ -351,7 +342,6 @@ public class ValidationService {
 		//prepare data
 		data.clearErrors();
 		List<Assembly> allAssms = assemblyServ.loadDataConfiguration(data.getUrl());
-		List<String> exts=boilerServ.variablesExtensions(data);
 
 		//validate all components
 		List<AssemblyDTO> legs = assemblyServ.auxLegacyData(data.getUrl(), allAssms);
@@ -787,14 +777,6 @@ public class ValidationService {
 		return data;
 	}
 
-	/**
-	 * All things are required
-	 * @param thingDTO
-	 */
-	private void mandatoryThing(ThingDTO thingDTO) {
-		//TODO create it later
-		return;
-	}
 
 	/**
 	 * All documents are required
@@ -1115,8 +1097,8 @@ public class ValidationService {
 		}
 		return data;
 	}*/
-	
-	
+
+
 	/**
 	 * Validate the data collection definition
 	 * @param data
@@ -1701,9 +1683,9 @@ public class ValidationService {
 	public ActivitySubmitDTO actionNew(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		data.clearErrors();
 		//if(!data.isReassign()) {
-			if(isActivityBackground(curHis.getActConfig()) || isActivityForeground(curHis.getActConfig())) {
-				return data;
-			}
+		if(isActivityBackground(curHis.getActConfig()) || isActivityForeground(curHis.getActConfig())) {
+			return data;
+		}
 		//}
 		data.setIdentifier(messages.get("error_finishmonia"));
 		data.setValid(false);
@@ -1746,21 +1728,21 @@ public class ValidationService {
 	public ActivitySubmitDTO submitNext(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		data.clearErrors();
 		//if(!deregServ.isDeregistrationActivity(curHis)) {//1
-			//if(!deregServ.isRevokeActivity(curHis)) {
-				//if(!data.isReject()) {
-				//	if(!data.isReassign()) {//2
-						
-						Concept exec = closureServ.getParent(curHis.getActivity());
-						if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {
-							if(isActivityForeground(curHis.getActConfig())) {
-								if(curHis.getGo()==null) {
-									return data;
-								}
-							}
-						}
-					//}//2
-				//}
-			//}
+		//if(!deregServ.isRevokeActivity(curHis)) {
+		//if(!data.isReject()) {
+		//	if(!data.isReassign()) {//2
+
+		Concept exec = closureServ.getParent(curHis.getActivity());
+		if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {
+			if(isActivityForeground(curHis.getActConfig())) {
+				if(curHis.getGo()==null) {
+					return data;
+				}
+			}
+		}
+		//}//2
+		//}
+		//}
 		//}//1
 		data.setIdentifier(messages.get("error_sendsent"));
 		data.setValid(false);
@@ -1832,37 +1814,9 @@ public class ValidationService {
 	public boolean isActivitySubmitApprove(History curHis) throws ObjectNotFoundException {
 		//return isActivityFinalAction(curHis, SystemService.FINAL_ACCEPT) || isActivityFinalAction(curHis, SystemService.FINAL_COMPANY);
 		return isActivityFinalAction(curHis, SystemService.FINAL_DEREGISTRATION)
-		|| isActivityFinalAction(curHis, SystemService.FINAL_ACCEPT) 
-		|| isActivityFinalAction(curHis, SystemService.FINAL_COMPANY)
-		|| isActivityFinalAction(curHis, SystemService.FINAL_AMEND);
-	}
-
-	/**
-	 * khomenska 10.11.2022
-	 * 
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	private boolean validateConfigurationRegister(List<Concept> activities) throws ObjectNotFoundException {
-		return true;	//TODO
-		/*boolean hasRegisters = false;
-
-		for(Concept aco : activities) {
-			String dataurl = literalServ.readValue("dataurl",aco);
-			List<Assembly> assemblies = assemblyServ.loadDataConfiguration(dataurl);
-			List<AssemblyDTO> registers = assemblyServ.auxRegisters(dataurl, assemblies);
-			if(registers != null && registers.size() > 0) {
-				for(AssemblyDTO ass:registers) {
-					if(ass.isRequired() && ass.isMult()) {
-						hasRegisters = true;
-						return hasRegisters;
-					}
-				}
-			}
-		}
-		return hasRegisters;
-		 */
-
+				|| isActivityFinalAction(curHis, SystemService.FINAL_ACCEPT) 
+				|| isActivityFinalAction(curHis, SystemService.FINAL_COMPANY)
+				|| isActivityFinalAction(curHis, SystemService.FINAL_AMEND);
 	}
 
 	/**
@@ -1932,26 +1886,22 @@ public class ValidationService {
 	public ActivitySubmitDTO submitDeregistration(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		data.clearErrors();
 		if(!data.isReassign()) {
-			Concept exec = closureServ.getParent(curHis.getActivity());
-			//if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {
-				//if(deregServ.isDeregisterWorkflow(curHis)) {
-					//if(deregServ.isDeregistrationActivity(curHis) 
-						if(isActivityFinalAction(curHis, SystemService.FINAL_DEREGISTRATION)
-							|| isActivityFinalAction(curHis, SystemService.FINAL_ACCEPT) 
-							|| isActivityFinalAction(curHis, SystemService.FINAL_COMPANY)) {
-						return data;
-					}else {
-						data.setIdentifier(messages.get("error_workflowinappropriate"));
-						data.setValid(false);
-					}
-				/*}else {
+			if(isActivityFinalAction(curHis, SystemService.FINAL_DEREGISTRATION)
+					|| isActivityFinalAction(curHis, SystemService.FINAL_ACCEPT) 
+					|| isActivityFinalAction(curHis, SystemService.FINAL_COMPANY)) {
+				return data;
+			}else {
+				data.setIdentifier(messages.get("error_workflowinappropriate"));
+				data.setValid(false);
+			}
+			/*}else {
 					data.setIdentifier(messages.get("error_workflowinappropriate"));
 					data.setValid(false);
 				}*/
-			}else {
-				data.setIdentifier(messages.get("error_accessdenied"));
-				data.setValid(false);
-			}
+		}else {
+			data.setIdentifier(messages.get("error_accessdenied"));
+			data.setValid(false);
+		}
 		/*}else {
 			data.setIdentifier(messages.get("error_workflowinappropriate"));
 			data.setValid(false);
@@ -2085,7 +2035,7 @@ public class ValidationService {
 		}
 		return data;
 	}
-	
+
 	/**
 	 * Is there an action to decline
 	 * @param curHis
@@ -2095,9 +2045,9 @@ public class ValidationService {
 	 * @throws ObjectNotFoundException 
 	 */
 	public boolean submitDecline(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
-			return isActivityFinalAction(curHis,SystemService.FINAL_DECLINE);
+		return isActivityFinalAction(curHis,SystemService.FINAL_DECLINE);
 	}
-	
+
 	/**
 	 * Common check for submit decline
 	 * 
@@ -2109,28 +2059,25 @@ public class ValidationService {
 	 */
 	public ActivitySubmitDTO submitDeclineData(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		data.clearErrors();
-		
-		long nextActConfId = data.nextActivity();
-		List<Long> executors = data.executors();
 		//if(nextActConfId>0 && executors.size()>0) {
-			Concept exec = closureServ.getParent(curHis.getActivity());
-			if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {
-				if(isActivityFinalAction(curHis,SystemService.FINAL_DECLINE)) {
-					return data;
-				}else {
-					data.setIdentifier(messages.get("error_workflowinappropriate"));
-					data.setValid(false);
-				}
+		Concept exec = closureServ.getParent(curHis.getActivity());
+		if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {
+			if(isActivityFinalAction(curHis,SystemService.FINAL_DECLINE)) {
+				return data;
 			}else {
-				data.setIdentifier(messages.get("error_accessdenied"));
+				data.setIdentifier(messages.get("error_workflowinappropriate"));
 				data.setValid(false);
 			}
-			return data;
+		}else {
+			data.setIdentifier(messages.get("error_accessdenied"));
+			data.setValid(false);
+		}
+		return data;
 		//}
 		//error(data, messages.get("error_nextactivitydata"), true);
 		//return data;
 	}
-	
+
 	/**
 	 * Re-assign to the next user
 	 * The same as submit to next
@@ -2162,7 +2109,7 @@ public class ValidationService {
 	public ActivitySubmitDTO submitRevokePermit(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		data.clearErrors();
 		data = submitNotesIsMandatory(curHis, data);
-		
+
 		return data;
 	}
 
@@ -2268,7 +2215,7 @@ public class ValidationService {
 		}
 		return false;
 	}
-	
+
 	/**
 	 * Validate file uploaded
 	 * Read the configuration and check min/max size for non-images or width/height for images 
@@ -2396,7 +2343,7 @@ public class ValidationService {
 		}
 		return data;
 	}
-	
+
 	/**
 	 * verification workflow configuration before create new application
 	 * @param data
@@ -2404,41 +2351,17 @@ public class ValidationService {
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
+	@Transactional
 	public VerifItemDTO verifAddApplication(VerifItemDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		data.clearErrors();
 		data.setValid(true);
-		
 		// valid configuration
 		Concept dictNode = closureServ.loadConceptById(data.getApplDictNodeId());
 		String url = literalServ.readValue("applicationurl", dictNode);
-		
 		data = (VerifItemDTO)validWorkFlowConfig(data, url, true);
-		
 		return data;
 	}
-	
-	/**
-	 * verification workflow configuration before create new Modification
-	 * @param data
-	 * @param user
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	public VerifItemDTO amendmentsVerifAdd(VerifItemDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
-		data.clearErrors();
-		data.setValid(true);
-		
-		Concept dictNode = closureServ.loadConceptById(data.getApplDictNodeId());
-		String url = literalServ.readValue("applicationurl", dictNode);
-		
-		data = (VerifItemDTO)validWorkFlowConfig(data, url, false);
-		if(data.isValid()) {
-			data = hasModificationOrDeregProcess(data, user);
-		}
-		
-		return data;
-	}
-	
+
 	/**
 	 * verification workflow configuration before create new Deregistration
 	 * @param data
@@ -2446,33 +2369,73 @@ public class ValidationService {
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	public VerifItemDTO verifAddDeregistration(VerifItemDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+	@Transactional
+	public VerifItemDTO verifAddDeristrationModificationInspection(VerifItemDTO data, History curHis) throws ObjectNotFoundException {
 		data.clearErrors();
 		data.setValid(true);
-		
 		Concept dictNode = closureServ.loadConceptById(data.getApplDictNodeId());
 		String url = literalServ.readValue("applicationurl", dictNode);
-		
 		data = (VerifItemDTO)validWorkFlowConfig(data, url, false);
 		if(data.isValid()) {
-			data = hasModificationOrDeregProcess(data, user);
+			Concept applData=closureServ.loadConceptById(data.getApplID());
+			data = (VerifItemDTO) hasActivities(SystemService.DICTIONARY_GUEST_AMENDMENTS, applData, data, curHis);
+			if(data.isValid()) {
+				data = (VerifItemDTO) hasActivities(SystemService.DICTIONARY_GUEST_DEREGISTRATION,applData,data, curHis);
+			}
+			if(data.isValid()) {
+				data = (VerifItemDTO) hasActivities(SystemService.DICTIONARY_SHUTDOWN_APPLICATIONS,applData,data,curHis);
+			}
 		}
-		
 		return data;
 	}
-	
+	/**
+	 * Has permit data opened activities at least in a one process in a dictionary given
+	 * @param dictURL
+	 * @param applData
+	 * @param curHis 
+	 * @param user
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private AllowValidation hasActivities(String dictURL, Concept applData, AllowValidation data, History curHis) throws ObjectNotFoundException {
+		Concept permitData = amendmentServ.initialApplicationData(applData);
+		jdbcRepo.has_activities(dictURL, null, permitData.getID());
+		Headers headers = new Headers();
+		String where="";
+		if(curHis!=null) {
+			where="historyID not in ('"+curHis.getID()+"')";
+		}
+		headers.getHeaders().add(TableHeader.instanceOf("applDictID", TableHeader.COLUMN_LONG));
+		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from has_activities", "",
+				where, headers);
+		if(!rows.isEmpty()) {
+			//decode the application
+			Object dictItemIdO = rows.get(0).getCellByKey("applDictID").getOriginalValue();
+			String mess = dictURL;		//roughly
+			if(dictItemIdO instanceof Long) {
+				Long dictItemID= (Long) dictItemIdO;
+				Concept dictItem = closureServ.loadConceptById(dictItemID);
+				mess=literalServ.readPrefLabel(dictItem);	//fine
+			}
+			String prefix = messages.get("singletonError");
+			data.addError(prefix + " - " + mess);
+		}
+		return data;
+	}
+
 	public AllowValidation validWorkFlowConfig(AllowValidation data, String urlConfig,/*Long dictNodeID, */boolean findScheduler) throws ObjectNotFoundException {		
 		/*Concept dictNode = closureServ.loadConceptById(dictNodeID);
 		Concept dictRoot = closureServ.loadParents(dictNode).get(0);
 		String url = literalServ.readValue("applicationurl", dictNode);*/
 		Concept rootConfig = closureServ.loadRoot("configuration." + urlConfig.toLowerCase());
 		List<Concept> nextActs = boilerServ.loadActivities(rootConfig);
-		
+
 		data = validActivities(nextActs, findScheduler, data, rootConfig);
-		
+
 		return data;
 	}
-	
+
 	private AllowValidation validWorkFlowConfigScheduler(AllowValidation data, Long thingSchedID) throws ObjectNotFoundException {		
 		ThingScheduler ts = boilerServ.thingSchedulerById(thingSchedID);
 		Scheduler sch = boilerServ.schedulerByNode(ts.getConcept());
@@ -2481,10 +2444,10 @@ public class ValidationService {
 		List<Concept> nextActs = boilerServ.loadActivities(configRoot);
 		// TODO configRoot надо понять что вместно него писать
 		data = validActivities(nextActs, true, data, configRoot);
-		
+
 		return data;
 	}
-	
+
 	private AllowValidation validActivities(List<Concept> nextActs, boolean findScheduler, AllowValidation data, Concept configRoot) throws ObjectNotFoundException {		
 		boolean hasFinal = false;
 		boolean hasScheduler = false;
@@ -2494,12 +2457,12 @@ public class ValidationService {
 				if(!data.isValid()) {
 					return data;
 				}
-				
+
 				// Нам нужна хотябы одна активность в отметкой ФИНАЛ на всю конфигурацию
 				if(!hasFinal) {
 					hasFinal = hasFinals(c);
 				}
-				
+
 				if(findScheduler) {
 					// проверяем если шедулера нет в предыдущих активностях. Нам нужен хотябы один на всю конфигурацию
 					if(!hasScheduler) {
@@ -2524,47 +2487,8 @@ public class ValidationService {
 		}
 		return data;
 	}
-	
-	/**
-	 * application has proces modification
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	private VerifItemDTO hasModificationOrDeregProcess(VerifItemDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
-		data.clearErrors();
-		data.setValid(true);
-		
-		History curHis = new History();
-		Concept c = closureServ.loadConceptById(data.getApplID());
-		curHis.setApplicationData(c);
-		Concept dict = closureServ.loadConceptById(data.getApplDictNodeId());
-		curHis.setApplDict(dict);
-		
-		if(amendmentServ.isAskForInspection(curHis.getApplDict())) {
-			//TODO
-		}else {
-			//de-registration or modification
-			Concept applData = amendmentServ.initialApplicationData(curHis.getApplicationData());
-			Headers headers = new Headers();
-			headers.getHeaders().add(TableHeader.instanceOf("url", TableHeader.COLUMN_STRING));
-			// check guest
-			jdbcRepo.guestPlusHost(applData.getID());
-			List<TableRow> rowsHost= jdbcRepo.qtbGroupReport("select * from guestPlusHost", "", "", headers);
-			jdbcRepo.dregPlusModi(applData.getID());
-			List<TableRow> rowsModi= jdbcRepo.qtbGroupReport("select * from dregPlusModi", "", "", headers);
-			
-			if(rowsHost.size() > 0 || rowsModi.size() > 0) {
-				data.setValid(false);
-				data.setIdentifier(messages.get("singletonError"));
-				
-				return data;
-			}
-		}
-		
-		return data;
-	}
-	
+
+
 	@Transactional
 	private AllowValidation validThingInWorkflowConfig(Concept activity, Concept dictRoot, AllowValidation data) throws ObjectNotFoundException {
 		data.clearErrors();
@@ -2597,7 +2521,7 @@ public class ValidationService {
 		}
 		return data;
 	}
-	
+
 	private boolean hasSchedulers(Concept c) throws ObjectNotFoundException {
 		boolean hasSchedulers = false;
 		String dataurl = literalServ.readValue("dataurl", c);
@@ -2606,15 +2530,15 @@ public class ValidationService {
 		if(schedulers != null && schedulers.size() > 0) {
 			hasSchedulers = true;
 		}
-		
+
 		return hasSchedulers;
 	}
-	
+
 	private boolean hasFinals(Concept c) throws ObjectNotFoundException {
 		boolean hasFinalization = false;
-		
+
 		Thing thing = boilerServ.thingByNode(c);
-				
+
 		for(ThingDict dict : thing.getDictionaries()) {
 			if(dict.getUrl().equalsIgnoreCase(SystemService.DICTIONARY_SYSTEM_FINALIZATION)){
 				if(!dict.getConcept().getIdentifier().equalsIgnoreCase(SystemService.FINAL_NO)){
@@ -2622,10 +2546,10 @@ public class ValidationService {
 				}
 			}
 		}
-				
+
 		return hasFinalization;
 	}
-	
+
 	/**
 	 * Is it guest or host application?
 	 * @param curHis
@@ -2647,7 +2571,7 @@ public class ValidationService {
 		}
 		return ret;
 	}
-	
+
 	/**
 	 * Verify scheduled applications if ones
 	 * @param curHis
@@ -2689,5 +2613,36 @@ public class ValidationService {
 		}
 		return data;
 		 */
+	}
+	/**
+	 * Does not submitted guest application exist for the permit
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public boolean IsNotSubmittedGuest(Long applDataID) throws ObjectNotFoundException {
+		Concept applData=closureServ.loadConceptById(applDataID);
+		Concept permData=amendmentServ.initialApplicationData(applData);
+		jdbcRepo.has_activities(null, null, permData.getID());
+		Headers headers = new Headers();
+		headers.getHeaders().add(TableHeader.instanceOf("historyID", TableHeader.COLUMN_LONG));
+		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from has_Activities",
+				"", "", headers);
+		for(TableRow row : rows) {
+			Object hIdO = row.getCellByKey("historyID").getOriginalValue();
+			if(hIdO instanceof Long) {
+				//is it not submitted history?
+				Long hID = (Long) hIdO;
+				History h = boilerServ.historyById(hID);
+				if(h.getActivityData()!=null) {
+					//check
+					return h.getApplicationData().getID()==h.getActivityData().getID() 
+							&& h.getGo()==null
+							&& h.getActConfig()==null;
+				}
+			}
+		}
+		return false;
 	}
 }

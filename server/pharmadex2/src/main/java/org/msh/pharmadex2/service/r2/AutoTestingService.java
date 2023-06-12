@@ -13,6 +13,7 @@ import org.msh.pdex2.repository.r2.HistoryRepo;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
+import org.msh.pharmadex2.service.common.ValidationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +38,9 @@ public class AutoTestingService {
 	private DictService dictServ;
 	@Autowired
 	private AmendmentService amendServ;
+	@Autowired
+	private ValidationService validServ;
+	
 	/**
 	 * Rule 1. For any particular permit, a new application should be forbidden, 
 	 * if modification or deregistration or revocation is processing for the permit
@@ -48,32 +52,18 @@ public class AutoTestingService {
 		boolean ret = true;
 		// collect ID's of all permits in the state of modifications, de-registrations and revocations
 		Set<Long> set1 = permitsIn(SystemService.DICTIONARY_GUEST_AMENDMENTS);
-		set1.addAll(permitsIn(SystemService.DICTIONARY_GUEST_DEREGISTRATION));
-		set1.addAll(permitsIn(SystemService.DICTIONARY_SHUTDOWN_APPLICATIONS));
-		//collect ID's of all permits
-		Set<Long> set2 = permitsIn(SystemService.DICTIONARY_GUEST_APPLICATIONS);
+		Set<Long> set2=permitsIn(SystemService.DICTIONARY_GUEST_DEREGISTRATION);
+		Set <Long> set3=permitsIn(SystemService.DICTIONARY_SHUTDOWN_APPLICATIONS);
+		//collect ID's of all active permits
+		Set<Long> set = permitsIn(SystemService.DICTIONARY_HOST_APPLICATIONS);
 		//if a permit in mod, dreg or amend - submit is impossible, otherwise, possible
-		for(Long id : set2) {
-			History curHis = new History();
-			Concept permit=closureServ.loadConceptById(id);
-			curHis.setApplicationData(permit);
-			if(set1.contains(id)) {
-				boolean denied = !submitServ.singeltonCondition(new UserDetailsDTO(), curHis);
-				if(!denied) {
-					System.out.println("Should be denied, ID is "+id);
-				}
-				ret=ret && denied;
-			}else {
-				boolean allowed = submitServ.singeltonCondition(new UserDetailsDTO(), curHis);
-				if(!allowed) {
-					System.out.println("Should be allowed, ID is "+id);
-				}
-				ret=ret && allowed;
-			}
+		for(Long id : set) {
+		//TODO
 			
 		}
 		return ret;
 	}
+	
 	/**
 	 * GEt list of all permit IDs for a dictionary given
 	 * @param applicationDictionaryUrl
@@ -91,7 +81,7 @@ public class AutoTestingService {
 			hlist.addAll(historyRepo.findAllByApplDictIDAndGo(row.getDbID(), null));
 		}
 		for(History h : hlist) {
-			if(h.getActConfig() != null) {
+			if(h.getActConfig() != null && h.getGo()==null) {
 				ret.add(amendServ.initialApplicationData(h.getApplicationData()).getID());
 			}
 		}

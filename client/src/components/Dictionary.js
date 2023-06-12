@@ -340,6 +340,11 @@ class Dictionary extends Component{
         Fetchers.postJSONNoSpinner("/api/common/dictionary/load/table", this.state.data, (query, result)=>{
             this.state.data=result
             this.comparator = new FieldsComparator(this)
+            let to="*"
+            if(this.props.recipient != undefined){
+                to=this.props.recipient
+            }
+            Navigator.message(this.props.identifier,to,"onDictionaryReloaded",this.state.data)
             this.setState(this.state)
         })
     }

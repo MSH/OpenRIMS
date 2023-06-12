@@ -22,7 +22,8 @@ class DeRegistrationSelect extends Component{
         }
         this.eventProcessor=this.eventProcessor.bind(this)
         this.derRegistrationAdd=this.derRegistrationAdd.bind(this)
-
+        this.selectRow=this.selectRow.bind(this)
+        this.markSelected=this.markSelected.bind(this)
     }
 
     /**
@@ -32,7 +33,13 @@ class DeRegistrationSelect extends Component{
     eventProcessor(event){
         let data=event.data
         if(data.subject=="onSelectionChange" && data.from==this.state.identifier+"_dict"){
+            this.selectRow(data.data)
             this.state.data=data.data
+            this.setState(this.state)
+        }
+        if(data.subject=="onDictionaryReloaded" && data.from==this.state.identifier+"_dict"){
+            this.state.data=data.data
+            this.markSelected()
             this.setState(this.state)
         }
     }
@@ -43,13 +50,34 @@ class DeRegistrationSelect extends Component{
 
         Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/deregistration", this.state.data, (query,result)=>{
             this.state.data=result
-            let selected_row=Fetchers.readLocaly("deregistr_selected_row", 0);
+            this.markSelected()
+            /* let selected_row=Fetchers.readLocaly("deregistr_selected_row", 0);
             if(this.state.data.table.rows.length > 0)
-                this.state.data.table.rows[selected_row].selected=true
+                this.state.data.table.rows[selected_row].selected=true */
             this.setState(this.state)
         })
     }
-
+    selectRow(data){
+        if(Fetchers.isGoodArray(data.table.rows)){
+            data.table.rows.forEach(row=>{
+                if(row.selected){
+                    Fetchers.writeLocaly("deregistr_selected_row",row.dbID)
+                }
+            })
+        }
+    }
+    markSelected(){
+        let selected_row=Fetchers.readLocaly("deregistr_selected_row",-1);
+        if(Fetchers.isGoodArray(this.state.data.table.rows)){
+            this.state.data.table.rows.forEach(row=>{
+                row.selected=false
+                if(row.dbID==selected_row){
+                    row.selected=true
+                }
+            })
+        }
+        Navigator.message(this.state.identifier,this.state.identifier+"_dict",'refreshData',{})
+    }
     componentWillUnmount(){
         window.removeEventListener("message",this.eventProcessor)
     }
@@ -62,7 +90,7 @@ class DeRegistrationSelect extends Component{
             this.state.data.table.rows.forEach((row,index) => {
                 if(row.selected){
                     amdTypeId=row.dbID
-                    Fetchers.writeLocaly("deregistr_selected_row",index);
+                    //Fetchers.writeLocaly("deregistr_selected_row",index);
                 }
             });
         }
@@ -110,6 +138,7 @@ class DeRegistrationSelect extends Component{
                                 <Dictionary
                                 data={this.state.data}
                                 identifier={this.state.identifier+"_dict"}
+                                recipient={this.state.identifier}
                                 display
                                 />
                             </Col>

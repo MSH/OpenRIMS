@@ -27,6 +27,8 @@ class ApplicationList extends Component{
             }
         }
         this.loadTable=this.loadTable.bind(this)
+        this.verifyAdd=this.verifyAdd.bind(this)
+        this.addApplication=this.addApplication.bind(this)
     }
     componentDidMount(){
         Locales.resolveLabels(this)
@@ -48,13 +50,38 @@ class ApplicationList extends Component{
         if(this.props.amend){
             api="/api/guest/applications/table/amendments"
         }
-        let srch = Fetchers.readLocaly("applicationlist_search", "");
-        api += "/search=" + srch
+        //let srch = Fetchers.readLocaly("applicationlist_search", "");
+        //api += "/search=" + srch
 
         Fetchers.postJSON(api, this.state.data, (query,result)=>{
             this.state.data=result
             Fetchers.writeLocaly("applicationlist_search", "");
             this.setState(this.state)
+        })
+    }
+
+    addApplication(){
+        let data={
+            url:this.state.data.url,
+            applDictNodeId:this.state.data.dictItemId,
+            historyId:0,
+        }
+        let param = JSON.stringify(data)
+        Navigator.navigate(Navigator.tabName(),"applicationstart",param)
+    }
+
+    verifyAdd(){
+        let verifdto={
+            url:this.state.data.url,
+            applDictNodeId:this.state.data.dictItemId
+        }
+        Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/application/verif/add", verifdto, (query,result)=>{
+            if(result.valid){
+                this.addApplication()
+            }else{
+                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:result.identifier, color:'danger'})
+                this.setState(this.state)
+            }
         })
     }
 
@@ -78,13 +105,7 @@ class ApplicationList extends Component{
                             label={this.state.labels.global_add}
                             onClick={()=>{
                                 Spinner.show()
-                                let data={
-                                    url:this.state.data.url,
-                                    applDictNodeId:this.state.data.dictItemId,
-                                    historyId:0,
-                                }
-                                let param = JSON.stringify(data)
-                                Navigator.navigate(Navigator.tabName(),"applicationstart",param)
+                                this.verifyAdd()
                             }}
                             color="primary"
                         />
@@ -114,7 +135,7 @@ class ApplicationList extends Component{
                                     historyId:0,    //unknown yet, will be resolved by application_or_activity
                                     dataId:this.state.data.table.rows[row].dbID,    //since 2023-03-17 application data node ID
                                 }
-                                Fetchers.writeLocaly("applicationlist_search", this.state.data.table.generalSearch)
+                                //Fetchers.writeLocaly("applicationlist_search", this.state.data.table.generalSearch)
                                 Fetchers.postJSONNoSpinner("/api/guest/application/or/activity", data, (query,result)=>{
                                     let param = JSON.stringify(result)
                                     if(result.application){

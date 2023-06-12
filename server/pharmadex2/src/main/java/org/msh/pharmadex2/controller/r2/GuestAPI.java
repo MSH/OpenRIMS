@@ -1,6 +1,7 @@
 package org.msh.pharmadex2.controller.r2;
 
 import org.msh.pdex2.exception.ObjectNotFoundException;
+import org.msh.pdex2.i18n.Messages;
 import org.msh.pharmadex2.dto.AmendmentNewDTO;
 import org.msh.pharmadex2.dto.ApplicationOrActivityDTO;
 //import org.msh.pharmadex2.dto.ApplicationSelectDTO;
@@ -69,6 +70,8 @@ public class GuestAPI {
 	private ValidationService validServ;
 	@Autowired
 	private AccessControlService accessServ;
+	@Autowired
+	private Messages mess;
 
 	/**
 	 * Tiles for landing page
@@ -172,6 +175,7 @@ public class GuestAPI {
 		//UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data=systemServ.deregistrationDict(data);
+			data=dictService.page(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -184,11 +188,11 @@ public class GuestAPI {
 	 * @return
 	 * @throws DataNotFoundException
 	 */
-	@PostMapping("/api/guest/applications/table/search={s}")
-	public ApplicationsDTO applicatonsTable(Authentication auth, @RequestBody ApplicationsDTO data, @PathVariable(value = "s") String s) throws DataNotFoundException {
+	@PostMapping("/api/guest/applications/table")
+	public ApplicationsDTO applicatonsTable(Authentication auth, @RequestBody ApplicationsDTO data) throws DataNotFoundException {
 		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
 		try {
-			data=applServ.applicatonsTable(data, user, s);
+			data=applServ.applicatonsTable(data, user, "");
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -392,7 +396,11 @@ public class GuestAPI {
 	public VerifItemDTO amendmentsVerifAdd(Authentication auth, @RequestBody VerifItemDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
-			data = validServ.amendmentsVerifAdd(data, user);
+			if (!validServ.IsNotSubmittedGuest(data.getApplID())) {
+				data = validServ.verifAddDeristrationModificationInspection(data, null);
+			}else {
+				data.addError(mess.get("singletonError"));
+			}
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -411,7 +419,11 @@ public class GuestAPI {
 	public VerifItemDTO verifAddDereg(Authentication auth, @RequestBody VerifItemDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
-			data = validServ.verifAddDeregistration(data, user);
+			if (!validServ.IsNotSubmittedGuest(data.getApplID())) {
+				data = validServ.verifAddDeristrationModificationInspection(data, null);
+			}else {
+				data.addError(mess.get("singletonError"));
+			}
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}

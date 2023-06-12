@@ -30,6 +30,8 @@ class InspectionSelect extends Component{
         this.permits=this.permits.bind(this)
         this.selectedDictID=this.selectedDictID.bind(this)
         this.addInspection=this.addInspection.bind(this)
+        this.selectRow=this.selectRow.bind(this)
+        this.markSelected=this.markSelected.bind(this)
     }
 
     /**
@@ -38,12 +40,18 @@ class InspectionSelect extends Component{
      */
     eventProcessor(event){
         let data=event.data
-        if(data.subject=="onSelectionChange" && data.from==this.dictionary){
+        if(data.subject=="onSelectionChange" && data.from==this.state.identifier+"_dict"){
+            this.selectRow(data.data)
             this.state.data=data.data
             this.setState(this.state)
         }
         if(data.to==this.state.identifier && data.subject=='onPermitSelected'){
             this.addInspection(data.data)
+        }
+        if(data.subject=="onDictionaryReloaded" && data.from==this.state.identifier+"_dict"){
+            this.state.data=data.data
+            this.markSelected()
+            this.setState(this.state)
         }
     }
 
@@ -71,13 +79,34 @@ class InspectionSelect extends Component{
         Locales.createLabels(this)
         this.loadData()
     }
-
+    selectRow(data){
+        if(Fetchers.isGoodArray(data.table.rows)){
+            data.table.rows.forEach(row=>{
+                if(row.selected){
+                    Fetchers.writeLocaly("application_inspection_selected_row",row.dbID)
+                }
+            })
+        }
+    }
+    markSelected(){
+        let selected_row=Fetchers.readLocaly("application_inspection_selected_row",-1);
+        if(Fetchers.isGoodArray(this.state.data.table.rows)){
+            this.state.data.table.rows.forEach(row=>{
+                row.selected=false
+                if(row.dbID==selected_row){
+                    row.selected=true
+                }
+            })
+        }
+        Navigator.message(this.state.identifier,this.state.identifier+"_dict",'refreshData',{})
+    }
     loadData(){
         Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName() +"/applications/inspections", this.state.data, (query,result)=>{
             this.state.data=result
-            let selected_row=Fetchers.readLocaly("application_inspection_selected_row",-1);
+            this.markSelected()
+            /* let selected_row=Fetchers.readLocaly("application_inspection_selected_row",-1);
             if(this.state.data.table.rows.length > selected_row && selected_row>-1)
-                this.state.data.table.rows[selected_row].selected=true
+                this.state.data.table.rows[selected_row].selected=true */
             this.setState(this.state)
         })
     }
@@ -97,7 +126,7 @@ class InspectionSelect extends Component{
             this.state.data.table.rows.forEach((row,index) => {
                 if(row.selected){
                     dictId=row.dbID
-                    Fetchers.writeLocaly("application_inspection_selected_row",index);
+                    //Fetchers.writeLocaly("application_inspection_selected_row",index);
                 }
             });
         }
@@ -142,7 +171,7 @@ class InspectionSelect extends Component{
                         <Row>
                             <Col>
                                 <Dictionary
-                                    identifier={this.dictionary}
+                                    identifier={this.state.identifier+"_dict"}
                                     data={this.state.data}                           //DictionaryDTO
                                     recipient={this.state.identifier}                //recipient of messages
                                     display                                         //display only

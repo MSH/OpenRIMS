@@ -67,6 +67,7 @@ class ApplicationStart extends Component{
                 }
                 if(data.subject=="afterSubmit"){    //from CheckList
                     this.state.submitted=true
+                    this.state.historyId=data.data.historyId
                     this.setState(this.state)
                 }
                 if(data.subject=="conclude"){
@@ -333,7 +334,7 @@ class ApplicationStart extends Component{
          // after submit screen
          if(this.state.submitted){
             return(
-                <SubmitReciept recipient={this.state.identifier} historyId={this.state.data.historyId}/>
+                <SubmitReciept recipient={this.state.identifier} historyId={this.state.historyId}/>
             )
         }
         // regular screens, page or conclude

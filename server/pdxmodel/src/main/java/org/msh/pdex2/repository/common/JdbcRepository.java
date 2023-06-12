@@ -1285,30 +1285,6 @@ public class JdbcRepository {
 		params.addValue("localEmail", loc);
 		proc.execute(params);
 	}
-	
-	/**
-	 * For an applDataID given select running Guest or Host applications 
-	 * @param applicationID null means all
-	 */
-	public void guestPlusHost(Long applDataID) {
-		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
-		proc.withProcedureName("guestPlusHost");
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue("applDataId", applDataID);
-		proc.execute(params);
-	}
-	
-	/**
-	 * For an applDataID given select running applications for De-registration and modification 
-	 * @param applicationID null means all
-	 */
-	public void dregPlusModi(Long applDataID) {
-		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
-		proc.withProcedureName("dregPlusModi");
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue("applDataId", applDataID);
-		proc.execute(params);
-	}
 
 	/**
 	 * Simple product report

@@ -28,16 +28,17 @@ class DeregistrationAdd extends Component{
         this.eventProcessor=this.eventProcessor.bind(this)
         this.loadTable=this.loadTable.bind(this)
         this.runDeregistration=this.runDeregistration.bind(this)
+        this.verifyAdd=this.verifyAdd.bind(this)
     }
 
     /**
      * Listen messages from other components
      * @param {Window Event} event 
      */
-        eventProcessor(event){
-            let data=event.data
+    eventProcessor(event){
+        let data=event.data
            
-        }
+    }
 
     componentDidMount(){
         window.addEventListener("message",this.eventProcessor)
@@ -63,6 +64,23 @@ class DeregistrationAdd extends Component{
         Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/deregistration/propose/add", this.state.data, (query,result)=>{
             this.state.data=result
             this.setState(this.state)
+        })
+    }
+
+    verifyAdd(rowNo){
+        let row=this.state.data.applications.rows[rowNo]
+        let verifdto={
+            url:'',
+            applDictNodeId:this.state.data.dictItemId,
+            applID:row.dbID,
+        }
+        Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/deregistration/verif/add", verifdto, (query,result)=>{
+            if(result.valid){
+                this.runDeregistration(rowNo)
+            }else{
+                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:result.identifier, color:'danger'})
+                this.setState(this.state)
+            }
         })
     }
 
@@ -111,10 +129,10 @@ class DeregistrationAdd extends Component{
                             loader={this.loadTable}
                             headBackground={Pharmadex.settings.tableHeaderBackground}
                             selectRow={(rowNo)=>{
-                                {this.runDeregistration(rowNo)}
+                                {this.verifyAdd(rowNo)}
                             }}
                             linkProcessor={(rowNo, cell)=>{
-                                {this.runDeregistration(rowNo)}
+                                {this.verifyAdd(rowNo)}
                             }}
                         />
                     </Col>

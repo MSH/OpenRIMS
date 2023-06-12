@@ -7,7 +7,7 @@ import Navigator from './utils/Navigator'
 import CollectorTable from './utils/CollectorTable'
 import ViewEdit from './form/ViewEdit'
 import Pharmadex from './Pharmadex'
-
+import Alerts from './utils/Alerts'
 /**
  * Responsible for Activity Submit screen, e.g., a screen that appears after Activity-Submit is pressed and valdation is OK
  */
@@ -20,7 +20,8 @@ class ActivitySubmit extends Component{
                 historyId:this.props.historyId,
                 supervisor:this.props.supervisor,
                 reassign:this.props.reassign,
-                reject:this.props.reject
+                reject:this.props.reject,
+                monitoring:this.props.monitoring
             },                                                  // ActivitySubmitDTO
             labels:{
                 nextactivity:'',
@@ -28,6 +29,7 @@ class ActivitySubmit extends Component{
                 conclusion:'',
                 notes:'',
                 scheduled:'',
+                questionDecline:'',
             },
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -36,6 +38,7 @@ class ActivitySubmit extends Component{
         this.leftBottom=this.leftBottom.bind(this)
         this.rightBottom=this.rightBottom.bind(this)
         this.notes=this.notes.bind(this)
+        this.loadNext=this.loadNext.bind(this)
     }
 
     /**
@@ -52,15 +55,13 @@ class ActivitySubmit extends Component{
         }
         if(data.from==this.props.recipient){
             if(data.subject=="sendToNext"){
-                Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/activity/submit/send", this.state.data, (query,result)=>{
-                    this.state.data=result
-                    if(this.state.data.valid){
-                        Navigator.message(this.state.identifier, this.props.recipient, "cancelThing", {})
-                        Navigator.message(this.state.identifier, this.props.recipient, "afterSubmit", {})
-                    }else{
-                        this.setState(this.state)
-                    }
-                })
+                if(this.state.data.actions.selectedRow.row[0].value=='decline'){
+                    Alerts.warning(this.state.labels.questionDecline,()=>{   //yes
+                        this.loadNext()
+                    },()=>{})//no
+                } else{
+                   this.loadNext()
+                }  
             }
         }
     }
@@ -74,6 +75,7 @@ class ActivitySubmit extends Component{
     componentDidUpdate(){
         this.state.data.reject=this.props.reject
         this.state.data.reassign=this.props.reassign
+        //this.state.data.monitoring=this.props.monitoring
         if(this.state.data.historyId != this.props.historyId || this.state.data.supervisor != this.props.supervisor){
             this.state.data.historyId=this.props.historyId
             this.state.data.supervisor=this.props.supervisor
@@ -81,6 +83,18 @@ class ActivitySubmit extends Component{
             this.loader()
         }
     }
+
+loadNext(){
+    Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/activity/submit/send", this.state.data, (query,result)=>{
+        this.state.data=result
+        if(this.state.data.valid){
+            Navigator.message(this.state.identifier, this.props.recipient, "cancelThing", {})
+            Navigator.message(this.state.identifier, this.props.recipient, "afterSubmit", {})
+        }else{
+            this.setState(this.state)
+        }
+    })
+}
 
     loader(){
         Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName()+"/activity/submit/create/data", this.state.data, (query, result)=>{
@@ -305,4 +319,5 @@ ActivitySubmit.propTypes={
     reject:PropTypes.bool.isRequired,            //return to applicant
     recipient : PropTypes.string.isRequired,    //for messages
     readonly:PropTypes.bool,                    //for future extension
+    monitoring: PropTypes.bool
 }

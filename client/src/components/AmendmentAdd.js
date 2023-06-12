@@ -29,6 +29,8 @@ class AmendmentAdd extends Component{
         }
         this.eventProcessor=this.eventProcessor.bind(this)
         this.loadTable=this.loadTable.bind(this)
+        this.verifyAdd=this.verifyAdd.bind(this)
+        this.runNewAmendment=this.runNewAmendment.bind(this)
     }
 
     /**
@@ -61,11 +63,10 @@ class AmendmentAdd extends Component{
      * load/reload AmendmentNewDTO
      */
     loadTable(){
-        let selected_row=Fetchers.readLocaly("amendmentsadd_dataNodeId", 0);
-        this.state.data.dataNodeId = selected_row
+        //let selected_row=Fetchers.readLocaly("amendmentsadd_dataNodeId", 0);
+        //this.state.data.dataNodeId = selected_row
         Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/amendment/propose/add", this.state.data, (query,result)=>{
             this.state.data=result
-            
             this.setState(this.state)
         })
     }
@@ -86,6 +87,25 @@ class AmendmentAdd extends Component{
         let param = JSON.stringify(data)
         Navigator.navigate(Navigator.tabName(),"applicationstart",param)
     }
+
+    verifyAdd(rowNo){
+        //let row=this.state.data.dataUnits.rows[rowNo]
+        var datanodeid = this.state.data.dataNodeId //Fetchers.readLocaly("amendmentsadd_dataNodeId", 0)
+        let verifdto={
+            url:'',
+            applDictNodeId:this.state.data.dictItemId,
+            applID:datanodeid,
+        }
+        Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/amendments/verif/add", verifdto, (query,result)=>{
+            if(result.valid){
+                this.runNewAmendment(rowNo)
+            }else{
+                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:result.identifier, color:'danger'})
+                this.setState(this.state)
+            }
+        })
+    }
+
     /**
      * Data selected to modify
      */
@@ -107,7 +127,7 @@ class AmendmentAdd extends Component{
                                     loader={this.loadTable}
                                     headBackground={Pharmadex.settings.tableHeaderBackground}
                                     linkProcessor={(rowNo, cell)=>{
-                                        this.runNewAmendment(rowNo)
+                                        this.verifyAdd(rowNo)
                                     }}
                                 />
                             </Col>
