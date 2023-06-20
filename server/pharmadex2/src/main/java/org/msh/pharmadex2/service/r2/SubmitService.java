@@ -1084,12 +1084,15 @@ public class SubmitService {
 				//Continue
 				data = validServ.submitNext(curHis, user, data);
 				if(data.isValid()) {
-					if (accServ.isApplicant(user)) {
-						data = submitNext(curHis, user, data);
-					} else {
-						sendEmailAttention(user, curHis, data);
-						data = validServ.submitNextData(curHis, user, data);
-						data = submitNext(curHis, user, data);
+					data = validServ.validateConcurrentUrl(curHis, data);
+					if(data.isValid()) {
+						if (accServ.isApplicant(user)) {
+							data = submitNext(curHis, user, data);
+						} else {
+							sendEmailAttention(user, curHis, data);
+							data = validServ.submitNextData(curHis, user, data);
+							data = submitNext(curHis, user, data);
+						}
 					}
 				}
 				return data;
@@ -1176,7 +1179,7 @@ public class SubmitService {
 				//decline
 				data = validServ.submitDeclineData(curHis, user, data);
 				if (data.isValid()) {
-					if(systemServ.isShutdown(curHis)) {
+					 if (systemServ.isShutdown(curHis)|| systemServ.isAmend(curHis)|| systemServ.isDeregistration(curHis)){
 						cancellActivities(curHis);
 					}else {
 						sendEmailAttention(user, curHis, data);
@@ -1217,6 +1220,69 @@ public class SubmitService {
 			}
 			appServ.closeActivity(curHis, false);
 			submitAddActivity(curHis, user, data);
+			
+			// 10/06/2023 khomenska
+			data = createConcurentUrlProcess(curHis, user, data);
+		}
+		return data;
+	}
+	
+	/** 
+	 * if Configuretion current history contains not empty field CurrentUrl
+	 * create process by WF 
+	 * 
+	 * @param curHis
+	 * @param user
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	private ActivitySubmitDTO createConcurentUrlProcess(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
+		curHis = boilerServ.historyById(data.getHistoryId());
+		
+		String concurentUrl = validServ.getConcurentUrl(curHis, data);
+		if(concurentUrl != null) {
+			Concept configRoot = closureServ.loadRoot("configuration." + concurentUrl);
+			List<Concept> nextActs = boilerServ.loadActivities(configRoot);
+
+			History newStartHis = new History();
+			newStartHis.setActConfig(configRoot);//223478
+			newStartHis.setActivity(curHis.getActivity());
+			newStartHis.setActivityData(curHis.getActivityData());
+			newStartHis.setApplConfig(configRoot);//223478
+			newStartHis.setApplDict(validServ.findDictionaryByApplUrl(concurentUrl));//223464
+			newStartHis.setApplication(curHis.getApplication());
+			newStartHis.setApplicationData(curHis.getApplicationData());
+
+			if (nextActs.size() > 0) {
+				List<ActivityToRun> toRun = appServ.activitiesToRun(data, concurentUrl, newStartHis, nextActs);
+				//finish the current activity and run others
+				if(toRun.size()>0 && data.isValid()) {
+					/*Concept userConcept = userServ.userConcept(user);
+					if(userConcept != null) {
+						concurentHis.setExecutor(userConcept);
+					}
+					concurentHis = appServ.closeActivity(concurentHis, false);*/
+					// tracking by an applicant
+					//appServ.activityTrackRun(null, curHis, concurentUrl, user.getEmail()); 
+					// monitoring by the all supervisors as a last resort
+					//appServ.activityMonitoringRun(null, curHis, concurentUrl); 
+					// run activities
+					for(ActivityToRun act :toRun ) {
+						for (String email : act.getExecutors()) {
+							appServ.activityCreate(null, act.getConfig(), newStartHis, email, String.join(",",act.getFallBack()));
+						}
+					}
+				}else {
+					if(data.isValid()) {
+						data.setValid(false);
+						data.setIdentifier(messages.get("badconfiguration") + concurentUrl);
+					}
+				}
+			} else {
+				data.setValid(false);
+				data.setIdentifier(messages.get("badconfiguration") + " " + "activities");
+			}
 		}
 		return data;
 	}
@@ -1393,11 +1459,12 @@ public class SubmitService {
 			throws ObjectNotFoundException, JsonProcessingException {
 		List<History> ret=boilerServ.historyAllOrderByCome(curHis.getApplicationData());
 		if(!ret.isEmpty()) {
-			if(systemServ.isGuest(ret.get(0))) {
+			History firstRet=ret.get(0);
+			if(systemServ.isGuest(firstRet)||systemServ.isDeregistration(firstRet)||systemServ.isAmend(firstRet)) {
 				cancellActivities(curHis);
 				ThingDTO tdto = new ThingDTO();
-				tdto.setNodeId(ret.get(0).getApplicationData().getID());
-				Concept applicant = closureServ.getParent(ret.get(0).getApplication());
+				tdto.setNodeId(firstRet.getApplicationData().getID());
+				Concept applicant = closureServ.getParent(firstRet.getApplication());
 				Concept application = closureServ.getParent(applicant);
 				tdto.setApplicationUrl(application.getIdentifier());
 				tdto.setApplDictNodeId(ret.get(0).getApplDict().getID());

@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
+@Deprecated
 public class PdfService {
 	private static final Logger logger = LoggerFactory.getLogger(PdfService.class);
 	@Autowired

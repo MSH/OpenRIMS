@@ -1117,7 +1117,7 @@ public class AdminAPI {
 	 * @throws IOException
 	 */
 	@RequestMapping(value="/api/admin/elreference", method = RequestMethod.GET)
-	public ResponseEntity<Resource> loadElreference() throws DataNotFoundException, IOException {
+	public ResponseEntity<Resource> elreference() throws DataNotFoundException, IOException {
 		ResponseEntity<Resource> res;
 		try {
 			res = resourceServ.adminElreferenceGuide();

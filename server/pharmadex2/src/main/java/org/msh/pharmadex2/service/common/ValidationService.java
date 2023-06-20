@@ -37,6 +37,7 @@ import org.msh.pdex2.model.r2.ThingScheduler;
 import org.msh.pdex2.model.r2.ThingThing;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.common.UserRepo;
+import org.msh.pdex2.repository.r2.HistoryRepo;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.ActivitySubmitDTO;
 import org.msh.pharmadex2.dto.AddressDTO;
@@ -108,6 +109,9 @@ public class ValidationService {
 	private JdbcRepository jdbcRepo;
 	@Autowired
 	private AmendmentService amendmentServ;
+	@Autowired
+	private HistoryRepo histRepo;
+	
 	/**
 	 * ^[a-z]{1,} - первый символ всегда буква
 	 * [a-z0-9]* - далее буква или цыфра или _ или .
@@ -1744,10 +1748,44 @@ public class ValidationService {
 		//}
 		//}
 		//}//1
-		data.setIdentifier(messages.get("error_sendsent"));
+		data.setIdentifier(messages.get("error_sendsent")); 
 		data.setValid(false);
 		return data;
 	}
+	
+	@Transactional
+	public ActivitySubmitDTO validateConcurrentUrl(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
+		data.clearErrors();
+		
+		String curl = getConcurentUrl(curHis, data);
+		if(curl != null) {
+			data = (ActivitySubmitDTO)validWorkFlowConfig(data, curl, false);
+			if(data.isValid()) {
+				// 10.06.2023 khomenska Проверка, чтоб НЕ запустить больше 1го паралельного процесса по тому же урлу
+				VerifItemDTO dto = new VerifItemDTO();
+				dto.setApplID(curHis.getApplication().getID());
+				Concept dictNode = findDictionaryByApplUrl(curl);
+				dto.setApplDictNodeId(dictNode.getID());
+				
+				/* берем открытые работы и проверяем по словарю */
+				if(hasDublicateProcess(dictNode, curHis)) {
+					data.setValid(false);
+					data.setIdentifier("Dublicate process " + curl);
+				}
+			}
+		}
+		
+		return data;
+	}
+	
+	private boolean hasDublicateProcess(Concept dictNode, History curHis) {
+		List<History>  list = histRepo.findAllByApplDictIDAndApplicationDataAndGo(dictNode.getID(), curHis.getApplicationData(), null);
+		if(list != null && list.size() > 0) {
+			return true;
+		}
+		return false;
+	}
+	
 	/**
 	 * NMRA executor can route activity to other executor only:
 	 * <ul>
@@ -2644,5 +2682,41 @@ public class ValidationService {
 			}
 		}
 		return false;
+	}
+	
+	public String getConcurentUrl(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
+		Concept activity = curHis.getActConfig();
+		String currentUrl = literalServ.readValue(LiteralService.CONCURRENTURL, activity);
+		if(currentUrl != null && currentUrl.length() > 2) {
+			return currentUrl;
+		}
+		return null;
+	}
+	
+	public Concept findDictionaryByApplUrl(String applUrl) throws ObjectNotFoundException {
+		Concept dictItem = null;
+		List<String> lifeUrls = new ArrayList<String>();
+		lifeUrls.add(SystemService.DICTIONARY_GUEST_APPLICATIONS);
+		lifeUrls.add(SystemService.DICTIONARY_HOST_APPLICATIONS);
+		lifeUrls.add(SystemService.DICTIONARY_GUEST_AMENDMENTS);
+		lifeUrls.add(SystemService.DICTIONARY_GUEST_DEREGISTRATION);
+		lifeUrls.add(SystemService.DICTIONARY_SHUTDOWN_APPLICATIONS);
+		lifeUrls.add(SystemService.DICTIONARY_GUEST_INSPECTIONS);
+		
+		for(String url:lifeUrls) {
+			Concept dict = closureServ.loadRoot(url);
+			List<Concept> items = literalServ.loadOnlyChilds(dict);
+			for (Concept item : items) {
+				if (item.getActive()) {
+					String applurlLit = literalServ.readValue(LiteralService.APPLICATION_URL, item);
+					if(applurlLit != null && applurlLit.contains(applUrl)) {
+						dictItem = item;
+						return dictItem;
+					}
+				}
+			}
+		}
+		
+		return dictItem;
 	}
 }

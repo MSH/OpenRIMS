@@ -24,6 +24,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  */
 @JsonIgnoreProperties(ignoreUnknown=true)
 public class ThingDTO extends AllowValidation {
+	//Help document, if one
+	private long helpDocumentID = 0l;
 	//Application's data
 	private String applicationUrl="";		//URL of the application, required
 	private long applDictNodeId=0;			//Id of an application's dictionary node
@@ -84,6 +86,12 @@ public class ThingDTO extends AllowValidation {
 	private List<ThingDTO> auxPath = new ArrayList<ThingDTO>();						//auxiliary path
 	private int auxPathIndex=0;																			//the current index in it
 	
+	public long getHelpDocumentID() {
+		return helpDocumentID;
+	}
+	public void setHelpDocumentID(long helpDocumentID) {
+		this.helpDocumentID = helpDocumentID;
+	}
 	public String getApplicationUrl() {
 		return applicationUrl;
 	}

@@ -29,6 +29,7 @@ import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.PersonSelectorDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
 import org.msh.pharmadex2.dto.SystemImageDTO;
+import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.slf4j.Logger;
@@ -360,12 +361,26 @@ public class ResourceService {
 		Concept node=fileNode("images.design", varName);
 		String typeOpen = "inline";
 		String mediaType = "application/pdf";
+		return createFileResponse(fileName, node, typeOpen, mediaType);
+	}
+	/**
+	 * Create response as a file form file node given
+	 * In case of file node absence, get from static resource
+	 * @param fileName
+	 * @param node
+	 * @param typeOpen
+	 * @param mediaType
+	 * @return
+	 * @throws ObjectNotFoundException
+	 * @throws IOException
+	 */
+	public ResponseEntity<Resource> createFileResponse(String fileName, Concept node, String typeOpen, String mediaType)
+			throws ObjectNotFoundException, IOException {
 		if(node != null) {
 			FileResource fres = boilerServ.fileResourceByNode(node);
 			fileName = node.getLabel();
 			Resource res = new ByteArrayResource(fres.getFile());
 			mediaType = fres.getMediatype();
-			
 			return ResponseEntity.ok()
 					.contentType(MediaType.parseMediaType(mediaType))
 					.contentLength(fres.getFileSize())
@@ -383,5 +398,35 @@ public class ResourceService {
 					.body(res);
 			//throw new ObjectNotFoundException(" load. File not found. Node url=\"images.design\", varName=\""+varName +"\"");
 		}
+	}
+	/**
+	 * Determine URL to get thing help document from image.resources
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public ThingDTO thingHelp(ThingDTO data) throws ObjectNotFoundException {
+		Concept node=fileNode("images.design", data.getUrl());
+		if(node!=null) {
+			data.setHelpDocumentID(node.getID());
+		}else {
+			data.setHelpDocumentID(0l);
+		}
+		return data;
+	}
+	/**
+	 * Open thing help document
+	 * @param id
+	 * @return
+	 * @throws IOException 
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public ResponseEntity<Resource> thingHelpOpen(Long id) throws ObjectNotFoundException, IOException {
+		Concept node = closureServ.loadConceptById(id);
+		String typeOpen = "inline";
+		String mediaType = "application/pdf";
+		return createFileResponse(node.getLabel(), node, typeOpen, mediaType);
 	}
 }

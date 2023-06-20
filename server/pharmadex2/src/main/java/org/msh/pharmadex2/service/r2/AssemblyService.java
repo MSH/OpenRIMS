@@ -199,7 +199,7 @@ public class AssemblyService {
 				fld.setRequired(false);
 				fld.setReadOnly(false);
 				fld.setTextArea(false);
-				fld.setPropertyName("concurrenturl");
+				fld.setPropertyName(LiteralService.CONCURRENTURL);
 				ret.add(fld);	
 			}
 			{// notes to mail 26.11.2022
@@ -739,7 +739,7 @@ public class AssemblyService {
 				cell1.getVariables().add(HIDECHECKLIST_FLD);	//2023-02-13
 				cell1.getVariables().add("dataurl");
 				cell1.getVariables().add("addressurl");
-				cell1.getVariables().add("concurrenturl");			//2023-05-04
+				cell1.getVariables().add(LiteralService.CONCURRENTURL);			//2023-05-04
 				cell1.getVariables().add("attention");
 				cell1.getVariables().add("attnote");// notes to mail 26.11.2022
 				row.getCells().add(cell1);

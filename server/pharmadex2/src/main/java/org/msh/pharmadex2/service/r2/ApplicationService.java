@@ -28,6 +28,7 @@ import org.msh.pdex2.model.r2.ThingDict;
 import org.msh.pdex2.model.r2.ThingThing;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.r2.Checklistr2Repo;
+import org.msh.pdex2.repository.r2.HistoryRepo;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.ActivityDTO;
 import org.msh.pharmadex2.dto.ActivityHistoryDataDTO;
@@ -105,6 +106,8 @@ public class ApplicationService {
 	private PubOrgService pubOrgServ;
 	@Autowired
 	private AssemblyService assmServ;
+	@Autowired
+	private HistoryRepo historyRepo;
 	//@Autowired
 	//private MailService mailService;
 
@@ -687,11 +690,13 @@ public class ApplicationService {
 				if (h.getActConfig() != null) {
 					if (h.getActConfig().getID() == actConf.getID()) {
 						Concept exec = closureServ.getParent(h.getActivity());
-						boolean sameExec = accServ.sameEmail(exec.getIdentifier(), email);
-						//if (h.getActivityData() != null || sameExec) {
-						if (h.getGo() == null && sameExec) {
-							found=true;
-							break;
+						if(exec != null) {
+							boolean sameExec = accServ.sameEmail(exec.getIdentifier(), email);
+							//if (h.getActivityData() != null || sameExec) {
+							if (h.getGo() == null && sameExec) {
+								found=true;
+								break;
+							}
 						}
 					}
 				}
@@ -724,7 +729,7 @@ public class ApplicationService {
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
-	private History openHistory(Date scheduled, History curHis, Concept actConf, Concept activity, Concept activityData,
+	public History openHistory(Date scheduled, History curHis, Concept actConf, Concept activity, Concept activityData,
 			String prevNotes) throws ObjectNotFoundException {
 		History his = new History();
 		his.setApplDict(curHis.getApplDict());
@@ -916,7 +921,7 @@ public class ApplicationService {
 			//get the most appropriate history using dataId
 			if(data.getDataId()>0) {
 				Concept applData= closureServ.loadConceptById(data.getDataId());
-				List<History> allHis = boilerServ.historyAll(applData);
+				List<History> allHis = historyRepo.findAllByApplicationDataOrderByID(applData);
 				//search for opened initial application record 
 				for(History h : allHis) {
 					if(h.getActivityData()!=null && h.getApplicationData()!=null &&
