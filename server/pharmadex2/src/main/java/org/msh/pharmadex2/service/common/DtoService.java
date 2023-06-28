@@ -86,6 +86,7 @@ public class DtoService {
 	@Transactional
 	public OptionDTO userList(List<User> userList) throws ObjectNotFoundException {
 		OptionDTO ret = new OptionDTO();
+		ret.getOptions().add(OptionDTO.of(0, "-", ""));
 		if(userList != null) {
 			for(User user : userList) {
 				ret.getOptions().add(optionFromUser(user));

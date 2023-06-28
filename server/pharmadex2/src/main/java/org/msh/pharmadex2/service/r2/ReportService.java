@@ -679,7 +679,7 @@ public class ReportService {
 				table.setHeaders(applServ.historyHeaders(table.getHeaders(), user, false));
 			}
 			jdbcRepo.application_history(data.getNodeId());
-			table = applServ.historyTableRows(table, false);
+			table = applServ.applicationHistoryTableRows(table, false);
 			table.setSelectable(false);
 		}
 		return data;

@@ -252,90 +252,17 @@ public class SubmitService {
 	@Transactional
 	public ActivitySubmitDTO createActions(UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		List<String> allowed = new ArrayList<String>();
-
+		//allowed actions list
 		if(data.isMonitoring()) {//monitoring
-			allowed.addAll(submitMonitoringAction(user, data));
+			allowed.addAll(submitMonitoringAction(user, data));	//actions for processes opened using a monitoring table 
+		}else { 
+			if(data.isReassign() || data.isReject()) {//button
+				allowed.addAll(submitButtonAction(user, data));		//actions that start by buttons (reassign, return to applicant)
+			}else {
+				allowed.addAll(submitAction(user, data));				//actions in the submit form
+			}
 		}
-		else if(data.isReassign() || data.isReject()) {//button
-			allowed.addAll(submitButtonAction(user, data));
-		}else {//submit
-			allowed.addAll(submitAction(user, data));
-		}//submit
-
-		/*if (accServ.isSupervisor(user)) {
-			// NMRA supervisor ------------------------------------------------------------
-			data = validServ.submitNext(curHis, user, data);
-			if (data.isValid()) {
-				allowed.add("0"); // supervisor next activiti workflow ika27.03.2023			}
-				data = validServ.actionCancel(curHis, data);
-			}
-			if (data.isValid()) {
-				allowed.add("3"); // cancel
-			}
-			data = validServ.actionNew(curHis, data);
-			if (data.isValid()) {
-				allowed.add("2"); // new activity, any activity
-			}
-			data = validServ.actionReassign(curHis, data);
-			if (data.isValid()) {
-				allowed.add("6"); // reassign the executor
-			}
-			if(hasShutdown(curHis,amendmentServ.initialApplicationData(curHis.getApplicationData()))) {
-				allowed.add("9"); // revoke the permit
-			}
-			// khomka 07052023
-			data = validServ.submitAmendment(curHis, user, data);
-			if (data.isValid()) {
-				allowed.add("7"); // implement an amendment
-			}
-			//like any other user ---------------------------------------------------
-			data = validServ.submitApprove(curHis, user, data, null); 
-			if (data.isValid()){ 
-				allowed.add("4"); 
-			}
-			data = validServ.submitDeregistration(curHis, user, data);
-			if (data.isValid()) {
-				allowed.add("8"); // implement a deregistration
-			}
-
-		} else {
-			if (data.isApplicant()) {
-				data = validServ.submitNext(curHis, user, data);
-				if (data.isValid()) {
-					allowed.add("0"); // applicant is restricted to submit next and has not rights to select
-					// activity/executor
-				}
-			} else {
-				data = validServ.submitNext(curHis, user, data);//ika06122022
-				if (data.isValid()) {
-					data = validServ.submitAmendment(curHis, user, data);
-					if (!data.isValid()) {
-						allowed.add("0"); // next activity
-					}
-				}
-				data = validServ.submitRoute(curHis, user, data);
-				if (data.isValid()) {
-					allowed.add("1"); // route to another executor
-				}
-				data = validServ.submitApprove(curHis, user, data, null);
-				if (data.isValid()) {
-					allowed.add("4");
-				}
-				data = validServ.submitAmendment(curHis, user, data);
-				if (data.isValid()) {
-					allowed.add("7"); // implement an amendment
-				}
-				data = validServ.submitReject(curHis, user, data);
-				if (data.isValid()) {
-					allowed.add("5");
-				}
-				data = validServ.submitDeregistration(curHis, user, data);
-				if (data.isValid()) {
-					allowed.add("8"); // implement an amendment
-				}
-			}
-		}*/
-
+		//allowed actions table
 		DictionaryDTO actDict = systemServ.submitActionDictionary();
 		TableQtb dictTable = actDict.getTable();
 		List<Concept> items = new ArrayList<Concept>();
@@ -349,54 +276,53 @@ public class SubmitService {
 		data.clearErrors();
 		return data;
 	}
+	/**
+	 * Collect all submit actions possible
+	 * @param user
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
 	private List<String> submitAction(UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		History curHis = boilerServ.historyById(data.getHistoryId());
 		List<String> allowed = new ArrayList<String>();
-		if(validServ.isActivityFinalAction(curHis, SystemService.FINAL_NO)) {
-			//all executors
+		if(validServ.isActivityFinalAction(curHis, SystemService.FINAL_NO)) {	//no special finalization actions, no finalization
+			//for all executors continue to the next step is allowed
 			data = validServ.submitNext(curHis, user, data);
 			if (data.isValid()) {
-				allowed.add("0"); // applicant is restricted to submit next and has not rights to select
-				// activity/executor
+				allowed.add("0");
 			}
 			if(accServ.isEmployee(user)) {//NMRA
 				if(systemServ.isHost(curHis)) {
-					if(hasShutdown(curHis,amendmentServ.initialApplicationData(curHis.getApplicationData()))) {
-						allowed.add("9"); // revoke the permit
+					if(isRevokeProcessPossible(curHis,amendmentServ.initialApplicationData(curHis.getApplicationData()))) {
+						allowed.add("9"); // revoke the permit is allowed for any NMRA user
 					}
 				}else {
 					if(validServ.submitDecline(curHis, data)) {
-						allowed.add("10");
-						allowed.add("0");
+						allowed.add("10");	//decline is a regular action
+						allowed.add("0");		// next should be allowed too
 					}
 				}
-			}//No
-		}else if(accServ.isEmployee(user)) { //!No
-			/*String numAction="";
-			if(systemServ.isDeregistration(curHis) 
-					|| systemServ.isShutdown(curHis)) {
-				data = validServ.submitDeregistration(curHis, user, data);
-				numAction="8";
-			}else {
+			}
+		}else //it is a finalization step. Possible one of outcomes "Approve (4) or Decline (9). 
+			// Revocation may be added if appropriate
+			if(accServ.isEmployee(user)) {	// finalization allowed only for NMRA employees 
 				data = validServ.submitApprove(curHis, user, data, null);
-				numAction="4";
-			}*/
-			data = validServ.submitApprove(curHis, user, data, null);
-			if (data.isValid()){ 
-				allowed.add("4"); 
-			}
-			if(systemServ.isHost(curHis)) {
-				if(hasShutdown(curHis,amendmentServ.initialApplicationData(curHis.getApplicationData()))) {
-					allowed.add("9"); // revoke the permit
+				if (data.isValid()){ 
+					allowed.add("4"); 
 				}
-			}else {
-				if(validServ.submitDecline(curHis, data)) {
-					allowed.add("10");
-					allowed.add("0");
+				if(systemServ.isHost(curHis)) {
+					if(isRevokeProcessPossible(curHis,amendmentServ.initialApplicationData(curHis.getApplicationData()))) {
+						allowed.add("9"); // revoke the permit
+					}
+				}else {	//for current, decline possible only for guest processes
+					if(validServ.submitDecline(curHis, data)) {
+						allowed.add("10");
+						allowed.add("0"); // next should be allowed too
+					}
 				}
-			}
 
-		}//!No
+			}
 		return allowed;
 	}
 	private List<String> submitButtonAction(UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
@@ -423,6 +349,13 @@ public class SubmitService {
 		}
 		return allowed;
 	}
+	/**
+	 * Actions allowed from the monitoring feature 
+	 * @param user
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
 	private List<String> submitMonitoringAction(UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		History curHis = boilerServ.historyById(data.getHistoryId());
 		List<String> allowed = new ArrayList<String>();
@@ -440,7 +373,7 @@ public class SubmitService {
 				allowed.add("3"); // cancel
 			}
 			if(systemServ.isHost(curHis)) {
-				if(hasShutdown(curHis,amendmentServ.initialApplicationData(curHis.getApplicationData()))) {
+				if(isRevokeProcessPossible(curHis,amendmentServ.initialApplicationData(curHis.getApplicationData()))) {
 					allowed.add("9"); // revoke the permit
 				}
 			}
@@ -575,36 +508,34 @@ public class SubmitService {
 		return data;
 	}
 	/**
-	 * Can I revoke my permission?
-	 * @param curHis 
-	 * @param applData 
-	 * @return yes|no
+	 * Can we run the revoke permit process for the permit data given? 
+	 * @param curHis  the activity
+	 * @param applData permit data
+	 * @return true, if it is existing
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public boolean hasShutdown( History curHis, Concept applData) throws ObjectNotFoundException {
+	public boolean isRevokeProcessPossible( History curHis, Concept applData) throws ObjectNotFoundException {
 		Concept root=boilerServ.getRootTree(applData);
 		Concept conDict=systemServ.revokepermitDictNode(root.getIdentifier());
-		if(conDict!=null) {
-			//curHis.getApplicationData()
-			//Concept objectData = boilerServ.initialApplicationNode(applData);
-			jdbcRepo.application_history(applData.getID());
+		if(conDict!=null) {		// the revoke permit process is defined, check the possibility to run it
+			jdbcRepo.application_history(applData.getID());	//take all history for the permit data into a temporary table
 			TableQtb table=new TableQtb();
 			table.getHeaders().setPageSize(Integer.MAX_VALUE);
-			table = appServ.historyTableRows(table, true);
+			table = appServ.applicationHistoryTableRows(table, true);	//take not completed job units
 			if(table.getRows().size()>0) {
 				List<TableRow> rows =table.getRows();
 				for(TableRow row:rows) {
 					History h=boilerServ.historyById(row.getDbID());
 					if(systemServ.isGuest(h) || systemServ.isDeregistration(h) || systemServ.isShutdown(h)) {
-						return false;
+						return false;	//revoke is impossible when the permit is not registered yet, or on deregistration or on revocation
 					}
 				}
 				return true;
 			}
-			return true;
+			return true;	//there are no not completed job units, it is strange, but revoke is possible
 		}
-		return false;
+		return false;	//not defined
 	}
 	/**
 	 * Table contains all submit actions possible in this case
@@ -886,7 +817,7 @@ public class SubmitService {
 				}
 
 			} else {
-				throw new ObjectNotFoundException("submit. History record id is ZERO", logger);
+				throw new ObjectNotFoundException(data.getIdentifier(), logger);
 			}
 		}
 		return data;
@@ -901,6 +832,7 @@ public class SubmitService {
 	 */
 	@Transactional
 	private AllowValidation submitCondition(History curHis, AllowValidation data, UserDetailsDTO user) throws ObjectNotFoundException {
+		data.clearErrors();
 		Concept applDict=curHis.getApplDict();
 		Concept applicationData=curHis.getApplicationData();
 		Concept dict = closureServ.getParent(applDict);
@@ -1004,43 +936,38 @@ public class SubmitService {
 	public ActivitySubmitDTO submitAddActivity(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
 			throws ObjectNotFoundException {
 		if (data.isValid()) {
-			//cancelUsersActivities(user, curHis); 2023-03-01
 			List<Long> executors = data.executors();
 			long actConfId = data.nextActivity();
 			Concept actConf = closureServ.loadConceptById(actConfId);
 			if (executors.size() > 0) {
-				//add verification Add a check for belonging to the Modification
-				//(then add to the finalization check for Amendment & Acceptance) ik 23.05.2023
 				if(systemServ.isAmend(curHis)){
-					data = amendmentServ.implement(curHis, actConf, data, user); // is it amendment?
+					// form amendment process, if for the next activity finalization action is  AMEND or ACCEPT,
+					// then, implement the amendment
+					data = amendmentServ.implement(curHis, actConf, data, user);
 				}
 				if (data.isValid()) {
+					// then implement next actions
 					for (Long execId : executors) {
-						// ika => execId=0 !!! APPLICANT
 						String identifierUser = "";
-						if (execId == 0) {
+						if (execId == 0) {  
+							// ika => execId=0 !!! APPLICANT is an executor of the next activity. It is only for backward compatibility
 							identifierUser = data.getExecs().getRows().get(0).getRow().get(2).getValue();
 						} else {
+							//otherwise, the executor of the next activity is NMRA employee
 							Concept userConc = closureServ.loadConceptById(execId);
 							identifierUser = userConc.getIdentifier();
 						}
+						//create the next activity
 						appServ.activityCreate(null, actConf, curHis, identifierUser, data.getNotes().getValue());
 					}
 				}
 			} else {
+				// The executor of the next activity is an applicant
 				if (data.getApplicantEmail().length() > 0) {
-					// send to applicant
 					appServ.activityCreate(null, actConf, curHis, data.getApplicantEmail(), data.getNotes().getValue());
 				} else {
-					// user sends activity to himself
-					//add verification Add a check for belonging to the Modification
-					//(then add to the finalization check for Amendment & Acceptance) ik 23.05.2023
-					if(systemServ.isAmend(curHis)){
-						data = amendmentServ.implement(curHis, actConf, data, user); // is it amendment?
-					}
-					if (data.isValid()) {
-						appServ.activityCreate(null, actConf, curHis, user.getEmail(), data.getNotes().getValue());
-					}
+					// applicant sends activity to self
+					appServ.activityCreate(null, actConf, curHis, user.getEmail(), data.getNotes().getValue());
 				}
 			}
 		}
@@ -1050,7 +977,7 @@ public class SubmitService {
 	 * Submit an activity in a workflow
 	 * The submit action is defined by the code of an activity
 	 * This code should be selected by a user from the left upper table
-	 * The content of the left upper table is calculated before  
+	 * The content of the left upper table is calculated in submitCreateData
 	 * 
 	 * @param user
 	 * @param data
@@ -1077,10 +1004,10 @@ public class SubmitService {
 		if (accServ.isActivityExecutor(curHis.getActivity(), user) || accServ.isSupervisor(user)) {
 			int actCode = data.actionSelected();
 			if (data.isApplicant()) {
-				actCode = 0;
+				actCode = 0;						//for applicant only "continue" is allowed
 			};
 			switch (actCode) {
-			case 0: // NMRA executor continue workflow from the activity selected
+			case 0:
 				//Continue
 				data = validServ.submitNext(curHis, user, data);
 				if(data.isValid()) {
@@ -1096,18 +1023,9 @@ public class SubmitService {
 					}
 				}
 				return data;
-				/*case 1: // NMRA executor route the activity to other executor
-				data = validServ.submitRoute(curHis, user, data);
-				data = validServ.submitReAssign(curHis, user, data);
-				if(data.isValid()) {
-					data = submitReAssign(curHis, user, data);
-				}
-				return data;*/
-			case 2: // NMRA executor initiate an additional activity for others NMRA executors or
-				// for the applicant 
-				//new action
+			case 2: 
+				//run any activity concurrently the current one
 				data = checkApplicantExecutor(data, curHis);
-				//data = validServ.submitAddActivity(curHis, user, data);
 				data = validServ.submitAddActivityData(curHis, user, data);
 				if(data.isValid()) {
 					data = submitAddActivity(curHis, user, data);
@@ -1123,17 +1041,7 @@ public class SubmitService {
 				}
 				return data;
 			case 4:
-				//Approve (accept & company = accept, amend, company, deregistration)
-				if(systemServ.isAmend(curHis)) {
-					data = validServ.submitAmendment(curHis, user, data);
-					if (data.isValid()) {
-						sendEmailAttention(user, curHis, data);
-						data = isAmended(curHis, user, data);
-						data = submitApprove(curHis, user, data);
-					}
-				}else {
-					data = submitSendApprove(data, user, curHis); //validation is inside
-				}
+				data = submitSendApprove(data, user, curHis); //validation is inside
 				return data;
 			case 5:
 				//returnToApplicant
@@ -1151,25 +1059,7 @@ public class SubmitService {
 					data = submitReAssign(curHis, user, data);
 				}
 				return data;
-				/*case 7:
-				data = validServ.submitAmendment(curHis, user, data);
-				if (data.isValid()) {
-					sendEmailAttention(user, curHis, data);
-					data = isAmended(curHis, user, data);
-					data = submitApprove(curHis, user, data);
-				}
-				return data;*/
-				/*case 8:
-				//submit (Approve) NMRA - isDeregistration, isShutdown
-				data = validServ.submitDeregistration(curHis, user, data);
-				data = validServ.submitDeregistrationData(curHis, data);
-				if (data.isValid()) {
-					sendEmailAttention(user, curHis, data);
-					data = submitDeregistration(curHis, user, data);
-				}
-				return data;*/
 			case 9:
-				//submit&Monitoring (revoke permit) - isHost
 				data = validServ.submitRevokePermit(curHis, user, data);
 				if(data.isValid()) {
 					data = submitRevokePermit(curHis, user, data);
@@ -1179,8 +1069,8 @@ public class SubmitService {
 				//decline
 				data = validServ.submitDeclineData(curHis, user, data);
 				if (data.isValid()) {
-					 if (systemServ.isShutdown(curHis)|| systemServ.isAmend(curHis)|| systemServ.isDeregistration(curHis)){
-						cancellActivities(curHis);
+					if (systemServ.isShutdown(curHis)|| systemServ.isAmend(curHis)|| systemServ.isDeregistration(curHis)){
+						cancelActivities(curHis);
 					}else {
 						sendEmailAttention(user, curHis, data);
 						data = submitDeclineGuest(curHis, user, data);
@@ -1220,13 +1110,13 @@ public class SubmitService {
 			}
 			appServ.closeActivity(curHis, false);
 			submitAddActivity(curHis, user, data);
-			
+
 			// 10/06/2023 khomenska
 			data = createConcurentUrlProcess(curHis, user, data);
 		}
 		return data;
 	}
-	
+
 	/** 
 	 * if Configuretion current history contains not empty field CurrentUrl
 	 * create process by WF 
@@ -1239,7 +1129,7 @@ public class SubmitService {
 	 */
 	private ActivitySubmitDTO createConcurentUrlProcess(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		curHis = boilerServ.historyById(data.getHistoryId());
-		
+
 		String concurentUrl = validServ.getConcurentUrl(curHis, data);
 		if(concurentUrl != null) {
 			Concept configRoot = closureServ.loadRoot("configuration." + concurentUrl);
@@ -1461,7 +1351,7 @@ public class SubmitService {
 		if(!ret.isEmpty()) {
 			History firstRet=ret.get(0);
 			if(systemServ.isGuest(firstRet)||systemServ.isDeregistration(firstRet)||systemServ.isAmend(firstRet)) {
-				cancellActivities(curHis);
+				cancelActivities(curHis);
 				ThingDTO tdto = new ThingDTO();
 				tdto.setNodeId(firstRet.getApplicationData().getID());
 				Concept applicant = closureServ.getParent(firstRet.getApplication());
@@ -1510,13 +1400,16 @@ public class SubmitService {
 		}
 		if (systemServ.isDeregistration(curHis)) {
 			data.clearErrors();
-			//cancellActivities(curHis); This danger operation
 			data=submitDeregistration(curHis, user, data);
 			return data;
 		}
 		if(systemServ.isShutdown(curHis)) {
 			data.clearErrors();
 			data=submitApproveRevoke(curHis, user, data);
+			return data;
+		}
+		if(systemServ.isGuestInspection(curHis)) {
+			data = submitGuest(curHis, data);
 			return data;
 		}
 		data.setIdentifier(messages.get("invalidstage"));
@@ -1558,11 +1451,7 @@ public class SubmitService {
 		if (data.isValid()) {
 			appServ.closeActivity(curHis, false);
 			cancelUsersActivities(user, curHis);
-			Concept deregData = amendmentServ.amendedConcept(curHis.getApplicationData());
-			if(deregData.getID()==0) {
-				deregData=amendmentServ.initialApplicationData(curHis.getApplicationData());
-			}
-			cancelDataActivities(deregData, true); // cancel all activities, include monitoring
+			closeAllHistory(curHis);
 			List<Long> executors = data.executors();
 			long actConfId = data.nextActivity();
 			if (actConfId > 0) {
@@ -1622,7 +1511,8 @@ public class SubmitService {
 	@Transactional
 	private void rejectApplication(History curHis, String applicantEmail, ActivitySubmitDTO data)
 			throws ObjectNotFoundException, JsonProcessingException {
-		closeAllHistory(curHis);
+		//closeAllHistory(curHis);
+		cancelActivities(curHis);
 		// create new application
 		ThingDTO tdto = new ThingDTO();
 		tdto.setNodeId(curHis.getApplicationData().getID());
@@ -1645,10 +1535,24 @@ public class SubmitService {
 
 	private void closeAllHistory(History curHis) throws ObjectNotFoundException {
 		// cancel all histories, close the current
-		List<History> allHist = boilerServ.historyAll(curHis.getApplicationData());
-		for (History h : allHist) {
-			if (h.getGo() == null) {
-				appServ.closeActivity(h, h.getID() != curHis.getID());
+		//List<History> allHist = boilerServ.historyAll(curHis.getApplicationData());
+		Concept applData=closureServ.loadConceptById(curHis.getApplicationData().getID());
+		Concept permitData = amendmentServ.initialApplicationData(applData);
+		jdbcRepo.has_activities(null, null, permitData.getID());
+		Headers headers = new Headers();
+		headers.getHeaders().add(TableHeader.instanceOf("historyID", TableHeader.COLUMN_LONG));
+		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from has_activities", "","", headers);
+		if(!rows.isEmpty()) {
+			List<History> allHist= new ArrayList<History>();
+			for(TableRow r:rows) {
+				Long idHist=(Long)r.getCellByKey("historyID").getOriginalValue();
+				History h=boilerServ.historyById(idHist);
+				allHist.add(h);
+			}
+			for (History h : allHist) {
+				if (h.getGo() == null) {
+					appServ.closeActivity(h, h.getID() != curHis.getID());
+				}
 			}
 		}
 	}
@@ -1665,7 +1569,7 @@ public class SubmitService {
 		if (data.isValid()) {
 			data = validServ.verifyScheduledGuestHost(curHis, data);
 			if(data.isValid()) {
-				cancellActivities(curHis);
+				cancelActivities(curHis);
 				data = runScheduledGuestHost(curHis, data);
 			}
 		}
@@ -1745,7 +1649,7 @@ public class SubmitService {
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	public void cancellActivities(History curHis) throws ObjectNotFoundException {
+	public void cancelActivities(History curHis) throws ObjectNotFoundException {
 		List<History> allHis = boilerServ.historyAllByApplication(curHis.getApplication());
 		// close activities in the current
 		for (History his : allHis) {

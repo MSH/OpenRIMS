@@ -247,7 +247,7 @@ public class ApplicationService {
 			}
 			Concept objectData = boilerServ.initialApplicationNode(his.getApplicationData());
 			jdbcRepo.application_history(objectData.getID());
-			table = historyTableRows( table,  false);
+			table = applicationHistoryTableRows( table,  false);
 			//table.setSelectable(accServ.isSupervisor(user));
 			data.setTable(table);
 			//build table events ika30012023
@@ -266,7 +266,7 @@ public class ApplicationService {
 			}
 			//---Concept objectData = boilerServ.initialApplicationNode(his.getApplicationData());
 			//--jdbcRepo.application_history(objectData.getID());
-			tableEv = historyTableRows(tableEv, true);
+			tableEv = applicationHistoryTableRows(tableEv, true);
 			//tableEv.setSelectable(accServ.isSupervisor(user));
 			data.setTableEv(tableEv);
 			return data;
@@ -277,26 +277,24 @@ public class ApplicationService {
 	}
 
 	/**
-	 * Rows for history table
-	 * 
-	 * @param user OLD params
-	 * @param table
-	 * @param manager OLD param
-	 * @param event for query records next evets ika0012023
+	 * Activities for application history tables
+	 * There are two tables in the application history:
+	 * <ul>
+	 * <li> completed activities
+	 * <li> not completed  activities
+	 * </ul>
+	 * @param table - table to place rows
+	 * @param notCompleted true - select only not completed, false - select only completed
+	 * @return
 	 */
 	@Transactional
-	public TableQtb historyTableRows( TableQtb table,  boolean event) {
+	public TableQtb applicationHistoryTableRows( TableQtb table,  boolean notCompleted) {
 		String where = "";
-		if(event) {
-			//where = "come>= curdate()";
+		if(notCompleted) {
 			where = "go is null";
 		}else {
-			//where = "come<(curdate() + Interval 1 day)";
 			where = "go is not null";
 		}
-		/*if (!manager) {
-			where = where + " and go is not null";
-		}*/
 		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from application_history", "", where,
 				table.getHeaders());
 		TableQtb.tablePage(rows, table);

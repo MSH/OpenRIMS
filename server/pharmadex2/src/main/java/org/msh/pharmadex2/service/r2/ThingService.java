@@ -880,7 +880,9 @@ public class ThingService {
 			}
 			//load data
 			for(String key : data.getDictionaries().keySet()) {
-				data.getDictionaries().put(key, dictServ.createDictionary(data.getDictionaries().get(key)));
+				DictionaryDTO dict = dictServ.createDictionary(data.getDictionaries().get(key));
+				dict=dictServ.page(dict);
+				data.getDictionaries().put(key, dict);
 			}
 		}
 		return data;

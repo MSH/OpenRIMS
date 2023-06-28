@@ -60,8 +60,11 @@ class UserElement extends Component{
     processEvent(event){
         let data=event.data
         if(data.to==this.identifier){
-            if(data.subject="onSelectionChange"){
-                this.state.data[data.data.varName]=data.data
+            if(data.subject=="onSelectionChange" || data.subject=="onDictionaryReloaded"){
+                this.state.data.applDicts[data.data.varName]=data.data
+                if(data.data.varName=='roles'){
+                    this.state.data.roles=data.data
+                }
             }
         }
     }

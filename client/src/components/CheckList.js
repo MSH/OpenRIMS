@@ -64,7 +64,8 @@ class CheckList extends Component{
             }
             if(data.subject=="saveAll" || data.subject=='saveChecklist' || data.subject=='saveAllGuest'){
                 this.save();
-                Navigator.message(this.state.identifier,this.props.recipient,"checklist_saved", this.state.data)
+                // 26062023 khomenska - moved to method this.save()
+                 //Navigator.message(this.state.identifier,this.props.recipient,"checklist_saved", this.state.data)
             }
             if(data.subject=="submit"){
                 this.state.submit=true
@@ -98,8 +99,7 @@ class CheckList extends Component{
 
 
     save(){
-        Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/application/checklist/save", 
-        this.state.data, (query,result)=>{
+        Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/application/checklist/save", this.state.data, (query,result)=>{
             if(result.valid){
                 if(this.state.submit){
                     Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/application/submit", this.state.data, (query,result)=>{
@@ -108,6 +108,7 @@ class CheckList extends Component{
                             Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.success, color:'success'})
                             //Navigator.message(this.state.identifier, this.props.recipient, "cancelThing", {})
                             Navigator.message(this.state.identifier, this.props.recipient, "afterSubmit", this.state.data)
+                            Navigator.message(this.state.identifier,this.props.recipient,"checklist_saved", this.state.data)
                         }else{
                             Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'danger'})
                             this.setState(this.state)
@@ -116,6 +117,7 @@ class CheckList extends Component{
                 }else{
                     //Navigator.message(this.state.identifier, this.props.recipient, "cancelThing", {}) 2023-03-13 AK to avoid close
                     Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.success, color:'success'})
+                    Navigator.message(this.state.identifier,this.props.recipient,"checklist_saved", this.state.data)
                 }
             }else{
                 this.state.data=result

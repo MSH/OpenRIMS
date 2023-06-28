@@ -1731,11 +1731,6 @@ public class ValidationService {
 	@Transactional
 	public ActivitySubmitDTO submitNext(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		data.clearErrors();
-		//if(!deregServ.isDeregistrationActivity(curHis)) {//1
-		//if(!deregServ.isRevokeActivity(curHis)) {
-		//if(!data.isReject()) {
-		//	if(!data.isReassign()) {//2
-
 		Concept exec = closureServ.getParent(curHis.getActivity());
 		if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {
 			if(isActivityForeground(curHis.getActConfig())) {
@@ -1744,10 +1739,6 @@ public class ValidationService {
 				}
 			}
 		}
-		//}//2
-		//}
-		//}
-		//}//1
 		data.setIdentifier(messages.get("error_sendsent")); 
 		data.setValid(false);
 		return data;
@@ -1816,16 +1807,13 @@ public class ValidationService {
 		return data;
 	}
 	/**
-	 * NMRA user can finalize an application only 
-	 * <ul>
-	 * <li> own opened foreground activity
-	 * <li> the latest foreground activity in the configuration
-	 * </ul>
+	 * is it approve finalization activity that is allowed for the current user?
 	 * @param curHis
 	 * @param user
 	 * @param data
+	 * @param nextActs
 	 * @return
-	 * @throws ObjectNotFoundException 
+	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
 	public ActivitySubmitDTO submitApprove(History curHis, UserDetailsDTO user, ActivitySubmitDTO data, List<Concept> nextActs) throws ObjectNotFoundException {
@@ -1833,10 +1821,10 @@ public class ValidationService {
 		data.setColorAlert("info");
 		if(!data.isReassign()) {
 			Concept exec = closureServ.getParent(curHis.getActivity());
-			if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {
-				if(isActivityForeground(curHis.getActConfig())) {
-					if(curHis.getGo()==null) {
-						if(isActivitySubmitApprove(curHis)) {
+			if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {	//allowed only for the owner
+				if(isActivityForeground(curHis.getActConfig())) {					//only foreground
+					if(curHis.getGo()==null) {													//not submitted yet
+						if(isActivitySubmitApprove(curHis)) {							//approval
 							return data;
 						}
 					}
@@ -1848,7 +1836,12 @@ public class ValidationService {
 		data.setValid(false);
 		return data;
 	}
-
+	/**
+	 * Under approve we've collected accept, deregistration, company and amend finalization actions
+	 * @param curHis
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
 	public boolean isActivitySubmitApprove(History curHis) throws ObjectNotFoundException {
 		//return isActivityFinalAction(curHis, SystemService.FINAL_ACCEPT) || isActivityFinalAction(curHis, SystemService.FINAL_COMPANY);
 		return isActivityFinalAction(curHis, SystemService.FINAL_DEREGISTRATION)
@@ -1873,46 +1866,7 @@ public class ValidationService {
 		}
 		return data;
 	}
-	/**
-	 * is it Finalize.AMEND action in amendment workflow?
-	 * @param curHis
-	 * @param user 
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	public ActivitySubmitDTO submitAmendment(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
-		data.clearErrors();
-		if(!data.isReassign()) {
-			Concept exec = closureServ.getParent(curHis.getActivity());
-			if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {
-				if(isAmendmentWorkflow(curHis)) {
-					if(isActivityForeground(curHis.getActConfig())) {
-						if(curHis.getGo()==null) {
-							if(isActivityFinalAction(curHis, SystemService.FINAL_AMEND) 
-									|| isActivityFinalAction(curHis, SystemService.FINAL_ACCEPT)
-									|| isActivityFinalAction(curHis, SystemService.FINAL_COMPANY)) {
-								return data;
-							}else {
-								data.setIdentifier(messages.get("error_activityinappropriate"));
-								data.setValid(false);
-							}
-						}
-					}
-				}else {
-					data.setIdentifier(messages.get("error_accessdenied"));
-					data.setValid(false);
-				}
-			}else {
-				data.setIdentifier(messages.get("error_workflowinappropriate"));
-				data.setValid(false);
-			}
-		}else {
-			data.setIdentifier(messages.get("error_workflowinappropriate"));
-			data.setValid(false);
-		}
-		return data;
-	}
+
 	/**
 	 * Deregistration is allowed if this application is de-registration and application data thing has valid link to 
 	 * @param curHis
@@ -1985,10 +1939,10 @@ public class ValidationService {
 	}
 
 	/**
-	 * Is this activity the finalization action
-	 * @param curHis
-	 * @param finalAction 
-	 * @return
+	 * Is this activity configured with the finalization action given
+	 * @param curHis history record for the activity
+	 * @param finalAction finalization action given
+	 * @return true, if the activity is configured with the finalization action from the second parameter
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional

@@ -126,6 +126,29 @@ public class SystemService {
 	}
 
 	/**
+	 * Some system dictionary need to be actualize by removing deprecated roles
+	 * These roles should be inactive to ensure backward compatibility
+	 * @param root
+	 * @param roleToRemove
+	 */
+	@Transactional
+	private void removeRoleFromDictionary(Concept root, String roleToRemove) {
+		List<Concept> childs = closureServ.loadLevel(root);
+		if(childs != null) {
+			for(Concept child : childs) {
+				if(child.getIdentifier().equalsIgnoreCase(roleToRemove)) {
+					if(child.getActive()) {
+						child.setActive(false);
+						child=closureServ.save(child);
+						break;
+					}
+				}
+			}
+		}
+		
+	}
+	
+	/**
 	 * Loads or creates user's roles dictionary
 	 * 
 	 * @return
@@ -176,10 +199,11 @@ public class SystemService {
 		addRoleToDictionary(root, FINAL_NO);
 		addRoleToDictionary(root, FINAL_ACCEPT);
 		addRoleToDictionary(root, FINAL_DECLINE);
-		addRoleToDictionary(root, FINAL_AMEND);
-		addRoleToDictionary(root, FINAL_DEREGISTRATION);
+		removeRoleFromDictionary(root, FINAL_AMEND);
+		removeRoleFromDictionary(root, FINAL_DEREGISTRATION);
 		addRoleToDictionary(root, FINAL_COMPANY);
 	}
+
 
 	/**
 	 * Address or Admin unit dictionary. Allows to add new
@@ -552,6 +576,18 @@ public class SystemService {
 		Concept thisDictRoot = closureServ.getParent(curHis.getApplDict());
 		return thisDictRoot.getIdentifier().equalsIgnoreCase(DICTIONARY_SHUTDOWN_APPLICATIONS);
 	}
+	
+	/**
+	 * Is it shutdown application?
+	 * 
+	 * @param curHis
+	 * @return
+	 */
+	public boolean isGuestInspection(History curHis) {
+		Concept thisDictRoot = closureServ.getParent(curHis.getApplDict());
+		return thisDictRoot.getIdentifier().equalsIgnoreCase(DICTIONARY_GUEST_INSPECTIONS);
+	}
+	
 	/**
 	 * Recognize host dictionary node by host process URL
 	 * 

@@ -180,7 +180,7 @@ public class AmendmentService {
 	public ActivitySubmitDTO implement(History curHis, Concept nextActConf, ActivitySubmitDTO data, UserDetailsDTO user)
 			throws ObjectNotFoundException {
 		// which data should be amended
-		if (isAmendment(nextActConf)) {
+		if (isActivityAmendOrAccept(nextActConf)) {
 			Concept amended = amendedConcept(curHis.getApplicationData());
 			Concept amendment = amendmentConcept(curHis.getApplicationData(), amended);
 			Concept oldStored = storedValues(amendment, user);
@@ -595,14 +595,13 @@ public class AmendmentService {
 	}
 
 	/**
-	 * Is it amendment implementation activity?
-	 * 
+	 * The activity configuration contains AMEND or ACCEPT finalization action
 	 * @param activityConfig
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	private boolean isAmendment(Concept activityConfig) throws ObjectNotFoundException {
+	private boolean isActivityAmendOrAccept(Concept activityConfig) throws ObjectNotFoundException {
 		Thing th = boilerServ.thingByNode(activityConfig);
 		for (ThingDict td : th.getDictionaries()) {
 			if (td.getUrl().equalsIgnoreCase(SystemService.DICTIONARY_SYSTEM_FINALIZATION)) {

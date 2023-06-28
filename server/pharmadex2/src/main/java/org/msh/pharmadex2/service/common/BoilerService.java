@@ -1451,19 +1451,50 @@ public class BoilerService {
 		if (root != null) {
 			// load all
 			List<Concept> all = new ArrayList<Concept>();
-			List<Concept> childs = literalServ.loadOnlyChilds(root);
 			all.add(root);
-			while (childs.size() > 0) {
+			/* 27062023 khomenska. if childs.size=2 and first=!active
+			 * error in list all
+			 * 
+			 List<Concept> childs = literalServ.loadOnlyChilds(root);
+			 while (childs.size() > 0) {
 				if (childs.get(0).getActive()) {
 					all.add(childs.get(0));
 				}
 				childs = literalServ.loadOnlyChilds(childs.get(0));
+				}
+			 */
+			//--
+			Concept next = getNextActivityConcept(root);
+			while(next != null) {
+				all.add(next);
+				next = getNextActivityConcept(next);
 			}
+			//--
 			ret.addAll(all);
 		}
 		return ret;
 	}
 
+	/**
+	 * 27062023 khomenska
+	 * get next activity from prev
+	 * get only 1 and activ=true
+	 * @param prev
+	 * @return
+	 */
+	private Concept getNextActivityConcept(Concept prev) {
+		Concept next = null;
+		
+		List<Concept> childs = literalServ.loadOnlyChilds(prev);
+		for(Concept c:childs) {
+			if(c.getActive()) {
+				next = c;
+				break;
+			}
+		}
+		
+		return next;
+	}
 
 	
 }
