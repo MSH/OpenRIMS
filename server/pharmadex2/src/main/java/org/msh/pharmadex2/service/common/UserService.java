@@ -768,7 +768,9 @@ public class UserService implements UserDetailsService {
 			user.getDictionaries().clear();
 			user.getDictionaries().addAll(createDictItems(data.getRoles()));
 			for(String key : data.getApplDicts().keySet()) {
+				if(!key.equalsIgnoreCase("roles")) {
 				user.getDictionaries().addAll(createDictItems(data.getApplDicts().get(key)));
+				}
 			}
 			//other fields
 			YesNoNA enable = dtoServ.optionToEnum(YesNoNA.values(), data.getGlobal_enable().getValue());

@@ -28,8 +28,8 @@ public class MetricTTR implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC2222771884EAAE2A403E69")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC2222771884EAAE2A403E69", strategy="native")	
+	@GeneratedValue(generator="VAC2222721892C6453540048C")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222721892C6453540048C", strategy="native")	
 	private long ID;
 	
 	@Column(name="Minute", nullable=true)	

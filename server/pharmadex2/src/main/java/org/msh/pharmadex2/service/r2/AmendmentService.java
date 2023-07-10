@@ -190,6 +190,7 @@ public class AmendmentService {
 				oldStored = implementAddress(configUrl, amendment, amended, oldStored);
 				oldStored = implementFiles(configUrl, amendment, amended, oldStored);
 				oldStored = implementDictionaries(configUrl, amendment, amended, oldStored);
+				oldStored = implementDropList(configUrl, amendment, amended, oldStored);
 				oldStored = implementPersons(configUrl, amendment, amended, oldStored);
 			} else {
 				data.setValid(false);
@@ -363,6 +364,55 @@ public class AmendmentService {
 		}
 		return storedValues;
 	}
+	
+	/**
+	 * Implement dictionaries modification
+	 * @param configUrl
+	 * @param amendment
+	 * @param amended
+	 * @param oldStored
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private Concept implementDropList(String configUrl, Concept amendment, Concept amended, Concept storedValues) throws ObjectNotFoundException {
+		List<Assembly> assemblies =assemblyServ.loadDataConfiguration(configUrl);
+		List<AssemblyDTO> ads = assemblyServ.auxDropListData(configUrl, assemblies);
+		if(ads.size()>0) {
+			//prepare
+			List<String> keys = new ArrayList<String>();
+			for(AssemblyDTO ad : ads) {
+				keys.add(ad.getPropertyName());
+			}
+			Thing amendmentThing = boilerServ.thingByNode(amendment);
+			Thing amendedThing=boilerServ.thingByNode(amended);
+			//---------------------------store previous----------------------------------------
+			Thing storedThing = storedThing(storedValues);
+			if(storedThing.getDictionaries().size()==0) {
+				for(ThingDict td :amendedThing.getDictionaries()) {
+					storedThing.getDictionaries().add(cloneThingDict(td));
+				}
+			}
+			storedThing = boilerServ.saveThing(storedThing);
+			//---------------------------- amend -------------------------------------------------
+			//remove amended
+			List<ThingDict> notAmended = new ArrayList<ThingDict>();
+			for(ThingDict td : amendedThing.getDictionaries()) {
+				if(!keys.contains(td.getVarname())) {
+					notAmended.add(td);
+				}
+			}
+			amendedThing.getDictionaries().clear();
+			amendedThing.getDictionaries().addAll(notAmended);
+			//add amended
+			for(ThingDict td : amendmentThing.getDictionaries()) {
+				amendedThing.getDictionaries().add(cloneThingDict(td));
+			}
+			amendedThing = boilerServ.saveThing(amendedThing);
+		}
+		return storedValues;
+	}
+	
 	/**
 	 * Create a clone of a ThingDict given
 	 * @param td
@@ -1229,7 +1279,11 @@ public class AmendmentService {
 			throws ObjectNotFoundException {
 		List<String> keys = dictionariesCompare(node, modiUnit);
 		for (String key : keys) {
-			data.getDictionaries().get(key).setChanged(true);
+			if(data.getDictionaries().get(key) != null) {
+				data.getDictionaries().get(key).setChanged(true);
+			}else if(data.getDroplist().get(key) != null) {
+				data.getDroplist().get(key).setMark(true);
+			}
 		}
 		return data;
 	}

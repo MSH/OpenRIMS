@@ -723,6 +723,10 @@ public class ReportService {
 		jdbcRepo.application_history(data.getPermitDataID());
 		String select = "select * from application_history where go is not null";
 		Headers headers = new Headers();
+		TableHeader headerCome = TableHeader.instanceOf("come", TableHeader.COLUMN_LOCALDATE);
+		headerCome.setSort(true);
+		headerCome.setSortValue(TableHeader.SORT_ASC);
+		headers.getHeaders().add(headerCome);
 		headers.getHeaders().add(TableHeader.instanceOf("go", TableHeader.COLUMN_LOCALDATE));
 		headers.getHeaders().add(TableHeader.instanceOf("activityDataID", TableHeader.COLUMN_LONG));
 		headers.getHeaders().add(TableHeader.instanceOf("workflow", TableHeader.COLUMN_STRING));
@@ -746,20 +750,28 @@ public class ReportService {
 			data.getApplHistory().clear();
 			for(TableRow hisRow : hisRows) {
 				Object actDataID = hisRow.getCellByKey("activityDataID").getOriginalValue();
+				ThingDTO dt = new ThingDTO();
+				String title = hisRow.getCellByKey("go").getValue()
+						+ "  "
+						+  hisRow.getCellByKey("workflow").getValue()
+						+"/"
+						+hisRow.getCellByKey("activity").getValue();
 				if(actDataID != null && actDataID instanceof Long && (Long)actDataID>0) {
 					History h = boilerServ.historyById(hisRow.getDbID());
 					List<Assembly> assms=assemblyServ.loadDataConfiguration(h.getDataUrl(), user);
 					if(!assms.isEmpty()) {
-						ThingDTO dt = applServ.createLoadActivityData(h,true);
-						String title = hisRow.getCellByKey("go").getValue()
-								+ "  "
-								+  hisRow.getCellByKey("workflow").getValue()
-								+"/"
-								+hisRow.getCellByKey("activity").getValue();
+						// allow to see the activity data
+						dt = applServ.createLoadActivityData(h,true);
 						dt.setTitle(title);
-						data.getApplHistory().add(dt);
+					}else {
+						//skipped activity data, because of access rules
+						dt.setTitle(title);
 					}
+				}else {
+					//no activity data
+					dt.setTitle(title);
 				}
+				data.getApplHistory().add(dt);
 			}
 		}else {
 			throw new ObjectNotFoundException("History for permit not found. Permti Data ID is "+data.getPermitDataID(),logger);

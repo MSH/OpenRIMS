@@ -335,8 +335,9 @@ public class ActivityAPI{
 	 */
 	@PostMapping({ "/api/*/thing/load"})
 	public ThingDTO thingLoad(Authentication auth, UriComponentsBuilder uri, @RequestBody ThingDTO data) throws DataNotFoundException {
-		//logger.debug("start thing");
-		accServ.allowAuthenticated(auth, uri);
+		if(!data.isReadOnly()) {
+			accServ.allowAuthenticated(auth, uri);
+		}
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			if (data.getNodeId() == 0) {

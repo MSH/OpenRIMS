@@ -28,8 +28,8 @@ public class dwhactivities implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC2222771884EAAE2A103E66")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC2222771884EAAE2A103E66", strategy="native")	
+	@GeneratedValue(generator="VAC2222721892C64535100488")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222721892C64535100488", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	
@@ -73,6 +73,21 @@ public class dwhactivities implements Serializable {
 	@Column(name="DepartmentID", nullable=false, length=20)	
 	private long departmentID;
 	
+	@Column(name="GroupUrl", nullable=true, length=255)	
+	private String groupUrl;
+	
+	@Column(name="GroupName", nullable=true, length=255)	
+	private String groupName;
+	
+	@Column(name="ApplicationUrl", nullable=true, length=255)	
+	private String applicationUrl;
+	
+	@Column(name="ApplicationName", nullable=true, length=255)	
+	private String applicationName;
+	
+	@Column(name="Outcome", nullable=true, length=255)	
+	private String outcome;
+	
 	private void setID(long value) {
 		this.ID = value;
 	}
@@ -83,6 +98,62 @@ public class dwhactivities implements Serializable {
 	
 	public long getORMID() {
 		return getID();
+	}
+	
+	/**
+	 * URL of application dictionary, e.g. dictionary.host.applications
+	 */
+	public void setGroupUrl(String value) {
+		this.groupUrl = value;
+	}
+	
+	/**
+	 * URL of application dictionary, e.g. dictionary.host.applications
+	 */
+	public String getGroupUrl() {
+		return groupUrl;
+	}
+	
+	/**
+	 * Name of the application dictionary, e.g., Host applications
+	 */
+	public void setGroupName(String value) {
+		this.groupName = value;
+	}
+	
+	/**
+	 * Name of the application dictionary, e.g., Host applications
+	 */
+	public String getGroupName() {
+		return groupName;
+	}
+	
+	/**
+	 * Application URL, e.g., application.pharmacy.inspection
+	 */
+	public void setApplicationUrl(String value) {
+		this.applicationUrl = value;
+	}
+	
+	/**
+	 * Application URL, e.g., application.pharmacy.inspection
+	 */
+	public String getApplicationUrl() {
+		return applicationUrl;
+	}
+	
+	/**
+	 * Application name, e.g. Pharmacy Inspection
+	 */
+	public void setApplicationName(String value) {
+		this.applicationName = value;
+	}
+	
+	/**
+	 * Application name, e.g. Pharmacy Inspection
+	 */
+	public String getApplicationName() {
+		return applicationName;
 	}
 	
 	/**
@@ -119,6 +190,20 @@ public class dwhactivities implements Serializable {
 	 */
 	public String getActivityUrl() {
 		return activityUrl;
+	}
+	
+	/**
+	 * Activity name
+	 */
+	public void setActivity(String value) {
+		this.activity = value;
+	}
+	
+	/**
+	 * Activity name
+	 */
+	public String getActivity() {
+		return activity;
 	}
 	
 	public void setActivityID(long value) {
@@ -158,17 +243,17 @@ public class dwhactivities implements Serializable {
 	}
 	
 	/**
-	 * Activity name
+	 * Activity outcome code
 	 */
-	public void setActivity(String value) {
-		this.activity = value;
+	public void setOutcome(String value) {
+		this.outcome = value;
 	}
 	
 	/**
-	 * Activity name
+	 * Activity outcome code
 	 */
-	public String getActivity() {
-		return activity;
+	public String getOutcome() {
+		return outcome;
 	}
 	
 	/**

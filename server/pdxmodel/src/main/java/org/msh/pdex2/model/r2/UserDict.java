@@ -28,8 +28,8 @@ public class UserDict implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC2222771884EAAE28803E48")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC2222771884EAAE28803E48", strategy="native")	
+	@GeneratedValue(generator="VAC2222721892C6453370046A")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222721892C6453370046A", strategy="native")	
 	private long ID;
 	
 	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	

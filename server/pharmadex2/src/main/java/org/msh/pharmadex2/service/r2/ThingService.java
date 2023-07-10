@@ -283,6 +283,7 @@ public class ThingService {
 		//DropList data
 		List<AssemblyDTO> droplist = assemblyServ.auxDropListData(data.getUrl(), assemblies);
 		data=dictServ.createDropList(data,droplist);
+		
 		data=validServ.validateThingsIncluded(assemblies, data);
 		return data;
 	}

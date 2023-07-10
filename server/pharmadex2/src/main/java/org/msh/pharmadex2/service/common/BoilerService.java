@@ -433,7 +433,6 @@ public class BoilerService {
 	 */
 	@Transactional
 	public String url(Concept node) throws ObjectNotFoundException {
-		String ret="";
 		Concept exec = closureServ.getParent(node);
 		if(exec!=null) {
 			Concept root= closureServ.getParent(exec);
@@ -1439,62 +1438,60 @@ public class BoilerService {
 		return root;
 	}
 	
+	/**
+	 * Create a path from levels
+	 * 
+	 * @param user
+	 * @param
+	 * @param firstActivity
+	 * @param arrayList
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	@Transactional
+	public List<ThingDTO> createActivitiesPath(Concept activityNode, List<ThingDTO> path)
+			throws ObjectNotFoundException {
+		ThingDTO dto = new ThingDTO();
+		if (activityNode.getActive()) {
+			dto.setUrl("activity.configuration");
+			dto.setNodeId(activityNode.getID());
+			path.add(dto);
+		}
+		List<Concept> nextLevel = literalServ.loadOnlyChilds(activityNode);
+		for (Concept anode : nextLevel) {
+			path = createActivitiesPath(anode, path);
+		}
+		for (ThingDTO td : path) {
+			if (td.getNodeId() > 0) {
+				Concept node = closureServ.loadConceptById(td.getNodeId());
+				td.setTitle(literalServ.readPrefLabel(node));
+			}
+			if (td.getTitle().length() == 0) {
+				td.setTitle(messages.get("newactivity"));
+			}
+		}
+		return path;
+	}
+	
 	/** 
 	 * Load all activities in the workflow
 	 * 
 	 * @param root root activity in the configuration
 	 * @return
+	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public List<Concept> loadActivities(Concept root) {
+	public List<Concept> loadActivities(Concept root) throws ObjectNotFoundException {
 		List<Concept> ret = new ArrayList<Concept>();
-		if (root != null) {
-			// load all
-			List<Concept> all = new ArrayList<Concept>();
-			all.add(root);
-			/* 27062023 khomenska. if childs.size=2 and first=!active
-			 * error in list all
-			 * 
-			 List<Concept> childs = literalServ.loadOnlyChilds(root);
-			 while (childs.size() > 0) {
-				if (childs.get(0).getActive()) {
-					all.add(childs.get(0));
-				}
-				childs = literalServ.loadOnlyChilds(childs.get(0));
-				}
-			 */
-			//--
-			Concept next = getNextActivityConcept(root);
-			while(next != null) {
-				all.add(next);
-				next = getNextActivityConcept(next);
+		if(root != null) {
+			List<ThingDTO> path = new ArrayList<ThingDTO>();
+			path=createActivitiesPath(root, path);
+			for(ThingDTO thing : path) {
+				Concept conc = closureServ.loadConceptById(thing.getNodeId());
+				ret.add(conc);
 			}
-			//--
-			ret.addAll(all);
 		}
 		return ret;
 	}
 
-	/**
-	 * 27062023 khomenska
-	 * get next activity from prev
-	 * get only 1 and activ=true
-	 * @param prev
-	 * @return
-	 */
-	private Concept getNextActivityConcept(Concept prev) {
-		Concept next = null;
-		
-		List<Concept> childs = literalServ.loadOnlyChilds(prev);
-		for(Concept c:childs) {
-			if(c.getActive()) {
-				next = c;
-				break;
-			}
-		}
-		
-		return next;
-	}
-
-	
 }

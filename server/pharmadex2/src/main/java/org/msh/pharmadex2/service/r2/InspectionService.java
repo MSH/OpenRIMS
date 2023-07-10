@@ -119,10 +119,10 @@ public class InspectionService {
 				"come",
 				"scheduled",
 				true, true, true, TableHeader.COLUMN_LOCALDATE, 0));
-		headers.getHeaders().add(TableHeader.instanceOf(
-				"done",
-				"done",
-				true, true, true, TableHeader.COLUMN_LOCALDATE, 0));
+		//headersheaders.getHeaders().add(TableHeader.instanceOf(
+				//"done",
+				//"done",
+			//	true, true, true, TableHeader.COLUMN_LOCALDATE, 0));
 		headers.getHeaders().add(TableHeader.instanceOf(
 				"prefLabel",
 				"prefLabel",

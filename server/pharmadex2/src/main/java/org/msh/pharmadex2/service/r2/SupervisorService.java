@@ -114,7 +114,7 @@ public class SupervisorService {
 			String url = literalServ.readValue("applicationurl", dictNode);
 			if (url.length() > 5) {
 				Concept firstActivity = closureServ.loadRoot("configuration." + url.toLowerCase());
-				List<ThingDTO> path = createPath(firstActivity, new ArrayList<ThingDTO>(), user);
+				List<ThingDTO> path = boilerServ.createActivitiesPath(firstActivity, new ArrayList<ThingDTO>());
 				//set parents
 				long parent=0;
 				for(ThingDTO th: path) {
@@ -133,76 +133,7 @@ public class SupervisorService {
 		return data;
 	}
 
-	/**
-	 * Create a path from levels
-	 * 
-	 * @param user
-	 * @param
-	 * @param firstActivity
-	 * @param arrayList
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	@Transactional
-	private List<ThingDTO> createPath(Concept activityNode, List<ThingDTO> path, UserDetailsDTO user)
-			throws ObjectNotFoundException {
-		ThingDTO dto = new ThingDTO();
-		if (activityNode.getActive()) {
-			dto.setUrl("activity.configuration");
-			dto.setNodeId(activityNode.getID());
-			//dto = thingServ.createContent(dto, user);
-			path.add(dto);
-		}
-		List<Concept> nextLevel = literalServ.loadOnlyChilds(activityNode);
-		for (Concept anode : nextLevel) {
-			path = createPath(anode, path, user);
-		}
-		for (ThingDTO td : path) {
-			if (td.getNodeId() > 0) {
-				Concept node = closureServ.loadConceptById(td.getNodeId());
-				td.setTitle(literalServ.readPrefLabel(node));
-			}
-			if (td.getTitle().length() == 0) {
-				td.setTitle(messages.get("newactivity"));
-			}
-		}
-		return path;
-	}
-	/*	 *//** 2011-11-11 DEPRECATED and useless
-	 * Load activity configuration or user data configuration
-	 * 
-	 * @param data
-	 * @param user
-	 * @return
-	 * @throws ObjectNotFoundException
-	 *//*
-				@Transactional
-				public ThingDTO thingLoad(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
-				if(data.getNodeId()>0) {
-					Concept node= closureServ.loadConceptById(data.getNodeId());
-					Thing thing = new Thing();
-					thing = boilerServ.loadThingByNode(node,thing);
-					//determine URL
-					if(data.getUrl().length()==0) {
-						data.setUrl(thing.getUrl());
-					}
-					String prefLabel = literalServ.readPrefLabel(node);
-					if(prefLabel.length()>0) {
-						data.setTitle(prefLabel);
-					}else {
-						data.setTitle(messages.get(data.getVarName()));
-					}
-					data=thingServ.createContent(data,user);
-					data.setStrings(dtoServ.readAllStrings(data.getStrings(),node));
-					data.setLiterals(dtoServ.readAllLiterals(data.getLiterals(), node));
-					data.setDates(dtoServ.readAllDates(data.getDates(),node));
-					data.setNumbers(dtoServ.readAllNumbers(data.getNumbers(),node));
-					data.setLogical(dtoServ.readAllLogical(data.getLogical(), node));
-				}else {
-					throw new ObjectNotFoundException("thingLoad. Node  is not defined",logger);
-				}
-				return data;
-				}*/
+
 
 	/**
 	 * Create empty activity and add it to the end of path

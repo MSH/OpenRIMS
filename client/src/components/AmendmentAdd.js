@@ -78,7 +78,7 @@ class AmendmentAdd extends Component{
     runNewAmendment(rowNo){
         let row=this.state.data.dataUnits.rows[rowNo]
         let data={
-            url:'',                                     //url of an application, i.e. application.guest, deprecated in favor of applDictNodeId
+            url:'',                                     //url of an application, doesn't use here
             applDictNodeId:this.state.data.dictItemId,  //id of dictionary node that describes an application
             historyId:0,                                //id of the histry record to determine activity and data. Zero means new
             modiUnitId:row.dbID,                        //id of data unit selected to modify

@@ -661,6 +661,7 @@ public class ValidationService {
 	 */
 	private void mandatoryRegister(AssemblyDTO ar, RegisterDTO dto, boolean strict) throws ObjectNotFoundException {
 		dto.clearErrors();
+		if(!dto.isReadOnly()) {
 		dto=dto.ensureDates(dto);
 		LocalDate regDate = dto.getRegistration_date().getValue();
 		LocalDate expDate = dto.getExpiry_date().getValue();
@@ -709,6 +710,7 @@ public class ValidationService {
 				dto.getExpiry_date().invalidate(errorMess+" "+ar.getDescription());
 				dto.setStrict(strict);
 			}
+		}
 		}
 		dto.propagateValidation();
 	}
@@ -2417,9 +2419,6 @@ public class ValidationService {
 	}
 
 	public AllowValidation validWorkFlowConfig(AllowValidation data, String urlConfig,/*Long dictNodeID, */boolean findScheduler) throws ObjectNotFoundException {		
-		/*Concept dictNode = closureServ.loadConceptById(dictNodeID);
-		Concept dictRoot = closureServ.loadParents(dictNode).get(0);
-		String url = literalServ.readValue("applicationurl", dictNode);*/
 		Concept rootConfig = closureServ.loadRoot("configuration." + urlConfig.toLowerCase());
 		List<Concept> nextActs = boilerServ.loadActivities(rootConfig);
 

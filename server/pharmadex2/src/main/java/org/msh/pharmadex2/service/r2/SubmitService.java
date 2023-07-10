@@ -1,5 +1,6 @@
 package org.msh.pharmadex2.service.r2;
 
+import java.sql.Date;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -297,31 +298,32 @@ public class SubmitService {
 					if(isRevokeProcessPossible(curHis,amendmentServ.initialApplicationData(curHis.getApplicationData()))) {
 						allowed.add("9"); // revoke the permit is allowed for any NMRA user
 					}
-				}else {
+				}
+				/*else {
 					if(validServ.submitDecline(curHis, data)) {
 						allowed.add("10");	//decline is a regular action
 						allowed.add("0");		// next should be allowed too
 					}
-				}
+				}*/
 			}
-		}else //it is a finalization step. Possible one of outcomes "Approve (4) or Decline (9). 
-			// Revocation may be added if appropriate
+		}else //it is a finalization step. Possible one of outcomes "Approve (4) or  Decline(10)  
+			// Revocation may be added if appropriate (Host workflow!!!)
 			if(accServ.isEmployee(user)) {	// finalization allowed only for NMRA employees 
 				data = validServ.submitApprove(curHis, user, data, null);
 				if (data.isValid()){ 
 					allowed.add("4"); 
-				}
-				if(systemServ.isHost(curHis)) {
-					if(isRevokeProcessPossible(curHis,amendmentServ.initialApplicationData(curHis.getApplicationData()))) {
-						allowed.add("9"); // revoke the permit
+					//workflow Host+Approve and Revoke + or continue if there is a "decline" in the workflow
+					if(systemServ.isHost(curHis)) {
+						if(isRevokeProcessPossible(curHis,amendmentServ.initialApplicationData(curHis.getApplicationData()))) {
+							allowed.add("9"); // revoke the permit
+						}
 					}
-				}else {	//for current, decline possible only for guest processes
-					if(validServ.submitDecline(curHis, data)) {
-						allowed.add("10");
-						allowed.add("0"); // next should be allowed too
-					}
+					allowed.add("0");//or continue, to select activity "decline"
+				}				//---else {	//for current, decline possible only for guest processes
+				if(validServ.submitDecline(curHis, data)) {
+					allowed.add("10");
+					allowed.add("0"); // next should be allowed too
 				}
-
 			}
 		return allowed;
 	}
@@ -564,7 +566,7 @@ public class SubmitService {
 				// row.setSelected(true);
 				// }
 				table.getRows().add(row);
-				table.setSelectable(!data.isApplicant());
+				//table.setSelectable(!data.isApplicant()); delete this condition IK 28.06.2023
 			} catch (NumberFormatException e) {
 				throw new ObjectNotFoundException(
 						"actionsTable. Invalid action code code/id " + item.getIdentifier() + "/" + item.getID(),
@@ -1071,10 +1073,18 @@ public class SubmitService {
 				if (data.isValid()) {
 					if (systemServ.isShutdown(curHis)|| systemServ.isAmend(curHis)|| systemServ.isDeregistration(curHis)){
 						cancelActivities(curHis);
-					}else {
 						sendEmailAttention(user, curHis, data);
+					}else if(systemServ.isGuest(curHis) || systemServ.isGuestInspection(curHis)){
 						data = submitDeclineGuest(curHis, user, data);
+					}else if(systemServ.isHost(curHis)) {
+						cancelActivities(curHis);
+						Scheduler sch = new Scheduler();
+						Concept dictConc= curHis.getApplDict();
+						sch.setProcessUrl(literalServ.readValue("applicationurl", dictConc));
+						sch.setScheduled(Date.valueOf(LocalDate.now()));
+						data = appServ.createHostApplication(curHis, sch, dictConc, data);
 					}
+					
 				}
 				return data;
 			default:
@@ -1350,7 +1360,7 @@ public class SubmitService {
 		List<History> ret=boilerServ.historyAllOrderByCome(curHis.getApplicationData());
 		if(!ret.isEmpty()) {
 			History firstRet=ret.get(0);
-			if(systemServ.isGuest(firstRet)||systemServ.isDeregistration(firstRet)||systemServ.isAmend(firstRet)) {
+			if(systemServ.isGuest(firstRet)||systemServ.isGuestInspection(firstRet)) {
 				cancelActivities(curHis);
 				ThingDTO tdto = new ThingDTO();
 				tdto.setNodeId(firstRet.getApplicationData().getID());
@@ -1363,6 +1373,7 @@ public class SubmitService {
 				tdto = thingServ.loadThing(tdto, userApp);
 				tdto = thingServ.createApplication(tdto, applicant.getIdentifier(), curHis.getApplicationData());
 				addNotesHistoryData(data, tdto);
+				sendEmailAttention(user, curHis, data);
 			}else {
 				throw new ObjectNotFoundException("First history is not guestApplication for appData ID= "+curHis.getApplicationData(),logger);
 			}

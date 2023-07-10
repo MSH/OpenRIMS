@@ -70,15 +70,21 @@ class ThingsPublisher extends Component{
         let ret = []
         if(Fetchers.isGoodArray(this.state.data)){
             this.state.data.forEach((thing, index)=>{
-                ret.push(
-                    <h5 className='btn-link' key={index+1000} style={{cursor:"pointer"}} 
-                        onClick={()=>{this.toggle(index)}}>{thing.title}</h5>
-                )
-                ret.push(
-                    <Collapse key={index+500} isOpen={this.state.fullcollapse[index].collapse} >
-                        {this.thingComp(index, thing)}
-                    </Collapse>
-                )
+                if(thing.nodeId>0){
+                    ret.push(
+                        <h5 className='btn-link' key={index+1000} style={{cursor:"pointer"}} 
+                            onClick={()=>{this.toggle(index)}}>{thing.title}</h5>
+                    )
+                    ret.push(
+                        <Collapse key={index+500} isOpen={this.state.fullcollapse[index].collapse} >
+                            {this.thingComp(index, thing)}
+                        </Collapse>
+                    )
+                }else{
+                    ret.push(
+                        <h5 className='font-weight-light' key={index+1000}>{thing.title}</h5>
+                    ) 
+                }
             })
         }
         return ret

@@ -406,10 +406,10 @@ public class AdminAPI {
 	 * @return
 	 * @throws DataNotFoundException
 	 */
-	@PostMapping("/api/admin/stages/workflow/selid={selid}")
-	public Dict2DTO stagesWorkflow(@RequestBody Dict2DTO data, @PathVariable(value = "selid") Long selid) throws DataNotFoundException {
+	@PostMapping("/api/admin/stages/workflow")
+	public Dict2DTO stagesWorkflow(@RequestBody Dict2DTO data) throws DataNotFoundException {
 		try {
-			data = systemServ.stagesWorkflow(data, selid);
+			data = systemServ.stagesWorkflow(data);
 			return data;
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);

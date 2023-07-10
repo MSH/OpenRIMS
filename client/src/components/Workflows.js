@@ -44,7 +44,6 @@ class Workflows extends Component{
                         }
                     });
                 }
-                Fetchers.writeLocaly("workflow_selected_id", dictId);
                 this.loader()
             }
             if(data.from==this.state.data.slaveDict.url){
@@ -70,9 +69,7 @@ class Workflows extends Component{
     }
 
     loader(){
-        var api = "/api/admin/stages/workflow/selid="
-        let selected_row=Fetchers.readLocaly("workflow_selected_id", 0);
-        api += selected_row
+        var api = "/api/admin/stages/workflow"
         Fetchers.postJSONNoSpinner(api, this.state.data, (query,result)=>{
             this.state.data=result
             Locales.resolveLabels(this)

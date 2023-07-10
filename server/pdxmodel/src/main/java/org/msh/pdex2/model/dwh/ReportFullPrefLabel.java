@@ -28,13 +28,14 @@ public class ReportFullPrefLabel implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC2222771884EAAE29F03E63")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC2222771884EAAE29F03E63", strategy="native")	
+	@GeneratedValue(generator="VAC2222721892C64534E00485")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222721892C64534E00485", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	
 	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.SAVE_UPDATE, org.hibernate.annotations.CascadeType.LOCK})	
 	@JoinColumns({ @JoinColumn(name="reportsessionID") })	
+	@org.hibernate.annotations.Index(name="byLangAndSession")	
 	@Basic(fetch=FetchType.LAZY)	
 	private org.msh.pdex2.model.dwh.ReportSession reportSession;
 	
@@ -48,6 +49,7 @@ public class ReportFullPrefLabel implements Serializable {
 	private String fullPrefLabel;
 	
 	@Column(name="Lang", nullable=true, length=255)	
+	@org.hibernate.annotations.Index(name="byLangAndSession")	
 	private String lang;
 	
 	private void setID(long value) {

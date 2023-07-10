@@ -70,19 +70,6 @@ public class ImportExportWorkflowService {
 		// load all workflow configuration things
 		for(ThingDTO tdto : dto.getPath()) {
 			tdto=thingServ.loadThing(tdto, user);
-			/*Concept node=closureServ.loadConceptById(tdto.getNodeId());
-			tdto.setStrings(dtoServ.readAllStrings(tdto.getStrings(),node));
-			tdto.setLiterals(dtoServ.readAllLiterals(tdto.getLiterals(), node));
-			tdto.setDates(dtoServ.readAllDates(tdto.getDates(),node));
-			tdto.setNumbers(dtoServ.readAllNumbers(tdto.getNumbers(),node));
-			tdto.setLogical(dtoServ.readAllLogical(tdto.getLogical(), node));
-			Set<String> dicts = tdto.getDictionaries().keySet();
-			if(dicts!=null) {
-				for(String key : dicts) {
-					DictionaryDTO ddto = tdto.getDictionaries().get(key);
-					ddto = dictServ.createCurrentSelections(ddto);
-				}
-			}*/
 		}
 		ExcelViewMult excel = new ExcelViewMult();
 		XSSFWorkbook workbook=excel.workbookForWorkflowConfiguration(dto, mess, closureServ);
