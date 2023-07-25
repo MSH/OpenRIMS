@@ -18,6 +18,8 @@ public class IntervalDTO extends AllowValidation{
 	private FormFieldDTO<LocalDate> to = FormFieldDTO.of(LocalDate.now());
 	private String varname="";
 	private boolean readonly=false;
+	//for amendments etc
+	private boolean changed = false;
 	
 	public FormFieldDTO<LocalDate> getFrom() {
 		return from;
@@ -42,6 +44,12 @@ public class IntervalDTO extends AllowValidation{
 	}
 	public void setReadonly(boolean readonly) {
 		this.readonly = readonly;
+	}
+	public boolean isChanged() {
+		return changed;
+	}
+	public void setChanged(boolean changed) {
+		this.changed = changed;
 	}
 	
 }

@@ -226,12 +226,20 @@ public class BoilerService {
 	 * @return
 	 */
 	public Headers translateHeaders(Headers headers) {
-		for(TableHeader h :headers.getHeaders()) {
+		translateHeadersList(headers.getHeaders());
+		return headers;
+	}
+	/**
+	 * Display values in all headers in the list
+	 * @param headers
+	 * @return
+	 */
+	public List<TableHeader> translateHeadersList(List<TableHeader> headers) {
+		for(TableHeader h :headers) {
 			h.setDisplayValue(messages.get(h.getValueKey()));
 		}
 		return headers;
 	}
-
 	/**
 	 * Translate all i8 cells 
 	 * @param rows

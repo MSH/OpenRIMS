@@ -42,6 +42,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class AssemblyService {
+	
+	public static final String CONCURRENTURL = "concurrenturl";
 
 	public static final String HIDECHECKLIST_FLD = "hidechecklist";
 	public static final String DATAIMPORT_ADDRESS = "dataimport_address";
@@ -199,7 +201,7 @@ public class AssemblyService {
 				fld.setRequired(false);
 				fld.setReadOnly(false);
 				fld.setTextArea(false);
-				fld.setPropertyName(LiteralService.CONCURRENTURL);
+				fld.setPropertyName(CONCURRENTURL);
 				ret.add(fld);	
 			}
 			{// notes to mail 26.11.2022
@@ -287,6 +289,12 @@ public class AssemblyService {
 				AssemblyDTO fld = new AssemblyDTO();
 				fld.setRequired(true);
 				fld.setPropertyName("applicationurl");
+				ret.add(fld);
+			}
+			{
+				AssemblyDTO fld = new AssemblyDTO();
+				fld.setRequired(false);
+				fld.setPropertyName("dataurl");
 				ret.add(fld);
 			}
 		}
@@ -739,7 +747,7 @@ public class AssemblyService {
 				cell1.getVariables().add(HIDECHECKLIST_FLD);	//2023-02-13
 				cell1.getVariables().add("dataurl");
 				cell1.getVariables().add("addressurl");
-				cell1.getVariables().add(LiteralService.CONCURRENTURL);			//2023-05-04
+				cell1.getVariables().add(CONCURRENTURL);			//2023-05-04
 				cell1.getVariables().add("attention");
 				cell1.getVariables().add("attnote");// notes to mail 26.11.2022
 				row.getCells().add(cell1);
@@ -1128,6 +1136,27 @@ public class AssemblyService {
 		if(ret.size()==0) {
 			for(Assembly assm : assms) {
 				if(assm.getClazz().equalsIgnoreCase("droplist")) {
+					ret.add(dtoServ.assemblyDto(assm));
+				}
+			}
+		}
+		return ret;
+	}
+	
+	/**
+	 * Intervals data references
+	 * @param assms
+	 * @param exts 
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	@Transactional
+	public List<AssemblyDTO> auxIntervals(String url, List<Assembly> assms) throws ObjectNotFoundException {
+		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
+		// TODO hardcoded definitions...
+		if(ret.size()==0) {
+			for(Assembly assm : assms) {
+				if(assm.getClazz().equalsIgnoreCase("intervals")) {
 					ret.add(dtoServ.assemblyDto(assm));
 				}
 			}

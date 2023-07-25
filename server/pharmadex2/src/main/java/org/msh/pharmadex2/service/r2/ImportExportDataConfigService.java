@@ -546,6 +546,21 @@ public class ImportExportDataConfigService {
 		}
 		return ret;
 	}
+	/**
+	 * File name for variables configuration export should be URL of the data configuratuon root
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public String variablesExportFileName(DataConfigDTO data) throws ObjectNotFoundException {
+		String ret = "dataconfiguration.xlsx";
+		if(data.getNodeId()>0) {
+			Concept root = closureServ.loadConceptById(data.getNodeId());
+			ret = root.getIdentifier()+".xlsx";
+		}
+		return ret;
+	}
 
 
 

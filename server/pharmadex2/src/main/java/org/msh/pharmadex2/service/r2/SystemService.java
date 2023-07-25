@@ -11,6 +11,7 @@ import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
+import org.msh.pdex2.repository.r2.HistoryRepo;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.Dict2DTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
@@ -103,6 +104,8 @@ public class SystemService {
 	private LiteralService literalServ;
 	@Autowired
 	private Messages messages;
+	@Autowired
+	private HistoryRepo historyRepo;
 	
 	/**
 	 * Add role to roles dictionary
@@ -333,7 +336,7 @@ public class SystemService {
 			literalServ.createUpdateLiteral("type", "system", root);
 		}
 		List<Concept> level = literalServ.loadOnlyChilds(root);
-		if (level.size() != 11) {
+		if (level.size() != 12) {
 			// create level
 			systemDictNode(root, "0", messages.get("continue"));
 			systemDictNode(root, "1", messages.get("route_action"));
@@ -346,6 +349,7 @@ public class SystemService {
 			systemDictNode(root, "8", messages.get("deregistration"));
 			systemDictNode(root, "9", messages.get("revokepermit"));
 			systemDictNode(root, "10", messages.get("decline"));
+			systemDictNode(root, "11", messages.get("run"));
 		}
 		ret = dictServ.createDictionary(ret);
 		ret.setMult(false);
@@ -576,13 +580,14 @@ public class SystemService {
 	/**
 	 * Recognize host dictionary node by host process URL
 	 * 
-	 * @param processUrl
-	 * @return
-	 * @throws ObjectNotFoundException
+	 * @param dictRootUrl URL of the dictionary to search in
+	 * @param processUrl  URL of the applicationurl in the dictionary item
+	 * @return dictionary item
+	 * @throws ObjectNotFoundException is not found
 	 */
 	@Transactional
-	public Concept hostDictNode(String processUrl) throws ObjectNotFoundException {
-		Concept root = closureServ.loadRoot(DICTIONARY_HOST_APPLICATIONS);
+	public Concept applDictItemByUrl( String dictRootUrl, String processUrl) throws ObjectNotFoundException {
+		Concept root = closureServ.loadRoot(dictRootUrl);
 		List<Concept> level = literalServ.loadOnlyChilds(root);
 		for (Concept conc : level) {
 			String aurl = literalServ.readValue(LiteralService.APPLICATION_URL, conc);
@@ -783,6 +788,17 @@ public class SystemService {
 			}
 		}
 		return ret;
+	}
+	/**
+	 * Is the same process to the same data is already running?
+	 * @param dictItem
+	 * @param applicationData
+	 * @return not running processes found
+	 */
+	@Transactional
+	public boolean isUniqueProcess(Concept dictItem, Concept applicationData) {
+		List<History>  list = historyRepo.findAllByApplDictAndApplicationDataAndGo(dictItem,	applicationData, null);
+		return list.isEmpty();
 	}
 
 }

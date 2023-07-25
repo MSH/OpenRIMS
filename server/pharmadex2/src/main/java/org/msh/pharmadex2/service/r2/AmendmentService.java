@@ -1,5 +1,7 @@
 package org.msh.pharmadex2.service.r2;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -24,6 +26,7 @@ import org.msh.pdex2.model.r2.Thing;
 import org.msh.pdex2.model.r2.ThingAmendment;
 import org.msh.pdex2.model.r2.ThingDict;
 import org.msh.pdex2.model.r2.ThingDoc;
+import org.msh.pdex2.model.r2.ThingLink;
 import org.msh.pdex2.model.r2.ThingOld;
 import org.msh.pdex2.model.r2.ThingPerson;
 import org.msh.pdex2.model.r2.ThingThing;
@@ -42,6 +45,7 @@ import org.msh.pharmadex2.dto.PersonSelectorDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
+import org.msh.pharmadex2.service.common.DtoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,6 +77,8 @@ public class AmendmentService {
 	private Messages mess;
 	@Autowired
 	private ThingAmendmentRepo thingAmendmentRepo;
+	@Autowired
+	private DtoService dtoServ;
 
 	/**
 	 * Save an amendment data
@@ -191,6 +197,8 @@ public class AmendmentService {
 				oldStored = implementFiles(configUrl, amendment, amended, oldStored);
 				oldStored = implementDictionaries(configUrl, amendment, amended, oldStored);
 				oldStored = implementDropList(configUrl, amendment, amended, oldStored);
+				oldStored = implementIntervals(configUrl, amendment, amended, oldStored);
+				oldStored = implementLinks(configUrl, amendment, amended, oldStored);
 				oldStored = implementPersons(configUrl, amendment, amended, oldStored);
 			} else {
 				data.setValid(false);
@@ -385,7 +393,7 @@ public class AmendmentService {
 				keys.add(ad.getPropertyName());
 			}
 			Thing amendmentThing = boilerServ.thingByNode(amendment);
-			Thing amendedThing=boilerServ.thingByNode(amended);
+			Thing amendedThing = boilerServ.thingByNode(amended);
 			//---------------------------store previous----------------------------------------
 			Thing storedThing = storedThing(storedValues);
 			if(storedThing.getDictionaries().size()==0) {
@@ -423,6 +431,21 @@ public class AmendmentService {
 		ret.setConcept(td.getConcept());
 		ret.setUrl(td.getUrl());
 		ret.setVarname(td.getVarname());
+		return ret;
+	}
+	
+	/**
+	 * Create a clone of a ThingLink given
+	 * @param td
+	 * @return
+	 */
+	private ThingLink cloneThingLink(ThingLink td) {
+		ThingLink ret = new ThingLink();
+		ret.setDictItem(td.getDictItem());
+		ret.setDictUrl(td.getDictUrl());
+		ret.setLinkedObject(td.getLinkedObject());
+		ret.setLinkUrl(td.getLinkUrl());
+		ret.setVarName(td.getVarName());
 		return ret;
 	}
 
@@ -708,6 +731,86 @@ public class AmendmentService {
 		return all;
 	}
 
+	/**
+	 * Create copies of amended literals in oldValue and, then, amend them amendment
+	 * 
+	 * @param configUrl
+	 * @param amendment
+	 * @param amended
+	 * @param oldValues
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	private Concept implementIntervals(String configUrl, Concept amendment, Concept amended, Concept oldValues)
+			throws ObjectNotFoundException {
+		DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE;
+		List<Assembly> assemblies = assemblyServ.loadDataConfiguration(configUrl);
+		List<AssemblyDTO> ads = assemblyServ.auxIntervals(configUrl, assemblies);
+		if(ads.size() > 0) {
+			//prepare
+			for(AssemblyDTO ad : ads) {
+				String key = ad.getPropertyName();
+				
+				LocalDate fromOld = dtoServ.readDate(amended, key + "_from");
+				LocalDate toOld = dtoServ.readDate(amended, key + "_to");
+				
+				LocalDate fromNew = dtoServ.readDate(amendment, key + "_from");
+				LocalDate toNew = dtoServ.readDate(amendment, key + "_to");
+				
+				if(!fromOld.equals(fromNew)) {
+					literalServ.createUpdateLiteral(key + "_from", formatter.format(fromOld), oldValues);
+					literalServ.createUpdateLiteral(key + "_from", formatter.format(fromNew), amended);
+				}
+				
+				if(!toOld.equals(toNew)) {
+					literalServ.createUpdateLiteral(key + "_to", formatter.format(toOld), oldValues);
+					literalServ.createUpdateLiteral(key + "_to", formatter.format(toNew), amended);
+				}
+			}
+		}
+		
+		return oldValues;
+	}
+	
+	private Concept implementLinks(String configUrl, Concept amendment, Concept amended, Concept storedValues)
+			throws ObjectNotFoundException {
+		List<Assembly> assemblies = assemblyServ.loadDataConfiguration(configUrl);
+		List<AssemblyDTO> ads = assemblyServ.auxLinks(configUrl, assemblies);
+		if(ads.size() > 0) {
+			//prepare
+			List<String> keys = new ArrayList<String>();
+			for(AssemblyDTO ad : ads) {
+				keys.add(ad.getPropertyName());
+			}
+			Thing amendmentThing = boilerServ.thingByNode(amendment);
+			Thing amendedThing = boilerServ.thingByNode(amended);
+			//---------------------------store previous----------------------------------------
+			Thing storedThing = storedThing(storedValues);
+			if(storedThing.getThingLinks().size() == 0) {
+				for(ThingLink link : amendedThing.getThingLinks()) {
+					storedThing.getThingLinks().add(cloneThingLink(link));
+				}
+			}
+			storedThing = boilerServ.saveThing(storedThing);
+			//---------------------------- amend -------------------------------------------------
+			//remove amended
+			List<ThingLink> notAmended = new ArrayList<ThingLink>();
+			for(ThingLink link : amendedThing.getThingLinks()) {
+				if(!keys.contains(link.getVarName())) {
+					notAmended.add(link);
+				}
+			}
+			amendedThing.getThingLinks().clear();
+			amendedThing.getThingLinks().addAll(notAmended);
+			//add amended
+			for(ThingLink td : amendmentThing.getThingLinks()) {
+				amendedThing.getThingLinks().add(cloneThingLink(td));
+			}
+			amendedThing = boilerServ.saveThing(amendedThing);
+		}
+		return storedValues;
+	}
+	
 	/**
 	 * In an amendment application data one node is amendment. Search for it
 	 * 
@@ -1129,6 +1232,8 @@ public class AmendmentService {
 				data = dictionariesDiffMark(data, node, modiUnit);
 				data = documentDiffMark(data, node, modiUnit);
 				data = personsDiffMark(data, node, modiUnit);
+				data = intervalsDiffMark(data, node, modiUnit);
+				data = linksDiffMark(data, node, modiUnit);
 			}
 		}
 		return data;
@@ -1325,6 +1430,161 @@ public class AmendmentService {
 	}
 
 	/**
+	 * Compare intervals in old and new data variables+liks
+	 * 
+	 * @param data
+	 * @param node
+	 * @param modiUnit
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	@Transactional
+	private ThingDTO intervalsDiffMark(ThingDTO data, Concept node, Concept modiUnit)
+			throws ObjectNotFoundException {
+		Set<String> varnames = data.getIntervals().keySet();
+		
+		List<String> keys = intervalsCompare(varnames, node, modiUnit);
+		for (String key : keys) {
+			data.getIntervals().get(key).setChanged(true);
+		}
+		return data;
+	}
+	
+	/**
+	 * Compare intervals in amendment and amended
+	 * 
+	 * @param amendment
+	 * @param amended
+	 * @return list of variables names for different dictionaries
+	 * @throws ObjectNotFoundException
+	 */
+	private List<String> intervalsCompare(Set<String> varnames, Concept amendment, Concept amended) throws ObjectNotFoundException {
+		List<String> ret = new ArrayList<String>();
+		
+		Map<String, List<LocalDate>> oldDates = new LinkedHashMap<String, List<LocalDate>>();
+		Map<String, List<LocalDate>> newDates = new LinkedHashMap<String, List<LocalDate>>();
+		
+		for(String key:varnames) {
+			LocalDate fromOld = dtoServ.readDate(amended, key + "_from");
+			LocalDate toOld = dtoServ.readDate(amended, key + "_to");
+			List<LocalDate> dates = oldDates.get(key);
+			if(dates == null) {
+				dates = new ArrayList<LocalDate>();
+				oldDates.put(key, dates);
+			}
+			dates.add(fromOld);
+			dates.add(toOld);
+			
+			LocalDate fromNew = dtoServ.readDate(amendment, key + "_from");
+			LocalDate toNew = dtoServ.readDate(amendment, key + "_to");
+			dates = newDates.get(key);
+			if(dates == null) {
+				dates = new ArrayList<LocalDate>();
+				newDates.put(key, dates);
+			}
+			dates.add(fromNew);
+			dates.add(toNew);
+		}
+
+		// compare data
+		for (String key : newDates.keySet()) {
+			List<LocalDate> newList = newDates.get(key);
+			List<LocalDate> oldList = oldDates.get(key);
+			if (oldList == null) {
+				ret.add(key);
+			} else {
+				if (!compareDates(newList, oldList)) {
+					ret.add(key);
+				}
+			}
+		}
+
+		return ret;
+	}
+	/**
+	 * Compare links in old and new data variables+liks
+	 * 
+	 * @param data
+	 * @param node
+	 * @param modiUnit
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	@Transactional
+	private ThingDTO linksDiffMark(ThingDTO data, Concept node, Concept modiUnit)
+			throws ObjectNotFoundException {
+		List<String> keys = linksCompare(node, modiUnit);
+		for (String key : keys) {
+			data.getLinks().get(key).setChanged(true);
+		}
+		return data;
+	}
+	
+	/**
+	 * Compare links in amendment and amended
+	 * 
+	 * @param amendment
+	 * @param amended
+	 * @return list of variables names for different dictionaries
+	 * @throws ObjectNotFoundException
+	 */
+	private List<String> linksCompare(Concept amendment, Concept amended) throws ObjectNotFoundException {
+		List<String> ret = new ArrayList<String>();
+		Thing oldThing = boilerServ.thingByNode(amended);
+		Thing newThing = boilerServ.thingByNode(amendment);
+		Map<String, List<Long>> newLinks = new LinkedHashMap<String, List<Long>>();
+		Map<String, List<Long>> oldLinks = new LinkedHashMap<String, List<Long>>();
+		// extract data
+		newLinks = createLinksMap(newLinks, newThing.getID());
+		oldLinks = createLinksMap(oldLinks, oldThing.getID());
+		
+		// compare data
+		for (String key : newLinks.keySet()) {
+			List<Long> newList = newLinks.get(key);
+			List<Long> oldList = oldLinks.get(key);
+			if (oldList == null) {
+				ret.add(key);
+			} else {
+				if (!compareIds(newList, oldList)) {
+					ret.add(key);
+				}
+			}
+		}
+		return ret;
+	}
+	
+	public Map<String, List<Long>> createLinksMap(Map<String, List<Long>> tlMap, Long thingID) throws ObjectNotFoundException {
+		jdbcRepo.links(thingID);
+		List<TableHeader> headlist= jdbcRepo.headersFromSelect("select * from linksByThing",new ArrayList<String>());
+		Headers headers = new Headers();
+		headers.getHeaders().addAll(headlist);
+		for(TableHeader th : headers.getHeaders()) {
+			th.setSort(true);
+			th.setSortValue(TableHeader.SORT_ASC);
+		}
+		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from linksByThing", "", "", headers);
+		if(rows != null && rows.size() > 0) {
+			for(TableRow r:rows) {
+				long id = r.getDbID();
+				String vname = r.getCellByKey("varname").getValue();
+				long idObj = (Long)r.getCellByKey("objectID").getOriginalValue();
+				
+				List<Long> ids = tlMap.get(vname);
+				if (ids == null) {
+					ids = new ArrayList<Long>();
+					tlMap.put(vname, ids);
+				}
+				ids.add(idObj);
+			}
+		}
+		
+		return tlMap;
+	}
+	
+	 
+	
+	
+	/**
 	 * Compare IDS
 	 * 
 	 * @param newList
@@ -1332,6 +1592,23 @@ public class AmendmentService {
 	 * @return
 	 */
 	private boolean compareIds(List<Long> newList, List<Long> oldList) {
+		if (newList.size() != oldList.size()) {
+			return false;
+		} else {
+			Collections.sort(newList);
+			Collections.sort(oldList);
+			return newList.equals(oldList);
+		}
+	}
+	
+	/**
+	 * Compare IDS
+	 * 
+	 * @param newList
+	 * @param oldList
+	 * @return
+	 */
+	private boolean compareDates(List<LocalDate> newList, List<LocalDate> oldList) {
 		if (newList.size() != oldList.size()) {
 			return false;
 		} else {
@@ -1462,6 +1739,7 @@ public class AmendmentService {
 		for (String key : data.getLogical().keySet()) {
 			data.getLogical().get(key).setMark(!compareLiteral(key, node, modiUnit));
 		}
+		
 		return data;
 	}
 

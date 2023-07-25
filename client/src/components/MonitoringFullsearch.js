@@ -20,7 +20,8 @@ class MonitoringFullsearch extends Component{
             identifier:Date.now().toString(),
             labels:{
                 search:'',
-                exportExcel:''
+                exportExcel:'',
+                dateactualLb:''
             },
             data:{},
         }
@@ -35,7 +36,7 @@ class MonitoringFullsearch extends Component{
 
     loadData(){
         var searchStr = Fetchers.readLocaly("monitor_fullsearch_search", "")
-        var api = "/api/"+Navigator.tabSetName()+"/my/monitoring/type=" + "fullsearch" + "&search=" + searchStr
+        var api = "/api/"+Navigator.tabSetName()+"/monitoring/full/search=" + searchStr
         Fetchers.postJSONNoSpinner(api, this.state.data, (query,result)=>{
             this.state.data=result
             Fetchers.writeLocaly("monitor_fullsearch_search", "")
@@ -67,17 +68,23 @@ class MonitoringFullsearch extends Component{
         return(
             <Container fluid>
                 <Row>
-                <Col>
-                    <Row className="mb-3">
-                        <Col xs='12' sm='12' lg='4' xl='4'>
-                            <SearchControlNew key='4' label={this.state.labels.search} table={this.state.data.fullsearch} loader={this.loadData}/>
-                        </Col>
-                        <Col xs='12' sm='12' lg='6' xl='6' className="d-flex justify-content-center">
+                    <Col xs='12' sm='12' lg='6' xl='6' className="d-flex justify-content-center">
                         <small>{this.state.labels.dateactualLb}</small>
                         <FieldDisplay attribute='dateactual' component={this} mode='time'/>
+                    </Col>
+                </Row>
+                <Row>
+                <Col>
+                    <Row className="mb-3">
+                        <Col xs='12' sm='12' lg='6' xl='6'>
+                            <SearchControlNew key='4' label={this.state.labels.search} table={this.state.data.fullsearch} loader={this.loadData}/>
                         </Col>
+                        {/*<Col xs='12' sm='12' lg='6' xl='6' className="d-flex justify-content-center">
+                        <small>{this.state.labels.dateactualLb}</small>
+                        <FieldDisplay attribute='dateactual' component={this} mode='time'/>
+        </Col>*/}
                         <Col xs='12' sm='12' lg='2' xl='2' className="d-flex justify-content-end">
-                        <ButtonUni
+                        <ButtonUni disabled={this.state.data.fullsearch.rows.length == 0}
                             label={this.state.labels.exportExcel}
                             onClick={()=>{
                                 let downloader = new Downloader();

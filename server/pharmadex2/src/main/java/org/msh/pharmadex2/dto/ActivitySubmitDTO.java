@@ -23,6 +23,7 @@ public class ActivitySubmitDTO extends AllowValidation{
 		private TableQtb nextJob = new TableQtb();		//next activity in the current process
 		private TableQtb execs = new TableQtb();		//executors of the next activity in the current process
 		private TableQtb scheduled = new TableQtb();		//activities will be scheduled by approve 
+		private TableQtb runHosts = new TableQtb();		//host processes to run
 		private boolean reloadExecs=false;		//the selection in nextJob has been changed
 		private TableQtb actions = new TableQtb();	//set of actions
 		private boolean supervisor=false;		//the action has been initiated by the supervisor
@@ -70,6 +71,13 @@ public class ActivitySubmitDTO extends AllowValidation{
 		}
 		public void setScheduled(TableQtb scheduled) {
 			this.scheduled = scheduled;
+		}
+		
+		public TableQtb getRunHosts() {
+			return runHosts;
+		}
+		public void setRunHosts(TableQtb runHosts) {
+			this.runHosts = runHosts;
 		}
 		public boolean isReloadExecs() {
 			return reloadExecs;

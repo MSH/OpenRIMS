@@ -34,7 +34,6 @@ import org.msh.pharmadex2.service.r2.IrkaServices;
 import org.msh.pharmadex2.service.r2.LinkService;
 import org.msh.pharmadex2.service.r2.MonitoringService;
 import org.msh.pharmadex2.service.r2.PdfService;
-import org.msh.pharmadex2.service.r2.RecieptService;
 import org.msh.pharmadex2.service.r2.ResourceService;
 import org.msh.pharmadex2.service.r2.SubmitService;
 import org.msh.pharmadex2.service.r2.SupervisorService;
@@ -99,18 +98,56 @@ public class ActivityAPI{
 	private SubmitService submServ;
 	@Autowired
 	private AccessControlService accServ;
-
-	@PostMapping({ "/api/*/my/activities"})
-	public ApplicationsDTO myActivities(Authentication auth, UriComponentsBuilder uri,@RequestBody ApplicationsDTO data)
-			throws DataNotFoundException {
+	
+	/**
+	 * Alerts to do
+	 * @param auth
+	 * @param uri
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/*/activity/todo/attention")
+	public ApplicationsDTO todoAttention(Authentication auth, UriComponentsBuilder uri,@RequestBody ApplicationsDTO data) throws DataNotFoundException {
 		accServ.allowAuthenticated(auth, uri);
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
-		data = applServ.myActivities(data, user);
+		data = applServ.attentionToDo(data, user);
 		return data;
 	}
 
 	/**
-	 * t - type - "actual", "scheduled", "fullsearch"
+	 * Present activities to do
+	 * @param auth
+	 * @param uri
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/*/activity/todo/actual")
+	public ApplicationsDTO todoActual(Authentication auth, UriComponentsBuilder uri,@RequestBody ApplicationsDTO data) throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		data = applServ.activitiesToDo(data, true, user);
+		return data;
+	}
+	/**
+	 * Scheduled activities to do
+	 * @param auth
+	 * @param uri
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/*/activity/todo/scheduled")
+	public ApplicationsDTO todoScheduled(Authentication auth, UriComponentsBuilder uri,@RequestBody ApplicationsDTO data) throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		data = applServ.activitiesToDo(data, false, user);
+		return data;
+	}
+
+	/**
+	 * t - type - "actual", "scheduled"
 	 * @param auth
 	 * @param data
 	 * @param t
@@ -131,6 +168,19 @@ public class ActivityAPI{
 		return data;
 	}
 
+	@PostMapping({ "/api/*/monitoring/full/search={s}"})
+	public ApplicationsDTO monitoringFull(Authentication auth, UriComponentsBuilder uri,@RequestBody ApplicationsDTO data, 
+				@PathVariable(value = "s") String s)
+			throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		try {
+			data = monitoringServ.monitoringFullSearch(data, user, s);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
 
 	/**
 	 * Get the latest history ID by the application data ID
@@ -222,7 +272,7 @@ public class ActivityAPI{
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		data.getScheduled().getHeaders().setPageSize(Integer.MAX_VALUE);
 		try {
-			data = monitoringServ.myMonitoring(data, user, "fullsearch", "");
+			data = monitoringServ.monitoringFullSearch(data, user, "");
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -443,7 +493,7 @@ public class ActivityAPI{
 	 */
 	@PostMapping({ "/api/*/thing/file/load"})
 	public FileDTO fileLoad(Authentication auth, UriComponentsBuilder uri, @RequestBody FileDTO data) throws DataNotFoundException {
-		accServ.allowAuthenticated(auth, uri);
+		//TODO accServ.allowAuthenticated(auth, uri);
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
 			data = thingServ.fileLoad(data, user);

@@ -9,7 +9,7 @@ import AmendmentSelect from './AmendmentSelect'
 import RenewSelect from './RenewSelect'
 import DeRegistrationSelect from './DeRegistrationSelect'
 import InspectionSelect from './InspectionSelect'
-
+import PublicPermitData from './PublicPermitData'
 /**
  * Tab Application. Switch between ApplicationSelect and ApplicationProcess components
  */
@@ -62,6 +62,13 @@ class Applications extends Component{
                 parStr = Navigator.parameterValue();
                 data = JSON.parse(parStr)
                 return <ActivityManager historyId={data.historyId}/>
+            case "publicpermitdata":
+                parStr = Navigator.parameterValue();
+                data = JSON.parse(parStr)
+                let permitData={
+                    permitDataID:data.dataId  
+                }
+                return <PublicPermitData data={permitData}/>
             case "amendments":
                 return <AmendmentSelect/>
             case "deregistration":

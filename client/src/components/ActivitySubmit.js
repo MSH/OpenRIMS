@@ -30,6 +30,7 @@ class ActivitySubmit extends Component{
                 notes:'',
                 scheduled:'',
                 questionDecline:'',
+                workflows:''
             },
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -188,6 +189,33 @@ loadNext(){
                 </Row>
             )
         }
+        if(Fetchers.isGoodArray(this.state.data.runHosts.rows)){
+            return(
+            <Row>
+                    <Col>
+                        <Row>
+                            <Col>
+                                <h6>{this.state.labels.workflows}</h6>
+                            </Col>
+                        </Row>
+                        <Row>
+                            <Col>
+                                <CollectorTable
+                                    tableData={this.state.data.runHosts}
+                                    loader={this.loader}
+                                    headBackground={Pharmadex.settings.tableHeaderBackground}
+                                    selectRow={(rowNo)=>{
+                                        let rows= this.state.data.runHosts.rows
+                                        rows[rowNo].selected=!rows[rowNo].selected
+                                        this.setState(this.state)
+                                    }}
+                                />
+                            </Col>
+                        </Row>
+                    </Col>
+                </Row>
+            )
+        }
         return this.notes()
 
     }
@@ -230,7 +258,7 @@ loadNext(){
                 </Row>
             )
         }
-        if(Fetchers.isGoodArray(this.state.data.scheduled.rows)){
+        if(Fetchers.isGoodArray(this.state.data.scheduled.rows) || Fetchers.isGoodArray(this.state.data.runHosts.rows)){
             return(
                 this.notes()
             )

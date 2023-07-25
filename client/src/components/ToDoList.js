@@ -3,11 +3,8 @@ import {Row, Col, Container, Navbar, NavbarBrand, Collapse, NavbarToggler,Nav, N
 import Fetchers from './utils/Fetchers'
 import Locales from './utils/Locales'
 import Navigator from './utils/Navigator'
-import Pharmadex from './Pharmadex'
-import CollectorTable from './utils/CollectorTable'
-import ButtonUni from './form/ButtonUni'
 import ActivityManager from './ActivityManager'
-import SearchControlNew from './utils/SearchControlNew'
+import Table from './form/Table'
 
 /**
  * Responsible for assigned activities. Any user, except an applicant
@@ -15,6 +12,14 @@ import SearchControlNew from './utils/SearchControlNew'
 class ToDoList extends Component{
     constructor(props){
         super(props)
+        this.params={
+            attentionAPI:"/api/"+Navigator.tabSetName()+"/activity/todo/attention",
+            attention:"attention",
+            actualAPI:"/api/"+Navigator.tabSetName()+"/activity/todo/actual",
+            actual: "actual",
+            scheduledAPI:"/api/"+Navigator.tabSetName()+"/activity/todo/scheduled",
+            scheduled:"scheduled"
+        }
         this.state={
             menu:'',
             identifier:Date.now().toString(),
@@ -23,13 +28,13 @@ class ToDoList extends Component{
                 todolist:'',
                 global_cancel:'',
                 search:'',
+                alert:'',
                 actual:'',
                 scheduled:'',
             },
             data:{},
         }
         this.eventProcessor=this.eventProcessor.bind(this)
-        this.loadData=this.loadData.bind(this)
         this.content=this.content.bind(this)
         this.actual=this.actual.bind(this)
         this.scheduled=this.scheduled.bind(this)
@@ -42,14 +47,23 @@ class ToDoList extends Component{
      eventProcessor(event){
         let data=event.data
         if(data.to==this.state.identifier){
-            if(data.subject=="reload"){
-                this.loadData()
+            if(data.subject==this.params.actual || data.subject==this.params.scheduled || data.subject==this.params.attention){
+                    let dataParams={
+                        historyId:data.data.selectedID,
+                    }
+                    let param = JSON.stringify(dataParams)
+                    Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName()+"/application/or/activity", dataParams, (query,result)=>{
+                        if(result.application){
+                            Navigator.navigate("applications","applicationstart",param) 
+                        }else{
+                            Navigator.navigate(Navigator.tabName(),"activitymanager",param)
+                        }
+                    })
+                }  
             }
         }
-    }
     componentDidMount(){
         window.addEventListener("message",this.eventProcessor)
-        this.loadData();
         Locales.resolveLabels(this)
     }
 
@@ -57,99 +71,27 @@ class ToDoList extends Component{
         window.removeEventListener("message",this.eventProcessor)
     }
 
-    loadData(){
-        Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/my/activities", this.state.data, (query,result)=>{
-            this.state.data=result
-            this.setState(this.state)
-        })
+    alert(){
+        return(
+            <Table recipient={this.state.identifier} onSelectSubject={this.params.attention} loadAPI={this.params.attentionAPI}/>
+         )
     }
-
     actual(){
         return(
-            <Row>
-                <Col>
-                    <Row className="mb-3">
-                        <Col xs='12' sm='12' lg='4' xl='4'>
-                            <SearchControlNew key="2" label={this.state.labels.search} table={this.state.data.table} loader={this.loadData}/>
-                        </Col>
-                    <Col xs='12' sm='12' lg='8' xl='8'/>
-                    </Row>
-                    <Row>
-                        <Col>
-                            <CollectorTable key='22'
-                            tableData={this.state.data.table}
-                            loader={this.loadData}
-                            headBackground={Pharmadex.settings.tableHeaderBackground}
-                            styleCorrector={(header)=>{
-                                if(header=='days'){
-                                    return {width:'10%'}
-                                }
-                            }}
-                            linkProcessor={(row,col)=>{
-                                let data={
-                                    url:this.state.data.url,
-                                    applDictNodeId:this.state.data.dictItemId,
-                                    historyId:this.state.data.table.rows[row].dbID,
-                                }
-                                let param = JSON.stringify(data)
-                                Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName()+"/application/or/activity", data, (query,result)=>{
-                                    if(result.application){
-                                        Navigator.navigate("applications","applicationstart",param) 
-                                    }else{
-                                        Navigator.navigate(Navigator.tabName(),"activitymanager",param)
-                                    }
-                                })
-                                }}   
-                            />
-                        </Col>
-                    </Row>
-                </Col>
-            </Row>
+           <Table recipient={this.state.identifier} onSelectSubject={this.params.actual} loadAPI={this.params.actualAPI}/>
         )
     }
 
     scheduled(){
         return(
-            <Row>
-                <Col>
-                    <Row className="mb-3">
-                        <Col xs='12' sm='12' lg='4' xl='4'>
-                            <SearchControlNew key="1" label={this.state.labels.search} table={this.state.data.scheduled} loader={this.loadData}/>
-                        </Col>
-                    <Col xs='12' sm='12' lg='8' xl='8'/>
-                    </Row>
-                    <Row>
-                        <Col>
-                            <CollectorTable key='23'
-                            tableData={this.state.data.scheduled}
-                            loader={this.loadData}
-                            headBackground={Pharmadex.settings.tableHeaderBackground}
-                            styleCorrector={(header)=>{
-                                if(header=='days'){
-                                    return {width:'10%'}
-                                }
-                            }}
-                            linkProcessor={(row,col)=>{
-                                let data={
-                                    url:this.state.data.url,
-                                    applDictNodeId:this.state.data.dictItemId,
-                                    historyId:this.state.data.scheduled.rows[row].dbID,
-                                }
-                                    let param = JSON.stringify(data)
-                                    Navigator.navigate(Navigator.tabName(),"activitymanager",param)
-                                }}   
-                            />
-                        </Col>
-                    </Row>
-                </Col>
-            </Row>
+            <Table recipient={this.state.identifier} onSelectSubject={this.params.scheduled} loadAPI={this.params.scheduledAPI}/>
         )
     }
  
     /**
      * determine the content
      */
-    content(){
+    content(){ 
         let parStr=""
         let data={}
         switch( this.state.menu){
@@ -157,20 +99,19 @@ class ToDoList extends Component{
                 parStr = Navigator.parameterValue();
                 data = JSON.parse(parStr)
                 return <ActivityManager historyId={data.historyId} recipient={this.state.identifier}/>
+            case "alert":
+                return(this.alert())
             case "actual":
                 return(this.actual())
             case "scheduled":
                 return(this.scheduled())
             default:
-                return (this.actual())
+                return (this.alert())
 
         }
     }
     render(){
-        if(this.state.data.table== undefined || this.state.data.table.rows == undefined || this.state.labels.locale==undefined){
-            return []
-        }else{
-            this.state.menu=Navigator.componentName().toLowerCase()
+        this.state.menu=Navigator.componentName().toLowerCase()
             return(
             <Container fluid>
                 <Row>
@@ -181,7 +122,12 @@ class ToDoList extends Component{
                                 <Collapse isOpen={this.state.isOpen} navbar>
                                     <Nav className="me-auto" navbar>
                                         <Nav>     
-                                            <NavItem active={this.state.menu=='actual' || this.state.menu.length==0}>
+                                            <NavItem active={this.state.menu=='alert' || this.state.menu.length==0}>
+                                                <NavLink href={"/"+Navigator.tabSetName()+"#"+Navigator.tabName()+"/alert"}>{this.state.labels.alert}</NavLink>
+                                            </NavItem>
+                                        </Nav>
+                                        <Nav>     
+                                            <NavItem active={this.state.menu=='actual'}>
                                                 <NavLink href={"/"+Navigator.tabSetName()+"#"+Navigator.tabName()+"/actual"}>{this.state.labels.actual}</NavLink>
                                             </NavItem>
                                         </Nav>
@@ -207,7 +153,6 @@ class ToDoList extends Component{
                 </Row>
             </Container>
             )
-        }
     }
 }
 export default ToDoList

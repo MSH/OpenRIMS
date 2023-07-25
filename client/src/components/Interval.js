@@ -41,8 +41,12 @@ class Interval extends Component{
         if(data.strict){
             color="danger"
         }
+        let mark=""
+        if(data.changed){
+            mark= "markedbycolor"
+        }
         return(
-            <Row key={key} >
+            <Row key={key} className={mark}>
                 <Col>
                     <Row>
                         <Col>

@@ -28,14 +28,14 @@ public class dwhactivities implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC2222721892C64535100488")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC2222721892C64535100488", strategy="native")	
+	@GeneratedValue(generator="VAC2222721894FAF247801E69")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222721894FAF247801E69", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	
 	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.ALL, org.hibernate.annotations.CascadeType.DELETE_ORPHAN})	
 	@JoinColumns({ @JoinColumn(name="reportsessionID") })	
-	@org.hibernate.annotations.Index(name="byApplication")	
+	@org.hibernate.annotations.Index(name="byExecutor")	
 	@Basic(fetch=FetchType.LAZY)	
 	private org.msh.pdex2.model.dwh.ReportSession reportSession;
 	
@@ -52,6 +52,7 @@ public class dwhactivities implements Serializable {
 	private String department;
 	
 	@Column(name="ExecEmail", nullable=true, length=255)	
+	@org.hibernate.annotations.Index(name="byExecutor")	
 	private String execEmail;
 	
 	@Column(name="Lang", nullable=true, length=255)	
@@ -87,6 +88,9 @@ public class dwhactivities implements Serializable {
 	
 	@Column(name="Outcome", nullable=true, length=255)	
 	private String outcome;
+	
+	@Column(name="ExecFullName", nullable=true, length=255)	
+	private String execFullName;
 	
 	private void setID(long value) {
 		this.ID = value;
@@ -290,6 +294,20 @@ public class dwhactivities implements Serializable {
 	 */
 	public String getExecEmail() {
 		return execEmail;
+	}
+	
+	/**
+	 * Executor's full name
+	 */
+	public void setExecFullName(String value) {
+		this.execFullName = value;
+	}
+	
+	/**
+	 * Executor's full name
+	 */
+	public String getExecFullName() {
+		return execFullName;
 	}
 	
 	/**

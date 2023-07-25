@@ -43,7 +43,7 @@ public class LiteralService {
 
 	public static final String GIS_LOCATION = "gisLocation";
 	public static final String ZOMM = "zoom";
-	public static final String CONCURRENTURL = "concurrenturl";
+	
 	//public static final String EXPERT = "expert";
 	//public static final String ASK = "ask";
 	//public static final String ASK_TEXT = "askText";

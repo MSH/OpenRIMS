@@ -28,8 +28,8 @@ public class dwhworkflowlist implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC2222721892C6453520048A")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC2222721892C6453520048A", strategy="native")	
+	@GeneratedValue(generator="VAC2222721894FAF247A01E6B")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222721894FAF247A01E6B", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	

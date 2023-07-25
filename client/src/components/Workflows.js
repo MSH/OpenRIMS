@@ -69,8 +69,8 @@ class Workflows extends Component{
     }
 
     loader(){
-        var api = "/api/admin/stages/workflow"
-        Fetchers.postJSONNoSpinner(api, this.state.data, (query,result)=>{
+          var api = "/api/admin/stages/workflow"
+       Fetchers.postJSONNoSpinner(api, this.state.data, (query,result)=>{
             this.state.data=result
             Locales.resolveLabels(this)
             this.setState(this.state)

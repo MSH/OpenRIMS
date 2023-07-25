@@ -28,8 +28,8 @@ public class dwhworkflows implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC2222721892C64535200489")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC2222721892C64535200489", strategy="native")	
+	@GeneratedValue(generator="VAC2222721894FAF247901E6A")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222721894FAF247901E6A", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	
@@ -61,6 +61,9 @@ public class dwhworkflows implements Serializable {
 	
 	@Column(name="WorkflowUrl", nullable=true, length=255)	
 	private String workflowUrl;
+	
+	@Column(name="WorkflowDictItemID", nullable=false, length=20)	
+	private long workflowDictItemID;
 	
 	private void setID(long value) {
 		this.ID = value;
@@ -102,6 +105,14 @@ public class dwhworkflows implements Serializable {
 	 */
 	public String getWorkflowUrl() {
 		return workflowUrl;
+	}
+	
+	public void setWorkflowDictItemID(long value) {
+		this.workflowDictItemID = value;
+	}
+	
+	public long getWorkflowDictItemID() {
+		return workflowDictItemID;
 	}
 	
 	/**

@@ -55,8 +55,12 @@ class Links extends Component{
         if(data.strict){
             color="danger"
         }
+        let mark=""
+        if(data.changed){
+            mark= "markedbycolor"
+        }
         return(
-            <Row key={index}>
+            <Row key={index} className={mark}>
                 <Col>
                     <Row>
                         <Col>

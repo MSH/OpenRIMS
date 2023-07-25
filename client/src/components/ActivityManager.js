@@ -1,5 +1,5 @@
 import React , {Component} from 'react'
-import {Container, Row, Col, Button, Breadcrumb, BreadcrumbItem,Collapse, Alert} from 'reactstrap'
+import {Container, Row, Col, Button, Breadcrumb, BreadcrumbItem,Collapse, Alert,Card, CardBody, CardTitle} from 'reactstrap'
 import PropTypes from 'prop-types'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
@@ -12,6 +12,7 @@ import ActivitySubmit from './ActivitySubmit'
 import ActivityHistoryData from './ActivityHistoryData'
 import Alerts from './utils/Alerts'
 import AmendmentActivity from './AmendmentActivity'
+import ThingsPublisher from './reports/ThingsPublisher'
 
 /**
  * Manages an activity
@@ -65,7 +66,7 @@ class ActivityManager extends Component{
         this.loadHistory=this.loadHistory.bind(this)
         this.loadData=this.loadData.bind(this)
         this.createBreadCrumb=this.createBreadCrumb.bind(this)
-        this.application=this.application.bind(this)
+        //this.application=this.application.bind(this)
         this.dataThing=this.dataThing.bind(this)
         this.content=this.content.bind(this)
         this.prevNotes=this.prevNotes.bind(this)
@@ -77,6 +78,7 @@ class ActivityManager extends Component{
         this.createBreadCrumbAndExecutorName=this.createBreadCrumbAndExecutorName.bind(this)
         this.scheduledHistoryTable=this.scheduledHistoryTable.bind(this)
         this.completedHistoryTable=this.completedHistoryTable.bind(this)
+        this.getNameHistory=this.getNameHistory.bind(this)
     }
 
     /**
@@ -249,7 +251,7 @@ class ActivityManager extends Component{
     }
     /**
      * Display an application
-     */
+    
     application(){
         let ret = []
         if(Fetchers.isGoodArray(this.state.data.application)){
@@ -267,7 +269,7 @@ class ActivityManager extends Component{
             })
         }
         return ret
-    }
+    } */
 
      /**
      * добавляем на экран нужный thing 
@@ -414,46 +416,83 @@ class ActivityManager extends Component{
                 </Row>
             )
         }
-        return(
-        <Row>
-            <Col xs='12' sm='12' lg='6' xl='6' className="overflow-auto scrollPnl p-0 m-0" style={{maxHeight:'70vh'}}>
-                {this.hasCancelled()}
-                {this.prevNotes()}
+            return(
                 <Row>
-                    <Col>
-                        {this.application()}
+                    <Col xs='12' sm='12' lg='6' xl='6' className="overflow-auto scrollPnl p-0 m-0" style={{maxHeight:'70vh'}}>
+                        {this.hasCancelled()}
+                        {this.prevNotes()}
+                        <Row>
+                            {/* <Col>
+                                {this.application()}
+                            </Col> */}
+                            <Col>
+                                <Card className={Pharmadex.settings.activeBorder}>
+                                    <CardTitle className="text-center bg-light text-dark" tag="h3">
+                                        {this.state.data.application[0].title}
+                                    </CardTitle>
+                                    <CardBody>
+                                        <ThingsPublisher data={this.state.data.application} recipient={this.state.identifier}/ >
+                                    </CardBody>
+                                </Card>
+                                
+                            </Col>
+                        </Row>
+                    </Col>
+                    <Col xs='12' sm='12' lg='6' xl='6' className="overflow-auto scrollPnl p-0 m-0" style={{maxHeight:'70vh'}}>
+                        <Row>
+                            <Col>
+                                <AmendmentActivity data={this.state.data} recipient={this.state.identifier} />
+                            </Col>
+                        </Row>
+                        <Row>
+                            <Col>
+                                {this.dataThing()}
+                            </Col>
+                        </Row>
+                        <Row>
+                            <Col>
+                                {this.checkList()}
+                            </Col>
+                        </Row>
                     </Col>
                 </Row>
-            </Col>
-            <Col xs='12' sm='12' lg='6' xl='6' className="overflow-auto scrollPnl p-0 m-0" style={{maxHeight:'70vh'}}>
-                <Row>
-                    <Col>
-                        <AmendmentActivity data={this.state.data} recipient={this.state.identifier} />
-                    </Col>
-                </Row>
-                <Row>
-                    <Col>
-                        {this.dataThing()}
-                    </Col>
-                </Row>
-                <Row>
-                    <Col>
-                        {this.checkList()}
-                    </Col>
-                </Row>
-            </Col>
-        </Row>
-        )
+            )
     }
+
+    getNameHistory(){
+        var name = ""
+        if(this.state.data.historyId > 0){
+            if(Fetchers.isGoodArray(this.state.history.tableEv.rows)){
+                this.state.history.tableEv.rows.forEach((row, index)=>{
+                    if(row.dbID == this.state.data.historyId){
+                        row.row.forEach((cols, j) => {
+                            if(cols.key == 'workflow'){
+                                name = cols.originalValue
+                            }
+                        })
+                    }
+                })
+            }
+        }
+
+        if(name == ""){
+            name = this.state.history.applName
+        }
+
+        name += " - " + this.state.data.application[0].title
+        return name
+    }
+
     /**
      * Place name and buttons top and bottom
      * @returns Name and buttons
+    <h4>{this.state.history.applName}</h4>
      */
     headerFooter(){
         return(
             <Row>
             <Col xs='12' sm='12' lg='8' xl='8'>
-                <h4>{this.state.history.applName}</h4>
+                <h4>{this.getNameHistory()}</h4>
             </Col>
             <Col>
                 <div className="mb-1 d-flex justify-content-end">

@@ -25,8 +25,8 @@ public class PasswordsTemporary implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC2222721892C6453470047E")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC2222721892C6453470047E", strategy="native")	
+	@GeneratedValue(generator="VAC2222721894FAF246D01E5F")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222721894FAF246D01E5F", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	

@@ -21,6 +21,7 @@ import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import org.msh.pdex2.dto.table.Headers;
 import org.msh.pdex2.dto.table.TableHeader;
+import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
@@ -111,7 +112,7 @@ public class ValidationService {
 	private AmendmentService amendmentServ;
 	@Autowired
 	private HistoryRepo histRepo;
-	
+
 	/**
 	 * ^[a-z]{1,} - первый символ всегда буква
 	 * [a-z0-9]* - далее буква или цыфра или _ или .
@@ -662,55 +663,55 @@ public class ValidationService {
 	private void mandatoryRegister(AssemblyDTO ar, RegisterDTO dto, boolean strict) throws ObjectNotFoundException {
 		dto.clearErrors();
 		if(!dto.isReadOnly()) {
-		dto=dto.ensureDates(dto);
-		LocalDate regDate = dto.getRegistration_date().getValue();
-		LocalDate expDate = dto.getExpiry_date().getValue();
-		LocalDate createdAt = LocalDate.now();
-		if(dto.getNodeID()>0) {
-			Concept node = closureServ.loadConceptById(dto.getNodeID());
-			Register reg = boilerServ.registerByConcept(node);
-			createdAt=boilerServ.localDateFromDate(reg.getCreatedAt());
-		}
-		String regNum = dto.getReg_number().getValue();
-		//register date should fit an interval
-		LocalDate maxDate = createdAt;
-		LocalDate minDate = createdAt.minusMonths(1);
-		String errorMess = messages.get("valuerangeerror")+" " + minDate +", " + maxDate;
-		if(ar.getDescription().length()>0) {
-			errorMess=errorMess + " " + ar.getDescription();
-		}
-		if(regDate.isBefore(minDate) || regDate.isAfter(maxDate)) {
-			dto.getRegistration_date().invalidate(errorMess);
-			dto.setStrict(strict);
-		}
-		//register number should be not empty, not duplicated for url given
-		if(!dto.isReadOnly()){
-			if(regNum.length()>=1 && regNum.length()<=255) {
-				List<Register> rr = boilerServ.registerByUrlAndNumber(regNum, dto.getUrl());
-				if(rr.size()>1) {
-					dto.getReg_number().invalidate(messages.get("registrationexists") + " " + ar.getDescription());
-					dto.setStrict(strict);
-				}else {
-					if(rr.size()==1) {
-						if(rr.get(0).getConcept().getID()!=dto.getNodeID()) {
-							dto.getReg_number().invalidate(messages.get("registrationexists") + " "+ar.getDescription());
-						}
-					}
-				}
-			}else {
-				suggest(dto.getReg_number(), 3, 255, strict);
+			dto=dto.ensureDates(dto);
+			LocalDate regDate = dto.getRegistration_date().getValue();
+			LocalDate expDate = dto.getExpiry_date().getValue();
+			LocalDate createdAt = LocalDate.now();
+			if(dto.getNodeID()>0) {
+				Concept node = closureServ.loadConceptById(dto.getNodeID());
+				Register reg = boilerServ.registerByConcept(node);
+				createdAt=boilerServ.localDateFromDate(reg.getCreatedAt());
 			}
-		}
-		//expiration date should fit an interval if defined
-		if(ar.isMult()) {
-			maxDate = createdAt.plusMonths(ar.getMax().intValue());
-			minDate = createdAt.plusMonths(1);
-			errorMess = messages.get("valuerangeerror")+" " + regDate.plusMonths(2) +", " + maxDate;
-			if(expDate.isBefore(minDate) || expDate.isAfter(maxDate)) {
-				dto.getExpiry_date().invalidate(errorMess+" "+ar.getDescription());
+			String regNum = dto.getReg_number().getValue();
+			//register date should fit an interval
+			LocalDate maxDate = createdAt;
+			LocalDate minDate = createdAt.minusMonths(1);
+			String errorMess = messages.get("valuerangeerror")+" " + minDate +", " + maxDate;
+			if(ar.getDescription().length()>0) {
+				errorMess=errorMess + " " + ar.getDescription();
+			}
+			if(regDate.isBefore(minDate) || regDate.isAfter(maxDate)) {
+				dto.getRegistration_date().invalidate(errorMess);
 				dto.setStrict(strict);
 			}
-		}
+			//register number should be not empty, not duplicated for url given
+			if(!dto.isReadOnly()){
+				if(regNum.length()>=1 && regNum.length()<=255) {
+					List<Register> rr = boilerServ.registerByUrlAndNumber(regNum, dto.getUrl());
+					if(rr.size()>1) {
+						dto.getReg_number().invalidate(messages.get("registrationexists") + " " + ar.getDescription());
+						dto.setStrict(strict);
+					}else {
+						if(rr.size()==1) {
+							if(rr.get(0).getConcept().getID()!=dto.getNodeID()) {
+								dto.getReg_number().invalidate(messages.get("registrationexists") + " "+ar.getDescription());
+							}
+						}
+					}
+				}else {
+					suggest(dto.getReg_number(), 3, 255, strict);
+				}
+			}
+			//expiration date should fit an interval if defined
+			if(ar.isMult()) {
+				maxDate = createdAt.plusMonths(ar.getMax().intValue());
+				minDate = createdAt.plusMonths(1);
+				errorMess = messages.get("valuerangeerror")+" " + regDate.plusMonths(2) +", " + maxDate;
+				if(expDate.isBefore(minDate) || expDate.isAfter(maxDate)) {
+					dto.getExpiry_date().invalidate(errorMess+" "+ar.getDescription());
+					dto.setStrict(strict);
+				}
+			}
 		}
 		dto.propagateValidation();
 	}
@@ -1607,25 +1608,10 @@ public class ValidationService {
 	public ActivitySubmitDTO actionCancel(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		data.clearErrors();
 		List<History> allHis = boilerServ.historyAllByApplication(curHis.getApplication());
-		if(curHis.getGo()==null) {																			//current is opened
-			if(isActivityBackground(curHis.getActConfig())) {
-				for(History h : allHis) {
-					if(h.getID()!=curHis.getID()) {														//not the same activity
-						if(h.getActConfig()!=null && h.getActConfig().getID()==curHis.getActConfig().getID()) {		//configuration is the same
-							return data;
-						}
-					}
-				}
-			}
-			if(isActivityForeground(curHis.getActConfig())) {
-				for(History h : allHis) {
-					if(h.getID()!=curHis.getID()) {															//not the same activity
-						if(h.getGo()==null) {																		//opened
-							if(isActivityForeground(h.getActConfig())) {								//at least one opened foreground
-								return data;
-							}
-						}
-					}
+		if(curHis.getGo()==null && curHis.getActConfig()!=null) {																			//current is opened
+			for(History h : allHis) {
+				if(h.getActConfig()!=null && h.getActConfig().getID()!=curHis.getActConfig().getID()) {		//configuration is not the same
+					return data;
 				}
 			}
 		}
@@ -1745,40 +1731,8 @@ public class ValidationService {
 		data.setValid(false);
 		return data;
 	}
-	
-	@Transactional
-	public ActivitySubmitDTO validateConcurrentUrl(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
-		data.clearErrors();
-		
-		String curl = getConcurentUrl(curHis, data);
-		if(curl != null) {
-			data = (ActivitySubmitDTO)validWorkFlowConfig(data, curl, false);
-			if(data.isValid()) {
-				// 10.06.2023 khomenska Проверка, чтоб НЕ запустить больше 1го паралельного процесса по тому же урлу
-				VerifItemDTO dto = new VerifItemDTO();
-				dto.setApplID(curHis.getApplication().getID());
-				Concept dictNode = findDictionaryByApplUrl(curl);
-				dto.setApplDictNodeId(dictNode.getID());
-				
-				/* берем открытые работы и проверяем по словарю */
-				if(hasDublicateProcess(dictNode, curHis)) {
-					data.setValid(false);
-					data.setIdentifier("Dublicate process " + curl);
-				}
-			}
-		}
-		
-		return data;
-	}
-	
-	private boolean hasDublicateProcess(Concept dictNode, History curHis) {
-		List<History>  list = histRepo.findAllByApplDictIDAndApplicationDataAndGo(dictNode.getID(), curHis.getApplicationData(), null);
-		if(list != null && list.size() > 0) {
-			return true;
-		}
-		return false;
-	}
-	
+
+
 	/**
 	 * NMRA executor can route activity to other executor only:
 	 * <ul>
@@ -2352,7 +2306,7 @@ public class ValidationService {
 		// valid configuration
 		Concept dictNode = closureServ.loadConceptById(data.getApplDictNodeId());
 		String url = literalServ.readValue("applicationurl", dictNode);
-		data = (VerifItemDTO)validWorkFlowConfig(data, url, true);
+		data = (VerifItemDTO)validWorkFlowConfig(data, url);
 		return data;
 	}
 
@@ -2369,7 +2323,7 @@ public class ValidationService {
 		data.setValid(true);
 		Concept dictNode = closureServ.loadConceptById(data.getApplDictNodeId());
 		String url = literalServ.readValue("applicationurl", dictNode);
-		data = (VerifItemDTO)validWorkFlowConfig(data, url, false);
+		data = (VerifItemDTO)validWorkFlowConfig(data, url);
 		if(data.isValid()) {
 			Concept applData=closureServ.loadConceptById(data.getApplID());
 			data = (VerifItemDTO) hasActivities(SystemService.DICTIONARY_GUEST_AMENDMENTS, applData, data, curHis);
@@ -2417,57 +2371,42 @@ public class ValidationService {
 		}
 		return data;
 	}
-
-	public AllowValidation validWorkFlowConfig(AllowValidation data, String urlConfig,/*Long dictNodeID, */boolean findScheduler) throws ObjectNotFoundException {		
+	/**
+	 * Validate workflow configuration
+	 * @param data
+	 * @param urlConfig
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	public AllowValidation validWorkFlowConfig(AllowValidation data, String urlConfig) throws ObjectNotFoundException {		
 		Concept rootConfig = closureServ.loadRoot("configuration." + urlConfig.toLowerCase());
 		List<Concept> nextActs = boilerServ.loadActivities(rootConfig);
-
-		data = validActivities(nextActs, findScheduler, data, rootConfig);
-
+		data = validActivities(nextActs, data, rootConfig);
 		return data;
 	}
-
-	private AllowValidation validWorkFlowConfigScheduler(AllowValidation data, Long thingSchedID) throws ObjectNotFoundException {		
-		ThingScheduler ts = boilerServ.thingSchedulerById(thingSchedID);
-		Scheduler sch = boilerServ.schedulerByNode(ts.getConcept());
-		String applUrl = sch.getProcessUrl();
-		Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
-		List<Concept> nextActs = boilerServ.loadActivities(configRoot);
-		// TODO configRoot надо понять что вместно него писать
-		data = validActivities(nextActs, true, data, configRoot);
-
-		return data;
-	}
-
-	private AllowValidation validActivities(List<Concept> nextActs, boolean findScheduler, AllowValidation data, Concept configRoot) throws ObjectNotFoundException {		
+	/**
+	 * Any given activity is valid if configuration is valid
+	 * In the activities at least one has finalization action
+	 * @param nextActs
+	 * @param data
+	 * @param configRoot
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	private AllowValidation validActivities(List<Concept> nextActs, AllowValidation data, Concept configRoot) throws ObjectNotFoundException {		
 		boolean hasFinal = false;
-		boolean hasScheduler = false;
 		if(nextActs != null && nextActs.size() > 0) {
 			for(Concept c:nextActs) {
 				data = validThingInWorkflowConfig(c, configRoot, data);
 				if(!data.isValid()) {
 					return data;
 				}
-
-				// Нам нужна хотябы одна активность в отметкой ФИНАЛ на всю конфигурацию
 				if(!hasFinal) {
 					hasFinal = hasFinals(c);
-				}
-
-				if(findScheduler) {
-					// проверяем если шедулера нет в предыдущих активностях. Нам нужен хотябы один на всю конфигурацию
-					if(!hasScheduler) {
-						hasScheduler = hasSchedulers(c);
-					}
 				}
 			}
 			if(!hasFinal) {
 				data.setIdentifier(messages.get("badconfiguration")+" Configuration has not Finalization activity. Config root is " + configRoot.getIdentifier());
-				data.setValid(false);
-				return data;
-			}
-			if(findScheduler && !findScheduler) {
-				data.setIdentifier(messages.get("badconfiguration")+" Configuration has not Scheduler process. Config root is " + configRoot.getIdentifier());
 				data.setValid(false);
 				return data;
 			}
@@ -2563,48 +2502,7 @@ public class ValidationService {
 		return ret;
 	}
 
-	/**
-	 * Verify scheduled applications if ones
-	 * @param curHis
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	@Transactional
-	public ActivitySubmitDTO verifyScheduledGuestHost(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
-		if(isGuestOrHostFinalize(curHis)) {
-			if(data.getScheduled().getRows().size() > 0) {
-				for (TableRow row : data.getScheduled().getRows()) {
-					// verif every Scheduler
-					data = (ActivitySubmitDTO)validWorkFlowConfigScheduler(data, row.getDbID());
-					if(!data.isValid()) {//TODO verif
-						data.addError(data.getIdentifier());
-					}
-				}
-			}else {
-				data.setValid(false);
-				data.addError(messages.get("badconfiguration")+messages.get("scheduled_requerd"));
-			}
-		}
-		return data;
-		/* old version
-		 if(isGuestOrHostFinalize(curHis)) {
-			if(data.getScheduled().getRows().size() > 0) {
-				for (TableRow row : data.getScheduled().getRows()) {
-					ThingScheduler ts = boilerServ.thingSchedulerById(row.getDbID());
-					Scheduler sch = boilerServ.schedulerByNode(ts.getConcept());
-					String applUrl=sch.getProcessUrl();
-					Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
-					List<Concept> nextActs = boilerServ.loadActivities(configRoot);
-					data = (ActivitySubmitDTO) validServ.workflowConfig(nextActs, configRoot, data);
-				}
-			}else {
-				data.addError(messages.get("scheduled_requerd"));
-			}
-		}
-		return data;
-		 */
-	}
+
 	/**
 	 * Does not submitted guest application exist for the permit
 	 * @param data
@@ -2636,16 +2534,8 @@ public class ValidationService {
 		}
 		return false;
 	}
-	
-	public String getConcurentUrl(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
-		Concept activity = curHis.getActConfig();
-		String currentUrl = literalServ.readValue(LiteralService.CONCURRENTURL, activity);
-		if(currentUrl != null && currentUrl.length() > 2) {
-			return currentUrl;
-		}
-		return null;
-	}
-	
+
+
 	public Concept findDictionaryByApplUrl(String applUrl) throws ObjectNotFoundException {
 		Concept dictItem = null;
 		List<String> lifeUrls = new ArrayList<String>();
@@ -2655,7 +2545,7 @@ public class ValidationService {
 		lifeUrls.add(SystemService.DICTIONARY_GUEST_DEREGISTRATION);
 		lifeUrls.add(SystemService.DICTIONARY_SHUTDOWN_APPLICATIONS);
 		lifeUrls.add(SystemService.DICTIONARY_GUEST_INSPECTIONS);
-		
+
 		for(String url:lifeUrls) {
 			Concept dict = closureServ.loadRoot(url);
 			List<Concept> items = literalServ.loadOnlyChilds(dict);
@@ -2669,7 +2559,131 @@ public class ValidationService {
 				}
 			}
 		}
-		
+
 		return dictItem;
+	}
+	/**
+	 * Run host process is possible when:
+	 * <ul>
+	 * <li> at least one host activity is opened or there are no opened activities at all (lost or wrong)
+	 * <li> at least one host process is defined and is not already running
+	 * </ul>
+	 * Additionally, this procedure builds runHosts table
+	 * @param curHis
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public ActivitySubmitDTO runHosts(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
+		data.clearErrors();
+		Concept applData= amendmentServ.initialApplicationData(curHis.getApplicationData());
+		data = loadHostTable(applData, data);
+		if(!data.getRunHosts().getRows().isEmpty()) {
+			//extract hosts running
+			List<Long> hostsRunning = hostsRunning(curHis);
+			if(!hostsRunning.isEmpty()) {
+				// do not allow the already running process
+				List<TableRow> validRows = new ArrayList<TableRow>();
+				for(TableRow row :data.getRunHosts().getRows()) {
+					if(!hostsRunning.contains(row.getDbID())) {
+						validRows.add(row);
+					}
+				}
+				data.getRunHosts().getRows().clear();
+				data.getRunHosts().getRows().addAll(validRows);
+				if(validRows.isEmpty()) {
+					data.addError(messages.get("processcantrun3"));
+				}
+			}else {
+				data.addError(messages.get("processcantrun2"));
+			}
+		}else {
+			data.addError(messages.get("processcantrun1"));
+		}
+		return data;
+	}
+	/**
+	 * Get host processes running for permit data of the history given
+	 * @param curHis
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public List<Long> hostsRunning(History curHis) throws ObjectNotFoundException {
+		List<Long> hostsRunning = new ArrayList<Long>();
+		Concept permitData=amendmentServ.initialApplicationData(curHis.getApplicationData());
+		List<History> allHis = boilerServ.historyAll(permitData);	//we need only on host 
+		for(History h : allHis) {
+			if(h.getGo()==null) {
+				if(isHostApplication(h.getApplDict())) {
+					hostsRunning.add(h.getApplDict().getID());
+				}
+			}
+		}
+		return hostsRunning;
+	}
+	/**
+	 * Load a table for host application that are possible to run
+	 * <ul>
+	 * <li> ID is appl dictionary id
+	 * <li>name is an application name>
+	 * </ul>
+	 * @param applData
+	 * @param data 
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	private ActivitySubmitDTO loadHostTable(Concept applData, ActivitySubmitDTO data) throws ObjectNotFoundException {
+		String dataurl = boilerServ.url(applData);
+		jdbcRepo.host_applications_dataurl(dataurl);
+		TableQtb table = data.getRunHosts();
+		if(table.getHeaders().getHeaders().isEmpty()) {
+			table.getHeaders().getHeaders().add(TableHeader.instanceOf("prefLabel",
+					messages.get("prefLabel"),
+					true, true, false, TableHeader.COLUMN_STRING, 0));
+			table.getHeaders().getHeaders().get(0).setSortValue(TableHeader.SORT_ASC);
+			table.getHeaders().setPageSize(Integer.MAX_VALUE);	// to ensure all records will be here
+		}
+		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from host_applications_dataurl",
+				"", "", table.getHeaders());
+		TableQtb.tablePage(rows, table);
+		return data;
+	}
+	/**
+	 * Is it possible to run host processes required
+	 * at least one process should be selected and no one of such process should be running and notes should be filled
+	 * @param curHis 
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public ActivitySubmitDTO submitRunHost(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
+		if(data.getRunHosts().getRows().isEmpty()) {
+			data.addError(messages.get("processcantrun1"));
+		}
+		List<Long> selected = new ArrayList<Long>();
+		for(TableRow row : data.getRunHosts().getRows()) {
+			if(row.getSelected()) {
+				selected.add(row.getDbID());
+			}
+		}
+		if(selected.isEmpty()) {
+			data.addError(messages.get("submitrunhosts1"));
+		}
+		data = submitNotesIsMandatory(curHis, data);
+		if(data.isValid()){
+			List<Long> hostsRunning= hostsRunning(curHis);
+			for(Long dictId :selected) {
+				if(hostsRunning.contains(dictId)) {
+					Concept node = closureServ.loadConceptById(dictId);
+					data.addError(messages.get("submitrunhosts2")+ " "+ literalServ.readPrefLabel(node));
+					break;
+				}
+			}
+		}
+		return data;
 	}
 }

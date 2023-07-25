@@ -49,25 +49,71 @@ public class MonitoringService {
 	 */
 	@Transactional
 	public ApplicationsDTO myMonitoring(ApplicationsDTO data, UserDetailsDTO user, String typeTable, String searchStr) throws ObjectNotFoundException {
-		jdbcRepo.in_activities();
-		if(accServ.isSupervisor(user) || accServ.isSecretary(user)) {
-			data = supervisor(data, user, typeTable, searchStr);
-			return data;
-		}
-		if(accServ.isModerator(user)) {
-			data = moderator(data, user, typeTable, searchStr);
-			return data;
-		}
-		if(accServ.isApplicant(user)) {
-			data = applicant(data, user, typeTable, searchStr);
-			return data;
-		}
-		//others NMRA employee
-		data = otherExecutors(data, user, typeTable, searchStr);
+			if(accServ.isSupervisor(user) || accServ.isSecretary(user) || accServ.isApplicant(user)) {
+				data = supervisor(data, user, typeTable, searchStr);
+				return data;
+			}
+			if(accServ.isModerator(user)) {
+				data = moderator(data, user, typeTable, searchStr);
+				return data;
+			}
 		return data;
+	}
+	
+	/**
+	 * Load data to Monitoring/Fullsearch page
+	 * @param data
+	 * @param user
+	 * @param searchStr
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	@Transactional
+	public ApplicationsDTO monitoringFullSearch(ApplicationsDTO data, UserDetailsDTO user, String searchStr) throws ObjectNotFoundException {
+		if(accServ.isSupervisor(user) || accServ.isSecretary(user) || accServ.isModerator(user) || accServ.isApplicant(user)) {
+			setDateActual(data);
+			
+			TableQtb table = data.getFullsearch();
+			
+			if (table.getHeaders().getHeaders().size() == 0) {
+				table.getHeaders().getHeaders().addAll(fullHeaders());
+				table.setGeneralSearch(searchStr);
+			}
+			
+			if(table.getGeneralSearch().length() > 2) {
+				jdbcRepo.monitoringFull(user.getEmail(), table.getGeneralSearch());
+				String select = "select * from _monitoringfull";
+				List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", "", table.getHeaders());
+				TableQtb.tablePage(rows, table);
+				table = boilerServ.translateRows(table);
+				table.setSelectable(true);
+				data.setFullsearch(table);
+			}else {
+				data.getFullsearch().getRows().clear();
+			}
+		}
+		
+		return data;
+	}
+	
+	private void setDateActual(ApplicationsDTO data) {
+		try {
+			String select ="SELECT CompletedAt FROM reportsession where Actual='1'";
+			Headers ret = new Headers();
+			ret.getHeaders().add(TableHeader.instanceOf("CompletedAt","CompletedAt",false,false,false,TableHeader.COLUMN_LOCALDATETIME,0));
+			List<TableRow> dateActual = jdbcRepo.qtbGroupReport(select, "", "", ret);
+			if(dateActual.size() > 0) {
+				LocalDateTime date = (LocalDateTime) dateActual.get(0).getCell("CompletedAt", ret).getOriginalValue();
+				data.getDateactual().setValue(date);
+				data.getDateactual().setReadOnly(true);
+			}
+		} catch (ObjectNotFoundException e) {
+			e.printStackTrace();
+		}
 	}
 	/**
 	 * Only processing by the executor
+	 * * probably dead 18/07/2023 ik
 	 * @param data
 	 * @param executor
 	 * @return
@@ -108,6 +154,7 @@ public class MonitoringService {
 
 	/**
 	 * Only initiated by the applicant
+	 * * probably dead 18/07/2023 ik
 	 * @param data
 	 * @param applicant
 	 * @return
@@ -160,57 +207,38 @@ public class MonitoringService {
 	 */
 	@Transactional
 	private ApplicationsDTO moderator(ApplicationsDTO data, UserDetailsDTO user, String typeTable, String searchStr) throws ObjectNotFoundException {
-		User u = userServ.findByEmail(user.getEmail());
-		List<Long> resp = userServ.responsibilities(u);
-		
-		if(typeTable.equals("actual")) {
-			if(!data.getTable().hasHeaders()) {
-				data.getTable().setHeaders(supervisorHeaders(data.getTable().getHeaders()));
-				// только когда снова создаем заголовки, только тогда проверяем был ли текст в строке поиска
+			String email=user.getEmail();
+			boolean present=true;
+			TableQtb table=new TableQtb();
+			if(typeTable.equals("scheduled")) {
+				present=false;
+				table=data.getScheduled();
+			}else {
+				table=data.getTable();
+			}
+			if(!table.hasHeaders()) {
+				table.setHeaders(supervisorHeaders(table.getHeaders()));
+				// when creating a header, check if there is text in the search
 				if(searchStr != null && !searchStr.equals("null") && searchStr.length() > 2) {
-					for(TableHeader th:data.getTable().getHeaders().getHeaders()) {
+					for(TableHeader th:table.getHeaders().getHeaders()) {
 						th.setGeneralCondition(searchStr);
 					}
-					data.getTable().setGeneralSearch(searchStr);
+					table.setGeneralSearch(searchStr);
 				}
 			}
-			if(accServ.isTerritoryUser(user)) {
-				data = moderatorTerritory(u, resp, data, searchStr);
-			}else {
-				data = moderatorCountry(u, resp, data, searchStr);
-			}
-		}else if(typeTable.equals("scheduled")) {
-			if(!data.getScheduled().hasHeaders()) {
-				data.getScheduled().setHeaders(supervisorHeaders(data.getScheduled().getHeaders()));
-				// только когда снова создаем заголовки, только тогда проверяем был ли текст в строке поиска
-				if(searchStr != null && !searchStr.equals("null") && searchStr.length() > 2) {
-					for(TableHeader th:data.getScheduled().getHeaders().getHeaders()) {
-						th.setGeneralCondition(searchStr);
-					}
-					data.getScheduled().setGeneralSearch(searchStr);
-				}
-			}
-			if(accServ.isTerritoryUser(user)) {
-				data = moderatorTerritory(u, resp, data, searchStr);
-			}else {
-				data = moderatorCountry(u, resp, data, searchStr);
-			}
-		}else if(typeTable.equals("fullsearch")) {
-			//fullsearch
-			if(accServ.isTerritoryUser(user)) {
-				jdbcRepo.monitoring_all(null, user.getEmail(), user.getEmail());
-			}else {
-				jdbcRepo.monitoring_all(null, user.getEmail(), null);
-			}
-			fullSearch_proc(data, searchStr);
-			data.getFullsearch().setSelectable(true);
-		}
-		
+			jdbcRepo.monitoring_moderator(email, present);
+			String select = "select * from monitoring_moderator";
+			List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", "", table.getHeaders());
+			TableQtb.tablePage(rows, table);
+			table = boilerServ.translateRows(table);
+			table.setSelectable(true);
+			data.setTable(table);
 		return data;
 	}
 	
 	/**
 	 * Moderator for whole country. Limited only by the responsibility
+	 * * probably dead 18/07/2023 ik
 	 * @param moderator 
 	 * @param resp
 	 * @param data
@@ -221,10 +249,7 @@ public class MonitoringService {
 		for(Long r : resp) {
 			resps.add(r+"");
 		}
-		String where = "adict in ("+
-				String.join(",",resps)
-		+")";
-		
+		String where = "adict in ("+String.join(",",resps)+")";
 		if(key.equals("actual")) {
 			data = loadTableActual(where, data);
 		}else if(key.equals("scheduled")) {
@@ -232,10 +257,10 @@ public class MonitoringService {
 		}
 		return data;
 	}
-
 	/**
 	 * Select all activities by responsibility-office
 	 * It is presumed that the in_activities is ready and headers have been built
+	 * * probably dead 18/07/2023 ik
 	 * @param moderator
 	 * @param resp 
 	 * @param data
@@ -248,16 +273,12 @@ public class MonitoringService {
 		for(Long r : resp) {
 			resps.add(r+"");
 		}
-		where = where + " and adict in ("+
-				String.join(",",resps)
-		+")";
-		
+		where = where + " and adict in ("+String.join(",",resps)+")";
 		if(key.equals("actual")) {
 			data = loadTableActual(where, data);
 		}else if(key.equals("scheduled")) {
 			data = loadTableScheduler(where, data);
 		}
-		
 		return data;
 	}
 	
@@ -270,44 +291,32 @@ public class MonitoringService {
 	 */
 	@Transactional
 	private ApplicationsDTO supervisor(ApplicationsDTO data, UserDetailsDTO user, String typeTable, String searchStr) throws ObjectNotFoundException {
-		if(typeTable.equals("actual")) {
-			if(!data.getTable().hasHeaders()) {
-				data.getTable().setHeaders(supervisorHeaders(data.getTable().getHeaders()));
-				// только когда снова создаем заголовки, только тогда проверяем был ли текст в строке поиска
-				if(searchStr != null && !searchStr.equals("null") && searchStr.length() > 2) {
-					for(TableHeader th:data.getTable().getHeaders().getHeaders()) {
-						th.setGeneralCondition(searchStr);
-					}
-					data.getTable().setGeneralSearch(searchStr);
-				}
-			}
-			String where = "supervisor='"+user.getEmail()+"'";
-			data = loadTableActual(where, data);
-			data.getTable().setSelectable(true);
-		}else if(typeTable.equals("scheduled")) {
-			if(!data.getScheduled().hasHeaders()) {
-				data.getScheduled().setHeaders(supervisorHeaders(data.getScheduled().getHeaders()));
-				// только когда снова создаем заголовки, только тогда проверяем был ли текст в строке поиска
-				if(searchStr != null && !searchStr.equals("null") && searchStr.length() > 2) {
-					for(TableHeader th:data.getScheduled().getHeaders().getHeaders()) {
-						th.setGeneralCondition(searchStr);
-					}
-					data.getScheduled().setGeneralSearch(searchStr);
-				}
-			}
-			String where = "supervisor='"+user.getEmail()+"'";
-			data = loadTableScheduler(where, data);
-			data.getScheduled().setSelectable(true);
-		}else if(typeTable.equals("fullsearch")) {
-			//fullsearch
-			if(accServ.isTerritoryUser(user)) {
-				jdbcRepo.monitoring_all(null, null, user.getEmail());
+			String email=user.getEmail();
+			boolean present=true;
+			TableQtb table=new TableQtb();
+			if(typeTable.equals("scheduled")) {
+				present=false;
+				table=data.getScheduled();
 			}else {
-				jdbcRepo.monitoring_all(null, null, null);
+				table=data.getTable();
 			}
-			fullSearch_proc(data, searchStr);
-			data.getFullsearch().setSelectable(true);
-		}
+			if(!table.hasHeaders()) {
+				table.setHeaders(supervisorHeaders(table.getHeaders()));
+				// when creating a header, check if there is text in the search
+				if(searchStr != null && !searchStr.equals("null") && searchStr.length() > 2) {
+					for(TableHeader th:table.getHeaders().getHeaders()) {
+						th.setGeneralCondition(searchStr);
+					}
+					table.setGeneralSearch(searchStr);
+				}
+			}
+				jdbcRepo.in_monitoring(email, present);
+				String select="select * from in_monitoring";
+				List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", "", table.getHeaders());
+				TableQtb.tablePage(rows, table);
+				table = boilerServ.translateRows(table);
+				table.setSelectable(true);
+				data.setTable(table);
 		return data;
 	}
 	
@@ -397,6 +406,7 @@ public class MonitoringService {
 	/**
 	 * Load current tables.
 	 * It's assumed that in_activities has been executed and headers have been built
+	 *  * * probably dead 18/07/2023 ik
 	 * @param where String where
 	 * @param data
 	 * @return
@@ -542,6 +552,14 @@ public class MonitoringService {
 				TableHeader.COLUMN_STRING,
 				20));
 		headers.getHeaders().add(TableHeader.instanceOf(
+				"Owner",
+				"owners",
+				false,
+				true,
+				true,
+				TableHeader.COLUMN_STRING,
+				20));
+		headers.getHeaders().add(TableHeader.instanceOf(
 				"executor",
 				"executor_email",
 				false,
@@ -618,6 +636,45 @@ public class MonitoringService {
 		Concept applData = closureServ.loadConceptById(applID);
 		List<History> hlist = boilerServ.historyAllOrderByCome(applData);
 		return hlist.get(hlist.size()-1).getID();
+	}
+	
+	private List<TableHeader> fullHeaders() {
+		List<TableHeader> headers = new ArrayList<TableHeader>();
+		headers.add(TableHeader.instanceOf(
+				"workflow",
+				"prod_app_type",
+				true,
+				false,
+				false,
+				TableHeader.COLUMN_STRING,
+				20));
+		headers.add(TableHeader.instanceOf(
+				"pref",
+				"prefLabel",
+				true,
+				false,
+				false,
+				TableHeader.COLUMN_STRING,
+				40));
+		headers.add(TableHeader.instanceOf(
+				"owner",
+				"owners",
+				true,
+				false,
+				false,
+				TableHeader.COLUMN_STRING,
+				20));
+		headers.add(TableHeader.instanceOf(
+				"state",
+				"state",
+				true,
+				false,
+				false,
+				TableHeader.COLUMN_STRING,
+				20));
+		headers = boilerServ.translateHeadersList(headers);
+		headers.get(0).setSortValue(TableHeader.SORT_DESC);
+		return headers;
 	}
 	
 }

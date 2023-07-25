@@ -624,7 +624,7 @@ public class AdminAPI {
 			throws DataNotFoundException {
 		try {
 			String mediaType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-			String fileName = "reportDataStructure.xlsx";
+			String fileName = importExportDataConfigService.variablesExportFileName(data);
 			Resource res = importExportDataConfigService.variablesExport(data);
 			return ResponseEntity.ok().contentType(MediaType.parseMediaType(mediaType))
 					// .header(HttpHeaders.CONTENT_DISPOSITION, fres.getContentDisp() + ";
@@ -1082,7 +1082,8 @@ public class AdminAPI {
 			throws DataNotFoundException {
 		try {
 			String mediaType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-			String fileName = "reportDataStructure.xlsx";
+			//String fileName = "reportDataStructure.xlsx";
+			String fileName=importExportWorkflowService.fileName(data);
 			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 			Resource res = importExportWorkflowService.workflowExportExcel(user,data);
 			return ResponseEntity.ok().contentType(MediaType.parseMediaType(mediaType))

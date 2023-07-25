@@ -864,7 +864,32 @@ public class JdbcRepository {
 
 	}
 	/**
+	 * monitoring known not finished workflow activities for a user that is identified by email supervisor or applicant
+	 */
+	public void in_monitoring(String email, boolean present) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("in_monitoring");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("email", email);
+		params.addValue("present", present);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+	}
+	/**
+	 * monitoring known not finished workflow activities for a user that is identified by email moderator
+	 */
+	public void monitoring_moderator(String email, boolean present) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("monitoring_moderator");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("email", email);
+		params.addValue("present", present);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+	}
+	/**
 	 * Load all known open activities to the temporary table in_activities for the future querying 
+	 * probably dead 18/07/2023 ik
 	 */
 	public void in_activities() {
 		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
@@ -873,6 +898,7 @@ public class JdbcRepository {
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 	}
+	
 	/**
 	 * Get assembly variables be configuration URL
 	 * @param url
@@ -1219,6 +1245,21 @@ public class JdbcRepository {
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 	}
+	
+	/**
+	 * Links for a thingID
+	 * @param thingID
+	 */
+	public void links(long thingID) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("linksByThing");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("thingID", thingID);
+		
+		proc.execute(params);
+	}
+	
+	
 	/**
 	 * Get objects from reportpage table in form of a dictionary
 	 * @param objectUrl
@@ -1398,5 +1439,57 @@ public class JdbcRepository {
 		params.addValue("applDataID",applDataID);
 		proc.execute(params);
 	}
-
+	/**
+	 * Todo
+	 * @param execEmail executor to which todo assigned for
+	 * @param present select todo records before this date plus 2 days, false - in the future
+	 */
+	public void todo(String execEmail, boolean present) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("todo");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("execEmail", execEmail);
+		params.addValue("present",present);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+	}
+	/**
+	 * Attentions or Notifications
+	 * @param email user that should put an attention
+	 * @param notifWeeks time to live the notification in weeks
+	 */
+	public void attention(String email, int notifWeeks) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("attention");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("email", email);
+		params.addValue("notifWeeks",notifWeeks);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+		
+	}
+	/**
+	 * host applications for a data URL given
+	 * @param dataurl
+	 */
+	public void host_applications_dataurl(String dataurl) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("host_applications_dataurl");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("dataurl", dataurl);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+	}
+	/**
+	 * monitoringFull
+	 */
+	public void monitoringFull(String curEmail, String searchStr) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("monitoringfull");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("curEmail", curEmail);
+		params.addValue("search", searchStr);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+	}
 }

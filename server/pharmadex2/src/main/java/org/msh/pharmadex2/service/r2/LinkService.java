@@ -1,10 +1,7 @@
 package org.msh.pharmadex2.service.r2;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import org.msh.pdex2.dto.table.Headers;
@@ -13,11 +10,9 @@ import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.model.r2.Concept;
-import org.msh.pdex2.model.r2.LegacyData;
 import org.msh.pdex2.model.r2.Thing;
 import org.msh.pdex2.model.r2.ThingLink;
 import org.msh.pdex2.repository.common.JdbcRepository;
-import org.msh.pdex2.repository.r2.LegacyDataRepo;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
@@ -29,7 +24,6 @@ import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.common.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.AuthenticatedPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -432,5 +426,4 @@ public class LinkService {
 		}
 		return ret;
 	}
-
 }

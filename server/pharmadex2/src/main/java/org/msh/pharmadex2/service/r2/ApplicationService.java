@@ -167,7 +167,7 @@ public class ApplicationService {
 				}
 			}
 		}
-		
+
 		jdbcRepo.applications_applicant(dataUrl,email);
 		String select = "select * from applications_applicant";
 		List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", "", table.getHeaders());
@@ -186,9 +186,9 @@ public class ApplicationService {
 		}
 		return table;
 	}
-	
 
-	
+
+
 	/**
 	 * Create headers for applicant applications table
 	 * @param headers
@@ -366,15 +366,21 @@ public class ApplicationService {
 					// set access
 					data.setReadOnly(!accServ.sameEmail(executor.getIdentifier(), user.getEmail()));
 
-					// dictionary and data, maybe JSON encoded
+					//determine dict url is one
 					String dictUrl = "";
-					if (his.getActivity().getLabel() != null) {
-						dictUrl = his.getActivity().getLabel();
-						try {
-							WorkflowParamDTO wdto = objectMapper.readValue(dictUrl, WorkflowParamDTO.class);
-							dictUrl = wdto.getChecklistUrl();
-						} catch (JsonProcessingException e) {
-							// nothing to do
+					if(his.getActConfig()!=null) {
+						dictUrl=literalServ.readValue("checklisturl", his.getActConfig());
+					}
+					// dictionary and data, maybe JSON encoded
+					if(dictUrl.isEmpty()) {
+						if (his.getActivity().getLabel() != null) {
+							dictUrl = his.getActivity().getLabel();
+							try {
+								WorkflowParamDTO wdto = objectMapper.readValue(dictUrl, WorkflowParamDTO.class);
+								dictUrl = wdto.getChecklistUrl();
+							} catch (JsonProcessingException e) {
+								// nothing to do
+							}
 						}
 					}
 					Concept dictRoot = closureServ.loadRoot(dictUrl);
@@ -1117,21 +1123,59 @@ public class ApplicationService {
 		dto.setHistoryId(his.getID());
 		dto.setNodeId(his.getApplicationData().getID());
 		dto.setApplication(true);
-		// dto = thingServ.createContent(dto);
 		return dto;
 	}
 
 	/**
-	 * Load my activities. Suit for all, except an applicant
-	 * 
+	 * Load activities that are required attention
 	 * @param data
 	 * @param user
 	 * @return
 	 */
-	public ApplicationsDTO myActivities(ApplicationsDTO data, UserDetailsDTO user) {
-		data = presentActivities(data, user);
-		data = scheduledActivities(data, user);
+	public ApplicationsDTO attentionToDo(ApplicationsDTO data, UserDetailsDTO user) {
+		TableQtb table = data.getTable();
+		if (table.getHeaders().getHeaders().size() == 0) {
+			table.getHeaders().getHeaders().addAll(attentionHeaders());
+			String search = table.getGeneralSearch();
+			if(!search.isEmpty()) {
+				for(TableHeader header : table.getHeaders().getHeaders()) {
+					header.setGeneralCondition(search);
+				}
+			}
+		}
+		jdbcRepo.attention(user.getEmail(), 1);
+		String select = "select * from _attention";
+		List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", "", table.getHeaders());
+		TableQtb.tablePage(rows, table);
+		table = boilerServ.translateRows(table);
+		table.setSelectable(false);
+		data.setTable(table);
 		return data;
+	}
+	/**
+	 * Headers for attention table
+	 * @param  
+	 * @param headers
+	 * @return
+	 */
+	private List<TableHeader> attentionHeaders() {
+		List<TableHeader> headers = new ArrayList<TableHeader>();
+		headers
+		.add(TableHeader.instanceOf("Come", "scheduled", true, true, true, TableHeader.COLUMN_LOCALDATE, 0));
+		headers
+		.add(TableHeader.instanceOf("Gone", "updated_date", true, true, true, TableHeader.COLUMN_LOCALDATE, 0));
+		headers
+		.add(TableHeader.instanceOf("permit", "prefLabel", true, true, true, TableHeader.COLUMN_LINK, 0));
+		headers
+		.add(TableHeader.instanceOf("workflowgroup", "prod_app_type", true, true, true, TableHeader.COLUMN_STRING, 0));
+		headers.add(
+				TableHeader.instanceOf("workflow", "workflows", true, true, true, TableHeader.COLUMN_STRING, 0));
+		headers
+		.add(TableHeader.instanceOf("activity", "activity", true, true, true, TableHeader.COLUMN_STRING, 0));
+		headers = boilerServ.translateHeadersList(headers);
+		headers.get(0).setSortValue(TableHeader.SORT_DESC);
+		headers.get(1).setSortValue(TableHeader.SORT_ASC);
+		return headers;
 	}
 
 	/**
@@ -1141,15 +1185,20 @@ public class ApplicationService {
 	 * @param user
 	 * @return
 	 */
-	public ApplicationsDTO presentActivities(ApplicationsDTO data, UserDetailsDTO user) {
+	public ApplicationsDTO activitiesToDo(ApplicationsDTO data, boolean present, UserDetailsDTO user) {
 		TableQtb table = data.getTable();
 		if (table.getHeaders().getHeaders().size() == 0) {
-			table.setHeaders(myHeaders(table.getHeaders()));
+			table.getHeaders().getHeaders().addAll(activitiesToDoHeaders());
+			String search = table.getGeneralSearch();
+			if(!search.isEmpty()) {
+				for(TableHeader header : table.getHeaders().getHeaders()) {
+					header.setGeneralCondition(search);
+				}
+			}
 		}
-		jdbcRepo.activities(user.getEmail());
-		String select = "select * from _activities";
-		String where = "Come<=(curdate() + INTERVAL 2 DAY)";
-		List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", where, table.getHeaders());
+		jdbcRepo.todo(user.getEmail(),present);
+		String select = "select * from _todo";
+		List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", "", table.getHeaders());
 		TableQtb.tablePage(rows, table);
 		table = boilerServ.translateRows(table);
 		table.setSelectable(false);
@@ -1163,46 +1212,22 @@ public class ApplicationService {
 	 * @param headers
 	 * @return
 	 */
-	private Headers myHeaders(Headers headers) {
-		headers.getHeaders().clear();
-		headers.getHeaders()
+	private List<TableHeader> activitiesToDoHeaders() {
+		List<TableHeader> headers = new ArrayList<TableHeader>();
+		headers
 		.add(TableHeader.instanceOf("Come", "scheduled", true, true, true, TableHeader.COLUMN_LOCALDATE, 0));
-		headers.getHeaders()
+		headers
 		.add(TableHeader.instanceOf("pref", "prefLabel", true, true, true, TableHeader.COLUMN_LINK, 0));
-		headers.getHeaders()
+		headers
 		.add(TableHeader.instanceOf("applicant", "applicant", true, true, true, TableHeader.COLUMN_STRING, 0));
-		headers.getHeaders().add(
-				TableHeader.instanceOf("workflow", "prod_app_type", true, true, true, TableHeader.COLUMN_STRING, 0));
-		headers.getHeaders()
+		headers
+		.add(	TableHeader.instanceOf("workflow", "prod_app_type", true, true, true, TableHeader.COLUMN_STRING, 0));
+		headers
 		.add(TableHeader.instanceOf("activity", "activity", true, true, true, TableHeader.COLUMN_STRING, 0));
-		headers = boilerServ.translateHeaders(headers);
-		headers.getHeaders().get(0).setSortValue(TableHeader.SORT_ASC);
+		headers = boilerServ.translateHeadersList(headers);
+		headers.get(0).setSortValue(TableHeader.SORT_DESC);
 		return headers;
 	}
-
-	/**
-	 * Create scheduled activities table
-	 * 
-	 * @param data
-	 * @param user
-	 * @return
-	 */
-	private ApplicationsDTO scheduledActivities(ApplicationsDTO data, UserDetailsDTO user) {
-		TableQtb table = data.getScheduled();
-		if (table.getHeaders().getHeaders().size() == 0) {
-			table.setHeaders(myHeaders(table.getHeaders()));
-		}
-		jdbcRepo.activities(user.getEmail());
-		String select = "select * from _activities";
-		String where = "Come>curdate()";
-		List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", where, table.getHeaders());
-		TableQtb.tablePage(rows, table);
-		table = boilerServ.translateRows(table);
-		table.setSelectable(false);
-		data.setScheduled(table);
-		return data;
-	}
-
 
 	/**
 	 * Is selected activity traced or monitoring (not configurable) activity
@@ -1267,29 +1292,22 @@ public class ApplicationService {
 		applConc = closureServ.save(applConc);
 		applConc.setIdentifier(applConc.getID() + "");
 		applConc = closureServ.saveToTree(owner, applConc);
-		//run activities
-		// 30.05.2023 khomenska change validation workflow
-		data = (ActivitySubmitDTO)validServ.validWorkFlowConfig(data, applUrl, true);
-				
-		/*30.05.2023
-		Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
-		List<Concept> nextActs = boilerServ.loadActivities(configRoot);
-		data = (ActivitySubmitDTO) validServ.workflowConfig(nextActs, configRoot, data);*/
-				
+		data = (ActivitySubmitDTO)validServ.validWorkFlowConfig(data, applUrl);			
 		if (data.isValid()) {
 			Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
 			List<Concept> nextActs = boilerServ.loadActivities(configRoot);
-			
 			if (nextActs.size() > 0) {
-				List<ActivityToRun> toRun = activitiesToRun(data, applUrl, prevHis, nextActs);
+				History curHis = createHostHistorySample(prevHis, applConc, dictConc, configRoot);
+				List<ActivityToRun> toRun = activitiesToRun(data, applUrl, curHis, nextActs);
 				if(toRun.size()>0 && data.isValid()) {
-					History curHis = createHostHistorySample(prevHis, applConc, dictConc, configRoot);
 					activityTrackRun(sch.getScheduled(), curHis, applUrl, applicantEmail); // tracking by an applicant
 					activityMonitoringRun(sch.getScheduled(), curHis, applUrl); // monitoring by the all supervisors
 					// run activities
 					for(ActivityToRun act :toRun ) {
 						for (String email : act.getExecutors()) {
-							activityCreate(sch.getScheduled(), act.getConfig(), curHis, email, String.join(",",act.getFallBack()));
+							String notes = data.getNotes().getValue();
+							if(notes==null) notes="";
+							activityCreate(sch.getScheduled(), act.getConfig(), curHis, email, notes+ " /"+ String.join(",",act.getFallBack()));
 						}
 					}
 				}else {
@@ -1325,49 +1343,22 @@ public class ApplicationService {
 	public ActivitySubmitDTO createRevokePermitApplication(History prevHis, String applUrl, Concept dictConc,
 			ActivitySubmitDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		Concept applRoot = closureServ.loadRoot(applUrl);
-
 		Concept owner = new Concept();
-			owner.setIdentifier(user.getEmail());
-			owner = closureServ.saveToTree(applRoot, owner);
+		owner.setIdentifier(user.getEmail());
+		owner = closureServ.saveToTree(applRoot, owner);
 		Concept applConc = new Concept();
 		applConc = closureServ.save(applConc);
 		applConc.setIdentifier(applConc.getID() + "");
 		applConc = closureServ.saveToTree(owner, applConc);
-		//run activities
-		// 30.05.2023 khomenska  change validation workflow
-		data = (ActivitySubmitDTO)validServ.validWorkFlowConfig(data, applUrl, false);
-		
-		/*30.05.2023
-		Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
-		List<Concept> nextActs = boilerServ.loadActivities(configRoot);
-		data = (ActivitySubmitDTO) validServ.workflowConfig(nextActs, configRoot, data);*/
+		data = (ActivitySubmitDTO)validServ.validWorkFlowConfig(data, applUrl);
 		if (data.isValid()) {
 			Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
 			List<Concept> nextActs = boilerServ.loadActivities(configRoot);
-			
 			if (nextActs.size() > 0) {
 				Concept actConfig = nextActs.get(0);
 				History curHis = createHostHistorySample(prevHis, applConc, dictConc, configRoot);
+				activityMonitoringRun(null, curHis, applUrl); 
 				activityCreate(null, actConfig, curHis, owner.getIdentifier(), data.getNotes().getValue());
-/*
-				List<ActivityToRun> toRun = activitiesToRun(data, applUrl, prevHis, nextActs);
-				if(toRun.size()>0 && data.isValid()) {
-				//History curHis = createHostHistorySample(prevHis, applConc, dictConc, configRoot);
-				
-				activityTrackRun(null, curHis, applUrl, data.getApplicantEmail()); // tracking by an applicant
-				activityMonitoringRun(null, curHis, applUrl); // monitoring by the all supervisors
-				// run activities
-				for(ActivityToRun act :toRun ) {///
-						for (String email : act.getExecutors()) {
-							activityCreate(null, act.getConfig(), curHis, email, String.join(",",act.getFallBack()));
-						}
-					}
-				}else {
-					if(data.isValid()) {
-						data.setValid(false);
-						data.setIdentifier(messages.get("badconfiguration")+" "+applUrl);
-					}
-				}*/
 			} else {
 				String mess= messages.get("badconfiguration") +" "+applUrl;
 				logger.error(mess);
@@ -1561,7 +1552,7 @@ public class ApplicationService {
 	 * @param applData 
 	 * @return yes|no
 	 * @throws ObjectNotFoundException 
-	 
+
 	@Transactional
 	public boolean hasShutdown( History curHis, Concept applData) throws ObjectNotFoundException {
 		Concept root=boilerServ.getRootTree(applData);
@@ -1594,7 +1585,7 @@ public class ApplicationService {
 	 * @param user
 	 * @return
 	 * @throws ObjectNotFoundException
-	 
+
 	@Transactional
 	public CheckListDTO submit(CheckListDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		if (data.getHistoryId() > 0) {
@@ -1654,12 +1645,16 @@ public class ApplicationService {
 		}
 	}*/
 
+
+
+
+
 	/** MOVED TO SUBMITSERVICE 03052023 IK
 	 * Have all pages been defined?
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException 
-	 
+
 	@Transactional			// may become public in the future
 	private boolean checkPagesDefined(Concept data) throws ObjectNotFoundException {
 		boolean ret = true;
@@ -1712,7 +1707,7 @@ public class ApplicationService {
 	 * @param page
 	 * @return
 	 * @throws ObjectNotFoundException
-	 
+
 	@Transactional
 	private boolean checkPagesPersonDefined(Concept page) throws ObjectNotFoundException {
 		Thing pThing = new Thing();
@@ -1732,7 +1727,7 @@ public class ApplicationService {
 	 * @param curHis
 	 * @return true if condition is 
 	 * @throws ObjectNotFoundException 
-	 
+
 	@Transactional
 	public boolean singeltonCondition(History curHis) throws ObjectNotFoundException {
 		if(amendmentServ.hasAmendment(curHis.getApplicationData())) {
@@ -1756,7 +1751,7 @@ public class ApplicationService {
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException
-	 
+
 	@Transactional
 	public ActivitySubmitDTO submitCreateData(UserDetailsDTO user, ActivitySubmitDTO data)
 			throws ObjectNotFoundException {
@@ -1867,7 +1862,7 @@ public class ApplicationService {
 			throw new ObjectNotFoundException("submitCreateData. History ID is ZERO", logger);
 		}
 	}
-*/
+	 */
 	/** MOVED TO SUBMIT SERVICE 03052023 IK
 	 * Create list of scheduled runs in the host lifecycle stage Approve has been
 	 * selected
@@ -1876,7 +1871,7 @@ public class ApplicationService {
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException
-	 
+
 	@Transactional
 	public ActivitySubmitDTO scheduled(History his, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		// any data may contain the scheduler(s)
@@ -1914,10 +1909,10 @@ public class ApplicationService {
 	 * 
 	 * @param headers
 	 * @return
-	 
+
 	private Headers headersSchedule(Headers headers) {
 		headers.getHeaders().clear();
-		*	headers.getHeaders().add(TableHeader.instanceOf(
+	 *	headers.getHeaders().add(TableHeader.instanceOf(
 					"stages",
 					"stages",
 					true,
@@ -1941,7 +1936,7 @@ public class ApplicationService {
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException
-	 
+
 	private ActivitySubmitDTO executorsThisChoice(History his, UserDetailsDTO user, ActivitySubmitDTO data)
 			throws ObjectNotFoundException {
 		Concept actConfig = his.getActConfig();
@@ -1961,10 +1956,10 @@ public class ApplicationService {
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException
-	 
+
 	private ActivitySubmitDTO executorsNMRA(History his, UserDetailsDTO user, ActivitySubmitDTO data)
 			throws ObjectNotFoundException {
-		*we need to get a concept of process configuration RevokePermit*
+	 *we need to get a concept of process configuration RevokePermit*
 		Concept nodeApplData = his.getApplicationData();
 		Thing thing = new Thing();
 		thing = boilerServ.thingByNode(nodeApplData, thing);
@@ -1991,7 +1986,7 @@ public class ApplicationService {
 	 * @param limitToAU limit to the administrative unit
 	 * @return
 	 * @throws ObjectNotFoundException
-	 
+
 	@Transactional
 	private ActivitySubmitDTO executorsNextChoice(History his, UserDetailsDTO user, ActivitySubmitDTO data,
 			boolean limitToAU) throws ObjectNotFoundException {
@@ -2014,7 +2009,7 @@ public class ApplicationService {
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException
-	 
+
 	private ActivitySubmitDTO nextJobChoice(History his, UserDetailsDTO user, ActivitySubmitDTO data)
 			throws ObjectNotFoundException {
 		if (data.getNextJob().getRows().size() == 0) {
@@ -2037,7 +2032,7 @@ public class ApplicationService {
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException
-	 
+
 	@Transactional
 	public ActivitySubmitDTO createActions(UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		History curHis = boilerServ.historyById(data.getHistoryId());
@@ -2072,7 +2067,7 @@ public class ApplicationService {
 			if (data.isValid()) {
 				allowed.add("8"); // implement a deregistration
 			}
-			
+
 		} else {
 			if (data.isApplicant()) {
 				data = validServ.submitNext(curHis, user, data);
@@ -2124,7 +2119,7 @@ public class ApplicationService {
 		data.clearErrors();
 		return data;
 	}
-*/
+	 */
 	/** MOVED TO SUBMITSERVICE 03052023 IK
 	 * Table contains all submit actions possible in this case
 	 * 
@@ -2132,7 +2127,7 @@ public class ApplicationService {
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException
-	 
+
 	@Transactional
 	public ActivitySubmitDTO actionsTable(List<Concept> items, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		TableQtb table = data.getActions();
@@ -2167,7 +2162,7 @@ public class ApplicationService {
 	 * 
 	 * @param headers
 	 * @return
-	 
+
 	private Headers headersActions(Headers headers) {
 		headers.getHeaders()
 		.add(TableHeader.instanceOf("pref", "label_actions", true, false, false, TableHeader.COLUMN_STRING, 0));
@@ -2187,7 +2182,7 @@ public class ApplicationService {
 	 * @param limitToAU limit to admin unit
 	 * @return
 	 * @throws ObjectNotFoundException
-	 
+
 	public TableQtb executorsTable(History curHis, Concept actConf, TableQtb execTable, boolean limitToAU)
 			throws ObjectNotFoundException {
 		if (execTable.getRows().size() == 0) {
@@ -2264,7 +2259,7 @@ public class ApplicationService {
 	 * 
 	 * @param headers
 	 * @return
-	 
+
 	public Headers headersExecutors(Headers headers) {
 		headers.getHeaders().clear();
 		headers.getHeaders().add(
@@ -2285,7 +2280,7 @@ public class ApplicationService {
 	 * @param data table with all foreground activities in this application
 	 * @return
 	 * @throws ObjectNotFoundException
-	 
+
 	@Transactional
 	private ActivitySubmitDTO nextJobsTable(History his, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		TableQtb table = data.getNextJob();
@@ -2316,7 +2311,7 @@ public class ApplicationService {
 	 * 
 	 * @param headers
 	 * @return
-	 
+
 	private Headers headersNextJob(Headers headers) {
 		headers.getHeaders().clear();
 		headers.getHeaders()
@@ -2338,7 +2333,7 @@ public class ApplicationService {
 	 * @return
 	 * @throws ObjectNotFoundException
 	 * @throws JsonProcessingException
-	 
+
 	@Transactional
 	public ActivitySubmitDTO submitSend(UserDetailsDTO user, ActivitySubmitDTO data)
 			throws ObjectNotFoundException, JsonProcessingException {
@@ -2350,7 +2345,7 @@ public class ApplicationService {
 				actCode = 0;
 			}
 			;
-			*Possible activity codes from SystemService.submitActionDictionary 
+	 *Possible activity codes from SystemService.submitActionDictionary 
 			 systemDictNode(root, "0", messages.get("continue"));
 			systemDictNode(root, "1", messages.get("route_action"));
 			systemDictNode(root, "2", messages.get("newactivity"));
@@ -2450,7 +2445,7 @@ public class ApplicationService {
 	 * 10.11.2022 khomenska
 	 *  Approve action
 	 * @throws JsonProcessingException 
-	 
+
 	private ActivitySubmitDTO submitSendApprove(ActivitySubmitDTO data, UserDetailsDTO user, History curHis) throws ObjectNotFoundException, JsonProcessingException{
 		Concept applRoot = closureServ.loadParents(curHis.getApplication()).get(0);
 		String applUrl = applRoot.getIdentifier();
@@ -2463,7 +2458,7 @@ public class ApplicationService {
 		}
 		return data;
 	}*/
-/** MOVED TO SUBMITSERVICE 03052023 IK
+	/** MOVED TO SUBMITSERVICE 03052023 IK
 	private void sendEmailAttention(UserDetailsDTO user, History curHis, ActivitySubmitDTO data)
 			throws ObjectNotFoundException {
 		// 23.10.2022
@@ -2503,7 +2498,7 @@ public class ApplicationService {
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException
-	 
+
 	@Transactional
 	private ActivitySubmitDTO submitDeregistration(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
 			throws ObjectNotFoundException {
@@ -2529,13 +2524,13 @@ public class ApplicationService {
 		}
 		return data;
 	}*/
-/** MOVED TO SUBMITSERVICE 0052023 IK
+	/** MOVED TO SUBMITSERVICE 0052023 IK
 	@Transactional
 	private ActivitySubmitDTO submitApproveRevoke(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
 			throws ObjectNotFoundException, JsonProcessingException {
 		//	Concept applicant = closureServ.getParent(curHis.getApplicationData());
 		//	rejectApplication(curHis, applicant.getIdentifier(), data);
-		
+
 		//	sendEmailAttention(user, curHis, data);
 
 		return submitReject(curHis, user, data);
@@ -2547,7 +2542,7 @@ public class ApplicationService {
 	 * @param applicationData - application data
 	 * @param all             - remove all activities
 	 * @throws ObjectNotFoundException
-	 
+
 	@Transactional
 	private void cancelDataActivities(Concept applicationData, boolean all) throws ObjectNotFoundException {
 		List<History> hisList = boilerServ.historyAll(applicationData);
@@ -2570,7 +2565,7 @@ public class ApplicationService {
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException
-	 
+
 	@Transactional
 	public ActivitySubmitDTO isAmended(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
 			throws ObjectNotFoundException {
@@ -2589,7 +2584,7 @@ public class ApplicationService {
 	 * @param data
 	 * @return applicant executor email or empty string
 	 * @throws ObjectNotFoundException
-	 
+
 	@Transactional
 	private ActivitySubmitDTO checkApplicantExecutor(ActivitySubmitDTO data, History curHis)
 			throws ObjectNotFoundException {
@@ -2622,7 +2617,7 @@ public class ApplicationService {
 	 * @return
 	 * @throws ObjectNotFoundException
 	 * @throws JsonProcessingException
-	 
+
 	@Transactional
 	private ActivitySubmitDTO submitReject(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
 			throws ObjectNotFoundException, JsonProcessingException {
@@ -2641,17 +2636,17 @@ public class ApplicationService {
 	 * @return
 	 * @throws ObjectNotFoundException
 	 * @throws JsonProcessingException
-	 
+
 	@Transactional
 	private ActivitySubmitDTO submitRevokePermit(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
 			throws ObjectNotFoundException, JsonProcessingException {
-		*close previous scheduled REJECT THIS CODE 31/03/2023 IKA
+	 *close previous scheduled REJECT THIS CODE 31/03/2023 IKA
 		List<History> hisAllScheduled = boilerServ.historyAllByApplData(curHis.getApplicationData());
 		for (History act : hisAllScheduled) {
 			closeActivity(act, (act.getActConfig() != null));
 		}
 		closeActivity(curHis, true);
-		 *
+	 *
 		Concept nodeApplData = curHis.getApplicationData();
 		Thing thing = new Thing();
 		thing = boilerServ.thingByNode(nodeApplData, thing);
@@ -2677,7 +2672,7 @@ public class ApplicationService {
 	 * @param data
 	 * @throws ObjectNotFoundException
 	 * @throws JsonProcessingException
-	 
+
 	@Transactional
 	private void rejectApplication(History curHis, String applicantEmail, ActivitySubmitDTO data)
 			throws ObjectNotFoundException, JsonProcessingException {
@@ -2714,7 +2709,7 @@ public class ApplicationService {
 	 * @return
 	 * @throws ObjectNotFoundException
 	 * @throws JsonProcessingException 
-	 
+
 	@Transactional
 	public ActivitySubmitDTO submitApprove(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
 			throws ObjectNotFoundException, JsonProcessingException {
@@ -2753,7 +2748,7 @@ public class ApplicationService {
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException
-	 
+
 	private ActivitySubmitDTO submitAmend(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		data = submitGuest(curHis, data);
 		return data;
@@ -2767,7 +2762,7 @@ public class ApplicationService {
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException
-	 
+
 	private ActivitySubmitDTO submitHost(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		data = submitGuest(curHis, data);
 		return data;
@@ -2780,7 +2775,7 @@ public class ApplicationService {
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException
-	 
+
 	@Transactional
 	public ActivitySubmitDTO submitGuest(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		if (data.isValid()) {
@@ -2798,7 +2793,7 @@ public class ApplicationService {
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException 
-	 
+
 	@Transactional
 	private ActivitySubmitDTO verifyScheduledGuestHost(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		if(isGuestOrHostFinalize(curHis)) {
@@ -2821,7 +2816,7 @@ public class ApplicationService {
 	 * Is it guest or host application?
 	 * @param curHis
 	 * @return
-	 
+
 	private boolean isGuestOrHostFinalize(History curHis) {
 		boolean ret=false;
 		try {
@@ -2848,7 +2843,7 @@ public class ApplicationService {
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException
-	 
+
 	@Transactional
 	private ActivitySubmitDTO runScheduledGuestHost(History curHis, ActivitySubmitDTO data)
 			throws ObjectNotFoundException {
@@ -2875,7 +2870,7 @@ public class ApplicationService {
 	 * 
 	 * @param curHis
 	 * @throws ObjectNotFoundException
-	 
+
 	@Transactional
 	public void cancellActivities(History curHis) throws ObjectNotFoundException {
 		List<History> allHis = boilerServ.historyAllByApplication(curHis.getApplication());
@@ -2895,7 +2890,7 @@ public class ApplicationService {
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException
-	 
+
 	@Transactional
 	public ActivitySubmitDTO submitReAssign(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
 			throws ObjectNotFoundException {
@@ -2943,7 +2938,7 @@ public class ApplicationService {
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException
-	 
+
 	private ActivitySubmitDTO submitNext(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
 			throws ObjectNotFoundException {
 		if (data.isValid()) {
@@ -2971,7 +2966,7 @@ public class ApplicationService {
 	 * @param user
 	 * @param data
 	 * @throws ObjectNotFoundException
-	 
+
 	public ActivitySubmitDTO submitAddActivity(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
 			throws ObjectNotFoundException {
 		if (data.isValid()) {
@@ -3016,7 +3011,7 @@ public class ApplicationService {
 	 * @param user
 	 * @param curHis
 	 * @throws ObjectNotFoundException
-	 
+
 	private void cancelUsersActivities(UserDetailsDTO user, History curHis) throws ObjectNotFoundException {
 		List<History> allHis = boilerServ.historyAllByApplication(curHis.getApplication());
 		for (History his : allHis) {
@@ -3036,7 +3031,7 @@ public class ApplicationService {
 	 * @param headers
 	 * @param present present or scheduled
 	 * @return
-	 
+
 	private Headers createHeaders(Headers headers, boolean present) {
 		headers.getHeaders()
 		.add(TableHeader.instanceOf("come", "scheduled", true, true, true, TableHeader.COLUMN_LOCALDATE, 0));
@@ -3065,7 +3060,7 @@ public class ApplicationService {
 	 * @return
 	 * @throws ObjectNotFoundException
 	 * @deprecated
-	 
+
 	private boolean fullValidation(History curHis, UserDetailsDTO user) throws ObjectNotFoundException {
 		Concept node = closureServ.loadConceptById(curHis.getApplicationData().getID());
 		Thing thing = new Thing();
@@ -3112,7 +3107,7 @@ public class ApplicationService {
 		}
 		return true;
 	}*/
-/** NOT USED
+	/** NOT USED
 	private boolean validThings(ThingDTO th, UserDetailsDTO user) throws ObjectNotFoundException {
 		Map<ThingDTO, Concept> mapThing = new HashMap<ThingDTO, Concept>();
 
@@ -3184,7 +3179,7 @@ public class ApplicationService {
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException
-	 
+
 	private ActivitySubmitDTO actionCancel(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		closeActivity(curHis, true);
 		return data;

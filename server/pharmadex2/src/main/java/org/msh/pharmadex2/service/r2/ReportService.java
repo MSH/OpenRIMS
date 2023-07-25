@@ -734,9 +734,17 @@ public class ReportService {
 		headers.getHeaders().get(0).setSort(true);
 		headers.getHeaders().get(0).setSortValue(TableHeader.SORT_ASC);
 		List<TableRow> hisRows = jdbcRepo.qtbGroupReport(select, "", "", headers);
+		History his= new History();
 		if(!hisRows.isEmpty()) {
+			his = boilerServ.historyById(hisRows.get(0).getDbID());
+		}else {
+			Concept applData = closureServ.loadConceptById(data.getPermitDataID());
+			List<History> otherHis = boilerServ.historyAllOrderByCome(applData);
+			his=otherHis.get(otherHis.size()-1);
+		}
+		if(true) {//!hisRows.isEmpty()) {
 			//the application
-			History his = boilerServ.historyById(hisRows.get(0).getDbID());
+			//History his = boilerServ.historyById(hisRows.get(0).getDbID());
 			ThingDTO applDTO = applServ.createApplication(his);
 			applDTO = thingServ.path(user,applDTO);
 			if(!applDTO.getPath().isEmpty()) {
@@ -757,20 +765,27 @@ public class ReportService {
 						+"/"
 						+hisRow.getCellByKey("activity").getValue();
 				if(actDataID != null && actDataID instanceof Long && (Long)actDataID>0) {
-					History h = boilerServ.historyById(hisRow.getDbID());
-					List<Assembly> assms=assemblyServ.loadDataConfiguration(h.getDataUrl(), user);
-					if(!assms.isEmpty()) {
-						// allow to see the activity data
-						dt = applServ.createLoadActivityData(h,true);
-						dt.setTitle(title);
-					}else {
-						//skipped activity data, because of access rules
-						dt.setTitle(title);
-					}
+					//History h = boilerServ.historyById(hisRow.getDbID());
+						//dt = applServ.createLoadActivityData(h,true);
+					dt.setNodeId((Long)actDataID);
 				}else {
-					//no activity data
-					dt.setTitle(title);
+					dt.setNodeId(0L);
 				}
+						dt.setTitle(title);
+						dt.setReadOnly(true);
+					//List<Assembly> assms=assemblyServ.loadDataConfiguration(h.getDataUrl(), user);
+					//if(!assms.isEmpty()) {
+						// allow to see the activity data
+						//dt = applServ.createLoadActivityData(h,true);
+						//dt.setTitle(title);
+					//}//else {
+						//skipped activity data, because of access rules
+						//dt.setTitle(title);
+					//}
+				//}//else {
+					//no activity data
+					//dt.setTitle(title);
+				//}
 				data.getApplHistory().add(dt);
 			}
 		}else {

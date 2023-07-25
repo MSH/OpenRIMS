@@ -28,8 +28,8 @@ public class dwhdepartments implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC2222721892C64535000487")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC2222721892C64535000487", strategy="native")	
+	@GeneratedValue(generator="VAC2222721894FAF247701E68")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222721894FAF247701E68", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	
@@ -52,6 +52,9 @@ public class dwhdepartments implements Serializable {
 	
 	@Column(name="DepartmentID", nullable=false, length=20)	
 	private long departmentID;
+	
+	@Column(name="FullName", nullable=true, length=255)	
+	private String fullName;
 	
 	private void setID(long value) {
 		this.ID = value;
@@ -77,6 +80,20 @@ public class dwhdepartments implements Serializable {
 	 */
 	public String getEmail() {
 		return email;
+	}
+	
+	/**
+	 * User's full name
+	 */
+	public void setFullName(String value) {
+		this.fullName = value;
+	}
+	
+	/**
+	 * User's full name
+	 */
+	public String getFullName() {
+		return fullName;
 	}
 	
 	/**

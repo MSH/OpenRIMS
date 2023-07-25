@@ -23,8 +23,8 @@ class Option extends Component{
      */
     options(){
         let opts = [];
-       // let emptyOption = <option key='-1' value='-1'>-</option>
-       // opts.push(emptyOption)
+       let emptyOption = <option key='-1' value='-1'>-</option>
+       opts.push(emptyOption)
         if(Fetchers.isGoodArray(this.props.value.options)){
             this.props.value.options.forEach(element => {
                 opts.push(<option key={element.id+''} value={element.id+''}>{element.code}</option>)

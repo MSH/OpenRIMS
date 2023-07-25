@@ -19,6 +19,33 @@ class SearchControlNew extends Component{
         }
         this.searchText=this.searchText.bind(this)
         this.applyFilters=this.applyFilters.bind(this)
+        this.eventProcessor=this.eventProcessor.bind(this)
+    }
+
+    /**
+     * Listen messages from other components
+     * @param {Window Event} event 
+     */
+    eventProcessor(event){
+        let data=event.data
+        if(this.props.recipient != undefined){
+            if(data.from==this.props.recipient){
+                if(data.subject=='clearSearch'){
+                    this.state.commonFilter=''
+                    this.setState(this.state)
+                }
+                if(data.subject=='runSearch'){
+                    this.applyFilters(this.state.commonFilter)
+                }
+            }
+        }
+       
+    }
+    componentDidMount(){
+        window.addEventListener("message",this.eventProcessor)
+    }
+    componentWillUnmount(){
+        window.removeEventListener("message",this.eventProcessor)
     }
 
    /**
@@ -72,5 +99,6 @@ SearchControlNew.propTypes={
     label:PropTypes.string.isRequired,
     table:PropTypes.object.isRequired,
     loader:PropTypes.func.isRequired,
-    disabled:PropTypes.bool
+    disabled:PropTypes.bool,
+    recipient:PropTypes.string,     //main component 
 }

@@ -69,7 +69,9 @@ public class ImportExportWorkflowService {
 	public Resource workflowExportExcel(UserDetailsDTO user, WorkflowDTO dto) throws IOException, ObjectNotFoundException {
 		// load all workflow configuration things
 		for(ThingDTO tdto : dto.getPath()) {
-			tdto=thingServ.loadThing(tdto, user);
+			if(tdto.getNodeId()>0) {
+				tdto=thingServ.loadThing(tdto, user);
+			}
 		}
 		ExcelViewMult excel = new ExcelViewMult();
 		XSSFWorkbook workbook=excel.workbookForWorkflowConfiguration(dto, mess, closureServ);
@@ -304,6 +306,21 @@ public class ImportExportWorkflowService {
 		act.setStrict(true);
 		act=thingServ.thingSaveUnderParent(act, user);
 		return act;
+	}
+	/**
+	 * Get a file name or workflow URL from the dictionary
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public String fileName(WorkflowDTO data) throws ObjectNotFoundException {
+		String ret="reportDataStructure.xlsx";
+		if(data.getDictNodeId()>0) {
+			Concept dictItem= closureServ.loadConceptById(data.getDictNodeId());
+			ret = literalServ.readValue("applicationurl", dictItem)+".xlsx";
+		}
+		return ret;
 	}
 
 }

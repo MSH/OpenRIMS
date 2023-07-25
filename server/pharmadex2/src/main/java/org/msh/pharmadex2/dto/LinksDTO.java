@@ -29,7 +29,9 @@ public class LinksDTO extends AllowValidation{
 	private long selectedObj=0;					//the currently selected object (concept ID) 
 	private LinkDTO selectedLink= new LinkDTO();				//the currently selected link
 	private String description="";										//help string
-	
+	//for amendments etc
+	private boolean changed = false;
+		
 	public long getNodeID() {
 		return nodeID;
 	}
@@ -116,6 +118,12 @@ public class LinksDTO extends AllowValidation{
 	}
 	public void setDescription(String description) {
 		this.description = description;
+	}
+	public boolean isChanged() {
+		return changed;
+	}
+	public void setChanged(boolean changed) {
+		this.changed = changed;
 	}
 	
 }

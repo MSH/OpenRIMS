@@ -141,7 +141,8 @@ class ApplicationList extends Component{
                                     if(result.application){
                                         Navigator.navigate(Navigator.tabName(),"applicationstart",param) 
                                     }else{
-                                        Navigator.navigate(Navigator.tabName(),"activitymanager",param)
+                                       // Navigator.navigate(Navigator.tabName(),"activitymanager",param)
+                                       Navigator.navigate(Navigator.tabName(),"publicpermitdata",param)
                                     }
                                 })
                                 

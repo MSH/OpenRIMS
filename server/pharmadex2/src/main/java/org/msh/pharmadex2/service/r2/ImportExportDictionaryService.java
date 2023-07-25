@@ -82,8 +82,8 @@ public class ImportExportDictionaryService {
 	@Transactional
 	public ResponseEntity<Resource> exportDictionary(String dictUrl, Long currentId) throws ObjectNotFoundException {
 		try {
-			String fileName = buildFileName(dictUrl, currentId);
-
+			//String fileName = buildFileName(dictUrl, currentId);
+			String fileName=dictUrl+".xlsx";
 			File file = writeDataToFile(fileName, dictUrl, currentId);
 			byte[] bytes = Files.readAllBytes(file.toPath());
 			Resource res = new ByteArrayResource(bytes);

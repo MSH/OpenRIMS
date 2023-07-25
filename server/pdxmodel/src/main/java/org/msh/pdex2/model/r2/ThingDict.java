@@ -28,8 +28,8 @@ public class ThingDict implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC2222721892C64533A0046E")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC2222721892C64533A0046E", strategy="native")	
+	@GeneratedValue(generator="VAC2222721894FAF245C01E4F")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC2222721894FAF245C01E4F", strategy="native")	
 	private long ID;
 	
 	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
@@ -39,6 +39,7 @@ public class ThingDict implements Serializable {
 	private org.msh.pdex2.model.r2.Concept concept;
 	
 	@Column(name="Url", nullable=true, length=255)	
+	@org.hibernate.annotations.Index(name="byURL")	
 	private String url;
 	
 	@Column(name="Varname", nullable=true, length=255)	
