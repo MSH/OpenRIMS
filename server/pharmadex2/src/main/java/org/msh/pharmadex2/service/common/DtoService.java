@@ -496,8 +496,10 @@ public class DtoService {
 				//nothing to do
 			}
 			YesNoNA val = YesNoNA.NA;
-			if(valStr.length()>0) {
-				val = YesNoNA.values()[index-1];
+			if(index>0) {
+				if(valStr.length()>0) {
+					val = YesNoNA.values()[index-1];
+				}
 			}
 			OptionDTO opt = enumToOptionDTO(val, YesNoNA.values());
 			FormFieldDTO< OptionDTO> fld = logical.get(key);

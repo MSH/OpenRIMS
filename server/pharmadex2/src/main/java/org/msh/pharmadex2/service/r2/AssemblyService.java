@@ -1628,5 +1628,17 @@ public class AssemblyService {
 		}
 		return ret;
 	}
+	/**
+	 * Check read access to the component for a user given
+	 * @param thingNodeId thing that serves the data form
+	 * @param varName 
+	 * @param user
+	 * @return
+	 */
+	public boolean readAccess(long thingNodeId, String varName, UserDetailsDTO user) {
+		boolean ret=true;
+		//TODO
+		return ret;
+	}
 }
 

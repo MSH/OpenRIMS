@@ -30,6 +30,7 @@ import org.msh.pharmadex2.service.common.UserService;
 import org.msh.pharmadex2.service.common.ValidationService;
 import org.msh.pharmadex2.service.r2.AccessControlService;
 import org.msh.pharmadex2.service.r2.ApplicationService;
+import org.msh.pharmadex2.service.r2.AssemblyService;
 import org.msh.pharmadex2.service.r2.IrkaServices;
 import org.msh.pharmadex2.service.r2.LinkService;
 import org.msh.pharmadex2.service.r2.MonitoringService;
@@ -98,6 +99,8 @@ public class ActivityAPI{
 	private SubmitService submServ;
 	@Autowired
 	private AccessControlService accServ;
+	@Autowired
+	private AssemblyService assmServ;
 	
 	/**
 	 * Alerts to do
@@ -496,7 +499,11 @@ public class ActivityAPI{
 		//TODO accServ.allowAuthenticated(auth, uri);
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
-			data = thingServ.fileLoad(data, user);
+			if(assmServ.readAccess(data.getThingNodeId(), data.getVarName(), user)){
+				data = thingServ.fileLoad(data, user);
+			}else {
+				throw new DataNotFoundException(messages.get("loginmessage"));
+			}
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
