@@ -12,6 +12,7 @@ import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pharmadex2.controller.common.ExcelView;
 import org.msh.pharmadex2.dto.ApplicationEventsDTO;
 import org.msh.pharmadex2.dto.ApplicationHistoryDTO;
+import org.msh.pharmadex2.dto.ReportConfigDTO;
 import org.msh.pharmadex2.dto.ReportDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
@@ -164,6 +165,27 @@ public class ReportAPI {
 		}
 	}
 	
+	/**
+	 * Load a table with reports available for the user
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@PostMapping("/api/*/report/load/googletools")
+	public ReportConfigDTO reportGoogleTools(Authentication auth, @RequestBody ReportConfigDTO data) throws ObjectNotFoundException {
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		data=reportServ.loadReportGoogleTools(user, data);
+		return data;
+	}
+	@PostMapping("/api/*/report/geturl/googletools")
+	public ReportConfigDTO getUrlGoogleTools(Authentication auth, @RequestBody ReportConfigDTO data) throws ObjectNotFoundException {
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		if(!data.getSelect().getPrevSelected().isEmpty()) {
+			data=reportServ.getUrlGoogleTools(user, data.getSelect().getPrevSelected().get(0));
+		}
+		return data;
+	}
 	/**
 	 * Load events for an application drilled down
 	 * @param auth

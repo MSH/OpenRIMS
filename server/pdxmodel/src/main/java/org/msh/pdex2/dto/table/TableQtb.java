@@ -19,6 +19,7 @@ public class TableQtb {
 	//search part
 	private int searchTreshold=2; //start search after user will typed searchTreshold characters
 	private String generalSearch="";
+	private String otherSearch = "";
 	private boolean paintBorders=true;		//should we paint borders (only for MS Word yet)
 	private boolean paintHeaders=true;	//should we paint headers (only for MS Word yet)
 	
@@ -53,6 +54,12 @@ public class TableQtb {
 		this.generalSearch = generalSearch;
 	}
 	
+	public String getOtherSearch() {
+		return otherSearch;
+	}
+	public void setOtherSearch(String otherSearch) {
+		this.otherSearch = otherSearch;
+	}
 	public boolean isPaintBorders() {
 		return paintBorders;
 	}

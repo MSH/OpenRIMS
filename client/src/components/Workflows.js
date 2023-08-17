@@ -1,10 +1,10 @@
 import React , {Component} from 'react'
 import {Container, Row, Col,Breadcrumb,BreadcrumbItem} from 'reactstrap'
-import PropTypes from 'prop-types'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
 import Navigator from './utils/Navigator'
 import Dictionary from './Dictionary'
+import ButtonUni from './form/ButtonUni'
 
 /**
  * The main component to configure workflows
@@ -16,14 +16,21 @@ class Workflows extends Component{
             identifier:Date.now().toString(),  //my address for messages
             data:{
             },                //Dict2DTO
+            edit:false,
             labels:{
                 processes:'',
                 workflows:'',
+                global_help:'',
+                global_cancel:'',
+                processes:'',
+                dictionaries:'',
+                workflowguide:'',
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
         this.loader=this.loader.bind(this)
         this.rigthDict=this.rigthDict.bind(this)
+        this.topButtons=this.topButtons.bind(this)
     }
 
     /**
@@ -84,20 +91,91 @@ class Workflows extends Component{
         if(this.state.data.slaveDict.url.length==0){
             return []
         }
-        return(
-            <Col xs='12' sm='12' lg='6' xl='6'>
-                <Row>
-                    <Col>
-                        <Dictionary
-                            identifier={this.state.data.slaveDict.url}
-                            recipient={this.state.identifier}
-                            data={this.state.data.slaveDict}
-                            display
-                        />
-                    </Col>
-                </Row>
+        if(!this.state.edit){   //display workflow dictionary
+            return(
+                <Col xs='12' sm='12' lg='6' xl='6'>
+                    <Row>
+                        <Col>
+                            <Dictionary
+                                identifier={this.state.data.slaveDict.url}
+                                recipient={this.state.identifier}
+                                data={this.state.data.slaveDict}
+                                display
+                            />
+                        </Col>
+                    </Row>
+                </Col>
+            )
+        }else{  //edit workflow dictionary
+            return(
+                <Col xs='12' sm='12' lg='6' xl='6'>
+                    <Row>
+                        <Col>
+                            <Dictionary
+                                identifier={this.state.data.slaveDict.url}
+                                recipient={this.state.identifier}
+                                data={this.state.data.slaveDict}
+                            />
+                        </Col>
+                    </Row>
+                </Col>
+            )
+        }
+    }
+    topButtons(){
+        let ret=[]
+        ret.push(
+            <Col key='1top'>
+                <ButtonUni
+                    label={this.state.labels.workflowguide}
+                    onClick={()=>{
+                        window.open('/api/admin/manual/workflow','_blank').focus()
+                    }}
+                    color="info"
+                />
             </Col>
         )
+        if(this.state.edit){
+            ret.push(
+                <Col key='2top'>
+                <ButtonUni
+                    label={this.state.labels.processes}
+                    onClick={()=>{
+                        this.state.edit=false
+                        this.loader()
+                    }}
+                    color="primary"
+                />
+            </Col>
+            )
+        }else{
+            ret.push(
+                <Col key='2top'>
+                <ButtonUni
+                    label={this.state.labels.dictionaries}
+                    onClick={()=>{
+                        this.state.edit=true
+                        this.setState(this.state)
+                    }}
+                    color="primary"
+                    disabled={this.state.data.slaveDict.url.length==0}
+                />
+            </Col>
+            )
+        }
+        ret.push(
+            <Col key='3top'>
+                <ButtonUni
+                    label={this.state.labels.global_cancel}
+                    onClick={()=>{
+                        window.location="/"+Navigator.tabSetName()+"#"+Navigator.tabName()
+                    }}
+                    outline
+                    color="info"
+                />
+            </Col>
+        )
+        return ret
     }
 
     render(){
@@ -107,7 +185,7 @@ class Workflows extends Component{
         return(
             <Container fluid>
                 <Row>
-                    <Col>
+                    <Col xs='12' sm='12' lg='6' xl='6'>
                         <Breadcrumb>
                             <BreadcrumbItem className="d-inline">
                             <div className="btn btn-link p-0 border-0"
@@ -123,6 +201,7 @@ class Workflows extends Component{
                             </BreadcrumbItem>
                         </Breadcrumb>  
                     </Col>
+                    {this.topButtons()}
                 </Row>
                 <Row>
                     <Col xs='12' sm='12' lg='6' xl='6'>
@@ -130,7 +209,7 @@ class Workflows extends Component{
                             identifier={this.state.data.masterDict.url}
                             recipient={this.state.identifier}
                             data={this.state.data.masterDict}
-                            display
+                            display={!this.state.edit}
                         />
                     </Col>
                    {this.rigthDict()}

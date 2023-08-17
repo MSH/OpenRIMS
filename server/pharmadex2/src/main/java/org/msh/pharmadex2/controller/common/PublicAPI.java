@@ -14,6 +14,7 @@ import org.msh.pdex2.i18n.Messages;
 import org.msh.pharmadex2.dto.AboutDTO;
 import org.msh.pharmadex2.dto.AskForPass;
 import org.msh.pharmadex2.dto.ContentDTO;
+import org.msh.pharmadex2.dto.ExchangeConfigDTO;
 import org.msh.pharmadex2.dto.PublicPermitDTO;
 import org.msh.pharmadex2.dto.SystemImageDTO;
 import org.msh.pharmadex2.dto.UserFormDTO;
@@ -22,9 +23,9 @@ import org.msh.pharmadex2.exception.DataNotFoundException;
 import org.msh.pharmadex2.service.common.ContextServices;
 import org.msh.pharmadex2.service.common.UserService;
 import org.msh.pharmadex2.service.r2.ContentService;
+import org.msh.pharmadex2.service.r2.ExchangeConfigurationService;
 import org.msh.pharmadex2.service.r2.ReportService;
 import org.msh.pharmadex2.service.r2.ResourceService;
-import org.msh.pharmadex2.service.r2.SystemService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,7 +66,8 @@ public class PublicAPI{
 	private ResourceService resourceServ;
 	@Autowired
 	private ReportService reportServ;
-
+	@Autowired
+	ExchangeConfigurationService exchangeServ;
 
 	@Value("${app.buildTime}")
 	private String buildTime;
@@ -268,10 +270,11 @@ public class PublicAPI{
 		}
 	}
 
-	@PostMapping("/api/public/report/loadlink")
-	public String reportLoadlink(Authentication auth, @RequestBody String data) {
-		return reportServ.getLinkReport();
-	}
+	/*
+	 * @PostMapping("/api/public/report/loadlink") public String
+	 * reportLoadlink(Authentication auth, @RequestBody String data) { return
+	 * reportServ.getLinkReport(); }
+	 */
 
 	/* 15.11.2022 khomenska */
 	@RequestMapping(value="api/public/terms", method = RequestMethod.GET)
@@ -325,4 +328,39 @@ public class PublicAPI{
 		}
 		return data;
 	}
+	
+	@PostMapping(value="/api/public/exchange/processes/load")// /api/public/exchange/config/load")
+	public ExchangeConfigDTO loadProcesses(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		data = exchangeServ.loadProcesses(data);
+		return data;
+	}
+	
+	@PostMapping(value="/api/public/exchange/checklists/load")// /api/public/exchange/config/loaddicts")
+	public ExchangeConfigDTO loadChecklistDictionaries(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		data = exchangeServ.loadChecklistDictionaries(data);
+		return data;
+	}
+	
+	@PostMapping(value="/api/public/exchange/dictionaries/load")// /api/public/exchange/config/loaddicts")
+	public ExchangeConfigDTO loadDictionaries(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		data = exchangeServ.loadDictionaries(data);
+		return data;
+	}
+	@PostMapping("/api/public/exchange/resources/load")// /api/public/exchange/config/loaddataconfig")
+	public ExchangeConfigDTO loadResources(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		data = exchangeServ.loadResources(data);
+		return data;
+	}
+	
+	@PostMapping(value="/api/public/exchange/dictionary/import")
+	public ExchangeConfigDTO importDictionary(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		data = exchangeServ.importDictionaryMainServer(data);
+		return data;
+	}
+	
 }

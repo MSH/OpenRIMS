@@ -7,6 +7,7 @@ import ButtonUni from '../form/ButtonUni'
 import CollectorTable from '../utils/CollectorTable'
 import Pharmadex from '../Pharmadex'
 import Thing from '../Thing'
+import Dictionary from '../Dictionary'
 
 /**
  * Report configurator
@@ -23,13 +24,15 @@ class ReportConfigurator extends Component{
             },
             labels:{
                 reports:'',
+                reportOld:'',
                 global_cancel:'',
                 global_suspend:'',
                 global_save:'',
                 global_add:'',
                 success:'',
                 global_renewExternal:'',
-                warningRemove:''
+                warningRemove:'',
+                publicavailable:'',
             },
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -50,13 +53,6 @@ class ReportConfigurator extends Component{
             }
             if(data.subject=="saved" || data.subject=="savedByAction"){
                 this.state.data.report=data.data
-                /*
-                * 2022-10-20 We don't need it anymore
-                Fetchers.postJSON("/api/admin/report/parameters/renew", this.state.data, (query,result)=>{
-                    Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.success, color:'success'})
-                    this.state.data.form=false
-                    this.load()
-                }) */
                 this.load()
             }
         }
@@ -79,11 +75,12 @@ class ReportConfigurator extends Component{
             this.setState(this.state)
         })
     }
-
+    /**
+     * Re-calculate the Data Warehouse
+     */
     renewExternal(){
         Fetchers.postJSON("/api/admin/report/renewexternal", this.state.data, (query, result)=>{
-            //this.state.data=result
-            //this.setState(this.state)
+
         })
     }
 
@@ -138,16 +135,15 @@ class ReportConfigurator extends Component{
             return(
                 <Row>
                     <Col>
-                        {this.buttons()}
                         <Row>
                             <Col>
                                 <Thing
                                     data={this.state.data.report}
                                     recipient={this.state.identifier}
+                                    readOnly={true}
                                 />
                             </Col>
                         </Row>
-                        {this.buttons()}
                     </Col>
                 </Row>
             )
@@ -157,8 +153,9 @@ class ReportConfigurator extends Component{
                     <Col>
                         <Row>
                             <Col xs='0' sm='0' lg='10' xl='10'>
+                                <h6>{this.state.labels.publicavailable}</h6>
                             </Col>
-                            <Col xs='12' sm='6' lg='1' xl='1'>
+                            <Col xs='12' sm='6' lg='2' xl='2'>
                                 <ButtonUni
                                     label={this.state.labels.global_renewExternal}
                                     color="primary"
@@ -172,16 +169,18 @@ class ReportConfigurator extends Component{
                                     }}
                                 />
                             </Col>
-                            <Col xs='12' sm='6' lg='1' xl='1'>
-                                <ButtonUni
-                                    label={this.state.labels.global_add}
-                                    color="primary"
-                                    onClick={()=>{
-                                        this.state.data.report.nodeId=0
-                                        this.state.data.form=true
-                                        this.load()
-                                    }}
-                                />
+                        </Row>
+                        <Row>
+                    <Col xs='12' sm='6' lg='6' xl='6' >
+                        <Dictionary identifier={this.state.data.select.url} data={this.state.data.select} />
+                    </Col>
+                    <Col xs='12' sm='6' lg='6' xl='6' >
+                        <small>here will be NRA reports</small>
+                    </Col>
+                    </Row>
+                        <Row>
+                            <Col>
+                            <h6>{this.state.labels.reportOld}</h6>
                             </Col>
                         </Row>
                         <Row>
@@ -206,7 +205,7 @@ class ReportConfigurator extends Component{
             )
         }
     }
-
+    
     render(){
         if(this.state.labels.locale==undefined || this.state.data.table==undefined){
             return []
@@ -215,7 +214,7 @@ class ReportConfigurator extends Component{
             <Container fluid>
                 <Row>
                     <Col>
-                        <h5>{this.state.labels.reports}</h5>
+                    <h5>{this.state.labels.reports}</h5>
                     </Col>
                 </Row>
                 <Row>

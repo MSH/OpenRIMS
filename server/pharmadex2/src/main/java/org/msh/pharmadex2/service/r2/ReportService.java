@@ -20,6 +20,7 @@ import org.msh.pharmadex2.dto.ApplicationEventsDTO;
 import org.msh.pharmadex2.dto.ApplicationHistoryDTO;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.CheckListDTO;
+import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.PublicPermitDTO;
 import org.msh.pharmadex2.dto.ReportConfigDTO;
 import org.msh.pharmadex2.dto.ReportDTO;
@@ -70,11 +71,12 @@ public class ReportService {
 	@Autowired
 	private ThingService thingServ;
 	@Autowired
-	private AssemblyService assemblyServ;
+	private DictService dictServ;
 
 
-	@Value("${link.report.datastudio.pharms:\"\"}")
-	public String linkReport;
+	/*
+	 * @Value("${link.report.datastudio.pharms:\"\"}") public String linkReport;
+	 */
 
 	/**
 	 * Load a report
@@ -356,9 +358,21 @@ public class ReportService {
 	 */
 	@Transactional
 	public ReportConfigDTO reportConfigurationLoad(ReportConfigDTO data) throws ObjectNotFoundException {
+		data=reportGoogleTools(data);
 		data = reportConfiguratuonTable(data);
 
 		data.setEnabledrenewext(dwhServ.enablesBtn());
+		return data;
+	}
+
+	public ReportConfigDTO reportGoogleTools(ReportConfigDTO data) throws ObjectNotFoundException {
+			DictionaryDTO dict = new DictionaryDTO();
+			Concept root =closureServ.loadConceptByIdentifier(SystemService.DICTIONARY_REPORT_GOOGLE_TOOLS);
+			dict.setUrlId(root.getID());
+			dict.setUrl(root.getIdentifier());
+
+			dict.setSystem(dictServ.checkSystem(root));//ika
+			data.setSelect(dictServ.createDictionaryFromRoot(dict, root));
 		return data;
 	}
 
@@ -708,9 +722,9 @@ public class ReportService {
 		return dto;
 	}
 
-	public String getLinkReport() {
-		return linkReport;
-	}
+	/*
+	 * public String getLinkReport() { return linkReport; }
+	 */
 	/**
 	 * Get public available permit data
 	 * @param user 
@@ -724,27 +738,30 @@ public class ReportService {
 		String select = "select * from application_history where go is not null";
 		Headers headers = new Headers();
 		TableHeader headerCome = TableHeader.instanceOf("come", TableHeader.COLUMN_LOCALDATE);
-		headerCome.setSort(true);
 		headerCome.setSortValue(TableHeader.SORT_ASC);
 		headers.getHeaders().add(headerCome);
 		headers.getHeaders().add(TableHeader.instanceOf("go", TableHeader.COLUMN_LOCALDATE));
 		headers.getHeaders().add(TableHeader.instanceOf("activityDataID", TableHeader.COLUMN_LONG));
 		headers.getHeaders().add(TableHeader.instanceOf("workflow", TableHeader.COLUMN_STRING));
 		headers.getHeaders().add(TableHeader.instanceOf("activity", TableHeader.COLUMN_STRING));
-		headers.getHeaders().get(0).setSort(true);
-		headers.getHeaders().get(0).setSortValue(TableHeader.SORT_ASC);
+		headers.getHeaders().get(1).setSort(true);		//GO
+		headers.getHeaders().get(1).setSortValue(TableHeader.SORT_ASC);
 		List<TableRow> hisRows = jdbcRepo.qtbGroupReport(select, "", "", headers);
 		History his= new History();
-		if(!hisRows.isEmpty()) {
-			his = boilerServ.historyById(hisRows.get(0).getDbID());
-		}else {
+		if(his.getID()==0){
+			// from the first history record
 			Concept applData = closureServ.loadConceptById(data.getPermitDataID());
 			List<History> otherHis = boilerServ.historyAllOrderByCome(applData);
-			his=otherHis.get(otherHis.size()-1);
+			if(!otherHis.isEmpty()) {
+				his=otherHis.get(0);
+			}
 		}
-		if(true) {//!hisRows.isEmpty()) {
+		if(his.getID()==0 && data.getHistoryID()>0) {
+			// passed in the parameter
+			his = boilerServ.historyById(data.getHistoryID());
+		}
+		if(his.getID()>0) {
 			//the application
-			//History his = boilerServ.historyById(hisRows.get(0).getDbID());
 			ThingDTO applDTO = applServ.createApplication(his);
 			applDTO = thingServ.path(user,applDTO);
 			if(!applDTO.getPath().isEmpty()) {
@@ -765,33 +782,37 @@ public class ReportService {
 						+"/"
 						+hisRow.getCellByKey("activity").getValue();
 				if(actDataID != null && actDataID instanceof Long && (Long)actDataID>0) {
-					//History h = boilerServ.historyById(hisRow.getDbID());
-						//dt = applServ.createLoadActivityData(h,true);
 					dt.setNodeId((Long)actDataID);
 				}else {
 					dt.setNodeId(0L);
 				}
 						dt.setTitle(title);
 						dt.setReadOnly(true);
-					//List<Assembly> assms=assemblyServ.loadDataConfiguration(h.getDataUrl(), user);
-					//if(!assms.isEmpty()) {
-						// allow to see the activity data
-						//dt = applServ.createLoadActivityData(h,true);
-						//dt.setTitle(title);
-					//}//else {
-						//skipped activity data, because of access rules
-						//dt.setTitle(title);
-					//}
-				//}//else {
-					//no activity data
-					//dt.setTitle(title);
-				//}
 				data.getApplHistory().add(dt);
 			}
 		}else {
 			throw new ObjectNotFoundException("History for permit not found. Permti Data ID is "+data.getPermitDataID(),logger);
 		}
 		return data;
+	}
+
+	public ReportConfigDTO loadReportGoogleTools(UserDetailsDTO user, ReportConfigDTO data) throws ObjectNotFoundException {
+		DictionaryDTO dict = new DictionaryDTO();
+		Concept root =closureServ.loadConceptByIdentifier(SystemService.DICTIONARY_REPORT_GOOGLE_TOOLS);
+		dict.setUrlId(root.getID());
+		dict.setUrl(root.getIdentifier());
+
+		dict.setSystem(dictServ.checkSystem(root));//ika
+		data.setSelect(dictServ.createDictionaryFromRoot(dict, root));
+		return data;
+	}
+
+	public ReportConfigDTO getUrlGoogleTools(UserDetailsDTO user, Long nodeID) throws ObjectNotFoundException {
+		ReportConfigDTO ret= new ReportConfigDTO();
+		//Long nodeID=data.getNodeId();
+		Concept itemDict = closureServ.loadConceptById(nodeID);
+		ret.setDataUrl(literalServ.readValue("url", itemDict));
+		return ret;
 	}
 
 }

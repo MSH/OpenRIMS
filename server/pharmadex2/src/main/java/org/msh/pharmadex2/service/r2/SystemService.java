@@ -62,6 +62,7 @@ public class SystemService {
 	public static final String DICTIONARY_ADMIN_UNITS = "dictionary.admin.units";
 	public static final String DICTIONARY_SYSTEM_ROLES = "dictionary.system.roles";
 	public static final String CONFIGURATION_ADMIN_UNITS = "configuration.admin.units";
+	public static final String DICTIONARY_REPORT_GOOGLE_TOOLS="dictionary.report.googletools";
 	public static final Integer DEFAULT_ZOOM = 7;
 
 	public static final String PRODUCTCLASSIFICATION_ATC_HUMAN = "who.atc.human";
@@ -96,6 +97,12 @@ public class SystemService {
 	 */
 	public static final String ACTORS_ALL=ACTORS_AUTHENTICATED+",public";
 
+	public static final String STATE_ACTIVE = "ACTIVE";
+	public static final String STATE_ONAPPROVAL = "ONAPPROVAL";
+	public static final String STATE_REVOKED = "REVOKED";
+	public static final String STATE_LOST = "LOST";
+	public static final String STATE_DEREGISTERED = "DEREGISTERED";
+	
 	@Autowired
 	private DictService dictServ;
 	@Autowired
@@ -710,6 +717,7 @@ public class SystemService {
 		uploadImportDataDictionary();
 		inspectionDictionaries();
 		finalizeDict();
+		reportGoogleToolsDict();
 	}
 	/**
 	 * inspection's guest, host and inspection
@@ -766,7 +774,14 @@ public class SystemService {
 	public void checkAddressDict() throws ObjectNotFoundException {
 		dictServ.checkDictionary(DICTIONARY_ADMIN_UNITS);
 	}
-
+	/**
+	 * If reportGoogleTools dictionary does not exist, create new one
+	 * 
+	 * @throws ObjectNotFoundException
+	 */
+	public void reportGoogleToolsDict() throws ObjectNotFoundException {
+		dictServ.checkDictionary(DICTIONARY_REPORT_GOOGLE_TOOLS);
+	}
 	/**
 	 * Load a role concept from roles dictionary by role name
 	 * 

@@ -43,6 +43,8 @@ import org.msh.pdex2.model.r2.ThingThing;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.r2.FileResourceRepo;
 import org.msh.pdex2.repository.r2.HistoryRepo;
+import org.msh.pdex2.repository.r2.ThingDocRepo;
+import org.msh.pdex2.repository.r2.ThingPersonRepo;
 import org.msh.pdex2.repository.r2.ThingRepo;
 import org.msh.pdex2.repository.r2.ThingThingRepo;
 import org.msh.pdex2.services.r2.ClosureService;
@@ -147,7 +149,12 @@ public class ThingService {
 	@PersistenceContext
 	EntityManager entityManager;
 	@Autowired
-	private ThingThingRepo thingThingRepo;
+	ThingThingRepo thingThingRepo;
+	@Autowired
+	ThingPersonRepo thingPersonRepo;
+	@Autowired
+	ThingDocRepo thingDocRepo;
+
 
 	@Value("${spring.servlet.multipart.max-file-size}" )
 	String maxFileSize;
@@ -283,7 +290,7 @@ public class ThingService {
 		//DropList data
 		List<AssemblyDTO> droplist = assemblyServ.auxDropListData(data.getUrl(), assemblies);
 		data=dictServ.createDropList(data,droplist);
-		
+
 		data=validServ.validateThingsIncluded(assemblies, data);
 		return data;
 	}
@@ -1852,7 +1859,7 @@ public class ThingService {
 			if(data.getUrl().length()==0) {
 				data.setUrl(thing.getUrl());
 			}
-			if(accessControlServ.readAllowed(data,user)) {
+			if(readAllowed(data,user)) {
 				data.setReadOnly(!accessControlServ.writeAllowed(data, user) || data.isReadOnly());
 				if(data.getActivityId()>0) {
 					Concept activity=closureServ.loadConceptById(data.getActivityId());
@@ -1874,7 +1881,8 @@ public class ThingService {
 				//compare with amended, if needed
 				data=amendServ.diffMark(data);
 			}else {
-				throw new ObjectNotFoundException("loadThing. Read access dened for user "+user.getEmail(),logger);
+				logger.warn("loadThing. Read access dened for user "+user.getEmail(),logger);
+				return data;
 			}
 		}else {
 			throw new ObjectNotFoundException("loadThing. Node  is not defined",logger);
@@ -1955,7 +1963,7 @@ public class ThingService {
 				String prefLabel=literalServ.readPrefLabel(conc);
 				data.setPrefLabel(prefLabel);
 				data.getLiterals().put("prefLabel", FormFieldDTO.of(prefLabel));*/
-				
+
 				Concept conc=closureServ.loadConceptById(data.getModiUnitId());
 				String prefLabel = literalServ.readPrefLabel(conc);
 				if(prefLabel == "") {
@@ -1968,7 +1976,7 @@ public class ThingService {
 							prefLabel = literalServ.readPrefLabel(conc);
 						}
 					}
-					
+
 				}
 				data.setPrefLabel(prefLabel);
 				data.getLiterals().put("prefLabel", FormFieldDTO.of(prefLabel));
@@ -2189,33 +2197,48 @@ public class ThingService {
 	/**
 	 * download a file as a file :)
 	 * @param nodeId	file concept id
+	 * @param user 
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	public ResponseEntity<Resource> fileDownload(long nodeId) throws ObjectNotFoundException {
-		Concept fileNode = closureServ.loadConceptById(nodeId);
-		Optional<FileResource> freso = fileRepo.findByConcept(fileNode);
-		if(freso.isPresent()) {
-			FileResource fres=freso.get();
-			String fileName = fileNode.getLabel();
-			Resource res = new ByteArrayResource(fres.getFile());
-
-			String mediaType = fres.getMediatype();
-			String typeOpen = "inline";
-			if(mediaType == null || mediaType.length() == 0) {
-				mediaType = "application/octet-stream";
-				typeOpen = "attachment";
+	public ResponseEntity<Resource> fileDownload(long nodeId, UserDetailsDTO user) throws ObjectNotFoundException {
+		Optional<Long> thingNodeID = thingDocRepo.findThingNodeByFileConcept(nodeId);
+		if(thingNodeID.isPresent()) {
+			Concept activityData=closureServ.loadConceptById(thingNodeID.get());
+			if (readActivityDataAllowed(activityData, user)){
+				Concept fileNode = closureServ.loadConceptById(nodeId);
+				ThingDoc td = boilerServ.loadThingDocByFileNode(fileNode);
+				Assembly asm=boilerServ.assemblyByThingNodeAndVarName(activityData, td.getVarName());
+				if(accessControlServ.allowAssembly(asm, user)) {
+					Optional<FileResource> freso = fileRepo.findByConcept(fileNode);
+					if(freso.isPresent()) {
+						FileResource fres=freso.get();
+						String fileName = fileNode.getLabel();
+						Resource res = new ByteArrayResource(fres.getFile());
+						String mediaType = fres.getMediatype();
+						String typeOpen = "inline";
+						if(mediaType == null || mediaType.length() == 0) {
+							mediaType = "application/octet-stream";
+							typeOpen = "attachment";
+						}
+						return ResponseEntity.ok()
+								.contentType(MediaType.parseMediaType(mediaType))
+								.contentLength(fres.getFileSize())
+								.header(HttpHeaders.CONTENT_DISPOSITION, typeOpen + "; filename=\"" + fileName +"\"")
+								.header("filename", fileName)
+								.body(res);
+					}else {
+						throw new ObjectNotFoundException(" load. File not found. Node id is "+fileNode.getID());
+					}
+				}else {
+					throw new ObjectNotFoundException(" load. File not accessible. Node id is "+fileNode.getID());
+				}
+			}else {
+				throw new ObjectNotFoundException(" load. documents component not found. Node id is "+nodeId);
 			}
-
-			return ResponseEntity.ok()
-					.contentType(MediaType.parseMediaType(mediaType))
-					.contentLength(fres.getFileSize())
-					.header(HttpHeaders.CONTENT_DISPOSITION, typeOpen + "; filename=\"" + fileName +"\"")
-					.header("filename", fileName)
-					.body(res);
 		}else {
-			throw new ObjectNotFoundException(" load. File not found. Node id is "+fileNode.getID());
+			throw new ObjectNotFoundException(" load. File not found. Node id is "+nodeId);
 		}
 	}
 	/**
@@ -2590,6 +2613,66 @@ public class ThingService {
 		}else {
 			data.setIdentifier(messages.get("errorNMRA"));
 			return false;
+		}
+	}
+
+	/**
+	 * Read access allowed
+	 * @param data
+	 * @param user
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public boolean readAllowed(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		if(data.getNodeId()>0) {
+			Concept activityData = dataModuleByPage(data.getNodeId());
+			return readActivityDataAllowed(activityData, user);
+		}
+		return true;
+	}
+	/**
+	 * Is activity data is available
+	 * @param user
+	 * @param activityData
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	public boolean readActivityDataAllowed(Concept activityData, UserDetailsDTO user) throws ObjectNotFoundException {
+		List<History> lhis = boilerServ.historyByActivitydata(activityData);
+		if(!lhis.isEmpty()) {
+			Concept permitData = amendServ.initialApplicationData(lhis.get(0).getApplicationData());
+			return accessControlServ.readAllowed(permitData, user);
+		}else {
+			//it is only Supervisor allowance - workflow configurations, etc.
+			return accessControlServ.isSupervisor(user);
+		}
+	}
+	/**
+	 * Search a data module (main page) be a data page ID given 
+	 * @param dataPageID
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public Concept dataModuleByPage(long dataPageID) throws ObjectNotFoundException {
+		//First, get main page
+		Optional<Long> ido=thingThingRepo.dataModulePageId(dataPageID);
+		if(ido.isPresent()) {
+			// Second, is it "persons" main data page? (1:M) to the data module
+			Optional<Long> ipo=thingPersonRepo.permitPageByPersonsMainPage(dataPageID);
+			if(ipo.isPresent()) {
+				//yes, parameter is persons main page, but we need permit main page 
+				ido=thingThingRepo.dataModulePageId(ipo.get());
+			}
+			if(ido.isPresent()) {
+				Concept ret = closureServ.loadConceptById(ido.get());
+				return ret;
+			}else {
+				throw new ObjectNotFoundException("dataModuleByPage. something wrong with thingperson for data ID is "+dataPageID);
+			}
+		}else {
+			throw new ObjectNotFoundException("dataModuleByPage. It is not a page ID is "+dataPageID);
 		}
 	}
 }

@@ -1501,5 +1501,26 @@ public class BoilerService {
 		}
 		return ret;
 	}
+	/**
+	 * Get an assembly for variable varName inside thing identified by thing node
+	 * @param thingNode
+	 * @param varName
+	 * @return assembly or exception if none
+	 * @throws ObjectNotFoundException 
+	 */
+	public Assembly assemblyByThingNodeAndVarName(Concept thingNode, String varName) throws ObjectNotFoundException {
+		String url = closureServ.getUrlByNode(thingNode);
+		List<Long> assmIds = assmRepo.findAllByByThingNodeUrlAndVarName(url, varName);
+		if(!assmIds.isEmpty()) {
+			Optional<Assembly> reto= assmRepo.findById(assmIds.get(0));
+			if(reto.isPresent()) {
+				return reto.get();
+			}else {
+				throw new ObjectNotFoundException("assemblyByThingNodeAndVarName. Assembly not found for thingNode "+thingNode.getID(),logger);
+			}
+		}else {
+			throw new ObjectNotFoundException("assemblyByThingNodeAndVarName. not found for thingNode "+thingNode.getID(),logger);
+		}
+	}
 
 }

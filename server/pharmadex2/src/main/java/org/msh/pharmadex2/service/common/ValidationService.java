@@ -1992,8 +1992,17 @@ public class ValidationService {
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	public boolean submitDecline(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
-		return isActivityFinalAction(curHis,SystemService.FINAL_DECLINE);
+	public boolean submitDecline(History curHis, ActivitySubmitDTO data, boolean isHost) throws ObjectNotFoundException {
+		if(isActivityFinalAction(curHis,SystemService.FINAL_DECLINE)) {
+			if(isHost) {
+				List<Long> hostsRunning = hostsRunning(curHis);
+				if(!hostsRunning.isEmpty() && hostsRunning.size()>1) {
+					return true;
+				}
+			}
+			return true;
+		}
+		return false;
 	}
 
 	/**

@@ -1,30 +1,29 @@
 package org.msh.pharmadex2.service.r2;
 
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.Optional;
 
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 
 import org.msh.pdex2.exception.ObjectNotFoundException;
-import org.msh.pdex2.i18n.Messages;
+import org.msh.pdex2.model.dwh.ReportPage;
+import org.msh.pdex2.model.dwh.ReportSession;
 import org.msh.pdex2.model.enums.YesNoNA;
 import org.msh.pdex2.model.old.User;
+import org.msh.pdex2.model.r2.Assembly;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.model.r2.PublicOrganization;
-import org.msh.pdex2.model.r2.Thing;
-import org.msh.pdex2.model.r2.ThingThing;
 import org.msh.pdex2.model.r2.UserDict;
+import org.msh.pdex2.repository.common.UserRepo;
+import org.msh.pdex2.repository.dwh.ReportPageRepo;
+import org.msh.pdex2.repository.dwh.ReportSessionRepo;
+import org.msh.pdex2.repository.r2.HistoryRepo;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
-import org.msh.pharmadex2.dto.auth.UserRoleDto;
-import org.msh.pharmadex2.dto.form.FormFieldDTO;
-import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.exception.DataNotFoundException;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.common.DtoService;
@@ -32,7 +31,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -47,11 +45,16 @@ public class AccessControlService {
 	@Autowired
 	private ClosureService closureServ;
 	@Autowired
-	private LiteralService literalServ;
-	@Autowired
 	private BoilerService boilerServ;
 	@Autowired
 	private DtoService dtoServ;
+	@Autowired
+	private ReportPageRepo rpgRepo;
+	@Autowired
+	private UserRepo userRepo;
+
+	@Autowired
+	private ReportSessionRepo reportSessionRepo;
 
 	/**
 	 * Can this user create the thing
@@ -102,9 +105,9 @@ public class AccessControlService {
 			return false;
 		}
 	}
-/**
- * SECRETARY-?
- */
+	/**
+	 * SECRETARY-?
+	 */
 	public boolean isSecretary(UserDetailsDTO user) {
 		if(user.getGranted().size()==0) {
 			return false;
@@ -115,7 +118,7 @@ public class AccessControlService {
 			return false;
 		}
 	}
-	
+
 	/**
 	 * Is this user currently acted as a moderator
 	 * @param user
@@ -148,144 +151,6 @@ public class AccessControlService {
 			}
 		}
 		return false;
-	}
-
-
-	/**
-	 * User is moderator for an url given when this user has at least one relation to a dictionary item contains this url and role "moderator"
-	 * @param url
-	 * @param user
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	@Transactional
-	public boolean isModerator(String url, UserDetailsDTO user) throws ObjectNotFoundException {
-		User umodel = boilerServ.findByEmail(user.getEmail());
-		if(umodel!=null) {
-			List<UserRoleDto> roles=user.getGranted();
-			if(roles.size()==0) {
-				return false;
-			}
-			if(roles.get(0).getAuthority().equalsIgnoreCase("moderator")) {
-				for(UserDict ud : umodel.getDictionaries()) {
-					String urlAllowed = literalServ.readValue("url", ud.getConcept());
-					if(urlAllowed.equalsIgnoreCase(url)) {
-						return true;
-					}
-				}
-				return false;
-			}else {
-				return false;
-			}
-		}else {
-			return false;		//external unregistered user cannot be moderator!
-		}
-	}
-
-	/**
-	 * Is this user initiator of workflow?
-	 * @param node
-	 * @param user
-	 * @return
-	 */
-	public boolean isInitiator(Concept node, UserDetailsDTO user) {
-		List<Concept> parents = closureServ.loadParents(node);
-		int url_index = parents.size()-1;
-		if(url_index>2) {
-			return parents.get(1).getIdentifier().equalsIgnoreCase(user.getEmail());
-		}
-		return false;
-	}
-
-	/**
-	 * Read access allowed
-	 * @param data
-	 * @param user
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	@Transactional
-	public boolean readAllowed(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
-		//user may be null
-		return true;
-	}
-
-
-	/**
-	 * Is the user owner of application data?
-	 * @param data
-	 * @param user
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	@Transactional
-	private boolean isApplicationOwner(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
-		if(data.getNodeId()==0) {
-			return true;
-		}
-		Concept conc = closureServ.loadConceptById(data.getNodeId());
-		List<History> hlist = boilerServ.historyByActivitydata(conc);
-		if(hlist.size()>0) {
-			Concept owner = closureServ.getParent(hlist.get(0).getApplicationData());
-			return sameEmail(owner.getIdentifier(), user.getEmail());
-		}else {
-			return false;
-		}
-	}
-
-	/**
-	 * Is this thing belong to the workflow
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	@Transactional
-	public boolean workflowThing(ThingDTO data) throws ObjectNotFoundException {
-		if(data.getNodeId()>0) {
-			//take a thing
-			Concept node = closureServ.loadConceptById(data.getNodeId());
-			Thing thing = new Thing();
-			thing = boilerServ.thingByNode(node, thing);
-			//build a list of activity node ids
-			Map<String, List<Concept>> allActivities = boilerServ.workflowActivities(data.getActivityId());
-			Set<Long> aIds = new LinkedHashSet<Long>();
-			for(String key : allActivities.keySet()) {
-				for(Concept conc :allActivities.get(key)) {
-					aIds.add(conc.getID());
-				}
-			}
-			//is this thing an activity in the workflow?
-			if(aIds.contains(data.getNodeId())){
-				return true;
-			}
-			//has the thing link to any activity in the workflow?
-			for(ThingThing thth : thing.getThings()) {
-				long id = thth.getConcept().getID();
-				if(aIds.contains(id)) {
-					return true;
-				}
-			}
-			return false;
-		}else {
-			return false;
-		}
-	}
-
-	/**
-	 * is this thing in a current workflow? As a thing or as an activity
-	 * @param data
-	 * @param user
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	@Transactional
-	public boolean workflowExecutor(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
-		if(data.getActivityId()>0) {
-			Map<String, List<Concept>> allActivities = boilerServ.workflowActivities(data.getActivityId());
-			return allActivities.keySet().contains(user.getEmail());
-		}else {
-			return false;
-		}
 	}
 
 	/**
@@ -468,7 +333,7 @@ public class AccessControlService {
 		}
 		return false;
 	}
-	
+
 	/**
 	 * Is the role is an applicant?
 	 * @param role
@@ -496,16 +361,32 @@ public class AccessControlService {
 	}
 	/**
 	 * Check hide from applicant and public available
-	 * @param asm
+	 * @param assm
 	 * @param user
 	 * @return
 	 */
-	public boolean allowAssembly(AssemblyDTO asm, UserDetailsDTO user) {
+	public boolean allowAssembly(Assembly assm, UserDetailsDTO user) {
 		if(isPublic(user)) {
-			return asm.isPublicAvailable();
+			return assm.getPublicavailable();
 		}else {
 			if(isApplicant(user)) {
-				return !asm.isHideFromApplicant();
+				return !assm.getHidefromapplicant();
+			}
+		}
+		return true;
+	}
+	/**
+	 * Same method, but for AssemblyDTO
+	 * @param asmDTO
+	 * @param user
+	 * @return
+	 */
+	public boolean allowAssembly(AssemblyDTO asmDTO, UserDetailsDTO user) {
+		if(isPublic(user)) {
+			return asmDTO.isPublicAvailable();
+		}else {
+			if(isApplicant(user)) {
+				return !asmDTO.isHideFromApplicant();
 			}
 		}
 		return true;
@@ -518,7 +399,7 @@ public class AccessControlService {
 	private boolean isPublic(UserDetailsDTO user) {
 		return user.getEmail().isEmpty() && user.getLogin().isEmpty();
 	}
-	
+
 	/**
 	 * Allow only authenticated actors - guest + nmra
 	 * We do need this, because it is impossible to use something except * in the request mapping annotations :( 
@@ -533,5 +414,93 @@ public class AccessControlService {
 			throw new DataNotFoundException("Page not found");
 		}
 	}
+	/**
+	 * User's read allowance for a permit data given
+	 * @param permitData
+	 * @param user
+	 * @return true if allowed
+	 */
+	@Transactional
+	public boolean readAllowed(Concept permitData, UserDetailsDTO user) {
+		if(isPublic(user)) {
+			return readAllowedNotAuth(permitData);
+		}
+		if(isApplicant(user)) {
+			return readAllowedApplicant(permitData, user.getEmail());
+		}
+		return readAllowedNRA(permitData, user);
+	}
+	/**
+	 * NRA staff can access public available data and applications allowed to access in the user configuration
+	 * @param permitData
+	 * @param user
+	 * @return
+	 */
+	private boolean readAllowedNRA(Concept permitData, UserDetailsDTO user) {
+		boolean ret = readAllowedNotAuth(permitData);
+		if(!ret) {
+			Optional<User> usero= userRepo.findByEmail(user.getEmail());
+			if(usero.isPresent()) {
+				if(usero.get().getEnabled()) {
+					List<History> hlist = boilerServ.historyByActivitydata(permitData);
+					if(hlist.isEmpty()) {
+						return isSupervisor(user);		//only supervisor can see configurations
+					}else {
+						boolean accessible=false;
+						for(UserDict ud : usero.get().getDictionaries()) {
+							accessible = ud.getConcept().getID()==hlist.get(0).getApplDict().getID();
+							if(accessible) {
+								break;
+							}
+						}
+						return accessible;
+					}
+				}else {
+					logger.warn("NRA user is not enabled. Email is "+user.getEmail() );
+					ret=false;
+				}
+			}else {
+				logger.warn("NRA user not found. Email is "+user.getEmail());
+				ret=false;
+			}
+		}
+		return ret;
+	}
+
+	/**
+	 * Applicant can read public available data and all own applications
+	 * @param permitData
+	 * @param email
+	 * @return
+	 */
+	private boolean readAllowedApplicant(Concept permitData, String email) {
+		boolean ret = readAllowedNotAuth(permitData);
+		if(!ret) {
+			Concept owner=closureServ.getParent(permitData);
+			ret=sameEmail(owner.getIdentifier(), email);
+		}
+		return ret;
+	}
+
+	/**
+	 * Search in Data Warehouse for a state
+	 * Allow only for ACTIVE and DEREGISTERED
+	 * @param permitData
+	 * @return
+	 */
+	private boolean readAllowedNotAuth(Concept permitData) {
+		List<ReportSession> rpsl = reportSessionRepo.findAllByActual(true);
+		if(!rpsl.isEmpty()) {
+			List<ReportPage> rpgl = rpgRepo.findAllByDataModuleIdAndReportSession(permitData.getID(),rpsl.get(rpsl.size()-1));
+			if(!rpgl.isEmpty()) {
+				String state = rpgl.get(rpgl.size()-1).getState();
+				return state.equalsIgnoreCase("ACTIVE") || state.equalsIgnoreCase("DEREGISTERED");
+			}
+		}
+		return false;
+	}
+
+
+
 
 }

@@ -429,4 +429,15 @@ public class ResourceService {
 		String mediaType = "application/pdf";
 		return createFileResponse(node.getLabel(), node, typeOpen, mediaType);
 	}
+	
+	/**
+	 * The Workflow Manual
+	 * @return
+	 * @throws IOException 
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public ResponseEntity<Resource> adminManualWorkflow() throws ObjectNotFoundException, IOException {
+		return downloadFile("resources.manual.workflow","WorkflowManual.pdf");
+	}
 }

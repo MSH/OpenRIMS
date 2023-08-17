@@ -28,11 +28,13 @@ public class ReportConfigDTO extends AllowValidation{
 	private boolean deregistered=false;				//this application is de-registered
 	//configurations related
 	private TableQtb table=new TableQtb();
+	private TableQtb tablergt=new TableQtb();
 	private ThingDTO report=new ThingDTO();
 	//screen logic related
 	private boolean form=false;
 	
 	private boolean enabledrenewext = true;
+		private DictionaryDTO select = null;
 	
 	public boolean isEnabledrenewext() {
 		return enabledrenewext;
@@ -145,6 +147,18 @@ public class ReportConfigDTO extends AllowValidation{
 	}
 	public void setForm(boolean form) {
 		this.form = form;
+	}
+	public TableQtb getTablergt() {
+		return tablergt;
+	}
+	public void setTablergt(TableQtb tablergt) {
+		this.tablergt = tablergt;
+	}
+	public DictionaryDTO getSelect() {
+		return select;
+	}
+	public void setSelect(DictionaryDTO select) {
+		this.select = select;
 	}
 
 }

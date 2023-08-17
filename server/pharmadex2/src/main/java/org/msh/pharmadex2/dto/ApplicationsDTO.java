@@ -1,13 +1,11 @@
 package org.msh.pharmadex2.dto;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pharmadex2.dto.form.AllowValidation;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
+import org.msh.pharmadex2.dto.form.OptionDTO;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 /**
@@ -27,7 +25,9 @@ public class ApplicationsDTO extends AllowValidation {
 	private ThingDTO thing= new ThingDTO();
 	private FormFieldDTO<LocalDateTime> dateactual=new FormFieldDTO(LocalDateTime.now()) ;
 	private boolean amendment=false;
-
+	private FormFieldDTO<OptionDTO> prod_app_type = new FormFieldDTO<OptionDTO>();
+	private FormFieldDTO<OptionDTO> state = new FormFieldDTO<OptionDTO>();
+	
 	public String getUrl() {
 		return url;
 	}
@@ -107,5 +107,21 @@ public class ApplicationsDTO extends AllowValidation {
 	public void setAmendment(boolean amendment) {
 		this.amendment = amendment;
 	}
-	
+
+	public FormFieldDTO<OptionDTO> getProd_app_type() {
+		return prod_app_type;
+	}
+
+	public void setProd_app_type(FormFieldDTO<OptionDTO> prod_app_type) {
+		this.prod_app_type = prod_app_type;
+	}
+
+	public FormFieldDTO<OptionDTO> getState() {
+		return state;
+	}
+
+	public void setState(FormFieldDTO<OptionDTO> state) {
+		this.state = state;
+	}
+
 }

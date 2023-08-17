@@ -72,7 +72,7 @@ public class AssemblyService {
 	//electronic form for data configuration import
 	public static final String SYSTEM_IMPORT_DATA_CONFIGURATION="system.import.data.configuration";
 	//electronic form for data workflows import
-		public static final String SYSTEM_IMPORT_DATA_WORKFLOW="system.import.data.workflow";
+	public static final String SYSTEM_IMPORT_DATA_WORKFLOW="system.import.data.workflow";
 	
 	@Autowired
 	private ClosureService closureServ;
@@ -112,6 +112,12 @@ public class AssemblyService {
 	 */
 	public List<AssemblyDTO> auxHeadings(String url, List<Assembly> assms) throws ObjectNotFoundException {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
+		if(url.toUpperCase().startsWith(ACTIVITY_CONFIGURATION.toUpperCase())) {
+			AssemblyDTO doc1 = new AssemblyDTO(); 
+			doc1.setPropertyName("workflowguide");
+			doc1.setUrl("/api/admin/manual/workflow"); 
+			ret.add(doc1); 
+		}
 		// irka
 		if(url.equalsIgnoreCase(SYSTEM_IMPORT_ADMINUNITS)) { 
 			AssemblyDTO doc1 = new AssemblyDTO(); 
@@ -213,6 +219,7 @@ public class AssemblyService {
 				ret.add(fld);
 			}
 		}
+		
 		if(ret.size()==0) {
 			//List<Assembly> assms = loadDataConfiguration(url);
 			for(Assembly assm : assemblies) {
@@ -423,7 +430,6 @@ public class AssemblyService {
 			fld.setReadOnly(true);
 			ret.add(fld);
 		}
-
 		//*********************************** read from configuration ***************************************************
 		if(ret.size()==0) {
 			for(Assembly assm : assms) {
@@ -740,6 +746,7 @@ public class AssemblyService {
 			{
 				LayoutRowDTO row= new LayoutRowDTO();
 				LayoutCellDTO cell1 = new LayoutCellDTO();
+				cell1.getVariables().add("workflowguide");
 				cell1.getVariables().add("prefLabel");
 				cell1.getVariables().add("description");
 				cell1.getVariables().add("activityurl");
@@ -1504,6 +1511,27 @@ public class AssemblyService {
 		}
 		return ret;
 	}
+	
+	@Transactional
+	public List<Assembly> loadDataConfiguration(String url, String clazz) throws ObjectNotFoundException {
+		List<Assembly> ret = new ArrayList<Assembly>();
+		List<Concept> datas = loadAllDataConfigurations();
+		List<Concept> vars = new ArrayList<Concept>();
+		for(Concept dat : datas) {
+			if(dat.getIdentifier().equalsIgnoreCase(url) && dat.getActive()) {
+				List<Concept> varsAll = literalServ.loadOnlyChilds(dat);
+				for(Concept var : varsAll) {
+					if(var.getActive() && (var.getLabel()==null || var.getLabel().length()==0)) {
+						vars.add(var);
+					}
+				}
+			}
+		}
+		if(vars.size()>0) {
+			ret=assmRepo.findAllByPropertyNameInAndClazz(vars, Sort.by(Sort.Direction.ASC,"row", "col", "ord"), clazz);
+		}
+		return ret;
+	}
 
 	/**
 	 * Load a list of variables that configured under the URL
@@ -1622,23 +1650,12 @@ public class AssemblyService {
 		List<Assembly> ret=new ArrayList<Assembly>();
 		for(Assembly assm :assms) {
 			AssemblyDTO assmDTO = dtoServ.assemblyDto(assm);
-			if(accessServ.allowAssembly(assmDTO, user)) {
+			if(accessServ.allowAssembly(assm, user)) {
 				ret.add(assm);
 			}
 		}
 		return ret;
 	}
-	/**
-	 * Check read access to the component for a user given
-	 * @param thingNodeId thing that serves the data form
-	 * @param varName 
-	 * @param user
-	 * @return
-	 */
-	public boolean readAccess(long thingNodeId, String varName, UserDetailsDTO user) {
-		boolean ret=true;
-		//TODO
-		return ret;
-	}
+
 }
 

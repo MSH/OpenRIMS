@@ -1,5 +1,5 @@
 import React , {Component} from 'react'
-import {Container, Row, Col, Navbar, NavbarBrand, Collapse, NavbarToggler,Nav, NavItem, NavLink} from 'reactstrap'
+import {Container, Row, Col, Navbar, NavbarBrand, Collapse, NavbarToggler,Nav, NavItem, NavLink, Button} from 'reactstrap'
 import Navigator from './utils/Navigator'
 import ApplicationSelect from './ApplicationSelect'
 import ApplicationStart from './ApplicationStart'
@@ -27,10 +27,12 @@ class Applications extends Component{
                 deregistration:'',
                 renew:'',
                 inspections:'',
+                global_back:'',
             }
         }
         this.component=this.component.bind(this)
         this.eventProcessor=this.eventProcessor.bind(this)
+        this.back=this.back.bind(this)
     }
 
         /**
@@ -65,8 +67,12 @@ class Applications extends Component{
             case "publicpermitdata":
                 parStr = Navigator.parameterValue();
                 data = JSON.parse(parStr)
+                if(data.historyId == undefined){
+                    data.historyId=0
+                }
                 let permitData={
-                    permitDataID:data.dataId  
+                    permitDataID:data.dataId,
+                    historyID:data.historyId  
                 }
                 return <PublicPermitData data={permitData}/>
             case "amendments":
@@ -80,6 +86,23 @@ class Applications extends Component{
             default:
                 return <ApplicationSelect />
         }
+    }
+    /**
+     * Go back
+     */
+    back(){
+        return(
+            <div className="d-flex justify-content-end">
+            <Button size="sm"
+                className="mr-1" color="info"
+                onClick={()=>{
+                    window.history.back()
+                }}
+            >
+                    {this.state.labels.global_back}
+            </Button>
+            </div>
+        )
     }
 
     render(){
@@ -137,7 +160,21 @@ class Applications extends Component{
                 </Row>
                 <Row>
                     <Col>
-                        {this.component()}
+                    <Row>
+                        <Col>
+                            {this.back()}
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col>
+                            {this.component()}
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col>
+                            {this.back()}
+                        </Col>
+                    </Row>
                     </Col>
                 </Row>
             </Container>

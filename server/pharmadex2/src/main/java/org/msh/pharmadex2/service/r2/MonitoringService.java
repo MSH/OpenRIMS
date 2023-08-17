@@ -16,8 +16,9 @@ import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.ApplicationsDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
+import org.msh.pharmadex2.dto.form.FormFieldDTO;
+import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
-import org.msh.pharmadex2.service.common.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,9 +37,9 @@ public class MonitoringService {
 	@Autowired
 	private BoilerService boilerServ;
 	@Autowired
-	private UserService userServ;
-	@Autowired
 	private ClosureService closureServ;
+	@Autowired
+	private DictService dictServ;
 	
 	/**
 	 * The same as my activities, however only monitoring activities
@@ -72,6 +73,8 @@ public class MonitoringService {
 	public ApplicationsDTO monitoringFullSearch(ApplicationsDTO data, UserDetailsDTO user, String searchStr) throws ObjectNotFoundException {
 		if(accServ.isSupervisor(user) || accServ.isSecretary(user) || accServ.isModerator(user) || accServ.isApplicant(user)) {
 			setDateActual(data);
+			setTypes(data);
+			setStates(data);
 			
 			TableQtb table = data.getFullsearch();
 			
@@ -80,17 +83,54 @@ public class MonitoringService {
 				table.setGeneralSearch(searchStr);
 			}
 			
-			if(table.getGeneralSearch().length() > 2) {
-				jdbcRepo.monitoringFull(user.getEmail(), table.getGeneralSearch());
-				String select = "select * from _monitoringfull";
-				List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", "", table.getHeaders());
-				TableQtb.tablePage(rows, table);
-				table = boilerServ.translateRows(table);
-				table.setSelectable(true);
-				data.setFullsearch(table);
-			}else {
-				data.getFullsearch().getRows().clear();
+			boolean emptyTable = false;
+			if(table.getGeneralSearch().length() <= 2 && table.getOtherSearch().length() <= 2 && 
+					data.getProd_app_type().getValue().getId() == 0 && data.getState().getValue().getId() == 0) {
+				emptyTable = true;
 			}
+			
+			String mainWhere = "";
+			String search = "";
+			String ownerSearch = "";
+			
+			if(emptyTable) {
+				mainWhere = " false";
+				search = "";
+				ownerSearch = "";
+			}else {
+				mainWhere = "";
+				
+				if(table.getGeneralSearch().length() > 2) {
+					search = table.getGeneralSearch();
+				}else {
+					search = "";
+				}
+				if(table.getOtherSearch().length() > 2) {
+					ownerSearch = table.getOtherSearch();
+				}else {
+					ownerSearch = "";
+				}
+				if(data.getProd_app_type().getValue() != null && data.getProd_app_type().getValue().getId() > 0){
+					mainWhere = "m.dictItemID=" + data.getProd_app_type().getValue().getId();
+				}
+				if(data.getState().getValue() != null && data.getState().getValue().getId() > 0) {
+					mainWhere += (mainWhere.isEmpty()?"":" and ") + "m.state like '" + data.getState().getValue().getCode() + "'";
+				}
+			}
+			
+			String select = "";
+			if(accServ.isApplicant(user)) {
+				jdbcRepo.monitorfullapplicant(user.getEmail(), search, ownerSearch);
+				select = "select * from _monitorfullapplicant as m";
+			}else {
+				jdbcRepo.monitoringFull(user.getEmail(), search, ownerSearch);
+				select = "select * from _monitoringfull as m";
+			}
+			List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", mainWhere, table.getHeaders());
+			TableQtb.tablePage(rows, table);
+			table = boilerServ.translateRows(table);
+			table.setSelectable(true);
+			data.setFullsearch(table);
 		}
 		
 		return data;
@@ -111,6 +151,58 @@ public class MonitoringService {
 			e.printStackTrace();
 		}
 	}
+	
+	private void setTypes(ApplicationsDTO data) {
+		try {
+			if(data.getProd_app_type().getValue() == null) {
+				Concept root = closureServ.loadRoot("dictionary.guest.applications");
+				List<OptionDTO> firstLevel = dictServ.loadLevelAsOptions(root);
+				OptionDTO ret = new OptionDTO();
+				
+				ret.getOptions().addAll(firstLevel);
+				
+				FormFieldDTO<OptionDTO> fld = FormFieldDTO.of(ret);
+				data.setProd_app_type(fld);
+			}
+		} catch (ObjectNotFoundException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	private void setStates(ApplicationsDTO data) {
+		if(data.getState().getValue() == null) {
+			OptionDTO ret = new OptionDTO();
+			
+			OptionDTO st = new OptionDTO();
+			st.setId(1);
+			st.setCode(SystemService.STATE_ACTIVE);
+			ret.getOptions().add(st);
+			
+			st = new OptionDTO();
+			st.setId(2);
+			st.setCode(SystemService.STATE_ONAPPROVAL);
+			ret.getOptions().add(st);
+			
+			st = new OptionDTO();
+			st.setId(3);
+			st.setCode(SystemService.STATE_REVOKED);
+			ret.getOptions().add(st);
+			
+			st = new OptionDTO();
+			st.setId(4);
+			st.setCode(SystemService.STATE_LOST);
+			ret.getOptions().add(st);
+			
+			st = new OptionDTO();
+			st.setId(5);
+			st.setCode(SystemService.STATE_DEREGISTERED);
+			ret.getOptions().add(st);
+			
+			FormFieldDTO<OptionDTO> fld = FormFieldDTO.of(ret);
+			data.setState(fld);
+		}
+	}
+	
 	/**
 	 * Only processing by the executor
 	 * * probably dead 18/07/2023 ik

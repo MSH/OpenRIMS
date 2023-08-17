@@ -287,5 +287,13 @@ public class Messages {
 		return defaultLocaleName;
 	}
 
+	public String getDefLocaleFromBundle() {
+		String def = getDefaultLocaleName();
+		List<ResourceBundle> bundles = bundleRepo.findAllByOrderBySortOrder();
+		if(bundles != null && bundles.size() > 0) {
+			def = bundles.get(0).getLocale().toUpperCase();
+		}
+		return def;
+	}
 	
 }

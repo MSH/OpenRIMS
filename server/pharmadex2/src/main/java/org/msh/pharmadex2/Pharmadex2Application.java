@@ -1,7 +1,17 @@
 package org.msh.pharmadex2;
 
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.X509Certificate;
 import java.util.Locale;
 
+import javax.net.ssl.SSLContext;
+
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.ssl.TrustStrategy;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pharmadex2.service.common.ContextServices;
@@ -16,6 +26,7 @@ import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.web.client.RestTemplate;
@@ -82,10 +93,34 @@ public class Pharmadex2Application implements WebMvcConfigurer  {
 	 * @param builder
 	 * @return
 	 */
-	@Bean
+	/*@Bean
 	public RestTemplate restTemplate(RestTemplateBuilder builder) {
 		return builder.build();
-	}
+	}*/
+	
+	@Bean
+	public RestTemplate restTemplate() 
+	                throws KeyStoreException, NoSuchAlgorithmException, KeyManagementException {
+	    TrustStrategy acceptingTrustStrategy = (X509Certificate[] chain, String authType) -> true;
+
+	    SSLContext sslContext = org.apache.http.ssl.SSLContexts.custom()
+	                    .loadTrustMaterial(null, acceptingTrustStrategy)
+	                    .build();
+
+	    SSLConnectionSocketFactory csf = new SSLConnectionSocketFactory(sslContext);
+
+	    CloseableHttpClient httpClient = HttpClients.custom()
+	                    .setSSLSocketFactory(csf)
+	                    .build();
+
+	    HttpComponentsClientHttpRequestFactory requestFactory =
+	                    new HttpComponentsClientHttpRequestFactory();
+
+	    requestFactory.setHttpClient(httpClient);
+	    RestTemplate restTemplate = new RestTemplate(requestFactory);
+	    return restTemplate;
+	 }
+	
 	/**
 	 * Locale should be stored to the cookie. Default locale should became from:
 	 * <ul> 

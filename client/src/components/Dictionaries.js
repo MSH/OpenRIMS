@@ -207,6 +207,7 @@ class Dictionaries extends Component{
                                 window.location="/"+Navigator.tabSetName()+"#"+Navigator.tabName()
                             }}
                             color="info"
+                            outline
                         />
                     </Col>
                 </Row>

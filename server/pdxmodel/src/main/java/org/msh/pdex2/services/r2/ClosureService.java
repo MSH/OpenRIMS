@@ -280,6 +280,7 @@ public class ClosureService {
 		}
 		return null;
 	}
+	
 	/**
 	 * Load or create and save root concept by identifier
 	 * @param identifier
@@ -519,6 +520,27 @@ public class ClosureService {
 			return ret.get(0);
 		}
 		return null;
+	}
+	
+	/**
+	 * Load concept by Identifier and find first ACTIVE Concept
+	 * @param identifier
+	 * @param label
+	 * @return
+	 */
+	public Concept loadConceptByIdentifierActive(String identifier) {
+		Concept concept = null;
+		List<Concept> ret = new ArrayList<Concept>();
+		ret = conceptRepo.findAllByIdentifier(identifier);
+		if(ret != null) {
+			for(Concept c:ret) {
+				if(c.getActive()) {
+					concept = c;
+					break;
+				}
+			}
+		}
+		return concept;
 	}
 	
 

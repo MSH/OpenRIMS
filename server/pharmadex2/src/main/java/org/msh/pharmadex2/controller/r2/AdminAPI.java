@@ -1,14 +1,11 @@
 package org.msh.pharmadex2.controller.r2;
 
-import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Optional;
 
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
-import org.msh.pdex2.model.r2.FileResource;
-import org.msh.pdex2.repository.r2.FileResourceRepo;
 import org.msh.pharmadex2.dto.AboutDTO;
 import org.msh.pharmadex2.dto.ActuatorAdmDTO;
 import org.msh.pharmadex2.dto.ContentDTO;
@@ -20,7 +17,7 @@ import org.msh.pharmadex2.dto.Dict2DTO;
 import org.msh.pharmadex2.dto.DictNodeDTO;
 import org.msh.pharmadex2.dto.DictionariesDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
-import org.msh.pharmadex2.dto.FileDTO;
+import org.msh.pharmadex2.dto.ExchangeConfigDTO;
 import org.msh.pharmadex2.dto.MessageDTO;
 import org.msh.pharmadex2.dto.PublicOrgDTO;
 import org.msh.pharmadex2.dto.ReportConfigDTO;
@@ -41,12 +38,13 @@ import org.msh.pharmadex2.service.r2.AssemblyService;
 import org.msh.pharmadex2.service.r2.ContentService;
 import org.msh.pharmadex2.service.r2.DWHService;
 import org.msh.pharmadex2.service.r2.DictService;
-import org.msh.pharmadex2.service.r2.ImportExportDictionaryService;
-import org.msh.pharmadex2.service.r2.ImportExportWorkflowService;
+import org.msh.pharmadex2.service.r2.ExchangeConfigurationService;
 import org.msh.pharmadex2.service.r2.ImportATCcodesService;
 import org.msh.pharmadex2.service.r2.ImportAdmUnitsService;
 import org.msh.pharmadex2.service.r2.ImportBService;
 import org.msh.pharmadex2.service.r2.ImportExportDataConfigService;
+import org.msh.pharmadex2.service.r2.ImportExportDictionaryService;
+import org.msh.pharmadex2.service.r2.ImportExportWorkflowService;
 import org.msh.pharmadex2.service.r2.MailService;
 import org.msh.pharmadex2.service.r2.MetricService;
 import org.msh.pharmadex2.service.r2.PubOrgService;
@@ -56,20 +54,13 @@ import org.msh.pharmadex2.service.r2.SupervisorService;
 import org.msh.pharmadex2.service.r2.SystemService;
 import org.msh.pharmadex2.service.r2.ThingService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -138,7 +129,8 @@ public class AdminAPI {
 	ImportExportDataConfigService importExportDataConfigService;
 	@Autowired
 	ImportExportWorkflowService importExportWorkflowService;
-
+	@Autowired
+	ExchangeConfigurationService exchangeServ;
 
 
 	/**
@@ -398,23 +390,6 @@ public class AdminAPI {
 		return data;
 	}
 
-	/**
-	 * load "dictionary.guest.applications"
-	 * 
-	 * @param auth
-	 * @param data
-	 * @return
-	 * @throws DataNotFoundException
-	 */
-	@PostMapping("/api/admin/stages/workflow")
-	public Dict2DTO stagesWorkflow(@RequestBody Dict2DTO data) throws DataNotFoundException {
-		try {
-			data = systemServ.stagesWorkflow(data);
-			return data;
-		} catch (ObjectNotFoundException e) {
-			throw new DataNotFoundException(e);
-		}
-	}
 
 	/**
 	 * load/create configuration for workflow for known dictNodeId
@@ -870,7 +845,6 @@ public class AdminAPI {
 		}
 		return data;
 	}
-
 	/*
 	 * We don't need it anymore
 	 * 	*//**
@@ -1135,10 +1109,27 @@ public class AdminAPI {
 	 * @throws IOException
 	 */
 	@RequestMapping(value="/api/admin/help/dictionaries", method = RequestMethod.GET)
-	public ResponseEntity<Resource> loadDictionariesGuide() throws DataNotFoundException, IOException {
+	public ResponseEntity<Resource> helpDictionaries() throws DataNotFoundException, IOException {
 		ResponseEntity<Resource> res;
 		try {
 			res = resourceServ.adminHelpDictionaries();
+			return res;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+	
+	/**
+	 * The Workflow Guide
+	 * @return
+	 * @throws DataNotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value="/api/admin/manual/workflow", method = RequestMethod.GET)
+	public ResponseEntity<Resource> manualWorkflow() throws DataNotFoundException, IOException {
+		ResponseEntity<Resource> res;
+		try {
+			res = resourceServ.adminManualWorkflow();
 			return res;
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
@@ -1286,5 +1277,95 @@ public class AdminAPI {
 			data.setIdentifier(e.getMessage());
 		}
 		return data;
+	}
+
+	@PostMapping("/api/admin/exchange/load")
+	public ExchangeConfigDTO load(Authentication auth, @RequestBody ExchangeConfigDTO data){
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		data = exchangeServ.load(data);
+		return data;
+	}
+	
+	/**
+	 * Import data configuration from the XLSX file uploaded
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/exchange/ping")
+	public ExchangeConfigDTO connectMainServer(Authentication auth, @RequestBody ExchangeConfigDTO data){
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		data = exchangeServ.pingServer(data);
+		return data;
+	}
+	
+	@PostMapping("/api/admin/exchange/loadnext")
+	public ExchangeConfigDTO loadnext(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		data = exchangeServ.loadNext(data);
+		return data;
+	}
+	
+	/*@PostMapping("/api/admin/exchange/processes/load")
+	public ExchangeConfigDTO loadProcesses(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		data = exchangeServ.loadNext(data);
+		return data;
+	}*/
+	
+	/*@PostMapping("/api/admin/exchange/config/load")
+	public ExchangeConfigDTO configLoad(Authentication auth, @RequestBody ExchangeConfigDTO data){
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		data = exchangeServ.loadConfigs(data);
+		return data;
+	}
+	*/
+	@PostMapping("/api/admin/exchange/dictionary/load")
+	public ExchangeConfigDTO loadDictionary(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		data = exchangeServ.loadDictionary(data);
+		return data;
+	}
+	/*
+	@PostMapping("/api/admin/exchange/config/loaddicts")
+	public ExchangeConfigDTO loadDictionaries(Authentication auth, @RequestBody ExchangeConfigDTO data) throws DataNotFoundException{
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		try {
+			data = exchangeServ.loadDictionaries(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}*/
+	@PostMapping("/api/admin/exchange/config/importdict")
+	public ExchangeConfigDTO importDictionary(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		data = exchangeServ.importDictionary(data);
+		return data;
+	}
+	/*
+	@PostMapping("/api/admin/exchange/config/loaddataconfig")
+	public ExchangeConfigDTO loadDataConfig(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		data = exchangeServ.loadDataConfig(data);
+		return data;
+	}
+	*/
+	/**
+	 * load "dictionary.guest.applications"
+	 * 
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/stages/workflow")
+	public Dict2DTO stagesWorkflow(@RequestBody Dict2DTO data) throws DataNotFoundException {
+		try {
+			data = systemServ.stagesWorkflow(data);
+			return data;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
 	}
 }

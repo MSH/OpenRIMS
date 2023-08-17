@@ -7,9 +7,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -22,9 +20,7 @@ import org.msh.pdex2.dto.table.TableHeader;
 import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
-import org.msh.pdex2.model.dwh.ReportSession;
 import org.msh.pdex2.model.r2.Concept;
-import org.msh.pdex2.repository.dwh.ReportSessionRepo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -1483,12 +1479,35 @@ public class JdbcRepository {
 	/**
 	 * monitoringFull
 	 */
-	public void monitoringFull(String curEmail, String searchStr) {
+	public void monitoringFull(String curEmail, String searchStr, String ownerSearch) {
 		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
 		proc.withProcedureName("monitoringfull");
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("curEmail", curEmail);
 		params.addValue("search", searchStr);
+		params.addValue("ownerSearch", ownerSearch);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+	}
+	
+	/**
+	 * monitoringFullApplicant
+	 */
+	public void monitorfullapplicant(String curEmail, String searchStr, String ownerSearch) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("monitorfullapplicant");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("curEmail", curEmail);
+		params.addValue("search", searchStr);
+		params.addValue("ownerSearch", ownerSearch);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+	}
+	
+	public void loadDictionaryExchange() {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("loadDictionaryExchange");
+		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 	}

@@ -52,6 +52,11 @@ public class DictionaryDTO extends AllowValidation{
 	private List<OptionDTO> currentSelections = new ArrayList<OptionDTO>();
 	private List<TableRow> allrows = new ArrayList<TableRow>();
 	
+	public DictionaryDTO() {
+		super();
+		// TODO Auto-generated constructor stub
+	}
+
 	public List<TableRow> getAllrows() {
 		return allrows;
 	}
@@ -215,6 +220,7 @@ public class DictionaryDTO extends AllowValidation{
 		ret.setMaxDepth(getMaxDepth());
 		return ret;
 	}
+	
 	/**
 	 * Clear all dictionary selection
 	 */
@@ -222,15 +228,21 @@ public class DictionaryDTO extends AllowValidation{
 		this.getPrevSelected().clear();
 		this.getSelection().setValue(new OptionDTO());
 	}
-	@Override
+	/*@Override
 	public String toString() {
 		List<String> ret = new ArrayList<String>();
 		for(OptionDTO opt :getCurrentSelections()) {
 			ret.add(opt.toString());
 		}
 		return String.join(";",ret);
+	}*/
+	@Override
+	public String toString() {
+		return "DictionaryDTO [changed=" + changed + ", url=" + url + ", urlId=" + urlId + ", varName=" + varName
+				+ ", home=" + home + ", path=" + path + ", maxDepth=" + maxDepth + ", selection=" + selection
+				+ ", table=" + table + ", system=" + system + ", mult=" + mult + ", required=" + required
+				+ ", prevSelected=" + prevSelected + ", pathSelected=" + pathSelected + ", selectedOnly=" + selectedOnly
+				+ ", readOnly=" + readOnly + ", currentSelections=" + currentSelections + ", allrows=" + allrows + "]";
 	}
 	
-	
-
 }

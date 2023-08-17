@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties(ignoreUnknown=true)
 public class PublicPermitDTO extends AllowValidation {
 	private long permitDataID=0;															//ID of the main concept in the permit data
+	private long historyID=0;																	//ID of the current history record
 	private String title="";																		// name of the permit from the dictionary
 	private String description="";															// description of the permit
 	private List<ThingDTO> application = new ArrayList<ThingDTO>();	// allowed data pages from the application
@@ -20,6 +21,14 @@ public class PublicPermitDTO extends AllowValidation {
 
 	public void setPermitDataID(long permitDataID) {
 		this.permitDataID = permitDataID;
+	}
+
+	public long getHistoryID() {
+		return historyID;
+	}
+
+	public void setHistoryID(long historyID) {
+		this.historyID = historyID;
 	}
 
 	public String getTitle() {

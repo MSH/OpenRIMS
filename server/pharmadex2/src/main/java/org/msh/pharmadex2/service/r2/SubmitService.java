@@ -295,13 +295,13 @@ public class SubmitService {
 				allowed.add("0");
 			}
 			if(accServ.isSupervisor(user) || accServ.isModerator(user)) {
-				data = validServ.actionCancel(curHis, data);
+				/*data = validServ.actionCancel(curHis, data);
+				if (data.isValid()) {
+					allowed.add("3"); // cancel !!!Danger Activity, you can lose applications
+				}*/
 				data = validServ.actionNew(curHis, data);
 				if (data.isValid()) {
-					allowed.add("2"); // new activity, any activity
-				}
-				if (data.isValid()) {
-					allowed.add("3"); // cancel
+					allowed.add("2"); // new activity, any activity 26072023
 				}
 			}
 			if(accServ.isEmployee(user)) {//NMRA
@@ -331,7 +331,7 @@ public class SubmitService {
 					}
 					allowed.add("0");//or continue, to select activity "decline"
 				}				//---else {	//for current, decline possible only for guest processes
-				if(validServ.submitDecline(curHis, data)) {
+				if(validServ.submitDecline(curHis, data, systemServ.isHost(curHis))) {
 					allowed.add("10");
 					allowed.add("0"); // next should be allowed too
 				}
@@ -381,10 +381,10 @@ public class SubmitService {
 			if (data.isValid()) {
 				allowed.add("2"); // new activity, any activity
 			}
-			data = validServ.actionCancel(curHis, data);
+			/*data = validServ.actionCancel(curHis, data);
 			if (data.isValid()) {
-				allowed.add("3"); // cancel
-			}
+				allowed.add("3"); // cancel !!!Danger Activity, you can lose applications
+			}*/
 			if(isRevokeProcessPossible(curHis,amendmentServ.initialApplicationData(curHis.getApplicationData()))) {
 				allowed.add("9"); // revoke the permit
 			}
@@ -492,34 +492,6 @@ public class SubmitService {
 		}
 		table.setSelectable(false);
 		boilerServ.translateRows(table);
-		return data;
-	}
-	/**
-	 * create executor's choice for this activity. To revokePermit
-	 * 
-	 * @param his
-	 * @param user
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	private ActivitySubmitDTO executorsNMRA(History his, UserDetailsDTO user, ActivitySubmitDTO data)
-			throws ObjectNotFoundException {
-		/*we need to get a concept of process configuration RevokePermit*/
-		Concept nodeApplData = his.getApplicationData();
-		Thing thing = new Thing();
-		thing = boilerServ.thingByNode(nodeApplData, thing);
-		String processUrl = thing.getUrl();
-		Concept dictConc = systemServ.revokepermitDictNode(processUrl);
-		processUrl = literalServ.readValue(LiteralService.APPLICATION_URL, dictConc);
-
-		Concept actConfig = closureServ.loadRoot("configuration." + processUrl);
-		if (actConfig == null) {
-			return data;
-		}
-		TableQtb exec=executorsTable(his, actConfig, data.getExecs(), true);
-
-		data.setExecs(exec);
 		return data;
 	}
 	/**
@@ -1088,11 +1060,12 @@ public class SubmitService {
 						data = submitDeclineGuest(curHis, user, data);
 					}else if(systemServ.isHost(curHis)) {
 						cancelActivities(curHis);
-						Scheduler sch = new Scheduler();
+						//01082023 ik - do not start a new Host process 
+						/*Scheduler sch = new Scheduler();
 						Concept dictConc= curHis.getApplDict();
 						sch.setProcessUrl(literalServ.readValue("applicationurl", dictConc));
 						sch.setScheduled(Date.valueOf(LocalDate.now()));
-						data = appServ.createHostApplication(curHis, sch, dictConc, data);
+						data = appServ.createHostApplication(curHis, sch, dictConc, data);*/
 					}
 				}
 				return data;

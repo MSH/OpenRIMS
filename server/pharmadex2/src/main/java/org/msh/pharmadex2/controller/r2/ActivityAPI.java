@@ -94,14 +94,14 @@ public class ActivityAPI{
 	private IrkaServices irkaServ;
 	@Autowired
 	private LinkService linkServ;
-	
+
 	@Autowired
 	private SubmitService submServ;
 	@Autowired
 	private AccessControlService accServ;
 	@Autowired
 	private AssemblyService assmServ;
-	
+
 	/**
 	 * Alerts to do
 	 * @param auth
@@ -173,8 +173,8 @@ public class ActivityAPI{
 
 	@PostMapping({ "/api/*/monitoring/full/search={s}"})
 	public ApplicationsDTO monitoringFull(Authentication auth, UriComponentsBuilder uri,@RequestBody ApplicationsDTO data, 
-				@PathVariable(value = "s") String s)
-			throws DataNotFoundException {
+			@PathVariable(value = "s") String s)
+					throws DataNotFoundException {
 		accServ.allowAuthenticated(auth, uri);
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
@@ -496,14 +496,10 @@ public class ActivityAPI{
 	 */
 	@PostMapping({ "/api/*/thing/file/load"})
 	public FileDTO fileLoad(Authentication auth, UriComponentsBuilder uri, @RequestBody FileDTO data) throws DataNotFoundException {
-		//TODO accServ.allowAuthenticated(auth, uri);
+		//accServ.allowAuthenticated(auth, uri);
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
-			if(assmServ.readAccess(data.getThingNodeId(), data.getVarName(), user)){
-				data = thingServ.fileLoad(data, user);
-			}else {
-				throw new DataNotFoundException(messages.get("loginmessage"));
-			}
+			data = thingServ.fileLoad(data, user);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -574,8 +570,9 @@ public class ActivityAPI{
 	@RequestMapping(value = { "/api/*/application/file/download/id={id}"}, method = RequestMethod.GET)
 	public ResponseEntity<Resource> applicationFileDownload(Authentication auth, UriComponentsBuilder uri,@PathVariable(value = "id", required = true) Long fileresId)
 			throws DataNotFoundException, ObjectNotFoundException {
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
-			return thingServ.fileDownload(fileresId);
+			return thingServ.fileDownload(fileresId,user);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}

@@ -21,6 +21,7 @@ import Inns from './Inns'
 import ReportConfigurator from './reports/ReportConfigurator'
 import Import_A from './Import_A'
 import Import_B from './Import_B'
+import ExchangeConfiguration from './ExchangeConfiguration'
 import ActuatorAdm from './ActuatorAdm'
 import ChangePassAdmin from './ChangePassAdmin'
 import Import_ATC from './Import_ATC'
@@ -61,7 +62,8 @@ class Administrate extends Component{
                 importATC:'',
                 actuatorMonitoring:'',
                 test_mail:'',
-                systemsetting:''
+                systemsetting:'',
+                exchangeconfig:''
             },
             isOpen:false,
             menu:'',
@@ -134,6 +136,8 @@ class Administrate extends Component{
                 return <Import_B/>
             case "import_atc":
                 return <Import_ATC/>
+            case "exchangeconfig":
+                return <ExchangeConfiguration/>
             case "actuator":
                 return <ActuatorAdm/>
             case "changepass":
@@ -327,6 +331,17 @@ class Administrate extends Component{
                                                     <div>
                                                         <i className="fas fa-file-import mr-1"></i>
                                                         {this.state.labels.importATC}
+                                                    </div>
+                                                    </NavLink>
+                                                </NavItem>
+                                            </DropdownItem>
+                                            <DropdownItem hidden>
+                                                <NavItem active={this.state.menu=='exchangeconfig'}>
+                                                    <NavLink active={this.state.menu=='exchangeconfig'}
+                                                                href="/admin#administrate/exchangeconfig">
+                                                    <div>
+                                                        <i className="fas fa-file-import mr-1"></i>
+                                                        {this.state.labels.exchangeconfig}
                                                     </div>
                                                     </NavLink>
                                                 </NavItem>

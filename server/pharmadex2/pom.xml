@@ -132,6 +132,10 @@
 			<artifactId>commons-text</artifactId>
 			<version>1.9</version>
 		</dependency>
+		<dependency>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpmime</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>

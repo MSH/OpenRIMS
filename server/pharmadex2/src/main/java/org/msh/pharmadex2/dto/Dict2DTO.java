@@ -25,5 +25,9 @@ public class Dict2DTO extends AllowValidation{
 	public void setSlaveDict(DictionaryDTO slaveDict) {
 		this.slaveDict = slaveDict;
 	}
+	public Dict2DTO() {
+		super();
+		// TODO Auto-generated constructor stub
+	}
 	
 }
