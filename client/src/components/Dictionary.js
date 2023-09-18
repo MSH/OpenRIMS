@@ -568,7 +568,8 @@ class Dictionary extends Component{
                                     onCancel={()=>{this.state.edit=false
                                                     this.state.sendMessSave = true
                                                    this.setState(this.state)
-                                                   this.tableLoader()}
+                                                   this.tableLoader()
+                                                }
                                     }
                         />
                    </Col>

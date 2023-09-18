@@ -23,7 +23,7 @@ import org.msh.pharmadex2.exception.DataNotFoundException;
 import org.msh.pharmadex2.service.common.ContextServices;
 import org.msh.pharmadex2.service.common.UserService;
 import org.msh.pharmadex2.service.r2.ContentService;
-import org.msh.pharmadex2.service.r2.ExchangeConfigurationService;
+import org.msh.pharmadex2.service.r2.ExchangeConfigMainService;
 import org.msh.pharmadex2.service.r2.ReportService;
 import org.msh.pharmadex2.service.r2.ResourceService;
 import org.slf4j.Logger;
@@ -67,7 +67,7 @@ public class PublicAPI{
 	@Autowired
 	private ReportService reportServ;
 	@Autowired
-	ExchangeConfigurationService exchangeServ;
+	ExchangeConfigMainService exchangeMainServ;
 
 	@Value("${app.buildTime}")
 	private String buildTime;
@@ -329,38 +329,67 @@ public class PublicAPI{
 		return data;
 	}
 	
-	@PostMapping(value="/api/public/exchange/processes/load")// /api/public/exchange/config/load")
+	@PostMapping(value="/api/public/exchange/processes/load")
 	public ExchangeConfigDTO loadProcesses(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
-		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-		data = exchangeServ.loadProcesses(data);
+		data = exchangeMainServ.loadProcesses(data);
 		return data;
 	}
 	
-	@PostMapping(value="/api/public/exchange/checklists/load")// /api/public/exchange/config/loaddicts")
+	@PostMapping(value="/api/public/exchange/processes/geturl")
+	public ExchangeConfigDTO geturlProcesses(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
+		data = exchangeMainServ.getUrlProcesses(data);
+		return data;
+	}
+	
+	@PostMapping(value="/api/public/exchange/checklists/load")
 	public ExchangeConfigDTO loadChecklistDictionaries(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
-		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-		data = exchangeServ.loadChecklistDictionaries(data);
+		data = exchangeMainServ.loadChecklistDictionaries(data);
 		return data;
 	}
 	
-	@PostMapping(value="/api/public/exchange/dictionaries/load")// /api/public/exchange/config/loaddicts")
+	@PostMapping(value="/api/public/exchange/dictionaries/load")
 	public ExchangeConfigDTO loadDictionaries(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
-		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-		data = exchangeServ.loadDictionaries(data);
+		data = exchangeMainServ.loadDictionaries(data);
 		return data;
 	}
-	@PostMapping("/api/public/exchange/resources/load")// /api/public/exchange/config/loaddataconfig")
+	@PostMapping(value="/api/public/exchange/resources/load")
 	public ExchangeConfigDTO loadResources(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
-		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-		data = exchangeServ.loadResources(data);
+		data = exchangeMainServ.loadResources(data);
+		return data;
+	}
+	
+	@PostMapping(value="/api/public/exchange/dataconfig/load")
+	public ExchangeConfigDTO loadDataConfigs(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
+		data = exchangeMainServ.loadDataConfigs(data);
+		return data;
+	}
+	
+	@PostMapping(value="/api/public/exchange/workflows/load")
+	public ExchangeConfigDTO loadWorkflows(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
+		data = exchangeMainServ.loadWorkflows(data);
 		return data;
 	}
 	
 	@PostMapping(value="/api/public/exchange/dictionary/import")
 	public ExchangeConfigDTO importDictionary(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
-		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-		data = exchangeServ.importDictionaryMainServer(data);
+		data = exchangeMainServ.importDictionary(data);
 		return data;
 	}
 	
+	@PostMapping(value="/api/public/exchange/resource/import")
+	public ExchangeConfigDTO importResource(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
+		data = exchangeMainServ.importResource(data);
+		return data;
+	}
+	
+	@PostMapping(value="/api/public/exchange/dataconfig/import")
+	public ExchangeConfigDTO importDataConfig(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
+		data = exchangeMainServ.importDataConfig(data);
+		return data;
+	}
+	@PostMapping(value="/api/public/exchange/workflows/importall")
+	public ExchangeConfigDTO importWorkflows(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
+		data = exchangeMainServ.importAllWorkflows(data);
+		return data;
+	}
 }

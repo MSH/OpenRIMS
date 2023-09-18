@@ -85,6 +85,30 @@ public class DictService {
 		}
 		node = validServ.node(node,"", true);
 		if(node.isValid()) {
+			// 13092023 khomenska - add varification uniq field URL on level
+			FormFieldDTO<String> fld = node.getLiterals().get(LiteralService.URL);
+			if(fld != null && fld.getValue() != null && fld.getValue().length() > 2) {
+				Concept parent = null;
+				if(node.getParentId() > 0) {
+					parent = closureServ.loadConceptById(node.getParentId());
+				}else {
+					parent = closureServ.loadRoot(node.getUrl());
+				}
+				List<Concept> level = literalServ.loadOnlyChilds(parent);
+				for (Concept conc : level) {
+					if (conc.getActive() && conc.getID() != node.getNodeId()) {
+						String url = literalServ.readValue(LiteralService.URL, conc);
+						if (url.equals(fld.getValue())) {
+							fld.setStrict(true);
+							fld.setError(true);
+							fld.setSuggest(messages.get("valueshouldbeunique "));
+							node.setValid(false);
+							
+							return node;
+						}
+					}
+				}
+			}
 			Concept concept = node(node);
 			concept=literalServ.saveFields(node.getLiterals(),concept);
 			node=createNode(concept);

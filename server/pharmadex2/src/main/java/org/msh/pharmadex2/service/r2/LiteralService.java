@@ -337,6 +337,25 @@ public class LiteralService {
 		}
 		return ret;
 	}
+	
+	/**
+	 * Load level under the parent without literals
+	 * @param parent
+	 * @return empty if none
+	 */
+	public List<Concept> loadOnlyActiveChilds(Concept parent) {
+		List<Concept> ret = new ArrayList<Concept>();
+		if(parent!=null) {
+			List<Concept> level = closureServ.loadLevel(parent);
+			for(Concept conc : level) {
+				if(!conc.getIdentifier().startsWith("_")){
+					if(conc.getActive())
+						ret.add(conc);
+				}
+			}
+		}
+		return ret;
+	}
 	/**
 	 * Is this concept a leaf
 	 * @param concept
@@ -547,7 +566,26 @@ public class LiteralService {
 		return ret;
 	}
 
-	
+	@Transactional
+	public Map<String, String> literals(Concept node, String locale) {
+		Map<String, String> ret = new LinkedHashMap<String, String>();
+		List<Concept> childs = closureServ.loadLevel(node);
+		locale = locale.toUpperCase();
+		for(Concept child : childs) {
+			if(child.getIdentifier().equalsIgnoreCase(IDENTIFIER)) {	//branch from '_LITERALS_'
+				List<Concept> vars = closureServ.loadLevel(child);	    // all variables
+				for(Concept var : vars) {												
+					List<Concept> vals = closureServ.loadLevel(var);		//all values of a variable
+					for(Concept val :vals) {
+						if(val.getIdentifier().equalsIgnoreCase(locale)) {
+							ret.put(var.getIdentifier(), val.getLabel());			//a value on the current language
+						}
+					}
+				}
+			}
+		}
+		return ret;
+	}
 
 
 }

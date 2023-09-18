@@ -22,6 +22,8 @@ class MonitoringFullsearch extends Component{
         this.state={
             identifier:Date.now().toString(),
             labels:{
+                prefLabel:'',
+                owners:'',
                 search:'',
                 exportExcel:'',
                 dateactualLb:'',
@@ -95,10 +97,30 @@ class MonitoringFullsearch extends Component{
                 <Col>
                     <Row className="mb-3">
                         <Col xs='12' sm='12' lg='4' xl='4'>
-                            <SearchControlNew key='4' label={this.state.labels.prefLabel} table={this.state.data.fullsearch} loader={this.loadData}/>
+                            <Row>
+                                <Col>
+                                    <h6>{this.state.labels.prefLabel}</h6>
+                                </Col>
+                            </Row>
+                            <Row>
+                                <Col>
+                                <SearchControlNew key='4' label={this.state.labels.prefLabel} table={this.state.data.fullsearch} loader={this.loadData}/>
+                                </Col>
+                            </Row>
+                           
                         </Col>
                         <Col xs='12' sm='12' lg='4' xl='4'>
-                            <SearchField key='4' label={this.state.labels.owners} table={this.state.data.fullsearch} loader={this.loadData}/>
+                            <Row>
+                                <Col>
+                                <h6>{this.state.labels.owners}</h6>
+                                </Col>
+                            </Row>
+                            <Row>
+                                <Col>
+                                    <SearchField key='4' label={this.state.labels.owners} table={this.state.data.fullsearch} loader={this.loadData}/>
+                                </Col>
+                            </Row>
+                            
                         </Col>
                         <Col xs='12' sm='12' lg='2' xl='2' className="d-flex justify-content-end">
                             <ButtonUni disabled={this.state.data.fullsearch.rows.length == 0}

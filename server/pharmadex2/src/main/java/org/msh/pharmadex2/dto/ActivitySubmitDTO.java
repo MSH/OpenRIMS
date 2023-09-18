@@ -34,6 +34,8 @@ public class ActivitySubmitDTO extends AllowValidation{
 		private boolean reject=false;				//reject and return to user for clarification
 		private String colorAlert = "info"; // color Alert message
 		private boolean monitoring=false;			//request actions in monitoring pages
+	// server address for the link in the email notification
+		private String serverUrl="";				//e.g., https://openrims.org
 		
 		public String getColorAlert() {
 			return colorAlert;
@@ -174,4 +176,11 @@ public class ActivitySubmitDTO extends AllowValidation{
 		public void setMonitoring(boolean monitoring) {
 			this.monitoring = monitoring;
 		}
+		public String getServerUrl() {
+			return serverUrl;
+		}
+		public void setServerUrl(String serverUrl) {
+			this.serverUrl = serverUrl;
+		}
+		
 }

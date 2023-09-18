@@ -55,7 +55,7 @@ public class AssemblyService {
 	public static final String SYSTEM_IMPORT_ADMINUNITS_RELOAD="system.import.adminunits_reload";
 	public static final String ACTIVITY_EXECUTIVES = "executives";
 	public static final String ACTIVITY_CONFIG_FINALIZE = "finalize";
-	private static final String ACTIVITY_CONFIGURATION = "activity.configuration";
+	public static final String ACTIVITY_CONFIGURATION = "activity.configuration";
 	private static final String OBJECT_SITE_CLASSIFIERS = "object.site.classifiers";
 	private static final Logger logger = LoggerFactory.getLogger(AssemblyService.class);
 	public static final String SYSTEM_IMPORT_LEGACY_DATA = "system.import.legacy.data";

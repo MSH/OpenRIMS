@@ -37,7 +37,6 @@ class Dictionaries extends Component{
     componentDidMount(){
         this.load()
     }
-
     load(){
         Fetchers.postJSONNoSpinner("/api/admin/dictionary/all", this.state.data, (query,responce)=>{
             this.state.data=responce

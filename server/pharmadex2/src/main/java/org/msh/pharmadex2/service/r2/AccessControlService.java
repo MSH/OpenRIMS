@@ -396,7 +396,7 @@ public class AccessControlService {
 	 * @param user
 	 * @return
 	 */
-	private boolean isPublic(UserDetailsDTO user) {
+	public boolean isPublic(UserDetailsDTO user) {
 		return user.getEmail().isEmpty() && user.getLogin().isEmpty();
 	}
 

@@ -77,7 +77,7 @@ public class ResourceService {
 		SystemImageDTO dto = new SystemImageDTO();
 		dto.setFilename("nmra.svg");
 		dto.setMediatype("image/svg+xml");
-		
+
 		Concept node=fileNode("images.design", "resources.system.logo");
 		if(node != null) {
 			FileResource fres = boilerServ.fileResourceByNode(node);
@@ -101,7 +101,7 @@ public class ResourceService {
 		SystemImageDTO dto = new SystemImageDTO();
 		dto.setFilename("nmra.svg");
 		dto.setMediatype("image/svg+xml");
-		
+
 		Concept node=fileNode("images.design", "resources.system.logo.footer");
 		if(node != null) {
 			FileResource fres = boilerServ.fileResourceByNode(node);
@@ -111,7 +111,7 @@ public class ResourceService {
 		}else {
 			dto.setResource(new ByteArrayResource(messages.loadNmraLogo().getBytes()));
 		}
-		
+
 		return dto;
 	}
 
@@ -334,28 +334,32 @@ public class ResourceService {
 	public ResponseEntity<Resource> downloadTerms() throws ObjectNotFoundException, IOException {
 		return downloadFile("resources.system.terms","termsofuse.pdf");
 	}
-	
+
 	/* 15.11.2022 khomenska */
 	@Transactional
 	public ResponseEntity<Resource> downloadPrivacy() throws ObjectNotFoundException, IOException {
 		return downloadFile("resources.system.privacy","privacypolicy.pdf");
 	}
-	
+
 	@Transactional
 	public ResponseEntity<Resource> adminHelpWfrGuide() throws ObjectNotFoundException, IOException {
 		return downloadFile("resources.help.wfrguide","wfrguide.pdf");
 	}
-	
+
 	@Transactional
 	public ResponseEntity<Resource> adminElreferenceGuide() throws ObjectNotFoundException, IOException {
 		return downloadFile("resources.elreference","CreationPrintableElectronicDocumentsOpenRIMS.pdf");
 	}
-	
+
 	@Transactional
 	public ResponseEntity<Resource> adminHelpDictionaries() throws ObjectNotFoundException, IOException {
 		return downloadFile("resources.help.dictionaries","DictionaryCreationMaintenance.pdf");
 	}
-	
+	@Transactional
+	public ResponseEntity<Resource> adminHelpImpCongigProcess() throws ObjectNotFoundException, IOException {
+		return downloadFile("resources.help.impconfigprocess","ImportConfigProcessInstruction.pdf");
+	}
+
 	/* 15.11.2022 khomenska */
 	private ResponseEntity<Resource> downloadFile(String varName, String fileName) throws ObjectNotFoundException, IOException{
 		Concept node=fileNode("images.design", varName);
@@ -389,55 +393,78 @@ public class ResourceService {
 					.body(res);
 		}else {
 			InputStream in = getClass().getResourceAsStream("/static/shablon/"+fileName);
-			Resource res = new ByteArrayResource(IOUtils.toByteArray(in));
-			return ResponseEntity.ok()
-					.contentType(MediaType.parseMediaType(mediaType))
-					.contentLength(res.contentLength())
-					.header(HttpHeaders.CONTENT_DISPOSITION, typeOpen + "; filename=\"" + fileName +"\"")
-					.header("filename", fileName)
-					.body(res);
-			//throw new ObjectNotFoundException(" load. File not found. Node url=\"images.design\", varName=\""+varName +"\"");
+			if(in!=null) {
+				Resource res = new ByteArrayResource(IOUtils.toByteArray(in));
+				return ResponseEntity.ok()
+						.contentType(MediaType.parseMediaType(mediaType))
+						.contentLength(res.contentLength())
+						.header(HttpHeaders.CONTENT_DISPOSITION, typeOpen + "; filename=\"" + fileName +"\"")
+						.header("filename", fileName)
+						.body(res);
+			}else {
+				throw new ObjectNotFoundException(" load. File not found. Node url=\"images.design\", varName=\""+fileName +"\"");
+			}
 		}
 	}
-	/**
-	 * Determine URL to get thing help document from image.resources
-	 * @param data
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	@Transactional
-	public ThingDTO thingHelp(ThingDTO data) throws ObjectNotFoundException {
-		Concept node=fileNode("images.design", data.getUrl());
-		if(node!=null) {
-			data.setHelpDocumentID(node.getID());
-		}else {
-			data.setHelpDocumentID(0l);
+		/**
+		 * Determine URL to get thing help document from image.resources
+		 * @param data
+		 * @return
+		 * @throws ObjectNotFoundException 
+		 */
+		@Transactional
+		public ThingDTO thingHelp(ThingDTO data) throws ObjectNotFoundException {
+			Concept node = fileNode("images.design", data.getUrl());
+			if(node != null) {
+				data.setHelpDocumentID(node.getID());
+			}else {
+				data.setHelpDocumentID(0l);
+			}
+			return data;
 		}
-		return data;
+		/**
+		 * Open thing help document
+		 * @param id
+		 * @return
+		 * @throws IOException 
+		 * @throws ObjectNotFoundException 
+		 */
+		@Transactional
+		public ResponseEntity<Resource> thingHelpOpen(Long id) throws ObjectNotFoundException, IOException {
+			Concept node = closureServ.loadConceptById(id);
+			String typeOpen = "inline";
+			String mediaType = "application/pdf";
+			return createFileResponse(node.getLabel(), node, typeOpen, mediaType);
+		}
+
+		/**
+		 * The Workflow Manual
+		 * @return
+		 * @throws IOException 
+		 * @throws ObjectNotFoundException 
+		 */
+		@Transactional
+		public ResponseEntity<Resource> adminManualWorkflow() throws ObjectNotFoundException, IOException {
+			return downloadFile("resources.manual.workflow","WorkflowManual.pdf");
+		}
+		/**
+		 * The Resource creation help
+		 * @return
+		 * @throws IOException 
+		 * @throws ObjectNotFoundException 
+		 */
+		@Transactional
+		public ResponseEntity<Resource> resourceHelp() throws ObjectNotFoundException, IOException {
+			return downloadFile("resources.creation.help","ResourceHelp.pdf");
+		}
+		/**
+		 * An example of date format
+		 * @return
+		 * @throws IOException 
+		 * @throws ObjectNotFoundException 
+		 */
+		@Transactional
+		public ResponseEntity<Resource> dateFormatHelp() throws ObjectNotFoundException, IOException {
+			return downloadFile("custom.date.format.help","CustomDateFormat.pdf");
+		}
 	}
-	/**
-	 * Open thing help document
-	 * @param id
-	 * @return
-	 * @throws IOException 
-	 * @throws ObjectNotFoundException 
-	 */
-	@Transactional
-	public ResponseEntity<Resource> thingHelpOpen(Long id) throws ObjectNotFoundException, IOException {
-		Concept node = closureServ.loadConceptById(id);
-		String typeOpen = "inline";
-		String mediaType = "application/pdf";
-		return createFileResponse(node.getLabel(), node, typeOpen, mediaType);
-	}
-	
-	/**
-	 * The Workflow Manual
-	 * @return
-	 * @throws IOException 
-	 * @throws ObjectNotFoundException 
-	 */
-	@Transactional
-	public ResponseEntity<Resource> adminManualWorkflow() throws ObjectNotFoundException, IOException {
-		return downloadFile("resources.manual.workflow","WorkflowManual.pdf");
-	}
-}

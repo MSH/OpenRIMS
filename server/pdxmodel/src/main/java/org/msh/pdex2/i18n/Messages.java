@@ -37,8 +37,10 @@ public class Messages {
 
 	@Value( "${spring.web.locale:en_US}" )
 	String defaultLocaleName;
-	
+
 	public static final String KEY_UNKNOWN = "unknown";
+	public static String dateFormat="";									//date format used java.time.format.DateTimeFormatter pattern
+	public static String dateTimeFormat="";							//date and time format used java.time.format.DateTimeFormatter pattern
 	private final Logger logger = LoggerFactory.getLogger(Messages.class); 
 	/**
 	 * key is locale name in uppercase, value is all messages for this locale in key,value map. Keys are non case sensitive as well
@@ -57,7 +59,7 @@ public class Messages {
 	public Map<String, Map<String,String>> getMessages() {
 		return messages;
 	}
-	
+
 	public void setMessages(Map<String, Map<String,String>> messages) {
 		this.messages = messages;
 	}
@@ -162,6 +164,7 @@ public class Messages {
 	}
 	/**
 	 * Create messages from a bundle given
+	 * Set static date and date time formats
 	 * @param bundle
 	 */
 	@Transactional
@@ -170,6 +173,14 @@ public class Messages {
 		if(bundle.getMessages()!=null) {
 			for(ResourceMessage rm :  bundle.getMessages()) {
 				values.put(rm.getMessage_key().toUpperCase(), rm.getMessage_value());
+				if(bundle.getLocale().equalsIgnoreCase(getCurrentLocaleStr())) {
+					if(rm.getMessage_key().equalsIgnoreCase("dateFormat")) {
+						Messages.dateFormat=rm.getMessage_value();
+					}
+					if(rm.getMessage_key().equalsIgnoreCase("dateTimeFormat")) {
+						Messages.dateTimeFormat=rm.getMessage_value();
+					}
+				}
 			}
 		}
 		getMessages().put(bundle.getLocale().toUpperCase(), values);
@@ -233,7 +244,7 @@ public class Messages {
 	public ResourceBundle getCurrentBundle() {
 		Iterable<ResourceBundle> bundles = bundleRepo.findAll();
 		for(ResourceBundle bundle : bundles) {
-			if(bundle.getLocale().toUpperCase().equals(LocaleContextHolder.getLocale().toString().toUpperCase())) {
+			if(bundle.getLocale().toUpperCase().equals(getCurrentLocaleStr())) {
 				return bundle;
 			}
 		}
@@ -295,5 +306,5 @@ public class Messages {
 		}
 		return def;
 	}
-	
+
 }

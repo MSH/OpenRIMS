@@ -5,6 +5,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -20,6 +21,7 @@ import javax.imageio.ImageIO;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import org.msh.pdex2.dto.table.Headers;
+import org.msh.pdex2.dto.table.TableCell;
 import org.msh.pdex2.dto.table.TableHeader;
 import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
@@ -52,6 +54,7 @@ import org.msh.pharmadex2.dto.DataVariableDTO;
 import org.msh.pharmadex2.dto.DictNodeDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.FileDTO;
+import org.msh.pharmadex2.dto.FormatsDTO;
 import org.msh.pharmadex2.dto.IntervalDTO;
 import org.msh.pharmadex2.dto.LegacyDataDTO;
 import org.msh.pharmadex2.dto.LinksDTO;
@@ -138,6 +141,12 @@ public class ValidationService {
 		if(prefLabel != null) {
 			if(prefLabel.getValue().length()<2 || prefLabel.getValue().length()>Integer.MAX_VALUE) {
 				suggest(prefLabel, 2,Integer.MAX_VALUE,strict);
+				data.setValid(false);
+			}
+			if(prefLabel.getValue().contains(",")) {
+				prefLabel.setSuggest(messages.get("badchar") + ": ','");
+				prefLabel.setError(true);
+				prefLabel.setStrict(strict);
 				data.setValid(false);
 			}
 		}else {
@@ -2692,6 +2701,27 @@ public class ValidationService {
 					break;
 				}
 			}
+		}
+		return data;
+	}
+	/**
+	 * Validate format string against DateTimeFormatter rules
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public FormatsDTO format(FormatsDTO data) throws ObjectNotFoundException {
+		String oldValue=Messages.dateFormat;
+		Messages.dateFormat=data.getFormatDate().getValue();
+		DateTimeFormatter formatter = TableCell.dateFormat();
+		data.clearErrors();
+		try {
+			data.getDateInputSample().getValue().format(formatter);
+		} catch (Exception e) {
+			data.addError(messages.get("invaliddateformat"));
+			data.getFormatDate().invalidate(messages.get("invaliddateformat"));
+		} finally {
+			Messages.dateFormat=oldValue;
 		}
 		return data;
 	}

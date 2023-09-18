@@ -253,19 +253,21 @@ loader(){
                         />
                     </Col>
                     <Col xs='12' sm='12' lg='1' xl='1' className={"text-center m-0 p-1"} hidden={this.state.showimport}>
-                        <ButtonUni
-                            label={this.state.labels.insertbefore}
-                            onClick={()=>{
-                                Fetchers.postJSON("/api/admin/workflow/activity/insert", this.state.data, (query,result)=>{
-                                    this.state.data=result
-                                    this.state.data.path.forEach(element=>{
-                                        element.repaint=true
+                        <div hidden={this.state.data.selected==0}>
+                            <ButtonUni
+                                label={this.state.labels.insertbefore}
+                                onClick={()=>{
+                                    Fetchers.postJSON("/api/admin/workflow/activity/insert", this.state.data, (query,result)=>{
+                                        this.state.data=result
+                                        this.state.data.path.forEach(element=>{
+                                            element.repaint=true
+                                        })
+                                        this.setState(this.state)
                                     })
-                                    this.setState(this.state)
-                                })
-                            }}
-                            color="primary"
-                        />
+                                }}
+                                color="primary"
+                            />
+                        </div>
                     </Col>
                     <Col xs='12' sm='12' lg='1' xl='1' className={"text-center m-0 p-1"} hidden={this.state.showimport}>
                         <div hidden={this.state.data.selected==0}>

@@ -1503,12 +1503,4 @@ public class JdbcRepository {
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 	}
-	
-	public void loadDictionaryExchange() {
-		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
-		proc.withProcedureName("loadDictionaryExchange");
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
-		proc.execute(params);
-	}
 }

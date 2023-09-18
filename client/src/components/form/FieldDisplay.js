@@ -8,9 +8,6 @@ import PropTypes from 'prop-types'
  * Require complex FormFieldDTO object for this.state.data[attribute]
  * modes are ['text','textarea','number', 'date', 'boolean','time']
  * The component should has this.state.labels.locale as a valid language tag (i.e. en-US, not en_us) and this.state.labels[attribute] as a valid label
- * @property attribute  :PropTypes.string.isRequired,                        //name of a OptionDTO text or number attribute mandatory
- * @property hideEmpty   :PropTypes.bool,                                     //hide empty fields non-mandatory
- * @property component   :PropTypes.object.isRequired                        //caller component mandatory
  * @example
  * <FieldDisplay data={this.state.data.literals} mode='text' attribute='firstName' component={this} hideEmpty=false} />
  */
@@ -68,7 +65,8 @@ class FieldDisplay extends Component{
         if(this.props.data != undefined){
             data=this.props.data
         }
-        let value = data[this.props.attribute].value
+        let value = data[this.props.attribute].value    //not formatted
+        let valueStr=data[this.props.attribute].valueStr   //pre-formatted, if one
         if(this.props.mode=='text' || this.props.mode=='textarea'){
             //may be option or real text
             //if(isNullOrUndefined(value)){
@@ -98,11 +96,14 @@ class FieldDisplay extends Component{
         }
 
         if(this.props.mode=='date'){
+            if(valueStr.length>1){
+                return valueStr
+            }
             if(!isNaN(Date.parse(value))){
                 let dateValue= new Date(value)
                 let locale=this.props.component.state.labels.locale
                 let lang = locale.replace("_","-")
-                return dateValue.toLocaleString(lang, {dateStyle:'long'})
+                return dateValue.toLocaleString(lang, {dateStyle:'medium'})
             }else{
                 return value
             }

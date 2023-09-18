@@ -357,22 +357,35 @@ public class ReportService {
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	public ReportConfigDTO reportConfigurationLoad(ReportConfigDTO data) throws ObjectNotFoundException {
-		data=reportGoogleTools(data);
+	public ReportConfigDTO reportConfigurationLoad(UserDetailsDTO user, ReportConfigDTO data) throws ObjectNotFoundException {
+		data=reportGoogleTools(data, SystemService.DICTIONARY_REPORT_GOOGLE_TOOLS);
+		if(accessControl.isApplicant(user) || accessControl.isSupervisor(user)){
+			data=reportGoogleTools(data, SystemService.DICTIONARY_REPORT_GOOGLETOOLS_APPL);
+		}
+		if(accessControl.isEmployee(user)) {
+		data=reportGoogleTools(data, SystemService.DICTIONARY_REPORT_GOOGLETOOLS_NMRA);
+		}
 		data = reportConfiguratuonTable(data);
 
 		data.setEnabledrenewext(dwhServ.enablesBtn());
 		return data;
 	}
 
-	public ReportConfigDTO reportGoogleTools(ReportConfigDTO data) throws ObjectNotFoundException {
+	public ReportConfigDTO reportGoogleTools(ReportConfigDTO data, String dictUrl) throws ObjectNotFoundException {
 			DictionaryDTO dict = new DictionaryDTO();
-			Concept root =closureServ.loadConceptByIdentifier(SystemService.DICTIONARY_REPORT_GOOGLE_TOOLS);
+			Concept root =closureServ.loadConceptByIdentifier(dictUrl);
 			dict.setUrlId(root.getID());
 			dict.setUrl(root.getIdentifier());
-
 			dict.setSystem(dictServ.checkSystem(root));//ika
-			data.setSelect(dictServ.createDictionaryFromRoot(dict, root));
+			if(dictUrl.equalsIgnoreCase(SystemService.DICTIONARY_REPORT_GOOGLETOOLS_NMRA)) {
+				data.setSelectNMRA(dictServ.createDictionaryFromRoot(dict, root));
+			}
+			if(dictUrl.equalsIgnoreCase(SystemService.DICTIONARY_REPORT_GOOGLETOOLS_APPL)) {
+			data.setSelectAPPL(dictServ.createDictionaryFromRoot(dict, root));
+			}
+			if(dictUrl.equalsIgnoreCase(SystemService.DICTIONARY_REPORT_GOOGLE_TOOLS)) {
+				data.setSelect(dictServ.createDictionaryFromRoot(dict, root));
+				}
 		return data;
 	}
 
@@ -797,13 +810,30 @@ public class ReportService {
 	}
 
 	public ReportConfigDTO loadReportGoogleTools(UserDetailsDTO user, ReportConfigDTO data) throws ObjectNotFoundException {
-		DictionaryDTO dict = new DictionaryDTO();
-		Concept root =closureServ.loadConceptByIdentifier(SystemService.DICTIONARY_REPORT_GOOGLE_TOOLS);
-		dict.setUrlId(root.getID());
-		dict.setUrl(root.getIdentifier());
-
-		dict.setSystem(dictServ.checkSystem(root));//ika
-		data.setSelect(dictServ.createDictionaryFromRoot(dict, root));
+		List<String> report= new ArrayList<String>();
+		report.add(SystemService.DICTIONARY_REPORT_GOOGLE_TOOLS);
+		if(accessControl.isApplicant(user) || accessControl.isSupervisor(user)){
+			report.add(SystemService.DICTIONARY_REPORT_GOOGLETOOLS_APPL);
+		}
+		if(accessControl.isEmployee(user)) {
+			report.add(SystemService.DICTIONARY_REPORT_GOOGLETOOLS_NMRA);
+		}
+		for(String rep:report) {
+			DictionaryDTO dict = new DictionaryDTO();
+			Concept root =closureServ.loadConceptByIdentifier(rep);
+			dict.setUrlId(root.getID());
+			dict.setUrl(root.getIdentifier());
+			if(rep.equalsIgnoreCase(SystemService.DICTIONARY_REPORT_GOOGLE_TOOLS)) {
+				data.setSelect(dictServ.createDictionaryFromRoot(dict, root));
+			}
+			if(rep.equalsIgnoreCase(SystemService.DICTIONARY_REPORT_GOOGLETOOLS_NMRA)) {
+			data.setSelectNMRA(dictServ.createDictionaryFromRoot(dict, root));
+			}
+			if(rep.equalsIgnoreCase(SystemService.DICTIONARY_REPORT_GOOGLETOOLS_APPL)) {
+				data.setSelectAPPL(dictServ.createDictionaryFromRoot(dict, root));
+				}
+			dict.setSystem(dictServ.checkSystem(root));//ika
+		}
 		return data;
 	}
 

@@ -22,14 +22,14 @@ import javax.persistence.*;
 @org.hibernate.annotations.Proxy(lazy=false)
 @Table(name="dwhworkflowlist")
 @Inheritance(strategy=InheritanceType.SINGLE_TABLE)
-public class dwhworkflowlist implements Serializable {
-	public dwhworkflowlist() {
+public class Dwhworkflowlist implements Serializable {
+	public Dwhworkflowlist() {
 	}
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC2222721894FAF247A01E6B")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC2222721894FAF247A01E6B", strategy="native")	
+	@GeneratedValue(generator="VAC22227818A83E427EC05C6C")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227818A83E427EC05C6C", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	

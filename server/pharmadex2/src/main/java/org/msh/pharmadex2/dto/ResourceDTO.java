@@ -31,7 +31,6 @@ public class ResourceDTO extends AllowValidation {
 	private long fileId=0;
 	//data from unsaved thing
 	private ThingValuesDTO data = new ThingValuesDTO();
-
 	
 	public TableQtb getTable() {
 		return table;
@@ -120,6 +119,5 @@ public class ResourceDTO extends AllowValidation {
 	}
 	public void setData(ThingValuesDTO data) {
 		this.data = data;
-	}
-	
+	}	
 }

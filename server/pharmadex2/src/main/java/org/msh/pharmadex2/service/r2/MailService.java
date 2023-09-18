@@ -28,8 +28,10 @@ public class MailService {
 
 	/**
 	 * create Attention Letter
+	 * @param link 
 	 */
-	public String createAttentionMail(UserDetailsDTO user, String sendTo, String applName, String curActivity, String nextActivity, String textInMail)  {
+	public String createAttentionMail(UserDetailsDTO user, String sendTo, String applName, 
+			String curActivity, String nextActivity, String textInMail, String link)  {
 		String res = "";
 		if(user.getEmail().endsWith("@gmail.com")) {
 			JavaMailSenderImpl impl = (JavaMailSenderImpl) emailSender;
@@ -48,7 +50,7 @@ public class MailService {
 				    text = text.replace("&&&&", nextActivity);
 				    text += " " + messages.get("mailAttentionText");
 		        }
-		        
+		        text+="\n"+link;
 		        mailMess.setText(text);
 		        try {
 		        	emailSender.send(mailMess);

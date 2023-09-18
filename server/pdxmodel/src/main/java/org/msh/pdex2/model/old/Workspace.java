@@ -25,8 +25,8 @@ public class Workspace implements Serializable {
 	
 	@Column(name="id", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC2222721894FAF244C01E42")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC2222721894FAF244C01E42", strategy="identity")	
+	@GeneratedValue(generator="VAC22227818A83E427C505C43")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227818A83E427C505C43", strategy="identity")	
 	private long ID;
 	
 	@Column(name="createdDate", nullable=true)	

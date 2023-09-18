@@ -15,6 +15,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import org.msh.pdex2.dto.table.TableCell;
 import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
@@ -34,6 +35,7 @@ import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AddressValuesDTO;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.DictValuesDTO;
+import org.msh.pharmadex2.dto.FormatsDTO;
 import org.msh.pharmadex2.dto.RegisterDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
 import org.msh.pharmadex2.dto.SchedulerDTO;
@@ -45,6 +47,7 @@ import org.msh.pharmadex2.service.common.BoilerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -189,8 +192,7 @@ public class ResolverService {
 					||  dataType.equalsIgnoreCase("from") ||  dataType.equalsIgnoreCase("to") || dataType.equalsIgnoreCase("today")) {
 				if(data instanceof LocalDate) {
 					LocalDate ld = (LocalDate) data;
-					String ldStr = ld.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM));
-					return ldStr;
+					return TableCell.localDateToString(ld);
 				}
 			}
 
@@ -1030,6 +1032,22 @@ public class ResolverService {
 			value.put("expiredBS1",boilerServ.localDateToNepali(expDate, true));
 		}
 		return value;
+	}
+	/**
+	 * Resolve formatter samples to fine tune format Administrate-Configurations-Date and Number formats
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public FormatsDTO formatDateEL(FormatsDTO data) throws ObjectNotFoundException {
+		Map<String,Object> var = new HashMap<String, Object>();
+		var.put("date", data.getDateInputSample().getValue());
+		Object strObj = valueToString(var, "date");
+		if(strObj instanceof String) {
+			String dateEL = (String) strObj;
+			data.setDateEL(dateEL);
+		}
+		return data;
 	}
 
 }

@@ -63,7 +63,7 @@ class CalendarPicker extends Component{
         if(this.props.locale=='ne-NP'){
             return value.toISOString().substr(0,10)+' A.D.'
         }
-        return value.toLocaleDateString(this.props.locale)
+        return value.toLocaleDateString(this.props.locale, {dateStyle: 'medium'})
     }
 
     /**

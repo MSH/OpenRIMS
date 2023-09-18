@@ -91,7 +91,6 @@ class Workflows extends Component{
         if(this.state.data.slaveDict.url.length==0){
             return []
         }
-        if(!this.state.edit){   //display workflow dictionary
             return(
                 <Col xs='12' sm='12' lg='6' xl='6'>
                     <Row>
@@ -100,27 +99,12 @@ class Workflows extends Component{
                                 identifier={this.state.data.slaveDict.url}
                                 recipient={this.state.identifier}
                                 data={this.state.data.slaveDict}
-                                display
+                                display={!this.state.edit}
                             />
                         </Col>
                     </Row>
                 </Col>
             )
-        }else{  //edit workflow dictionary
-            return(
-                <Col xs='12' sm='12' lg='6' xl='6'>
-                    <Row>
-                        <Col>
-                            <Dictionary
-                                identifier={this.state.data.slaveDict.url}
-                                recipient={this.state.identifier}
-                                data={this.state.data.slaveDict}
-                            />
-                        </Col>
-                    </Row>
-                </Col>
-            )
-        }
     }
     topButtons(){
         let ret=[]
@@ -209,7 +193,7 @@ class Workflows extends Component{
                             identifier={this.state.data.masterDict.url}
                             recipient={this.state.identifier}
                             data={this.state.data.masterDict}
-                            display={!this.state.edit}
+                            display
                         />
                     </Col>
                    {this.rigthDict()}

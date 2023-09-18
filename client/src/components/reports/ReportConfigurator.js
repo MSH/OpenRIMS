@@ -32,7 +32,9 @@ class ReportConfigurator extends Component{
                 success:'',
                 global_renewExternal:'',
                 warningRemove:'',
-                publicavailable:'',
+                pub_reports:"",
+            nmra_reports:"",
+            appl_reports:""
             },
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -153,7 +155,6 @@ class ReportConfigurator extends Component{
                     <Col>
                         <Row>
                             <Col xs='0' sm='0' lg='10' xl='10'>
-                                <h6>{this.state.labels.publicavailable}</h6>
                             </Col>
                             <Col xs='12' sm='6' lg='2' xl='2'>
                                 <ButtonUni
@@ -171,13 +172,21 @@ class ReportConfigurator extends Component{
                             </Col>
                         </Row>
                         <Row>
-                    <Col xs='12' sm='6' lg='6' xl='6' >
-                        <Dictionary identifier={this.state.data.select.url} data={this.state.data.select} />
-                    </Col>
-                    <Col xs='12' sm='6' lg='6' xl='6' >
-                        <small>here will be NRA reports</small>
-                    </Col>
-                    </Row>
+                            <Col xs='12' sm='6' lg='6' xl='6' >
+                            <h6>{this.state.labels.pub_reports}</h6>
+                                <Dictionary identifier={this.state.data.select.url} data={this.state.data.select} />
+                            </Col>
+                            <Col xs='12' sm='6' lg='6' xl='6' >
+                            <h6>{this.state.labels.nmra_reports}</h6>
+                                <Dictionary identifier={this.state.data.selectNMRA.url} data={this.state.data.selectNMRA} />
+                            </Col>
+                        </Row>
+                        <Row>
+                            <Col xs='12' sm='6' lg='6' xl='6' >
+                            <h6> {this.state.labels.appl_reports}</h6>
+                                <Dictionary identifier={this.state.data.select.url} data={this.state.data.selectAPPL} />
+                            </Col>
+                        </Row>
                         <Row>
                             <Col>
                             <h6>{this.state.labels.reportOld}</h6>

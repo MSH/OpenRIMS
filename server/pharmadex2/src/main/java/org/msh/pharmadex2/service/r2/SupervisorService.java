@@ -24,8 +24,10 @@ import org.msh.pharmadex2.dto.DataCollectionDTO;
 import org.msh.pharmadex2.dto.DataConfigDTO;
 import org.msh.pharmadex2.dto.DataPreviewDTO;
 import org.msh.pharmadex2.dto.DataVariableDTO;
+import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.MessageDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
+import org.msh.pharmadex2.dto.RootNodeDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.TileDTO;
 import org.msh.pharmadex2.dto.WorkflowDTO;
@@ -73,6 +75,8 @@ public class SupervisorService {
 	DictService dictServ;
 	@Autowired
 	EntityService entityServ;
+	@Autowired
+	AssemblyService assemblyServ;
 	@Autowired
 	private JdbcRepository jdbcRepo;
 
@@ -146,7 +150,7 @@ public class SupervisorService {
 	@Transactional
 	public WorkflowDTO workflowActivityAdd(WorkflowDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		ThingDTO dto = new ThingDTO();
-		dto.setUrl("activity.configuration");
+		dto.setUrl(AssemblyService.ACTIVITY_CONFIGURATION);
 		dto.setTitle(messages.get("newactivity"));
 		dto.setNodeId(0);
 		int lastPath = data.getPath().size() - 1;
@@ -517,9 +521,82 @@ public class SupervisorService {
 				String currentLang = localeStr.toUpperCase();
 				for (String lang : langs) {
 					Concept resDef = resourceDefinitionCreate(data, root, lang);
+					/* khomka 21082023 | 01.09.2023 ika
+					 * error open new Resources
+					 * if present Thing - OK, if NO - setNodeId(0) - he is create*/
+					Thing th = new Thing();
+					th = boilerServ.thingByNode(resDef, th);
+					if(th.getID() == 0) {
+						th.setUrl(resDef.getIdentifier());
+						th.setConcept(resDef);
+						th = boilerServ.saveThing(th);				
+					}
 					if (lang.equalsIgnoreCase(currentLang)) {
 						data.setNodeId(resDef.getID());
 					}
+				}
+				
+				//create configuration data resource 29.08.2023 ik
+				root = closureServ.loadRoot(SystemService.DATA_COLLECTIONS_ROOT);
+				List<Concept> concepts=literalServ.loadOnlyChilds(root);
+				Concept ret= new Concept();
+				for(Concept c:concepts) {
+					if(c.getIdentifier().equalsIgnoreCase(data.getConfigUrl().getValue())) {
+						ret=c;
+					}
+				}
+				if(ret.getID() == 0 ) {
+					DataCollectionDTO config=new DataCollectionDTO();
+					config.setUrl(data.getConfigUrl());
+					config.setDescription(data.getConfigUrl());
+					config=dataCollectionDefinitionSave(config);
+					DataVariableDTO dataConfig =new DataVariableDTO();
+					dataConfig.setNodeId(config.getNodeId());
+					dataConfig.getVarName().setValue("templates");
+					dataConfig.getClazz().getValue().setCode("documents");
+					dataConfig.getRequired().getValue().setCode("Yes");
+					dataConfig.setUrl(data.getConfigUrl());
+					dataConfig.getDictUrl().setValue("dictionary."+data.getUrl());
+					dataCollectionVariableSave(dataConfig);
+				}else {
+					if(!ret.getActive()) {
+						ret.setActive(true);
+						ret=closureServ.save(ret);
+					}
+					List<Assembly> datas = assemblyServ.loadDataConfiguration(data.getConfigUrl().getValue());
+					if(!datas.isEmpty()) {
+						List<Assembly> doc=new ArrayList<Assembly>();
+						List<Assembly> hea=new ArrayList<Assembly>();
+						for(Assembly d:datas) {
+							if(d.getClazz().equalsIgnoreCase("documents")){
+								doc.add(d);
+							}else if(d.getClazz().equalsIgnoreCase("heading")) {
+								hea.add(d);
+							}
+							if(doc.size()==0 || doc.size()>1 || doc.size()+hea.size()!=datas.size()) {
+								data.addError(messages.get("errorConfigDataResource"));
+							}
+						}//
+					}else {
+						//data.addError(messages.get("errorConfigDataResource"));
+						DataVariableDTO dataConfig =new DataVariableDTO();
+						dataConfig.setNodeId(ret.getID());
+						dataConfig.getVarName().setValue("templates");
+						dataConfig.getClazz().getValue().setCode("documents");
+						dataConfig.getRequired().getValue().setCode("Yes");
+						dataConfig.setUrl(data.getConfigUrl());
+						dataConfig.getDictUrl().setValue("dictionary."+data.getUrl());
+						dataCollectionVariableSave(dataConfig);
+					}
+				}
+				//create dictionary resource 29/0/2023
+				ret = closureServ.loadConceptByIdentifier("dictionary."+data.getUrl());
+				if(ret == null ) {
+					String nameDict= data.getUrl().getValue().replace(".", " ");
+					RootNodeDTO dict=new RootNodeDTO();
+					dict.getPrefLabel().setValue(nameDict);
+					dict.getUrl().setValue("dictionary."+data.getUrl());
+					dictServ.rootNodeSave(dict);
 				}
 			} else {
 				// url may be changed :(
@@ -531,6 +608,21 @@ public class SupervisorService {
 				Concept lang = closureServ.saveToTree(root, localeStr.toUpperCase());
 				resDef = closureServ.saveToTree(lang, resDef);
 				data.setNodeId(resDef.getID());
+				
+				/* khomka 21082023 
+				 * error open new Resources
+				 * if present Thing - OK, if NO - setNodeId(0) - he is create
+				 */
+				Thing th = new Thing();
+				th = boilerServ.thingByNode(resDef, th);
+				if(th.getID() > 0) {
+					th.setUrl(resDef.getIdentifier());
+					th = boilerServ.saveThing(th);
+				}else if(th.getID() == 0) {
+					th.setUrl(resDef.getIdentifier());
+					th.setConcept(resDef);
+					th = boilerServ.saveThing(th);
+				}
 			}
 		}
 		return data;
@@ -636,7 +728,39 @@ public class SupervisorService {
 			throw new ObjectNotFoundException("resourceThingPrepare. Node ID is ZERO", logger);
 		}
 	}
-
+	@Transactional
+	public DictionaryDTO resourceDictPrepare(ThingDTO data) throws ObjectNotFoundException {
+		//get dictionary this resource
+		DictionaryDTO dict= new DictionaryDTO();
+		if(data.getUrl()!=null && !data.getUrl().isEmpty()) {
+			List<Assembly> allAssms = assemblyServ.loadDataConfiguration(data.getUrl(),"documents");
+			String urlDict="";
+			for(Assembly clazz : allAssms) {
+				if(clazz.getClazz().equalsIgnoreCase("documents")) {
+					if(clazz.getUrl()!=null || clazz.getUrl().length()>0) {
+						urlDict=clazz.getDictUrl();
+					}else {
+						dict.addError(messages.get("errorConfigDataResource"));
+						return dict;
+					}
+				}
+			}
+			if(!urlDict.isEmpty()) {
+				Concept node = closureServ.loadConceptByIdentifier(urlDict);
+				dict.setUrlId(node.getID());
+				dict.setUrl(node.getIdentifier());
+				dict.setSystem(dictServ.checkSystem(node));//ika
+				dict=dictServ.createDictionaryFromRoot(dict, node);
+				return dict;
+			}else {
+				dict.addError(messages.get("errorConfigDataResource"));
+				return dict;
+			}
+		}else {
+			dict.addError(messages.get("errorConfigDataResource"));
+			return dict;
+		}
+	}
 	/**
 	 * Save a resource using thing - specific methods
 	 * 
@@ -878,7 +1002,7 @@ public class SupervisorService {
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	private WorkflowDTO insertActivityBetween(Concept parent, Concept node, WorkflowDTO data, UserDetailsDTO user)
+	public WorkflowDTO insertActivityBetween(Concept parent, Concept node, WorkflowDTO data, UserDetailsDTO user)
 			throws ObjectNotFoundException {
 		// node to insert
 		Instant instant = Instant.now();
@@ -904,7 +1028,7 @@ public class SupervisorService {
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	private WorkflowDTO insertRootActivity(Concept root, WorkflowDTO data, UserDetailsDTO user)
+	public WorkflowDTO insertRootActivity(Concept root, WorkflowDTO data, UserDetailsDTO user)
 			throws ObjectNotFoundException {
 		// create new root
 		String url = root.getIdentifier();

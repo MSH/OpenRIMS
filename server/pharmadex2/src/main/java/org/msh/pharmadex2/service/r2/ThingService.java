@@ -2209,8 +2209,12 @@ public class ThingService {
 			if (readActivityDataAllowed(activityData, user)){
 				Concept fileNode = closureServ.loadConceptById(nodeId);
 				ThingDoc td = boilerServ.loadThingDocByFileNode(fileNode);
-				Assembly asm=boilerServ.assemblyByThingNodeAndVarName(activityData, td.getVarName());
-				if(accessControlServ.allowAssembly(asm, user)) {
+				boolean allow = accessControlServ.isSupervisor(user);
+				if (!allow) {
+					Assembly asm=boilerServ.assemblyByThingNodeAndVarName(activityData, td.getVarName());
+					allow=accessControlServ.allowAssembly(asm, user);
+				}
+				if(allow) {
 					Optional<FileResource> freso = fileRepo.findByConcept(fileNode);
 					if(freso.isPresent()) {
 						FileResource fres=freso.get();
@@ -2672,7 +2676,8 @@ public class ThingService {
 				throw new ObjectNotFoundException("dataModuleByPage. something wrong with thingperson for data ID is "+dataPageID);
 			}
 		}else {
-			throw new ObjectNotFoundException("dataModuleByPage. It is not a page ID is "+dataPageID);
+			Concept ret = closureServ.loadConceptById(dataPageID);
+			return ret;
 		}
 	}
 }

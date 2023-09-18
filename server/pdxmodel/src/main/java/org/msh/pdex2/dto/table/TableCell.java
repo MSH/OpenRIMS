@@ -1,7 +1,6 @@
 package org.msh.pdex2.dto.table;
 
 import java.math.BigDecimal;
-import java.text.Format;
 import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -10,6 +9,9 @@ import java.time.format.FormatStyle;
 import java.util.Locale;
 
 import org.msh.pdex2.i18n.Messages;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.i18n.LocaleContextHolder;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -124,8 +126,9 @@ public class TableCell {
 		ret.setKey(key);
 		if(value != null && value.getYear()>1970){
 			LocalDate ld = (LocalDate) value;
-			DateTimeFormatter formatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale);
-			ret.setValue(ld.format(formatter));
+			//DateTimeFormatter formatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale);
+			//ret.setValue(ld.format(formatter));
+			ret.setValue(TableCell.localDateToString(ld));
 			ret.setOriginalValue(value);
 		}else{
 			ret.setValue("***");
@@ -146,8 +149,9 @@ public class TableCell {
 		ret.setKey(key);
 		if(value != null && value.getYear()>1970){
 			LocalDateTime ld = value;
-			DateTimeFormatter formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).withLocale(locale);
-			ret.setValue(ld.format(formatter));
+			//DateTimeFormatter formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).withLocale(locale);
+			//ret.setValue(ld.format(formatter));
+			ret.setValue(TableCell.localDateTimeToString(ld));
 			ret.setOriginalValue(value);
 		}else{
 			ret.setValue("***");
@@ -309,5 +313,67 @@ public class TableCell {
 		}
 		return ret;
 	}
+	
+	/**
+	 * Uniform Date To String converter
+	 * Used by EL Resolver, TableCell
+	 * @param ld
+	 * @return
+	 */
+	public static String localDateTimeToString(LocalDateTime ldt) {
+		//default
+		DateTimeFormatter format = formatDefault();
+		if(!Messages.dateTimeFormat.isEmpty()) {
+			String pattern=Messages.dateTimeFormat;
+			format=DateTimeFormatter.ofPattern(pattern)
+					.withLocale(LocaleContextHolder.getLocale());
+		}
+		String ret;
+		try {
+			ret = ldt.format(format);
+		} catch (Exception e) {
+			format=TableCell.formatDefault();
+			ret = ldt.format(format);
+			LoggerFactory.getLogger(TableCell.class).error("invalid datetime fromat " + Messages.dateTimeFormat);
+		}
+		return ret;
+	}
+	/**
+	 * Uniform Date To String converter
+	 * Used by EL Resolver, TableCell
+	 * @param ld
+	 * @return
+	 */
+	public static String localDateToString(LocalDate ld) {
+		//default
+		DateTimeFormatter format = dateFormat();
+		String ret="";
+		try {
+			ret = ld.format(format);
+		} catch (Exception e) {
+			format=TableCell.formatDefault();
+			ret = ld.format(format);
+			LoggerFactory.getLogger(TableCell.class).error("invalid date fromat " + Messages.dateFormat);
+		}
+		return ret;
+	}
 
+	public static DateTimeFormatter dateFormat() {
+		DateTimeFormatter format = formatDefault();
+		if(!Messages.dateFormat.isEmpty()) {
+			String pattern=Messages.dateFormat;
+			format=DateTimeFormatter.ofPattern(pattern)
+					.withLocale(LocaleContextHolder.getLocale());
+		}
+		return format;
+	}
+	/**
+	 * Default format of date time to string
+	 * @return
+	 */
+	public static DateTimeFormatter formatDefault() {
+		DateTimeFormatter format = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+				.withLocale(LocaleContextHolder.getLocale());
+		return format;
+	}
 }

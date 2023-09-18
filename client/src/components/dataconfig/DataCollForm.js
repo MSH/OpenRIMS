@@ -79,6 +79,7 @@ class DataCollForm extends Component{
                                     Navigator.message(this.state.identifier, this.props.recipient,"formCollCancel",{})
                                 }else{
                                     this.setState(this.state)
+                                    Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:result.identifier, color:'danger'})
                                 }
                             })
                         }}

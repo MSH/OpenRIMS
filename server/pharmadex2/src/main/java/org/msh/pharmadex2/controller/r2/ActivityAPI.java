@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.msh.pdex2.exception.ObjectNotFoundException;
@@ -56,6 +57,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -395,7 +397,10 @@ public class ActivityAPI{
 		try {
 			if (data.getNodeId() == 0) {
 				data = thingServ.createThing(data, user);
-			} else {
+			} else if(data.getUrl().equals(AssemblyService.ACTIVITY_CONFIGURATION) &&
+					data.getTitle().equals(messages.get("newactivity"))){
+				data = thingServ.createThing(data, user);
+			}else {
 				data = thingServ.loadThing(data, user);
 			}
 		} catch (ObjectNotFoundException e) {
@@ -643,7 +648,7 @@ public class ActivityAPI{
 	 * @throws DataNotFoundException
 	 * @throws ObjectNotFoundException
 	 */
-	@Deprecated
+	//@Deprecated
 	@RequestMapping(value = { "/api/*/resource/download/param={param}"}, method = RequestMethod.GET)
 	public ResponseEntity<Resource> resourceDownload(Authentication auth, UriComponentsBuilder uri,@PathVariable(value = "param", required = true) String jsonStr)
 			throws DataNotFoundException, ObjectNotFoundException {
@@ -653,7 +658,7 @@ public class ActivityAPI{
 			ResourceDTO fres = resourceServ.prepareResourceDownload(resDto);
 			Resource res = resourceServ.fileResolve(fres,null);
 			return ResponseEntity.ok().contentType(MediaType.parseMediaType(fres.getMediaType()))
-
+					.contentLength(fres.getFileSize())
 					.header(HttpHeaders.CONTENT_DISPOSITION,
 							fres.getContentDisp() + "; filename=\"" + fres.getFileName() + "\"")
 					.header("filename", fres.getFileName()).body(res);
@@ -677,7 +682,9 @@ public class ActivityAPI{
 			logger.trace("start "+fres.getFileName());
 			Resource res = resourceServ.fileResolve(fres, user);
 			logger.trace("finish "+fres.getFileName());
-			return ResponseEntity.ok().contentType(MediaType.parseMediaType(fres.getMediaType()))
+			return ResponseEntity.ok()
+					.contentType(MediaType.parseMediaType(fres.getMediaType()))
+					.contentLength(fres.getFileSize())
 					.header(HttpHeaders.CONTENT_DISPOSITION, fres.getContentDisp() + "; filename=\"" + fres.getFileName() + "\"")
 					.header("filename", fres.getFileName()).body(res);
 		} catch (ObjectNotFoundException | IOException e) {
@@ -716,11 +723,20 @@ public class ActivityAPI{
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping({ "/api/*/activity/submit/create/data"})
-	public ActivitySubmitDTO submitCreateData(Authentication auth, UriComponentsBuilder uri, @RequestBody ActivitySubmitDTO data)
-			throws DataNotFoundException {
+	public ActivitySubmitDTO submitCreateData(
+			Authentication auth,
+			UriComponentsBuilder uri,
+			HttpServletRequest request,
+			@RequestBody ActivitySubmitDTO data)
+					throws DataNotFoundException {
 		accServ.allowAuthenticated(auth, uri);
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
+			String baseUrl =ServletUriComponentsBuilder.fromRequest(request)
+					.replacePath(null)
+					.build()
+					.toUriString();
+			data.setServerUrl(baseUrl);
 			data = submServ.submitCreateData(user, data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
@@ -738,11 +754,20 @@ public class ActivityAPI{
 	@PostMapping({ 
 		"/api/*/activity/submit/send"
 	})
-	public ActivitySubmitDTO submitSend(Authentication auth, UriComponentsBuilder uri, @RequestBody ActivitySubmitDTO data)
-			throws DataNotFoundException {
+	public ActivitySubmitDTO submitSend(
+			Authentication auth,
+			UriComponentsBuilder uri,
+			HttpServletRequest request,
+			@RequestBody ActivitySubmitDTO data)
+					throws DataNotFoundException {
 		accServ.allowAuthenticated(auth, uri);
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
+			String baseUrl =ServletUriComponentsBuilder.fromRequest(request)
+					.replacePath(null)
+					.build()
+					.toUriString();
+			data.setServerUrl(baseUrl);
 			data=submServ.submitSend(user,data);
 			if(!data.isValid()) {
 				data.setColorAlert("danger");

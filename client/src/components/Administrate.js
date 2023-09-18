@@ -26,6 +26,7 @@ import ActuatorAdm from './ActuatorAdm'
 import ChangePassAdmin from './ChangePassAdmin'
 import Import_ATC from './Import_ATC'
 import Fetchers from './utils/Fetchers'
+import Formats from './Formats'
 
 /**
  * Administrative functions for the supervisor
@@ -63,7 +64,8 @@ class Administrate extends Component{
                 actuatorMonitoring:'',
                 test_mail:'',
                 systemsetting:'',
-                exchangeconfig:''
+                exchangeconfig:'',
+                formatdate:'',
             },
             isOpen:false,
             menu:'',
@@ -142,6 +144,8 @@ class Administrate extends Component{
                 return <ActuatorAdm/>
             case "changepass":
                 return <ChangePassAdmin/>
+            case "formats":
+                return <Formats />
             default:
                 return []
         }
@@ -241,6 +245,17 @@ class Administrate extends Component{
                                                 </NavItem>
                                             </DropdownItem>
                                             <DropdownItem>
+                                                <NavItem active={this.state.menu=='formats'}>
+                                                    <NavLink active={this.state.menu=='formats'}
+                                                                href="/admin#administrate/formats">
+                                                    <div>
+                                                        <i className="fa fa-globe fa-comments mr-1"></i>
+                                                        {this.state.labels.formatdate}
+                                                    </div>
+                                                    </NavLink>
+                                                </NavItem>
+                                            </DropdownItem>
+                                            <DropdownItem>
                                                 <NavItem>
                                                     <NavLink active={this.state.menu=='dictionaries'}
                                                                         href="/admin#administrate/dictionaries">
@@ -335,7 +350,7 @@ class Administrate extends Component{
                                                     </NavLink>
                                                 </NavItem>
                                             </DropdownItem>
-                                            <DropdownItem hidden>
+                                            <DropdownItem>
                                                 <NavItem active={this.state.menu=='exchangeconfig'}>
                                                     <NavLink active={this.state.menu=='exchangeconfig'}
                                                                 href="/admin#administrate/exchangeconfig">

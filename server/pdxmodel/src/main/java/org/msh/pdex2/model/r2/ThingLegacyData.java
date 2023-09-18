@@ -25,8 +25,8 @@ public class ThingLegacyData implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC2222721894FAF246B01E5D")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC2222721894FAF246B01E5D", strategy="native")	
+	@GeneratedValue(generator="VAC22227818A83E427DF05C5E")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227818A83E427DF05C5E", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	

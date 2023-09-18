@@ -14,11 +14,16 @@ class ReportsExternal extends Component{
         this.state={
             data:{},
             identifier:Date.now().toString(),
-            labels:{externalreport:""}
+            labels:{externalreport:"",
+            pub_reports:"",
+            nmra_reports:"",
+            appl_reports:""}
         }
         this.eventProcessor=this.eventProcessor.bind(this)
         this.loadTable=this.loadTable.bind(this)
         this.getUrlGoogleTools=this.getUrlGoogleTools.bind(this)
+        this.dictNMRA=this.dictNMRA.bind(this)
+        this.dictAPPL=this.dictAPPL.bind(this)
     }
 
     /**
@@ -27,7 +32,9 @@ class ReportsExternal extends Component{
      */
         eventProcessor(event){
             let data=event.data
-            if(data.to==this.state.identifier+"_dict"){
+            if(data.to==this.state.identifier+"_dict" ||
+            data.to==this.state.identifier+"_nmra" ||
+            data.to==this.state.identifier+"_appl"){
                 if(data.subject=="onSelectionChange"){
                     this.state.data.select=data.data
                     this.getUrlGoogleTools()
@@ -61,6 +68,28 @@ getUrlGoogleTools(){
        }
     })
 }
+dictNMRA(){
+    if(this.state.data.selectNMRA==undefined){
+        return[]
+    }else{
+        return <Col xs='12' sm='6' lg='6' xl='6' className="d-inline">
+        <small>{this.state.labels.nmra_reports}</small>
+        <Dictionary identifier={'dictionary.report.googletools.nmra'+this.state.identifier} recipient={this.state.identifier+"_nmra"} data={this.state.data.selectNMRA} display={true}/>
+        </Col>
+    }
+}
+
+dictAPPL(){
+    if(this.state.data.selectAPPL==undefined){
+        return[]
+    }else{return<Row>
+        <Col xs='12' sm='6' lg='6' xl='6' className="d-inline">
+        <small> {this.state.labels.appl_reports}</small>
+        <Dictionary identifier={'dictionary.report.googletools.appl'+this.state.identifier} recipient={this.state.identifier+"_appl"} data={this.state.data.selectAPPL} display={true}/>
+        </Col>
+        </Row>
+    }
+}
     render(){
         if(this.state.labels.locale==undefined || this.state.data.select==undefined){
             return []
@@ -68,10 +97,13 @@ getUrlGoogleTools(){
         return(
             <Container fluid>
                 <Row>
-                    <Col>
+                <Col xs='12' sm='6' lg='6' xl='6' className="d-inline">
+                <small>{this.state.labels.pub_reports}</small>
                         <Dictionary identifier={'dictionary.reports.googletools'+this.state.identifier} recipient={this.state.identifier+"_dict"} data={this.state.data.select} display={true}/>
                     </Col>
+                        {this.dictNMRA()}
                 </Row> 
+                        {this.dictAPPL()}
             </Container>
         )
     }

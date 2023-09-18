@@ -190,7 +190,7 @@ public class ImportExportWorkflowService {
 		ThingDTO act= new ThingDTO();
 		try {
 			act.setNodeId(dataID);
-			act.setUrl("activity.configuration");
+			act.setUrl(AssemblyService.ACTIVITY_CONFIGURATION);
 			act=thingServ.createContent(act, user);
 		
 			XSSFSheet sheet0=wb.getSheetAt(0);
@@ -206,7 +206,7 @@ public class ImportExportWorkflowService {
 			 for(int i=1; i<wb.getNumberOfSheets(); i++) {
 			 sheet0=wb.getSheetAt(i); 
 			 ThingDTO actNext= new ThingDTO(); 
-			 actNext.setUrl("activity.configuration");
+			 actNext.setUrl(AssemblyService.ACTIVITY_CONFIGURATION);
 			 actNext=thingServ.createContent(actNext, user);
 			 actNext.setParentId(nodeID); 
 			 actNext =cteateActionWF(user, actNext, sheet0); 

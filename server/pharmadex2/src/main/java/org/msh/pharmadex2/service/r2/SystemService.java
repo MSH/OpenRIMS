@@ -1,32 +1,42 @@
 package org.msh.pharmadex2.service.r2;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import org.msh.pdex2.dto.table.TableCell;
+import org.msh.pdex2.dto.table.TableHeader;
+import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
+import org.msh.pdex2.model.i18n.ResourceBundle;
+import org.msh.pdex2.model.i18n.ResourceMessage;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
+import org.msh.pdex2.repository.i18n.ResourceBundleRepo;
+import org.msh.pdex2.repository.i18n.ResourceMessageRepo;
 import org.msh.pdex2.repository.r2.HistoryRepo;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.Dict2DTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
+import org.msh.pharmadex2.dto.FormatsDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.auth.UserRoleDto;
+import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.dto.form.OptionDTO;
-import org.msh.pharmadex2.exception.DataNotFoundException;
-import org.msh.pharmadex2.service.common.BoilerService;
+import org.msh.pharmadex2.service.common.ValidationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.Authentication;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * Responsible for hard coded system setting In contrast AssemblyService.
@@ -63,6 +73,8 @@ public class SystemService {
 	public static final String DICTIONARY_SYSTEM_ROLES = "dictionary.system.roles";
 	public static final String CONFIGURATION_ADMIN_UNITS = "configuration.admin.units";
 	public static final String DICTIONARY_REPORT_GOOGLE_TOOLS="dictionary.report.googletools";
+	public static final String DICTIONARY_REPORT_GOOGLETOOLS_NMRA="dictionary.report.googletools.nmra";
+	public static final String DICTIONARY_REPORT_GOOGLETOOLS_APPL="dictionary.report.googletools.appl";
 	public static final Integer DEFAULT_ZOOM = 7;
 
 	public static final String PRODUCTCLASSIFICATION_ATC_HUMAN = "who.atc.human";
@@ -113,6 +125,12 @@ public class SystemService {
 	private Messages messages;
 	@Autowired
 	private HistoryRepo historyRepo;
+	@Autowired
+	private ValidationService validator;
+	@Autowired
+	private ResourceMessageRepo resourceMessageRepo;
+	@Autowired
+	private ResourceBundleRepo resourceBundleRepo;
 	
 	/**
 	 * Add role to roles dictionary
@@ -602,7 +620,7 @@ public class SystemService {
 				return conc;
 			}
 		}
-		throw new ObjectNotFoundException("dictionary node for host process not found. URL is" + processUrl, logger);
+		throw new ObjectNotFoundException("dictionary node for host process not found. URL is - " + processUrl, logger);
 	}
 
 	/**
@@ -628,6 +646,34 @@ public class SystemService {
 			String aurl = literalServ.readValue(LiteralService.URL, conc);
 			if (aurl.equalsIgnoreCase(processUrl) && conc.getActive()) {
 				conDict= conc;
+			}
+		}
+		return conDict;
+	}
+	
+	/**
+	 * For Example 
+	 * Find concept "New  Retail Pharmacy - Individually Owned"(url=retail.site.owned.persons)
+	 * in dictionary dictionary.guest.applications
+	 * @param dictUrl
+	 * @param processUrl
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	@Transactional
+	public Concept findProccessByUrl(String dictUrl, String processUrl) throws ObjectNotFoundException  {
+		Concept root = new Concept();
+		try {
+			root = closureServ.loadRoot(dictUrl);
+		} catch (ObjectNotFoundException e) {
+			throw new ObjectNotFoundException("No dictionary " + dictUrl + " "+ e,logger);
+		}
+		List<Concept> level = literalServ.loadOnlyChilds(root);
+		Concept conDict = null;
+		for (Concept conc : level) {
+			String aurl = literalServ.readValue(LiteralService.URL, conc);
+			if (aurl.equalsIgnoreCase(processUrl) && conc.getActive()) {
+				conDict = conc;
 			}
 		}
 		return conDict;
@@ -718,6 +764,8 @@ public class SystemService {
 		inspectionDictionaries();
 		finalizeDict();
 		reportGoogleToolsDict();
+		reportGoogleToolsNMRADict();
+		reportGoogleToolsAPPLDict();
 	}
 	/**
 	 * inspection's guest, host and inspection
@@ -782,6 +830,12 @@ public class SystemService {
 	public void reportGoogleToolsDict() throws ObjectNotFoundException {
 		dictServ.checkDictionary(DICTIONARY_REPORT_GOOGLE_TOOLS);
 	}
+	public void reportGoogleToolsNMRADict() throws ObjectNotFoundException {
+		dictServ.checkDictionary(DICTIONARY_REPORT_GOOGLETOOLS_NMRA);
+	}
+	public void reportGoogleToolsAPPLDict() throws ObjectNotFoundException {
+		dictServ.checkDictionary(DICTIONARY_REPORT_GOOGLETOOLS_APPL);
+	}
 	/**
 	 * Load a role concept from roles dictionary by role name
 	 * 
@@ -815,5 +869,128 @@ public class SystemService {
 		List<History>  list = historyRepo.findAllByApplDictAndApplicationDataAndGo(dictItem,	applicationData, null);
 		return list.isEmpty();
 	}
+
+	/**
+	 * Initialize dates format form
+	 * @param data
+	 * @return
+	 */
+	public FormatsDTO formatDates(FormatsDTO data) {
+		//initial format
+		String format = "MMM dd yyyy";
+		if(!Messages.dateFormat.isEmpty()) {
+			format=Messages.dateFormat;
+		}
+		data.getFormatDate().setValue(format);
+		formatSamples(data);
+		return data;
+	}
+	/**
+	 * Format samples in the custom format form
+	 *  @param data
+	 */
+	public FormatsDTO formatSamples(FormatsDTO data) {
+		// format samples
+		LocalDate ld=data.getDateInputSample().getValue();
+		data.setDateDisplaySample(FormFieldDTO.of(ld));
+		data.setDateCell(TableCell.instanceOf(data.getDateCell().getKey(),ld, LocaleContextHolder.getLocale()));
+		// format hints
+		TableQtb table = data.getTable();
+		table.getHeaders().getHeaders().clear();
+		table.getRows().clear();
+		table.getHeaders().getHeaders().add(TableHeader.instanceOf(
+				"pattern",
+				messages.get("pattern"),
+				0,
+				TableHeader.COLUMN_STRING));
+		table.getHeaders().getHeaders().add(TableHeader.instanceOf(
+				"meaning",
+				messages.get("meaning"),
+				0,
+				TableHeader.COLUMN_STRING));
+		table.getHeaders().getHeaders().add(TableHeader.instanceOf(
+				"samples",
+				messages.get("samples"),
+				0,
+				TableHeader.COLUMN_STRING));
+		table.getRows().add(formatTableRow(ld,"yy"));
+		table.getRows().add(formatTableRow(ld,"yyyy"));
+		table.getRows().add(formatTableRow(ld,"MM"));
+		table.getRows().add(formatTableRow(ld,"MMM"));
+		table.getRows().add(formatTableRow(ld,"MMMM"));
+		table.getRows().add(formatTableRow(ld,"MM"));
+		table.getRows().add(formatTableRow(ld,"dd"));
+		table.setSelectable(false);
+		// set suggestes
+		data.getDateInputSample().setSuggest(messages.get("inputformatting"));
+		data.getDateInputSample().setError(true);
+		return data;
+	}
+	/**
+	 * A row in the proposed format table
+	 * @param ld
+	 * @param pattern 
+	 * @return
+	 */
+	public TableRow formatTableRow(LocalDate ld, String pattern) {
+		TableRow row = TableRow.instanceOf(1l);
+		DateTimeFormatter dtf=DateTimeFormatter.ofPattern(pattern).withLocale(LocaleContextHolder.getLocale());
+		row.getRow().add(TableCell.instanceOf("pattern", pattern));
+		row.getRow().add(TableCell.instanceOf("meaning", messages.get(pattern)));
+		row.getRow().add(TableCell.instanceOf("samples", ld.format(dtf)));
+		return row;
+	}
+	/**
+	 * Save new date format definition into the Messages
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public FormatsDTO formatsSave(FormatsDTO data) throws ObjectNotFoundException {
+		data=validator.format(data);
+		if(data.isValid()) {
+			Messages.dateFormat=data.getFormatDate().getValue();
+			Iterable<ResourceBundle> bundleList = resourceBundleRepo.findAll();
+			for(ResourceBundle rb : bundleList) {
+				rb=formatForLanguageSave(Messages.dateFormat, "dateFormat", LocaleContextHolder.getLocale(), rb);
+			}
+			// reload messages
+			messages.getMessages().clear();
+			messages.loadLanguages();
+		}
+		return data;
+	}
+
+	/**
+	 * Save or create new format for language defined
+	 * @param formatValue
+	 * @param formatKey 
+	 * @param currentLocale 
+	 * @param rb
+	 * @return
+	 */
+	private ResourceBundle formatForLanguageSave(String formatValue, String formatKey, Locale currentLocale, ResourceBundle rb) {
+		ResourceMessage mess = new ResourceMessage();
+		mess.setMessage_key(formatKey);
+		mess.setMessage_value(formatValue);
+		for(ResourceMessage rm : rb.getMessages()) {
+			if(rm.getMessage_key().equalsIgnoreCase(formatKey)) {
+				mess=rm;
+				break;
+			}
+		}
+		if(mess.getId()==0l) {
+			rb.getMessages().add(mess);
+		}else {
+			if(rb.getLocale().equalsIgnoreCase(messages.getCurrentLocaleStr())){
+				mess.setMessage_value(formatValue);	//for the existing messages, only for the current locale
+			}
+		}
+		mess=resourceMessageRepo.save(mess);
+		rb=resourceBundleRepo.save(rb);
+		return rb;
+	}
+
 
 }

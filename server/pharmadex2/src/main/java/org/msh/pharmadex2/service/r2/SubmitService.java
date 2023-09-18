@@ -1133,7 +1133,13 @@ public class SubmitService {
 				try {
 					dictItem=systemServ.applDictItemByUrl(SystemService.DICTIONARY_HOST_APPLICATIONS,processUrl);
 				} catch (ObjectNotFoundException e) {
-					dictItem=systemServ.applDictItemByUrl(SystemService.DICTIONARY_SHUTDOWN_APPLICATIONS,processUrl);
+					try {
+						dictItem=systemServ.applDictItemByUrl(SystemService.DICTIONARY_SHUTDOWN_APPLICATIONS,processUrl);
+					} catch (ObjectNotFoundException e1) {
+						data.setValid(false);
+						data.setIdentifier("Not found ConcurrentProcess by URL - " + processUrl);
+						return data;
+					}
 				}
 				if(dictItem.getID()>0) {
 					if(systemServ.isUniqueProcess(dictItem, curHis.getApplicationData())) {
@@ -1190,7 +1196,11 @@ public class SubmitService {
 			}
 
 			String attnote = literalServ.readValue("attnote", curHis.getActConfig());
-			String res = mailService.createAttentionMail(user, applicantEmail, applName, curActivity, nextActivity, attnote);
+			// https://pharmadex.irka.in.ua/public#publicpermitdata/%7B%22permitDataID%22:89984%7D
+			String link=data.getServerUrl()+"/public#publicpermitdata/%7B%22permitDataID%22:"
+			+curHis.getApplicationData().getID()
+			+"%7D";
+			String res = mailService.createAttentionMail(user, applicantEmail, applName, curActivity, nextActivity, attnote,link);
 			String notes = data.getNotes().getValue();
 			if(notes != null || !notes.isEmpty()) {
 				notes += " (" + res + ")";

@@ -11,6 +11,7 @@ import CollectorTable from './utils/CollectorTable'
 import FieldGuarded from './form/FieldGuarded'
 import ViewEdit from './form/ViewEdit'
 import Thing from './Thing'
+import Dictionary from './Dictionary'
 
 /**
  * Administrator of resources
@@ -21,9 +22,11 @@ class Resources extends Component{
         this.state={
             form:false,
             thing:false,
+            dict:false,
             identifier:Date.now().toString(),
             data:{},                                //ResourceDTO
             thingData:{},                           //ThingDTO
+            dictData:{},                            //DictionaryDTO
             labels:{
                 search:'',
                 global_add:'',
@@ -36,14 +39,17 @@ class Resources extends Component{
                 configUrl:'',
                 description:'',
                 global_elreference:'',
-                warningRemove:''
+                warningRemove:'',
+                global_help:'',
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
         this.loader=this.loader.bind(this)
         this.left=this.left.bind(this)
         this.right=this.right.bind(this)
+        this.dict=this.dict.bind(this)
         this.prepareThing=this.prepareThing.bind(this)
+        this.prepareDict=this.prepareDict.bind(this)
         this.closeThing=this.closeThing.bind(this)
     }
     /**
@@ -57,6 +63,7 @@ class Resources extends Component{
             })
         }
         this.state.thing=false
+        this.state.dict=false
         this.setState(this.state)
     }
 
@@ -72,7 +79,11 @@ class Resources extends Component{
                     this.closeThing()
                 }
             }
-           
+             if(data.to=='*'){
+                if(data.subject=='onDictionaryReloaded'){
+                    Navigator.message(this.state.identifier,'*','thingReload',{})
+                }
+            } 
         }
 
     componentDidMount(){
@@ -101,7 +112,21 @@ class Resources extends Component{
             this.state.thingData=result
             this.state.thing=true
             this.state.form=false
+            this.prepareDict()
             this.setState(this.state)
+        })
+       
+    }
+    prepareDict(){
+        Fetchers.postJSONNoSpinner("/api/admin/resource/dictionary/prepare", this.state.thingData, (query, result)=>{
+            this.state.dictData=result
+            if(this.state.dictData.valid){
+            this.state.dict=true
+            this.setState(this.state)
+            }else{
+                this.setState(this.state)
+                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:result.identifier, color:'danger'})
+            }
         })
     }
     /**
@@ -123,6 +148,7 @@ class Resources extends Component{
                                     this.loader()
                                 }else{
                                     this.setState(this.state)
+                                    Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:result.identifier, color:'danger'})
                                 }
                             })
                         }}
@@ -219,6 +245,7 @@ class Resources extends Component{
                                         this.state.data.nodeId=this.state.data.table.rows[rowNo].dbID
                                         this.state.form=true
                                         this.state.thing=false
+                                        this.state.dict=false
                                         this.loader()
                                     }}
                                     selectRow={(rowNo)=>{
@@ -232,10 +259,13 @@ class Resources extends Component{
                                         });
                                         if(row.selected){
                                             this.state.data.nodeId=row.dbID
+                                            //let data=this.state.data
                                             this.prepareThing()
+                                           // this.prepareDict(data)
                                         }else{
                                             this.state.vars=false
                                             this.state.thing=false
+                                            this.state.dict=false
                                             this.state.data.nodeId=0
                                             this.setState(this.state)
                                         }
@@ -270,6 +300,18 @@ class Resources extends Component{
             return []
         }
     }
+    dict(){
+        if(this.state.dict){
+            let data=this.state.dictData
+            return(
+                <Row>
+                    <Col>
+                <Dictionary identifier={data.url} data={data} />
+                </Col>
+                    </Row>
+            )
+        }
+    }
     render(){
         if(this.state.data.table==undefined || this.state.labels.locale==undefined){
             return []
@@ -277,8 +319,17 @@ class Resources extends Component{
         return(
             <Container fluid>
                 <Row>
-                    <Col xs='12' sm='12' lg='8' xl='8'/>
-                    <Col xs='12' sm='12' lg='2' xl='2'>
+                    <Col xs='12' sm='12' lg='3' xl='6'/>
+                    <Col xs='12' sm='12' lg='4' xl='2'>
+                        <ButtonUni
+                            label={this.state.labels.global_help}
+                            onClick={()=>{
+                                window.open('/api/admin/resource/help','_blank').focus()
+                            }}
+                            color="info"
+                        />
+                    </Col>
+                    <Col xs='12' sm='12' lg='4' xl='2'>
                         <ButtonUni
                             label={this.state.labels.global_elreference}
                             onClick={()=>{
@@ -317,6 +368,11 @@ class Resources extends Component{
                         <Row>
                             <Col>
                                {this.right()}
+                            </Col>
+                        </Row>
+                        <Row>
+                            <Col>
+                               {this.dict()}
                             </Col>
                         </Row>
                     </Col>

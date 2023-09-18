@@ -1,15 +1,23 @@
 package org.msh.pharmadex2.service;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import org.apache.poi.util.SystemOutLogger;
 import org.junit.jupiter.api.Test;
 import org.msh.pdex2.exception.ObjectNotFoundException;
+import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.Pharmadex2Application;
 import org.msh.pharmadex2.dto.ExchangeConfigDTO;
 import org.msh.pharmadex2.dto.form.OptionDTO;
+import org.msh.pharmadex2.service.r2.ExchangeConfigMainService;
 import org.msh.pharmadex2.service.r2.ExchangeConfigurationService;
 import org.msh.pharmadex2.service.r2.LiteralService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,9 +39,13 @@ public class ExchangeConfigTest {
 	@Autowired
 	ExchangeConfigurationService exchangeServ;
 	@Autowired
+	ExchangeConfigMainService exchangeMainServ;
+	@Autowired
 	private ClosureService closureServ;
 	@Autowired
 	private LiteralService literalServ;
+	@Autowired
+	private Messages messages;
 
 	@Autowired
 	private TestRestTemplate restTemplate;
@@ -41,7 +53,7 @@ public class ExchangeConfigTest {
 	@LocalServerPort
 	private int port;
 
-	@Test
+	//@Test
 	public void testTableQtbRender() {
 		ExchangeConfigDTO dto = new ExchangeConfigDTO();
 		try {
@@ -92,4 +104,19 @@ public class ExchangeConfigTest {
 		}
 		System.out.println("OK");
 	}
+	
+	@Test
+	public void test() throws ObjectNotFoundException {
+		ExchangeConfigDTO dto = new ExchangeConfigDTO();
+		dto.setItProcessID(66058l);
+		dto.setCurLang(messages.getDefLocaleFromBundle());
+		
+		//dto = exchangeMainServ.importWorkflows(dto);
+		dto.setValid(true);
+		//dto = exchangeServ.byTestImport(dto);
+		
+		dto.getItProcessID();
+
+	}
+	
 }

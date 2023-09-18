@@ -71,7 +71,9 @@ import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.FileResourceDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
+import org.msh.pharmadex2.service.r2.AssemblyService;
 import org.msh.pharmadex2.service.r2.LiteralService;
+import org.msh.pharmadex2.service.r2.SystemService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -1461,7 +1463,7 @@ public class BoilerService {
 			throws ObjectNotFoundException {
 		ThingDTO dto = new ThingDTO();
 		if (activityNode.getActive()) {
-			dto.setUrl("activity.configuration");
+			dto.setUrl(AssemblyService.ACTIVITY_CONFIGURATION);
 			dto.setNodeId(activityNode.getID());
 			path.add(dto);
 		}
@@ -1522,5 +1524,6 @@ public class BoilerService {
 			throw new ObjectNotFoundException("assemblyByThingNodeAndVarName. not found for thingNode "+thingNode.getID(),logger);
 		}
 	}
+
 
 }

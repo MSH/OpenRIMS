@@ -5,6 +5,8 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Date;
 
+import org.msh.pdex2.dto.table.TableCell;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
@@ -18,6 +20,7 @@ public class FormFieldDTO<T> extends FieldSuggest{
 	private boolean readOnly=false;
 	private boolean textArea=false;
 	private T value = null;
+	private String valueStr="";	//pre-formatted value, currently only for dates
 	private int bdScale=2;		//Big decimal scale
 	private boolean mark=false;	//mark this field by color
 	private String detail=""; // 06122022 khomenska auxiliary field, for example for the calendar type depending on the configuration settings
@@ -66,6 +69,14 @@ public class FormFieldDTO<T> extends FieldSuggest{
 				this.value = value;
 			}
 		}
+	}
+
+	public String getValueStr() {
+		return valueStr;
+	}
+
+	public void setValueStr(String valueStr) {
+		this.valueStr = valueStr;
 	}
 
 	public int getBdScale() {
@@ -138,6 +149,7 @@ public class FormFieldDTO<T> extends FieldSuggest{
 	public static FormFieldDTO<LocalDate> of(LocalDate dt) {
 		FormFieldDTO<LocalDate> ret = new FormFieldDTO<LocalDate>();
 		ret.setValue(dt);
+		ret.setValueStr(TableCell.localDateToString(dt));
 		return ret;
 	}
 
@@ -153,7 +165,7 @@ public class FormFieldDTO<T> extends FieldSuggest{
 			dt=date;
 		}
 		LocalDate ld  = dt.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-		FormFieldDTO<LocalDate> ret = new FormFieldDTO<LocalDate>(ld);
+		FormFieldDTO<LocalDate> ret =FormFieldDTO.of(ld);
 		return ret;
 	}
 

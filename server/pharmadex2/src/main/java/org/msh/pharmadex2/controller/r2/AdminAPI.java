@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Optional;
 
+import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pharmadex2.dto.AboutDTO;
@@ -18,6 +19,7 @@ import org.msh.pharmadex2.dto.DictNodeDTO;
 import org.msh.pharmadex2.dto.DictionariesDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.ExchangeConfigDTO;
+import org.msh.pharmadex2.dto.FormatsDTO;
 import org.msh.pharmadex2.dto.MessageDTO;
 import org.msh.pharmadex2.dto.PublicOrgDTO;
 import org.msh.pharmadex2.dto.ReportConfigDTO;
@@ -49,6 +51,7 @@ import org.msh.pharmadex2.service.r2.MailService;
 import org.msh.pharmadex2.service.r2.MetricService;
 import org.msh.pharmadex2.service.r2.PubOrgService;
 import org.msh.pharmadex2.service.r2.ReportService;
+import org.msh.pharmadex2.service.r2.ResolverService;
 import org.msh.pharmadex2.service.r2.ResourceService;
 import org.msh.pharmadex2.service.r2.SupervisorService;
 import org.msh.pharmadex2.service.r2.SystemService;
@@ -131,6 +134,8 @@ public class AdminAPI {
 	ImportExportWorkflowService importExportWorkflowService;
 	@Autowired
 	ExchangeConfigurationService exchangeServ;
+	@Autowired
+	ResolverService resolverServ;
 
 
 	/**
@@ -800,7 +805,15 @@ public class AdminAPI {
 			throw new DataNotFoundException(e);
 		}
 	}
-
+	@PostMapping("/api/admin/resource/dictionary/prepare")
+	public DictionaryDTO resourceDictPrepare(@RequestBody ThingDTO data) throws DataNotFoundException {
+		try {
+			DictionaryDTO ret = superVisServ.resourceDictPrepare(data);
+			return ret;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
 	/**
 	 * Save a thing represent a resource
 	 * 
@@ -837,9 +850,9 @@ public class AdminAPI {
 	}
 
 	@PostMapping("/api/admin/report/configuration/load")
-	public ReportConfigDTO reportConfigurationLoad(@RequestBody ReportConfigDTO data) throws DataNotFoundException {
-		try {
-			data = reportServ.reportConfigurationLoad(data);
+	public ReportConfigDTO reportConfigurationLoad(Authentication auth,@RequestBody ReportConfigDTO data) throws DataNotFoundException {
+		try {UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+			data = reportServ.reportConfigurationLoad(user, data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -1120,6 +1133,23 @@ public class AdminAPI {
 	}
 	
 	/**
+	 * Download or read ImportConfigProcessInstruction
+	 * @return
+	 * @throws DataNotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value="/api/admin/help/impconfigprocess", method = RequestMethod.GET)
+	public ResponseEntity<Resource> helpImpConfigProcess() throws DataNotFoundException, IOException {
+		ResponseEntity<Resource> res;
+		try {
+			res = resourceServ.adminHelpImpCongigProcess();
+			return res;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+
+	/**
 	 * The Workflow Guide
 	 * @return
 	 * @throws DataNotFoundException
@@ -1152,7 +1182,39 @@ public class AdminAPI {
 			throw new DataNotFoundException(e);
 		}
 	}
-
+	/**
+	 * Download or read resource creation guide
+	 * @return
+	 * @throws DataNotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value="/api/admin/resource/help", method = RequestMethod.GET)
+	public ResponseEntity<Resource> resourceHelp() throws DataNotFoundException, IOException {
+		ResponseEntity<Resource> res;
+		try {
+			res = resourceServ.resourceHelp();
+			return res;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+	
+	/**
+	 * Download or read resource creation guide
+	 * @return
+	 * @throws DataNotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value="/api/admin/date/format/help", method = RequestMethod.GET)
+	public ResponseEntity<Resource> dateFormatHelp() throws DataNotFoundException, IOException {
+		ResponseEntity<Resource> res;
+		try {
+			res = resourceServ.dateFormatHelp();
+			return res;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
 
 	@RequestMapping(value = {"/api/admin/dictionary/export/dicturl={url}&curid={id}"}, method = RequestMethod.GET)
 	public ResponseEntity<Resource> dictionaryExport(@PathVariable(value = "url", required = true) String dicturl, @PathVariable(value = "id", required = true) Long currentId)
@@ -1223,7 +1285,7 @@ public class AdminAPI {
 		}
 		return data;
 	}
-	
+
 	/**
 	 * Load an electronic form to upload the data file in xlsx
 	 * @param data
@@ -1285,7 +1347,7 @@ public class AdminAPI {
 		data = exchangeServ.load(data);
 		return data;
 	}
-	
+
 	/**
 	 * Import data configuration from the XLSX file uploaded
 	 * @param data
@@ -1293,64 +1355,83 @@ public class AdminAPI {
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/admin/exchange/ping")
-	public ExchangeConfigDTO connectMainServer(Authentication auth, @RequestBody ExchangeConfigDTO data){
-		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-		data = exchangeServ.pingServer(data);
-		return data;
-	}
-	
-	@PostMapping("/api/admin/exchange/loadnext")
-	public ExchangeConfigDTO loadnext(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException {
-		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-		data = exchangeServ.loadNext(data);
-		return data;
-	}
-	
-	/*@PostMapping("/api/admin/exchange/processes/load")
-	public ExchangeConfigDTO loadProcesses(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException {
-		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-		data = exchangeServ.loadNext(data);
-		return data;
-	}*/
-	
-	/*@PostMapping("/api/admin/exchange/config/load")
-	public ExchangeConfigDTO configLoad(Authentication auth, @RequestBody ExchangeConfigDTO data){
-		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-		data = exchangeServ.loadConfigs(data);
-		return data;
-	}
-	*/
-	@PostMapping("/api/admin/exchange/dictionary/load")
-	public ExchangeConfigDTO loadDictionary(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException {
-		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-		data = exchangeServ.loadDictionary(data);
-		return data;
-	}
-	/*
-	@PostMapping("/api/admin/exchange/config/loaddicts")
-	public ExchangeConfigDTO loadDictionaries(Authentication auth, @RequestBody ExchangeConfigDTO data) throws DataNotFoundException{
-		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+	public ExchangeConfigDTO connectMainServer(Authentication auth, @RequestBody ExchangeConfigDTO data) throws DataNotFoundException{
 		try {
-			data = exchangeServ.loadDictionaries(data);
+			data = exchangeServ.pingServer(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
+
 		return data;
-	}*/
-	@PostMapping("/api/admin/exchange/config/importdict")
+	}
+
+	@PostMapping("/api/admin/exchange/loadnext")
+	public ExchangeConfigDTO loadnext(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException {
+		data = exchangeServ.loadNext(data);
+		return data;
+	}
+	@PostMapping("/api/admin/exchange/dictionary/import")
 	public ExchangeConfigDTO importDictionary(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
-		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 		data = exchangeServ.importDictionary(data);
 		return data;
 	}
-	/*
-	@PostMapping("/api/admin/exchange/config/loaddataconfig")
-	public ExchangeConfigDTO loadDataConfig(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
-		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-		data = exchangeServ.loadDataConfig(data);
+	@PostMapping("/api/admin/exchange/resource/import")
+	public ExchangeConfigDTO importResource(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
+		data = exchangeServ.importResource(data);
 		return data;
 	}
-	*/
+	
+	@PostMapping("/api/admin/exchange/dataconfig/import")
+	public ExchangeConfigDTO importDataConfig(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
+		data = exchangeServ.importDataConfig(data);
+		return data;
+	}
+	
+	@PostMapping("/api/admin/exchange/workflows/importall")
+	public ExchangeConfigDTO importAllWorkflows(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
+		data = exchangeServ.importAllWorkflows(data);
+		return data;
+	}
+	
+	@PostMapping("/api/admin/exchange/dictionary/load")
+	public DictionaryDTO loadDictionary(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException {
+		DictionaryDTO ret = exchangeServ.loadDictionary(data);
+		return ret;
+	}
+	/**
+	 * Prepare thing in accordance with the resource selected url and nodeId
+	 * 
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/exchange/resource/load")
+	public ThingDTO loadResource(@RequestBody ExchangeConfigDTO data) throws DataNotFoundException {
+		try {
+			ThingDTO ret = exchangeServ.loadResource(data);
+			return ret;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+
+	/**
+	 * Load structure and screen layout for a data collection given
+	 * 
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/exchange/resconfig/load")
+	public TableQtb loadResConfig(@RequestBody ExchangeConfigDTO data) throws DataNotFoundException {
+		try {
+			TableQtb ret = exchangeServ.loadResConfig(data);
+			return ret;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+
+	}
 	/**
 	 * load "dictionary.guest.applications"
 	 * 
@@ -1368,4 +1449,63 @@ public class AdminAPI {
 			throw new DataNotFoundException(e);
 		}
 	}
+	/**
+	 * Load date and number format definitions form
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException 
+	 */
+	@PostMapping({"/api/admin/formats","/api/admin/formats/reset"})
+	public FormatsDTO formats(@RequestBody FormatsDTO data) throws DataNotFoundException {
+		try {
+			data.clearErrors();
+			data=systemServ.formatDates(data);
+			data=resolverServ.formatDateEL(data);
+			return data;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+
+
+	}
+
+	/**
+	 * Test new formats 
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException 
+	 */
+	@PostMapping("/api/admin/formats/test")
+	public FormatsDTO formatsTest(@RequestBody FormatsDTO data) throws DataNotFoundException {
+		String dateFormat = Messages.dateFormat;
+		Messages.dateFormat=data.getFormatDate().getValue();
+		try {
+			data=validation.format(data);
+			if(data.isValid()) {
+				data=systemServ.formatSamples(data);
+				data=resolverServ.formatDateEL(data);
+			}
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		} finally {
+			Messages.dateFormat=dateFormat;
+		}
+		return data;
+	}
+	/**
+	 * Save 
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException 
+	 */
+	@PostMapping("/api/admin/formats/save")
+	public FormatsDTO formatsSave(@RequestBody FormatsDTO data) throws DataNotFoundException {
+		try {
+			data=systemServ.formatsSave(data);
+			return data;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+	
 }

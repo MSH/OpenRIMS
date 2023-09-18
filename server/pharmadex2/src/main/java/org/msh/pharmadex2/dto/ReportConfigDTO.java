@@ -35,6 +35,8 @@ public class ReportConfigDTO extends AllowValidation{
 	
 	private boolean enabledrenewext = true;
 		private DictionaryDTO select = null;
+		private DictionaryDTO selectNMRA=null;
+		private DictionaryDTO selectAPPL=null;
 	
 	public boolean isEnabledrenewext() {
 		return enabledrenewext;
@@ -159,6 +161,18 @@ public class ReportConfigDTO extends AllowValidation{
 	}
 	public void setSelect(DictionaryDTO select) {
 		this.select = select;
+	}
+	public DictionaryDTO getSelectNMRA() {
+		return selectNMRA;
+	}
+	public void setSelectNMRA(DictionaryDTO selectNMRA) {
+		this.selectNMRA = selectNMRA;
+	}
+	public DictionaryDTO getSelectAPPL() {
+		return selectAPPL;
+	}
+	public void setSelectAPPL(DictionaryDTO selectAPPL) {
+		this.selectAPPL = selectAPPL;
 	}
 
 }
