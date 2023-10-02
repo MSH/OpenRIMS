@@ -5,7 +5,7 @@ Core tools:
 * MySQL Workbench - a unified visual tool for database architects  https://www.mysql.com/products/workbench/
 
 Files:
-DumpPdx2.zip - an initial database
-pdx2.mwb - actual model of the database allows database structure synchronization https://dev.mysql.com/doc/workbench/en/wb-database-synchronization.html
-database_cleanup.sql - script to remove unused pdx1 tables from the database
-DBSyncFromTheModelDoesnWorks.docx read this if uddate from the model is failed
+* DumpPdx2.zip - an initial database
+* pdx2.mwb - actual model of the database allows database structure synchronization https://dev.mysql.com/doc/workbench/en/wb-database-synchronization.html
+* database_cleanup.sql - script to remove unused pdx1 tables from the database
+* DBSyncFromTheModelDoesnWorks.docx read this if uddate from the model is failed
