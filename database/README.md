@@ -8,4 +8,4 @@ Files:
 * DumpPdx2.zip - an initial database
 * pdx2.mwb - actual model of the database allows database structure synchronization https://dev.mysql.com/doc/workbench/en/wb-database-synchronization.html
 * database_cleanup.sql - script to remove unused pdx1 tables from the database
-* DBSyncFromTheModelDoesnWorks.docx read this if uddate from the model is failed
+* DBSyncFromTheModelDoesnWorks.docx read this if the synchronization from the model is failed
