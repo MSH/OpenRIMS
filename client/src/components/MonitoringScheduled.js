@@ -32,11 +32,10 @@ class MonitoringScheduled extends Component{
     }
 
     loadData(){
-        var searchStr = Fetchers.readLocaly("monitor_scheduled_search", "")
-        var api = "/api/"+Navigator.tabSetName()+"/my/monitoring/type=" + "scheduled" + "&search=" + searchStr
+        var api = "/api/"+Navigator.tabSetName()+"/my/monitoring/scheduled"
         Fetchers.postJSONNoSpinner(api, this.state.data, (query,result)=>{
             this.state.data=result
-            Fetchers.writeLocaly("monitor_scheduled_search", "")
+            Fetchers.writeLocaly("monitor_scheduled_search", "")    //for future extension
             this.setState(this.state)
         })
     }
@@ -74,6 +73,9 @@ class MonitoringScheduled extends Component{
                             loader={this.loadData}
                             headBackground={Pharmadex.settings.tableHeaderBackground}
                             styleCorrector={(header)=>{
+                                if(header=='reference'){
+                                    return {width:'5%'}
+                                }
                                 if(header=='scheduled'){
                                     return {width:'10%'}
                                 }

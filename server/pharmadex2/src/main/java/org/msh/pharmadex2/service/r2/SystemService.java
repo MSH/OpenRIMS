@@ -19,10 +19,13 @@ import org.msh.pdex2.model.i18n.ResourceBundle;
 import org.msh.pdex2.model.i18n.ResourceMessage;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
+import org.msh.pdex2.model.r2.Scheduler;
+import org.msh.pdex2.model.r2.ThingScheduler;
 import org.msh.pdex2.repository.i18n.ResourceBundleRepo;
 import org.msh.pdex2.repository.i18n.ResourceMessageRepo;
 import org.msh.pdex2.repository.r2.HistoryRepo;
 import org.msh.pdex2.services.r2.ClosureService;
+import org.msh.pharmadex2.dto.ActivitySubmitDTO;
 import org.msh.pharmadex2.dto.Dict2DTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.FormatsDTO;
@@ -30,6 +33,7 @@ import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.auth.UserRoleDto;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.dto.form.OptionDTO;
+import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.common.ValidationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -131,6 +135,8 @@ public class SystemService {
 	private ResourceMessageRepo resourceMessageRepo;
 	@Autowired
 	private ResourceBundleRepo resourceBundleRepo;
+	@Autowired
+	private BoilerService boilerServ;
 	
 	/**
 	 * Add role to roles dictionary
@@ -992,5 +998,26 @@ public class SystemService {
 		return rb;
 	}
 
-
+	@Transactional
+	public ActivitySubmitDTO validSchedulers(ActivitySubmitDTO data) throws ObjectNotFoundException {
+		List<String> list = new ArrayList<String>();
+		for (TableRow row : data.getScheduled().getRows()) {
+			ThingScheduler ts = boilerServ.thingSchedulerById(row.getDbID());
+			Scheduler sch = boilerServ.schedulerByNode(ts.getConcept());
+			try { //03102023 khomenska
+				Concept dictConc = applDictItemByUrl(SystemService.DICTIONARY_HOST_APPLICATIONS,sch.getProcessUrl());
+			} catch (ObjectNotFoundException e) {
+				list.add(sch.getProcessUrl());
+			}
+		}
+		if(list.size() > 0) {
+			String err = "dictionary node for host process not found. URLs are - ";
+			for(String l:list) {
+				err += l + "; ";
+			}
+			data.setValid(false);
+			data.setIdentifier(err);
+		}
+		return data;
+	}
 }

@@ -29,6 +29,7 @@ import org.msh.pharmadex2.dto.ActivitySubmitDTO;
 import org.msh.pharmadex2.dto.ActivityToRun;
 import org.msh.pharmadex2.dto.CheckListDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
+import org.msh.pharmadex2.dto.PersonDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.VerifItemDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
@@ -803,7 +804,10 @@ public class SubmitService {
 				}
 
 			} else {
-				throw new ObjectNotFoundException(data.getIdentifier(), logger);
+				//26092023 khomenska
+				logger.error(data.getIdentifier());
+				//throw new ObjectNotFoundException(data.getIdentifier(), logger);
+				return data;
 			}
 		}
 		return data;
@@ -1200,7 +1204,7 @@ public class SubmitService {
 			String link=data.getServerUrl()+"/public#publicpermitdata/%7B%22permitDataID%22:"
 			+curHis.getApplicationData().getID()
 			+"%7D";
-			String res = mailService.createAttentionMail(user, applicantEmail, applName, curActivity, nextActivity, attnote,link);
+			String res = mailService.createAttentionMail(applicantEmail, applName, curActivity, nextActivity, attnote,link);
 			String notes = data.getNotes().getValue();
 			if(notes != null || !notes.isEmpty()) {
 				notes += " (" + res + ")";
@@ -1209,6 +1213,61 @@ public class SubmitService {
 			data.getNotes().setMark(true);
 			data.getNotes().setReadOnly(true);
 			data.getNotes().setTextArea(true);
+		}
+	}
+	
+	// 02102023 khomenska
+	private void sendEmailAttentionByCompanyUser(UserDetailsDTO user, History curHis, ActivitySubmitDTO data)
+			throws ObjectNotFoundException {
+		boolean attentionActivity = validServ.isActivityAttention(curHis.getActConfig());
+		if (attentionActivity) {
+			//String applicantEmail = accServ.applicantEmailByApplication(curHis.getApplication());
+			String applName = literalServ.readPrefLabel(curHis.getApplicationData());
+			String curActivity = literalServ.readPrefLabel(curHis.getActConfig());
+			String nextActivity = "";
+			if (data.getNextJob().getRows() != null && data.getNextJob().getRows().size() > 0) {
+				for (TableRow r : data.getNextJob().getRows()) {
+					if (r.getSelected()) {
+						nextActivity = r.getCellByKey("pref").getValue();
+						break;
+					}
+				}
+			}
+
+			String attnote = literalServ.readValue("attnote", curHis.getActConfig());
+			// https://pharmadex.irka.in.ua/public#publicpermitdata/%7B%22permitDataID%22:89984%7D
+			String link=data.getServerUrl()+"/public#publicpermitdata/%7B%22permitDataID%22:"
+			+curHis.getApplicationData().getID()
+			+"%7D";
+			
+			ThingDTO thDTO = new ThingDTO();
+			thDTO.setNodeId(curHis.getApplicationData().getID());
+			thDTO = thingServ.loadThing(thDTO, user);
+			if(thDTO.getThings() != null && thDTO.getThings().keySet() != null) {
+				List<PersonDTO> persons = new ArrayList<PersonDTO>();
+				persons.addAll(thDTO.getPersons().values());
+				for(String k:thDTO.getThings().keySet()) {
+					ThingDTO th = thDTO.getThings().get(k);
+					th = thingServ.createContent(th, user);
+					if(th.getPersons() != null && th.getPersons().keySet() != null) {
+						persons.addAll(th.getPersons().values());
+					}
+				}
+				if(persons.size() > 0) {
+					for(PersonDTO person:persons) {
+						List<TableRow> rows = person.getTable().getRows();
+						if(rows.size() > 0) {
+							for(TableRow r:rows) {
+								Concept cPerson = closureServ.loadConceptById(r.getDbID());
+								String userEmail = literalServ.readValue("email", cPerson);
+								if(userEmail != null && userEmail.length() > 3 && userEmail.contains("@")) {
+									mailService.createAttentionMail(userEmail, applName, curActivity, nextActivity, attnote,link);
+								}
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 	/**
@@ -1224,7 +1283,12 @@ public class SubmitService {
 		data = validServ.submitApprove(curHis, user, data, nextActs);
 		if(data.isValid()) {
 			data = submitApprove(curHis, user, data);
-			sendEmailAttention(user, curHis, data);
+			if(data.isValid()) { //02102023 khomenska
+				if(validServ.isActivityFinalAction(curHis, SystemService.FINAL_COMPANY)){
+					sendEmailAttentionByCompanyUser(user, curHis, data);
+				}
+				sendEmailAttention(user, curHis, data);
+			}
 		}
 		return data;
 	}
@@ -1564,8 +1628,11 @@ public class SubmitService {
 	@Transactional
 	private ActivitySubmitDTO submitGuest(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		if (data.isValid()) {
-			cancelActivities(curHis);
-			data = runScheduledGuestHost(curHis, data);
+			data = systemServ.validSchedulers(data);
+			if(data.isValid()) {
+				cancelActivities(curHis);
+				data = runScheduledGuestHost(curHis, data);
+			}
 		}
 		return data;
 	}
@@ -1669,7 +1736,7 @@ public class SubmitService {
 		for (TableRow row : data.getScheduled().getRows()) {
 			ThingScheduler ts = boilerServ.thingSchedulerById(row.getDbID());
 			Scheduler sch = boilerServ.schedulerByNode(ts.getConcept());
-			Concept dictConc = systemServ.applDictItemByUrl(SystemService.DICTIONARY_HOST_APPLICATIONS,sch.getProcessUrl());
+			Concept dictConc = systemServ.applDictItemByUrl(SystemService.DICTIONARY_HOST_APPLICATIONS, sch.getProcessUrl());
 			// close previous scheduled
 			Concept appldata = amendmentServ.initialApplicationData(curHis.getApplicationData());
 			List<History> prevActivities = boilerServ.activities(sch.getProcessUrl(), appldata);

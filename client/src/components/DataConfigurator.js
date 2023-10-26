@@ -78,6 +78,7 @@ class DataConfigurator extends Component{
 
     componentDidMount(){
         window.addEventListener("message",this.eventProcessor)
+        Fetchers.writeLocaly("dataconfig_search", "")
         this.loader()
         Locales.resolveLabels(this)
     }

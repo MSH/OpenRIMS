@@ -749,8 +749,10 @@ public class ThingService {
 			Concept dictRoot = closureServ.loadRoot(data.getDictUrl());
 			th.getHeaders().add(TableHeader.instanceOf("ID", TableHeader.COLUMN_LONG));	//dictNodeId
 			th.getHeaders().add(TableHeader.instanceOf("nodeId", TableHeader.COLUMN_LONG)); //nodeId
-			jdbcRepo.filelist(dictRoot.getID(),0,data.getUrl(), data.getVarName(), user.getEmail());
-			List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from _filelist", "", "", th);
+			/*jdbcRepo.filelist(dictRoot.getID(),0,data.getUrl(), data.getVarName(), user.getEmail());
+			List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from _filelist", "", "", th);*/
+			jdbcRepo.filelist_new(dictRoot.getID(),0,data.getUrl(), data.getVarName(), user.getEmail());        //  email);
+			List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from filelist_new", "", "", th);
 			for(TableRow row : rows) {
 				Long dictNodeId = (Long) row.getRow().get(0).getOriginalValue();
 				Long fileNodeId = (Long) row.getRow().get(1).getOriginalValue();
@@ -781,8 +783,8 @@ public class ThingService {
 		if(thing.getID()==0) {
 			email=user.getEmail();				//stored unsaved only for this user
 		}
-		jdbcRepo.filelist(dict.getID(),thing.getID(),data.getUrl(), data.getVarName(),email);        //  email);
-		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from _filelist", "","", data.getTable().getHeaders());
+		jdbcRepo.filelist_new(dict.getID(),thing.getID(),data.getUrl(), data.getVarName(),email);        //  email);
+		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from filelist_new", "","", data.getTable().getHeaders());
 		TableQtb.tablePage(rows, data.getTable());
 		for(TableRow row : rows) {
 			TableCell cell = row.getCellByKey("filename");
@@ -2203,11 +2205,11 @@ public class ThingService {
 	 */
 	@Transactional
 	public ResponseEntity<Resource> fileDownload(long nodeId, UserDetailsDTO user) throws ObjectNotFoundException {
-		Optional<Long> thingNodeID = thingDocRepo.findThingNodeByFileConcept(nodeId);
-		if(thingNodeID.isPresent()) {
-			Concept activityData=closureServ.loadConceptById(thingNodeID.get());
+		Concept fileNode = closureServ.loadConceptById(nodeId);
+		List<Long> thingNodeIDList = thingDocRepo.findThingNodeByFileConcept(nodeId);
+		if(!thingNodeIDList.isEmpty()) {
+			Concept activityData=closureServ.loadConceptById(thingNodeIDList.get(thingNodeIDList.size()-1));
 			if (readActivityDataAllowed(activityData, user)){
-				Concept fileNode = closureServ.loadConceptById(nodeId);
 				ThingDoc td = boilerServ.loadThingDocByFileNode(fileNode);
 				boolean allow = accessControlServ.isSupervisor(user);
 				if (!allow) {
@@ -2215,26 +2217,7 @@ public class ThingService {
 					allow=accessControlServ.allowAssembly(asm, user);
 				}
 				if(allow) {
-					Optional<FileResource> freso = fileRepo.findByConcept(fileNode);
-					if(freso.isPresent()) {
-						FileResource fres=freso.get();
-						String fileName = fileNode.getLabel();
-						Resource res = new ByteArrayResource(fres.getFile());
-						String mediaType = fres.getMediatype();
-						String typeOpen = "inline";
-						if(mediaType == null || mediaType.length() == 0) {
-							mediaType = "application/octet-stream";
-							typeOpen = "attachment";
-						}
-						return ResponseEntity.ok()
-								.contentType(MediaType.parseMediaType(mediaType))
-								.contentLength(fres.getFileSize())
-								.header(HttpHeaders.CONTENT_DISPOSITION, typeOpen + "; filename=\"" + fileName +"\"")
-								.header("filename", fileName)
-								.body(res);
-					}else {
-						throw new ObjectNotFoundException(" load. File not found. Node id is "+fileNode.getID());
-					}
+					return fileDownloader(fileNode);
 				}else {
 					throw new ObjectNotFoundException(" load. File not accessible. Node id is "+fileNode.getID());
 				}
@@ -2242,7 +2225,29 @@ public class ThingService {
 				throw new ObjectNotFoundException(" load. documents component not found. Node id is "+nodeId);
 			}
 		}else {
-			throw new ObjectNotFoundException(" load. File not found. Node id is "+nodeId);
+			return fileDownloader(fileNode);	//just uploaded, no thing yet
+		}
+	}
+	public ResponseEntity<Resource> fileDownloader(Concept fileNode) throws ObjectNotFoundException {
+		Optional<FileResource> freso = fileRepo.findByConcept(fileNode);
+		if(freso.isPresent()) {
+			FileResource fres=freso.get();
+			String fileName = fileNode.getLabel();
+			Resource res = new ByteArrayResource(fres.getFile());
+			String mediaType = fres.getMediatype();
+			String typeOpen = "inline";
+			if(mediaType == null || mediaType.length() == 0) {
+				mediaType = "application/octet-stream";
+				typeOpen = "attachment";
+			}
+			return ResponseEntity.ok()
+					.contentType(MediaType.parseMediaType(mediaType))
+					.contentLength(fres.getFileSize())
+					.header(HttpHeaders.CONTENT_DISPOSITION, typeOpen + "; filename=\"" + fileName +"\"")
+					.header("filename", fileName)
+					.body(res);
+		}else {
+			throw new ObjectNotFoundException(" load. File not found. Node id is "+fileNode.getID());
 		}
 	}
 	/**
@@ -2643,7 +2648,13 @@ public class ThingService {
 	 * @throws ObjectNotFoundException
 	 */
 	public boolean readActivityDataAllowed(Concept activityData, UserDetailsDTO user) throws ObjectNotFoundException {
-		List<History> lhis = boilerServ.historyByActivitydata(activityData);
+		Concept realActivityData=activityData;
+		ThingThing tt = boilerServ.thingThing(activityData, false);
+		if(tt !=null) {
+			Thing thing=boilerServ.thingByThingThing(tt, true);
+			realActivityData=thing.getConcept();
+		}
+		List<History> lhis = boilerServ.historyByActivitydata(realActivityData);
 		if(!lhis.isEmpty()) {
 			Concept permitData = amendServ.initialApplicationData(lhis.get(0).getApplicationData());
 			return accessControlServ.readAllowed(permitData, user);

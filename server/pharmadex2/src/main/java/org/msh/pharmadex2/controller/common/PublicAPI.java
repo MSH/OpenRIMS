@@ -73,6 +73,8 @@ public class PublicAPI{
 	private String buildTime;
 	@Value("${app.release}")
 	private String release;
+	@Value("${pharmadex.allow.process.import}")
+	private boolean allowProcessImport;
 
 	/**
 	 * Create a context cookie
@@ -91,6 +93,18 @@ public class PublicAPI{
 	@RequestMapping(value = "/api/public/ping",  method = {RequestMethod.POST,RequestMethod.GET})
 	public String ping(){
 		return "OK";
+	}
+	
+	/**
+	 * Ping main server (by import proccess)
+	 * and verif param pharmadex.allow.process.import
+	 * @return
+	 */
+	@RequestMapping(value = "/api/public/pingbyimport",  method = {RequestMethod.POST,RequestMethod.GET})
+	public String pingbyimport(){
+		if(allowProcessImport)
+			return "OK";
+		return "NOACCESS";
 	}
 
 

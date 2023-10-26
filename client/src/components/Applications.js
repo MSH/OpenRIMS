@@ -92,7 +92,7 @@ class Applications extends Component{
      */
     back(){
         return(
-            <div className="d-flex justify-content-end">
+            <div className="d-flex justify-content-end mb-1 mt-1">
             <Button size="sm"
                 className="mr-1" color="info"
                 onClick={()=>{

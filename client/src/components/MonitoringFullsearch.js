@@ -54,11 +54,10 @@ class MonitoringFullsearch extends Component{
       }
 
     loadData(){
-        var searchStr = Fetchers.readLocaly("monitor_fullsearch_search", "")
-        var api = "/api/"+Navigator.tabSetName()+"/monitoring/full/search=" + searchStr
+        var api = "/api/"+Navigator.tabSetName()+"/my/monitoring/fullsearch"
         Fetchers.postJSONNoSpinner(api, this.state.data, (query,result)=>{
             this.state.data=result
-            Fetchers.writeLocaly("monitor_fullsearch_search", "")
+            Fetchers.writeLocaly("monitor_fullsearch_search", "")   //fro future extension
             this.setState(this.state)
             this.comparator = new FieldsComparator(this)
         })

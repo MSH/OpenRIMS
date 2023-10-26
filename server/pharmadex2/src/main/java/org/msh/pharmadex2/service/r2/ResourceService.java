@@ -1,11 +1,9 @@
 package org.msh.pharmadex2.service.r2;
 
-import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -343,12 +341,12 @@ public class ResourceService {
 
 	@Transactional
 	public ResponseEntity<Resource> adminHelpWfrGuide() throws ObjectNotFoundException, IOException {
-		return downloadFile("resources.help.wfrguide","wfrguide.pdf");
+		return downloadFile("resources.help.electronic.form.guide","ElectronicFormDefinitionReferenceGuide.pdf");
 	}
 
 	@Transactional
 	public ResponseEntity<Resource> adminElreferenceGuide() throws ObjectNotFoundException, IOException {
-		return downloadFile("resources.elreference","CreationPrintableElectronicDocumentsOpenRIMS.pdf");
+		return downloadFile("resources.help.elreference","CreationPrintableElectronicDocumentsOpenRIMS.pdf");
 	}
 
 	@Transactional

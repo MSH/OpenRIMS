@@ -439,6 +439,15 @@ public class AccessControlService {
 	private boolean readAllowedNRA(Concept permitData, UserDetailsDTO user) {
 		boolean ret = readAllowedNotAuth(permitData);
 		if(!ret) {
+			// disable not submitted and revoked for all
+			List<History> allhis=boilerServ.historyAllOrderByCome(permitData);
+			History lasth = allhis.get(allhis.size()-1);
+			if(lasth.getActivityData()!=null) {
+				if(lasth.getApplicationData().getID()==lasth.getActivityData().getID()) {
+					return false;	
+				}
+			}
+			// 
 			Optional<User> usero= userRepo.findByEmail(user.getEmail());
 			if(usero.isPresent()) {
 				if(usero.get().getEnabled()) {

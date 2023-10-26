@@ -4,8 +4,9 @@ import PropTypes from 'prop-types'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
 import FieldInput from './form/FieldInput'
-import ViewEdit from './form/ViewEdit'
+import FieldGuarded from './form/FieldGuarded'
 import ButtonUni from './form/ButtonUni'
+import URLButtons from './form/URLButtons'
 import Pharmadex from './Pharmadex'
 
 /**
@@ -23,7 +24,6 @@ class RootNode extends Component{
     constructor(props){
         super(props)
         this.state={
-            edit:false,
             labels:{
                 save:'',
                 cancel:'',
@@ -119,32 +119,11 @@ class RootNode extends Component{
                 <Row>
                     <Col>
                         <Row>
-                            <Col xs='12' sm='12' lg='10' xl='10'>
-                                <ViewEdit mode='text' attribute='url' component={this} edit={this.state.edit}/>
+                            <Col xs='12' sm='12' lg='8' xl='8'>
+                                <FieldGuarded mode='text' attribute='url' component={this}/>
                             </Col>
-                            <Col xs='12' sm='12' lg='2' xl='2' className="align-self-center">
-                            <Button
-                                style={{color:'green'}}
-                                hidden={this.state.edit}
-                                onClick={()=>{
-                                    this.state.edit=true
-                                    this.setState(this.state)
-                                }}
-                                outline
-                            >
-                                <i className="fas fa-lock"></i>
-                            </Button>
-                            <Button
-                                style={{color:'red'}}
-                                hidden={!this.state.edit}
-                                onClick={()=>{
-                                    this.state.edit=false
-                                    this.setState(this.state)
-                                }}
-                                outline
-                            >
-                                <i className="fas fa-lock-open"></i>
-                            </Button>
+                            <Col xs='12' sm='12' lg='4' xl='4' className="align-self-center">
+                                <URLButtons assistant='dictionaries' />
                             </Col>
                         </Row>
                     </Col>

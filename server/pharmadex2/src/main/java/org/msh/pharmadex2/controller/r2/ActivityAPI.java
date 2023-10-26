@@ -160,27 +160,30 @@ public class ActivityAPI{
 	 * @return
 	 * @throws DataNotFoundException
 	 */
-	@PostMapping({ "/api/*/my/monitoring/type={t}&search={s}"})
-	public ApplicationsDTO myMonitoringActual(Authentication auth, UriComponentsBuilder uri,@RequestBody ApplicationsDTO data, @PathVariable(value = "t") String t, @PathVariable(value = "s") String s)
+	@PostMapping({ "/api/*/my/monitoring/actual", "/api/*/my/monitoring/scheduled"})
+	public ApplicationsDTO myMonitoringActual(Authentication auth, UriComponentsBuilder uri,
+			@RequestBody ApplicationsDTO data, HttpServletRequest request)
 			throws DataNotFoundException {
 		accServ.allowAuthenticated(auth, uri);
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
-			data = monitoringServ.myMonitoring(data, user, t, s);
+			String reqUrl=request.getRequestURL().toString().toLowerCase();
+			String[] reqUrlArray= reqUrl.split("/");
+			data = monitoringServ.myMonitoring(data, user, reqUrlArray[reqUrlArray.length-1], "");
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
 	}
 
-	@PostMapping({ "/api/*/monitoring/full/search={s}"})
-	public ApplicationsDTO monitoringFull(Authentication auth, UriComponentsBuilder uri,@RequestBody ApplicationsDTO data, 
-			@PathVariable(value = "s") String s)
+	@PostMapping({ "/api/*/my/monitoring/fullsearch"})
+	public ApplicationsDTO monitoringFull(Authentication auth, UriComponentsBuilder uri,
+			@RequestBody ApplicationsDTO data)
 					throws DataNotFoundException {
 		accServ.allowAuthenticated(auth, uri);
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
-			data = monitoringServ.monitoringFullSearch(data, user, s);
+			data = monitoringServ.monitoringFullSearch(data, user, "");
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}

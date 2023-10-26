@@ -411,6 +411,7 @@ public class JdbcRepository {
 	 * @param docUrl url of the current document
 	 * @param varName name of variable
 	 * @param email user's email
+	 * @deprecated by filelist_new
 	 */
 	public void filelist(long dictRootId, long thingId, String docUrl, String varName, String email) {
 		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
@@ -424,6 +425,28 @@ public class JdbcRepository {
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 	}
+	/**
+	 * call stored procedure to prepare a list of files
+	 * @param thingId id of thing or null or 0 (zero)
+	 * @param l 
+	 * @param docUrl URL of "documents" component
+	 * @param varName variable name of "documents" component
+	 * @param email email of the current user or null or empty string
+	 */
+	public void filelist_new(long dictRootId,long thingId, String docUrl, String varName, String email) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("filelist_new");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("dictrootid", dictRootId);
+		params.addValue("thingid", thingId);
+		params.addValue("docurl", docUrl);
+		params.addValue("varname", varName);
+		params.addValue("email", email);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+		
+	}
+	
 	/**
 	 * Persons related to the node to temporary table _persons
 	 * @param nodeId
@@ -1503,4 +1526,6 @@ public class JdbcRepository {
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 	}
+
+
 }

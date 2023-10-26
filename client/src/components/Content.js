@@ -14,6 +14,7 @@ import PrintPreview from './PrintPreview'
 import Spinner from './utils/Spinner'
 import SpinnerMain from './utils/SpinnerMain'
 import PublicPermitData from './PublicPermitData'
+import URLAssistant from './URLAssistant'
 
 /**
  * Uniform content component
@@ -136,6 +137,10 @@ class Content extends Component{
                 return <Monitoring />
             case "reports":
                 return <Reports />
+            case "urlassistant":
+                let parStr = Navigator.parameterValue()
+                let params=JSON.parse(parStr)
+                return <URLAssistant assistant={params.assistant} select={params.select} />
             default:
                 return this.paintRows()
         }

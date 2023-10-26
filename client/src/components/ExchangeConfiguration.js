@@ -29,6 +29,7 @@ class ExchangeConfiguration extends Component{
             selectleft:false,
             titleProc:"",
             labels:{
+                exchangeconfig:'',
                 serverurl:'',
                 btn_connect:'',
                 titleexistdictionary:'',
@@ -681,8 +682,15 @@ class ExchangeConfiguration extends Component{
         return(
             <Container fluid>
                 <Row>
-                    <Col key='1top' xs='12' sm='12' lg='10' xl='10'>
+                    <Col>
                         <h4>
+                            {this.state.labels.exchangeconfig}
+                        </h4>
+                    </Col>
+                </Row>
+                <Row>
+                    <Col key='1top' xs='12' sm='12' lg='10' xl='10'>
+                        <h4 className='ml-5'>
                             {this.state.data.title}
                         </h4>
                     </Col>

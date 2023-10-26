@@ -32,11 +32,10 @@ class MonitoringActual extends Component{
     }
 
     loadData(){
-        var searchStr = Fetchers.readLocaly("monitor_actual_search", "")
-        var api = "/api/"+Navigator.tabSetName()+"/my/monitoring/type=" + "actual" + "&search=" + searchStr
+        var api = "/api/"+Navigator.tabSetName()+"/my/monitoring/actual"
         Fetchers.postJSONNoSpinner(api, this.state.data, (query,result)=>{
             this.state.data=result
-            Fetchers.writeLocaly("monitor_actual_search", "")
+            Fetchers.writeLocaly("monitor_actual_search", "")   //for future extension
             this.setState(this.state)
         })
     }
@@ -75,6 +74,9 @@ class MonitoringActual extends Component{
                                 loader={this.loadData}
                                 headBackground={Pharmadex.settings.tableHeaderBackground}
                                 styleCorrector={(header)=>{
+                                    if(header=='reference'){
+                                        return {width:'5%'}
+                                    }
                                     if(header=='scheduled'){
                                         return {width:'10%'}
                                     }

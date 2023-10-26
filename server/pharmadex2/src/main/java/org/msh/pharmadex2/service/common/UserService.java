@@ -587,7 +587,7 @@ public class UserService implements UserDetailsService {
 					);
 			data.getNode().getTable().getHeaders().getHeaders().get(0).setSortValue(TableHeader.SORT_ASC);
 			data.getNode().getTable().setHeaders(boilerServ.translateHeaders(data.getNode().getTable().getHeaders()));
-			
+
 			// только когда снова создаем заголовки, только тогда проверяем был ли текст в строке поиска
 			if(searchStr != null && !searchStr.equals("null") && searchStr.length() > 2) {
 				for(TableHeader th:data.getNode().getTable().getHeaders().getHeaders()) {
@@ -769,7 +769,7 @@ public class UserService implements UserDetailsService {
 			user.getDictionaries().addAll(createDictItems(data.getRoles()));
 			for(String key : data.getApplDicts().keySet()) {
 				if(!key.equalsIgnoreCase("roles")) {
-				user.getDictionaries().addAll(createDictItems(data.getApplDicts().get(key)));
+					user.getDictionaries().addAll(createDictItems(data.getApplDicts().get(key)));
 				}
 			}
 			//other fields
@@ -780,7 +780,7 @@ public class UserService implements UserDetailsService {
 				user.setEnabled(false);
 			}
 			List<UserRoleDto> allRoles = userGetAllAuthorities(user);
-			user.setConceptRole(null);	//2022-10-27
+			//user.setConceptRole(null);	//2022-10-27
 			if(user.getCurrentRole()==null && user.getConceptRole()==null) {
 				for(UserRoleDto urd : allRoles) {
 					if (urd.getConceptId()>0) {
@@ -789,12 +789,14 @@ public class UserService implements UserDetailsService {
 					}
 				}
 			}
-			// assign the first role that suit this user as a current one
-			for(UserRoleDto urd : allRoles) {
-				if(!urd.getAuthority().contains("APPLICANT")) {
-					Concept role = closureServ.loadConceptById(urd.getId());
-					user.setConceptRole(role);
-					break;
+			if(user.getConceptRole()==null) {
+				// assign the first role that suit this user as a current one
+				for(UserRoleDto urd : allRoles) {
+					if(!urd.getAuthority().contains("APPLICANT")) {
+						Concept role = closureServ.loadConceptById(urd.getId());
+						user.setConceptRole(role);
+						break;
+					}
 				}
 			}
 			user = userRepo.save(user);

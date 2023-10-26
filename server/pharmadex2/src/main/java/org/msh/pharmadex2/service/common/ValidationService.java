@@ -805,20 +805,32 @@ public class ValidationService {
 			return;
 		}
 		filesDTO.clearErrors();
+		int sizefiles=filesDTO.getTable().getRows().size();
 		filesDTO.setStrict(strict);
-		if (filesDTO.getLinked()==null || filesDTO.getLinked().size()==0) {
+		//checking for non-compliance between the requested files and the downloaded ones
+		if(sizefiles>filesDTO.getLinked().size()) {
+			filesDTO.setValid(false); 
+			filesDTO.setIdentifier(messages.get("upload_file") +" " +doc.getDescription());
+		}else if(filesDTO.getLinked()==null || filesDTO.getLinked().size()==0) {
 			filesDTO.setValid(false);
 			filesDTO.setIdentifier(messages.get("upload_file") +" " +doc.getDescription());
 		}else {
+			//check for availability dictNodeId, nodeId of a file
 			Set<Long> keys = filesDTO.getLinked().keySet();
 			long sumlo=0l;
 			for(Long key : keys) {
-				sumlo+=filesDTO.getLinked().get(key);
+				//sumlo+=filesDTO.getLinked().get(key);
+				sumlo=filesDTO.getLinked().get(key);
+				if(sumlo==0) {
+					filesDTO.setValid(false);
+					filesDTO.setIdentifier(messages.get("upload_file")+" "+ doc.getDescription());
+				}
 			}
-			if(sumlo==0) {
-				filesDTO.setValid(false);
-				filesDTO.setIdentifier(messages.get("upload_file")+" "+ doc.getDescription());
-			}
+			/*
+			 * if(sumlo==0) { filesDTO.setValid(false);
+			 * filesDTO.setIdentifier(messages.get("upload_file")+" "+
+			 * doc.getDescription()); }
+			 */
 		}
 		filesDTO.propagateValidation();
 		return;
@@ -2534,7 +2546,7 @@ public class ValidationService {
 		jdbcRepo.has_activities(null, null, permData.getID());
 		Headers headers = new Headers();
 		headers.getHeaders().add(TableHeader.instanceOf("historyID", TableHeader.COLUMN_LONG));
-		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from has_Activities",
+		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from has_activities",
 				"", "", headers);
 		for(TableRow row : rows) {
 			Object hIdO = row.getCellByKey("historyID").getOriginalValue();

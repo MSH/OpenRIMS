@@ -27,6 +27,7 @@ import org.msh.pharmadex2.dto.ResourceDTO;
 import org.msh.pharmadex2.dto.RootNodeDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.TilesDTO;
+import org.msh.pharmadex2.dto.URLAssistantDTO;
 import org.msh.pharmadex2.dto.UserElementDTO;
 import org.msh.pharmadex2.dto.WorkflowDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
@@ -1493,7 +1494,7 @@ public class AdminAPI {
 		return data;
 	}
 	/**
-	 * Save 
+	 * Save a date format definitions
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException 
@@ -1508,4 +1509,15 @@ public class AdminAPI {
 		}
 	}
 	
+	/**
+	 * Save a date format definitions
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException 
+	 */
+	@PostMapping("/api/admin/url/assist")
+	public URLAssistantDTO urlAssist(@RequestBody URLAssistantDTO data) throws DataNotFoundException {
+		data=superVisServ.urlAssist(data);
+		return data;
+	}
 }

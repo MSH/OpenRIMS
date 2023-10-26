@@ -1,5 +1,5 @@
 import React , {Component} from 'react'
-import {Button, Row, Col} from 'reactstrap'
+import {Button, Row, Col, ButtonGroup} from 'reactstrap'
 import PropTypes from 'prop-types'
 import ViewEdit from './ViewEdit'
 
@@ -47,28 +47,30 @@ class FieldGuarded extends Component{
                         <ViewEdit mode={this.props.mode} attribute={this.props.attribute} component={this.props.component} edit={this.state.edit}/>
                     </Col>
                     <Col xs='12' sm='12' lg='2' xl='2' className="align-self-center" hidden={this.props.editno}>
-                    <Button
-                        style={{color:'green'}}
-                        hidden={this.state.edit}
-                        onClick={()=>{
-                            this.state.edit=true
-                            this.setState(this.state)
-                        }}
-                        outline
-                    >
-                        <i className="fas fa-lock"></i>
-                    </Button>
-                    <Button
-                        style={{color:'red'}}
-                        hidden={!this.state.edit}
-                        onClick={()=>{
-                            this.state.edit=false
-                            this.setState(this.state)
-                        }}
-                        outline
-                    >
-                        <i className="fas fa-lock-open"></i>
-                    </Button>
+                        <ButtonGroup>
+                            <Button
+                                style={{color:'green'}}
+                                hidden={this.state.edit}
+                                onClick={()=>{
+                                    this.state.edit=true
+                                    this.setState(this.state)
+                                }}
+                                outline
+                                >
+                                    <i className="fas fa-lock"></i>
+                            </Button>
+                            <Button
+                                style={{color:'red'}}
+                                hidden={!this.state.edit}
+                                onClick={()=>{
+                                    this.state.edit=false
+                                    this.setState(this.state)
+                                }}
+                                outline
+                            >
+                                <i className="fas fa-lock-open"></i>
+                            </Button>
+                        </ButtonGroup>
                     </Col>
                 </Row>
             </div>

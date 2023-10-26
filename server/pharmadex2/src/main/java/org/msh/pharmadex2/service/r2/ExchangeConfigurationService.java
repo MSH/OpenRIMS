@@ -28,6 +28,7 @@ import org.msh.pharmadex2.service.common.BoilerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -81,7 +82,7 @@ public class ExchangeConfigurationService {
 	private static String req_resimport = "/api/public/exchange/resource/import";
 	private static String req_dataconfigimport = "/api/public/exchange/dataconfig/import";
 	private static String req_workflowsimport = "/api/public/exchange/workflows/importall";
-	private static String req_ping = "/api/public/ping";
+	private static String req_ping = "/api/public/pingbyimport";//;"/api/public/ping"
 
 	public ExchangeConfigDTO load(ExchangeConfigDTO data) {
 		buildListHeaders(data);
@@ -98,9 +99,14 @@ public class ExchangeConfigurationService {
 		if(url != null && url.startsWith("http")) {
 			try {
 				ResponseEntity<String> r = restTemplate.getForEntity(data.getServerurl().getValue() + req_ping, String.class);
-				if(r != null && r.getBody().equals("OK")) {
-					data.setValid(true);
-					data.setIdentifier(messages.get("global.success"));
+				if(r != null) {
+					if(r.getBody().equals("OK")) {
+						data.setValid(true);
+						data.setIdentifier(messages.get("global.success"));
+					}else if(r.getBody().equals("NOACCESS")) {
+						data.setValid(false);
+						data.setIdentifier(messages.get("noaccessmainbyimport"));
+					}
 				}
 			}
 			catch (RestClientException e) {

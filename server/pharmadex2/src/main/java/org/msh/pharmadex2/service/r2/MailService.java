@@ -30,10 +30,10 @@ public class MailService {
 	 * create Attention Letter
 	 * @param link 
 	 */
-	public String createAttentionMail(UserDetailsDTO user, String sendTo, String applName, 
+	public String createAttentionMail(/*UserDetailsDTO user, */String sendTo, String applName, 
 			String curActivity, String nextActivity, String textInMail, String link)  {
 		String res = "";
-		if(user.getEmail().endsWith("@gmail.com")) {
+		//if(user.getEmail().endsWith("@gmail.com")) { //02102023 khomenska User without google mail not send email
 			JavaMailSenderImpl impl = (JavaMailSenderImpl) emailSender;
 			if(impl.getUsername() != null) {
 				SimpleMailMessage mailMess = new SimpleMailMessage(); 
@@ -63,7 +63,7 @@ public class MailService {
 				logger.info(messages.get("errorPropertyMail"));
 				res=messages.get("errorPropertyMail");
 			}
-		}
+		//}
 		return res;
 	}
 	/**

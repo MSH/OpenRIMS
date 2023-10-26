@@ -22,8 +22,8 @@ public interface ThingDocRepo extends CrudRepository<ThingDoc, Long> {
 			value = "SELECT t.conceptID\r\n" + 
 					"FROM thingdoc td\r\n" + 
 					"join  thing t on t.ID=td.thingID\r\n" + 
-					"where td.conceptID=:fileConceptID",
+					"where td.conceptID=:fileConceptID order by t.ID",
 			nativeQuery = true
 			)
-	Optional<Long> findThingNodeByFileConcept(@Param("fileConceptID") Long fileConceptID );
+	List<Long> findThingNodeByFileConcept(@Param("fileConceptID") Long fileConceptID );
 }

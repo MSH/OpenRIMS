@@ -28,6 +28,7 @@ import Import_ATC from './Import_ATC'
 import Fetchers from './utils/Fetchers'
 import Formats from './Formats'
 
+
 /**
  * Administrative functions for the supervisor
  */
@@ -146,6 +147,7 @@ class Administrate extends Component{
                 return <ChangePassAdmin/>
             case "formats":
                 return <Formats />
+            
             default:
                 return []
         }
