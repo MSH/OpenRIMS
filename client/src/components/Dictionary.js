@@ -682,6 +682,9 @@ class Dictionary extends Component{
                                 if(this.state.data.readOnly || this.props.readOnly){
                                     return
                                 }
+                                if(this.state.data.lifeCycle){
+                                    return
+                                }
                                 this.selectRow(rowNo)
                                 this.loadForward()
                             }}

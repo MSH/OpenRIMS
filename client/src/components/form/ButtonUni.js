@@ -4,7 +4,8 @@ import PropTypes from 'prop-types'
 
 /**
  * The uniform button
- * @example for not outline button <ButtonUni onClick={this.buttonAction} label={this.state.labels.action} color="danger" outline={false} disabled={false}/>
+ * @example 
+ * <ButtonUni onClick={this.buttonAction} label={this.state.labels.action} color="danger" outline={false} disabled={false}/>
  */
 class ButtonUni extends Component{
     constructor(props){

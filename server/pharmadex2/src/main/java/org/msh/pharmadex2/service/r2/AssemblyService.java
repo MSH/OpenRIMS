@@ -1649,7 +1649,7 @@ public class AssemblyService {
 		List<Assembly> assms = loadDataConfiguration(url);
 		List<Assembly> ret=new ArrayList<Assembly>();
 		for(Assembly assm :assms) {
-			AssemblyDTO assmDTO = dtoServ.assemblyDto(assm);
+			//AssemblyDTO assmDTO = dtoServ.assemblyDto(assm);
 			if(accessServ.allowAssembly(assm, user)) {
 				ret.add(assm);
 			}

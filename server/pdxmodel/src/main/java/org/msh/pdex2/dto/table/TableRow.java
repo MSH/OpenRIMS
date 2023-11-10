@@ -169,7 +169,7 @@ public class TableRow{
 	/**
 	 * Get table cell from table row by the key
 	 * @param key
-	 * @return
+	 * @return null, if not found
 	 */
 	public TableCell getCellByKey(String key) {
 		for(TableCell cell : getRow()) {

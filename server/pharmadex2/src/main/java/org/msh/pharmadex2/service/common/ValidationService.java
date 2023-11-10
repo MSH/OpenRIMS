@@ -62,6 +62,7 @@ import org.msh.pharmadex2.dto.MessageDTO;
 import org.msh.pharmadex2.dto.PersonDTO;
 import org.msh.pharmadex2.dto.PublicOrgDTO;
 import org.msh.pharmadex2.dto.QuestionDTO;
+import org.msh.pharmadex2.dto.ReassignUserDTO;
 import org.msh.pharmadex2.dto.RegisterDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
 import org.msh.pharmadex2.dto.RootNodeDTO;
@@ -2737,4 +2738,5 @@ public class ValidationService {
 		}
 		return data;
 	}
+
 }

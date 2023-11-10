@@ -542,6 +542,12 @@ public class ResolverServiceRender {
 		value.put("to", to);
 		value.put("toBS", boilerServ.localDateToNepali(to, false));
 		value.put("toBS1",boilerServ.localDateToNepali(to, true));
+		// check nepali
+		String nepali=(String) value.get("fromBS");
+		String nepali1=(String) value.get("toBS");
+		if(nepali==null || nepali.isEmpty()) {
+			value = error(varName, "readVariable. Nepali date owerflow for "+varName, value);
+		}
 		return value;
 	}
 
@@ -582,6 +588,11 @@ public class ResolverServiceRender {
 		value.put("todayBS", boilerServ.localDateToNepali(LocalDate.now(),false));
 		value.put("todayBS1", boilerServ.localDateToNepali(LocalDate.now(),true));
 		value.put("author", user.getName());
+		// check nepali
+		String nepali=(String) value.get("todayBS");
+		if(nepali==null || nepali.isEmpty()) {
+			value = error("todayBS", "readVariable. Nepali date owerflow for "+"todayBS", value);
+		}
 		return value;
 	}
 

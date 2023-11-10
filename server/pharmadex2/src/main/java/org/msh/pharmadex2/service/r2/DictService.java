@@ -184,10 +184,15 @@ public class DictService {
 			table.setHeaders(createHeaders(table.getHeaders(), readOnly));
 		}
 		if(parentNode!=null) {
+			// Prepare temporary table _dictlevel with the data of the required  dictionary level 
 			jdbcRepo.prepareDictionaryLevel(parentNode.getID());
+			// add temporary last column Active to table
 			table.getHeaders().getHeaders().add(TableHeader.instanceOf("Active", TableHeader.COLUMN_LONG));
+			// get All data(and active=true and active=false) dictionary to temporary table _dictlevel
 			List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from _dictlevel", "", "", table.getHeaders());
 			List<TableRow> rows1 = new ArrayList<TableRow>();
+			// if item table Active=true OR selectedIds contains item table id - add to table
+			// if item table active=false, but selectedIds contains item table id - add to table
 			for(TableRow row : rows ) {
 				int active = row.getCellByKey("Active").getIntValue();
 				if(active>0 || selectedIds.contains(row.getDbID())) {
@@ -195,8 +200,10 @@ public class DictService {
 					rows1.add(row);
 				}
 			}
+			// remove temporary column Active
 			table.getHeaders().getHeaders().remove(2);		//we will not need Active
-			List<TableRow> rowsToTable = new ArrayList<TableRow>();			
+			List<TableRow> rowsToTable = new ArrayList<TableRow>();
+			// if table checkbox selectedOnly
 			if(selectedOnly) {
 				for(TableRow row : rows1) {
 					if(selectedIds.contains(row.getDbID())) {
@@ -816,6 +823,13 @@ public class DictService {
 			dict.setSystem(checkSystem(root));//ika
 			data.setSelect(createDictionaryFromRoot(dict, root));
 			reloadTable = false;
+			
+			// 31102023 khomenska add LifeCycle marker to DictionaryDTO
+			dict.setLifeCycle(false);
+			List<String> applLifeCycleUrls = SystemService.applicationLifeCycleUrls();
+			if(applLifeCycleUrls.contains(dict.getUrl())) {
+				dict.setLifeCycle(true);
+			}
 		}else if(data.getSelectId() == 0 && data.isEditor()) {//create new fields dictionary
 			DictionaryDTO dict = new DictionaryDTO();
 			dict.setUrl("");

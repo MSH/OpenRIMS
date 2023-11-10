@@ -52,6 +52,9 @@ public class DictionaryDTO extends AllowValidation{
 	private List<OptionDTO> currentSelections = new ArrayList<OptionDTO>();
 	private List<TableRow> allrows = new ArrayList<TableRow>();
 	
+	/** current dictionary is SystemService.applicationLifeCycleUrls()*/
+	private boolean lifeCycle = false;
+	
 	public DictionaryDTO() {
 		super();
 		// TODO Auto-generated constructor stub
@@ -200,6 +203,15 @@ public class DictionaryDTO extends AllowValidation{
 	public void setCurrentSelections(List<OptionDTO> currentSelections) {
 		this.currentSelections = currentSelections;
 	}
+	
+	public boolean isLifeCycle() {
+		return lifeCycle;
+	}
+
+	public void setLifeCycle(boolean lifeCycle) {
+		this.lifeCycle = lifeCycle;
+	}
+
 	/**
 	 * Create a new dictionary based on data provided
 	 * Except calculated parameters

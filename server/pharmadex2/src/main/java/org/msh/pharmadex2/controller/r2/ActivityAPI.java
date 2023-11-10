@@ -659,9 +659,10 @@ public class ActivityAPI{
 		try {
 			ResourceDTO resDto = objectMapper.readValue(jsonStr, ResourceDTO.class);
 			ResourceDTO fres = resourceServ.prepareResourceDownload(resDto);
-			Resource res = resourceServ.fileResolve(fres,null);
+			UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+			Resource res = resourceServ.fileResolve(fres,user);
 			return ResponseEntity.ok().contentType(MediaType.parseMediaType(fres.getMediaType()))
-					.contentLength(fres.getFileSize())
+					//.contentLength(fres.getFileSize())
 					.header(HttpHeaders.CONTENT_DISPOSITION,
 							fres.getContentDisp() + "; filename=\"" + fres.getFileName() + "\"")
 					.header("filename", fres.getFileName()).body(res);

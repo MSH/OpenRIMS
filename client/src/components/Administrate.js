@@ -27,6 +27,7 @@ import ChangePassAdmin from './ChangePassAdmin'
 import Import_ATC from './Import_ATC'
 import Fetchers from './utils/Fetchers'
 import Formats from './Formats'
+import ReassignUsers from './ReassignUsers'
 
 
 /**
@@ -67,6 +68,8 @@ class Administrate extends Component{
                 systemsetting:'',
                 exchangeconfig:'',
                 formatdate:'',
+                manageauthorities:'',
+                reassignusers:'',
             },
             isOpen:false,
             menu:'',
@@ -147,6 +150,8 @@ class Administrate extends Component{
                 return <ChangePassAdmin/>
             case "formats":
                 return <Formats />
+            case "reassignusers":
+                return <ReassignUsers />
             
             default:
                 return []
@@ -167,16 +172,37 @@ class Administrate extends Component{
                         <NavbarToggler onClick={()=>{this.state.isOpen=!this.state.isOpen; this.setState(this.state)}} className="me-2" />
                             <Collapse isOpen={this.state.isOpen} navbar>
                                 <Nav className="me-auto" navbar>
-                                    <NavItem>
-                                        <NavLink active={this.state.menu=='authorities' || 
-                                                         this.state.menu=='authority'}
-                                                 href="/admin#administrate/authorities">
-                                            <div>
-                                                <i className="fas fa-xs fa-users mr-1"></i>
-                                                {this.state.labels.authorities}
-                                            </div>
-                                        </NavLink>
-                                    </NavItem>
+                                <UncontrolledDropdown nav inNavbar>
+                                    <DropdownToggle nav caret>
+                                        {this.state.labels.authorities}
+                                    </DropdownToggle>
+                                    <DropdownMenu right>
+                                        <DropdownItem>
+                                            <NavItem>
+                                                <NavLink active={this.state.menu=='authorities' || 
+                                                                this.state.menu=='authority'}
+                                                        href="/admin#administrate/authorities">
+                                                    <div>
+                                                        <i className="fas fa-xs fa-users mr-1"></i>
+                                                        {this.state.labels.manageauthorities}
+                                                    </div>
+                                                </NavLink>
+                                            </NavItem>
+                                        </DropdownItem>
+                                        <DropdownItem>
+                                            <NavItem>
+                                                <NavLink active={this.state.menu=='authorities' || 
+                                                                this.state.menu=='authority'}
+                                                        href="/admin#administrate/reassignusers">
+                                                    <div>
+                                                        <i className="fas fa-xs fa-users mr-1"></i>
+                                                        {this.state.labels.reassignusers}
+                                                    </div>
+                                                </NavLink>
+                                            </NavItem>
+                                        </DropdownItem>
+                                    </DropdownMenu>
+                                </UncontrolledDropdown>
 
                                     <UncontrolledDropdown nav inNavbar>
                                         <DropdownToggle nav caret>

@@ -9,6 +9,7 @@ import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pharmadex2.dto.AboutDTO;
 import org.msh.pharmadex2.dto.ActuatorAdmDTO;
+import org.msh.pharmadex2.dto.AsyncInformDTO;
 import org.msh.pharmadex2.dto.ContentDTO;
 import org.msh.pharmadex2.dto.DataCollectionDTO;
 import org.msh.pharmadex2.dto.DataConfigDTO;
@@ -22,6 +23,7 @@ import org.msh.pharmadex2.dto.ExchangeConfigDTO;
 import org.msh.pharmadex2.dto.FormatsDTO;
 import org.msh.pharmadex2.dto.MessageDTO;
 import org.msh.pharmadex2.dto.PublicOrgDTO;
+import org.msh.pharmadex2.dto.ReassignUserDTO;
 import org.msh.pharmadex2.dto.ReportConfigDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
 import org.msh.pharmadex2.dto.RootNodeDTO;
@@ -51,6 +53,8 @@ import org.msh.pharmadex2.service.r2.ImportExportWorkflowService;
 import org.msh.pharmadex2.service.r2.MailService;
 import org.msh.pharmadex2.service.r2.MetricService;
 import org.msh.pharmadex2.service.r2.PubOrgService;
+import org.msh.pharmadex2.service.r2.ReassignUserService;
+import org.msh.pharmadex2.service.r2.ReassignUserServiceAsync;
 import org.msh.pharmadex2.service.r2.ReportService;
 import org.msh.pharmadex2.service.r2.ResolverService;
 import org.msh.pharmadex2.service.r2.ResourceService;
@@ -116,8 +120,6 @@ public class AdminAPI {
 	@Autowired
 	private ImportAdmUnitsService importAdmUnitsService;
 	@Autowired
-	private AccessControlService accessControlService;
-	@Autowired
 	private ImportATCcodesService importATCcodesService;
 	@Autowired
 	private ObjectMapper objectMapper;
@@ -137,6 +139,10 @@ public class AdminAPI {
 	ExchangeConfigurationService exchangeServ;
 	@Autowired
 	ResolverService resolverServ;
+	@Autowired
+	ReassignUserService reassignService;
+	@Autowired
+	ReassignUserServiceAsync reassignServiceAsync;
 
 
 	/**
@@ -1092,7 +1098,7 @@ public class AdminAPI {
 	public AboutDTO mailTest(Authentication auth, @RequestBody AboutDTO message) throws DataNotFoundException {
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 		try {
-			message = mailServ.testMail(user,message);
+			message = (AboutDTO) mailServ.testMail(user,message);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -1116,6 +1122,23 @@ public class AdminAPI {
 		}
 	}
 
+	/**
+	 * Download or read DictionaryCreationMaintenance
+	 * @return
+	 * @throws DataNotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value="/api/admin/help/reassign/applicant", method = RequestMethod.GET)
+	public ResponseEntity<Resource> helpReassignApplicant() throws DataNotFoundException, IOException {
+		ResponseEntity<Resource> res;
+		try {
+			res = resourceServ.adminHelpReassignApplicant();
+			return res;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+	
 	/**
 	 * Download or read DictionaryCreationMaintenance
 	 * @return
@@ -1518,6 +1541,73 @@ public class AdminAPI {
 	@PostMapping("/api/admin/url/assist")
 	public URLAssistantDTO urlAssist(@RequestBody URLAssistantDTO data) throws DataNotFoundException {
 		data=superVisServ.urlAssist(data);
+		return data;
+	}
+	/**
+	 * Search for an appliant to reassign Gmail
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException 
+	 */
+	@PostMapping("/api/admin/reassign/applicant/search")
+	public ReassignUserDTO reassignApplicantSearch( @RequestBody ReassignUserDTO data) throws DataNotFoundException {
+		try {
+			data=reassignService.applicantSearch(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	/**
+	 * Get appicant's details for the reassigning form
+	 * @param data
+	 * @return
+	 */
+	@PostMapping("/api/admin/reassign/applicant/details")
+	public ReassignUserDTO reassignApplicantDetails( @RequestBody ReassignUserDTO data) {
+		data=reassignService.applicantDetails(data);
+		return data;
+	}
+	/**
+	 * Validate and run applicant reassignment
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException 
+	 */
+	@PostMapping("/api/admin/reassign/applicant/run")
+	public ReassignUserDTO reassignApplicantRun(Authentication auth,@RequestBody ReassignUserDTO data) throws DataNotFoundException {
+		try {
+			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+			data=reassignService.applicantReassign(data, user.getEmail());
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	/**
+	 * Load applicant reassigning progress data
+	 * @param data
+	 * @return
+	 */
+	@PostMapping("/api/admin/reassign/appicant/progress/load")
+	public AsyncInformDTO reassignApplicantProgressLoad(@RequestBody AsyncInformDTO data) {
+			data=reassignServiceAsync.applicantProgressLoad(data);
+		return data;
+	}
+	/**
+	 * Stop reassign applicant
+	 * @param data
+	 * @return
+	 */
+	@PostMapping("/api/admin/reassign/appicant/progress/cancel")
+	public AsyncInformDTO reassignApplicantProgressCancel(@RequestBody AsyncInformDTO data) {
+			data=reassignServiceAsync.applicantProgressCancel();
+		return data;
+	}
+	
+	@PostMapping("/api/admin/reassign/users/log")
+	public ReassignUserDTO reassignUsersLog(@RequestBody ReassignUserDTO data) {
+		data = reassignService.eventLog(data);
 		return data;
 	}
 }

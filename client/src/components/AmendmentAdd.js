@@ -6,6 +6,7 @@ import Fetchers from './utils/Fetchers'
 import Navigator from './utils/Navigator'
 import Pharmadex from './Pharmadex'
 import CollectorTable from './utils/CollectorTable'
+import SearchControlNew from './utils/SearchControlNew'
 
 /**
  * Add new amendment
@@ -22,6 +23,7 @@ class AmendmentAdd extends Component{
                 selectobjecttomodify:'',
                 selectdatatomodify:'',
                 addmodification:'',
+                search:"",
             },
             data:{                                  //AmendmentNewDTO.java
                 dictItemId:this.props.dictItemId
@@ -152,8 +154,11 @@ class AmendmentAdd extends Component{
                 <Row>
                     <Col xs='12' sm='12' lg='6' xl='6'>
                         <Row>
-                            <Col>
+                            <Col xs='12' sm='12' lg='9' xl='9'>
                                 <h6>{this.state.labels.selectobjecttomodify}</h6>
+                            </Col>
+                            <Col  xs='12' sm='12' lg='3' xl='3'>
+                                <SearchControlNew key="10" label={this.state.labels.search} table={this.state.data.applications} loader={this.loadTable}/>
                             </Col>
                         </Row>
                         <Row>

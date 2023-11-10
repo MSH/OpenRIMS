@@ -211,7 +211,8 @@ public class ThingService {
 			data.getHeading().put(head.getPropertyName(), dto);
 		}
 		//logger.trace("literals{");
-		List<String> exts=boilerServ.variablesExtensions(data);
+		//exts - not used
+		//List<String> exts=boilerServ.variablesExtensions(data);
 		//Applicant user?
 		boolean thisApplicant=accessControlServ.isApplicant(user);
 

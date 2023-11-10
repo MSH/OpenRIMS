@@ -35,6 +35,10 @@ import com.github.binodnme.dateconverter.utils.DateBS;
  */
 public class ElStupido {
 	@Test
+	public void formatIt() {
+		System.out.println(String.format("Welcome to %d!", 12));
+	}
+	@Test
 	public void emptyContains() {
 		assertTrue("gdsdgsdgshdgshd".contains(""));
 	}

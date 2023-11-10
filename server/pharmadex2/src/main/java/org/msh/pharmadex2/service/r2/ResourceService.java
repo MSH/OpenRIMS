@@ -465,4 +465,13 @@ public class ResourceService {
 		public ResponseEntity<Resource> dateFormatHelp() throws ObjectNotFoundException, IOException {
 			return downloadFile("custom.date.format.help","CustomDateFormat.pdf");
 		}
+		/**
+		 * Applicant reassignment help
+		 * @return
+		 * @throws ObjectNotFoundException
+		 * @throws IOException
+		 */
+		public ResponseEntity<Resource> adminHelpReassignApplicant() throws ObjectNotFoundException, IOException {
+			return downloadFile("reassign.applicant.help","OpenRIMSReassignApplicant.pdf");
+		}
 	}

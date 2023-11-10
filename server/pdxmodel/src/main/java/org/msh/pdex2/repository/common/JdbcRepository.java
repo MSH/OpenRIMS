@@ -444,9 +444,9 @@ public class JdbcRepository {
 		params.addValue("email", email);
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
-		
+
 	}
-	
+
 	/**
 	 * Persons related to the node to temporary table _persons
 	 * @param nodeId
@@ -705,7 +705,7 @@ public class JdbcRepository {
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 	}
-	
+
 	public void report_open_nmra(long nodeid, String email) {
 		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
 		proc.withProcedureName("report_open_nmra");
@@ -714,7 +714,7 @@ public class JdbcRepository {
 		params.addValue("email", email);
 		proc.execute(params);
 	}
-	
+
 	/**
 	 * Get all values of the literal given
 	 * @param rootId
@@ -833,7 +833,7 @@ public class JdbcRepository {
 		proc.execute(params);
 
 	}
-	
+
 	/**
 	 * get  office by adminunitID
 	 */
@@ -850,10 +850,10 @@ public class JdbcRepository {
 		headers.getHeaders().add(TableHeader.instanceOf("ID", TableHeader.COLUMN_LONG));
 		headers.getHeaders().add(TableHeader.instanceOf("orgname", TableHeader.COLUMN_STRING));
 		List<TableRow> selectQuery = selectQuery("select * from service_office", headers);
-		
+
 		return selectQuery;
 	}
-	
+
 	/**
 	 * Select executors by the criteria given
 	 * @param id
@@ -917,7 +917,7 @@ public class JdbcRepository {
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 	}
-	
+
 	/**
 	 * Get assembly variables be configuration URL
 	 * @param url
@@ -1203,7 +1203,7 @@ public class JdbcRepository {
 				for(TableRow row: rows) {
 					if(row.getDbID()!=id) {
 						//create a new row with all columns
-						
+
 						id=row.getDbID();
 						pRow = TableRow.instanceOf(id);
 						pRows.add(pRow);
@@ -1236,8 +1236,8 @@ public class JdbcRepository {
 	}
 	/**
 	 * select files uploaded by user that do not link to any thing
-	* it is possible when a user upload files, however did not save a thing
-	* known usage ThingService.removeOrphans
+	 * it is possible when a user upload files, however did not save a thing
+	 * known usage ThingService.removeOrphans
 	 * @param url
 	 * @param email
 	 */
@@ -1264,7 +1264,7 @@ public class JdbcRepository {
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 	}
-	
+
 	/**
 	 * Links for a thingID
 	 * @param thingID
@@ -1274,11 +1274,11 @@ public class JdbcRepository {
 		proc.withProcedureName("linksByThing");
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("thingID", thingID);
-		
+
 		proc.execute(params);
 	}
-	
-	
+
+
 	/**
 	 * Get objects from reportpage table in form of a dictionary
 	 * @param objectUrl
@@ -1302,7 +1302,7 @@ public class JdbcRepository {
 		params.addValue("email", owner);
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
-		
+
 	}
 	public void atc_codes(String url) {
 		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
@@ -1326,15 +1326,15 @@ public class JdbcRepository {
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 	}
-/**
- * Known usage - Monitoring all feature for Supervisor, Moderator, Applicant, Secretary
- * @param 0 - lang
- * @param 1, 2, 3 - APPLICANT (mail applicant, null, null)
- * MODERATOR COUNTRY (null, mail moderator, null)
- * MODERATOR TERRITORY (null, mail moderator, mail moderator)
- * SUPERVISOR||SECRETARY COUNTRY (null, null, null)
- * SUPERVISOR||SECRETARY TERRITORY (null, null, mail supervisor||secretary)
- */
+	/**
+	 * Known usage - Monitoring all feature for Supervisor, Moderator, Applicant, Secretary
+	 * @param 0 - lang
+	 * @param 1, 2, 3 - APPLICANT (mail applicant, null, null)
+	 * MODERATOR COUNTRY (null, mail moderator, null)
+	 * MODERATOR TERRITORY (null, mail moderator, mail moderator)
+	 * SUPERVISOR||SECRETARY COUNTRY (null, null, null)
+	 * SUPERVISOR||SECRETARY TERRITORY (null, null, mail supervisor||secretary)
+	 */
 	public void monitoring_all(String app, String mod, String loc) {
 		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
 		proc.withProcedureName("monitoring_all");
@@ -1405,7 +1405,7 @@ public class JdbcRepository {
 		params.addValue("url", dataUrl);
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
-		
+
 	}
 
 	/**
@@ -1421,7 +1421,7 @@ public class JdbcRepository {
 		params.addValue("url", dataUrl);
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
-		
+
 	}
 	/**
 	 * Host processes schedule
@@ -1436,7 +1436,7 @@ public class JdbcRepository {
 		params.addValue("dictURL", dictURL);
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
-		
+
 	}
 	/**
 	Has applData open activities directly or indirectly
@@ -1448,7 +1448,7 @@ public class JdbcRepository {
 	or
 	call has_activities(null,null,null);
 	select * from has_activities;
-	**/
+	 **/
 	public void has_activities(String dictURL, String email, Long applDataID) {
 		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
 		proc.withProcedureName("has_activities");
@@ -1485,7 +1485,7 @@ public class JdbcRepository {
 		params.addValue("notifWeeks",notifWeeks);
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
-		
+
 	}
 	/**
 	 * host applications for a data URL given
@@ -1512,7 +1512,7 @@ public class JdbcRepository {
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 	}
-	
+
 	/**
 	 * monitoringFullApplicant
 	 */
@@ -1526,6 +1526,64 @@ public class JdbcRepository {
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 	}
+	/**
+	 * Get all data for User Reassign Details tables
+	 * @param email
+	 */
+	public void reassign_details(String email) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("reassign_details");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("email", email);
+		proc.execute(params);
+	}
+	/**
+	 * Get concepts to reassign and tree roots that are under to a email in all trees 
+	 * @param email
+	 */
+	public void to_reassign(String email) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("to_reassign");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("email", email);
+		proc.execute(params);
+	}
 
+	/**
+	 * Get event log by URL
+	 * @param url
+	 */
+	public void event_log(String url) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("event_log");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("url", url);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+	}
 
+	/**
+	 * Extract user's reassign log data
+	 * @param table
+	 * @return
+	 */
+	@Transactional
+	public void userReassignLog(TableQtb table) {
+		event_log("log.user.reassign");
+		table.getRows().clear();
+		String sql="select * from(\r\n" + 
+				"SELECT \r\n" + 
+				"le.ID as 'ID',\r\n" + 
+				"CAST(le.EventDate AS DATETIME) as 'eventDate',\r\n" + 
+				"le.executor as 'executor',\r\n" + 
+				"JSON_UNQUOTE(le.JSONData->'$.emailFrom') as 'emailFrom',\r\n" + 
+				"JSON_UNQUOTE(le.JSONData->'$.emailTo') as 'emailTo',\r\n" + 
+				"JSON_UNQUOTE(le.JSONData->'$.reassigned') as 'quantity',\r\n" + 
+				"JSON_UNQUOTE(le.JSONData->'$.description') as 'description'\r\n" + 
+				"FROM event_log le\r\n" + 
+				") t";
+		List<TableRow> rows = qtbGroupReport(sql, "", "", table.getHeaders());
+		TableQtb.tablePage(rows, table);
+	}
+	
 }

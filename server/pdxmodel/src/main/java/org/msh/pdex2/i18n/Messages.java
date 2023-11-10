@@ -45,8 +45,8 @@ public class Messages {
 	/**
 	 * key is locale name in uppercase, value is all messages for this locale in key,value map. Keys are non case sensitive as well
 	 */
-	Map<String, Map<String,String>> messages = new HashMap<String, Map<String,String>>();
-	Locale currentLocale = Locale.US;					//by default
+	public volatile Map<String, Map<String,String>> messages = new HashMap<String, Map<String,String>>();
+	public volatile Locale currentLocale = Locale.US;					//by default
 
 	public Languages languages = new Languages();
 	@Autowired

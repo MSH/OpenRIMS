@@ -5,6 +5,7 @@ import org.msh.pdex2.i18n.Messages;
 import org.msh.pharmadex2.dto.AboutDTO;
 import org.msh.pharmadex2.dto.AskForPass;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
+import org.msh.pharmadex2.dto.form.AllowValidation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,29 +74,42 @@ public class MailService {
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	public AboutDTO testMail(UserDetailsDTO user, AboutDTO message) throws ObjectNotFoundException {
+	public AllowValidation testMail(UserDetailsDTO user, AllowValidation message) throws ObjectNotFoundException {
 		message.clearErrors();
-		if(user.getEmail().endsWith("@gmail.com")) {
-			SimpleMailMessage mailMess = new SimpleMailMessage(); 
-			JavaMailSenderImpl impl = (JavaMailSenderImpl) emailSender;
-			mailMess.setFrom(impl.getUsername());
-	        mailMess.setTo(user.getEmail());
-	        mailMess.setSubject(messages.get("Test"));
-	        mailMess.setText(messages.get("Test"));
-	        try {
-	        	emailSender.send(mailMess);
-	        	message.setValid(true);
-	        	message.setIdentifier(messages.get("send_success")+" "+user.getEmail());
-	        }catch(Exception e) {
-	        	message.setValid(false);
-				message.setIdentifier(e.getMessage()+" "+user.getEmail());
-	        }
+		String sendTo=user.getEmail();
+		if(sendTo.endsWith("@gmail.com")) {
+			message=testMail(sendTo, message);
 		}else {
 			message.setValid(false);
 			message.setIdentifier(messages.get("invalid_email")+" "+user.getEmail());
 		}
 		return message;
 	}
+	
+	/**
+	 * Send a main to the address given
+	 * @param sendTo
+	 * @param message
+	 * @return
+	 */
+	public AllowValidation testMail(String sendTo, AllowValidation message) {
+		SimpleMailMessage mailMess = new SimpleMailMessage(); 
+		JavaMailSenderImpl impl = (JavaMailSenderImpl) emailSender;
+		mailMess.setFrom(impl.getUsername());
+		mailMess.setTo(sendTo);
+		mailMess.setSubject(messages.get("Test"));
+		mailMess.setText(messages.get("Test"));
+		try {
+			emailSender.send(mailMess);
+			message.setValid(true);
+			message.setIdentifier(messages.get("send_success")+" "+sendTo);
+		}catch(Exception e) {
+			message.setValid(false);
+			message.setIdentifier(e.getMessage()+" "+sendTo);
+		}
+		return message;
+	}
+
 	/**
 	 * Send a password
 	 * @param data
@@ -116,6 +130,7 @@ public class MailService {
         }
 		return data;
 	}
+
 	
 
 }

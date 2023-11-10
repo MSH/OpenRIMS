@@ -10,6 +10,7 @@ import ButtonUni from './form/ButtonUni'
 import SearchControlNew from './utils/SearchControlNew'
 import Thing from './Thing'
 import Spinner from './utils/Spinner'
+import ThingsPublisher from './reports/ThingsPublisher'
 
 /**
  * List of persons that should be included to an application. Necessary for pharamcy site, etc
@@ -152,7 +153,10 @@ class Persons extends Component{
                 ret.push(
                     this.showList("header")
                 )
-                this.state.thing.path.forEach((thing, index)=>{
+                ret.push(
+                    <ThingsPublisher data={this.state.thing.path} recipient={this.state.identifier}/>
+                )
+                /* this.state.thing.path.forEach((thing, index)=>{
                     thing.readOnly=true
                     ret.push(
                         <Thing key={index}
@@ -162,7 +166,7 @@ class Persons extends Component{
                         narrow
                     />
                     )
-                })
+                }) */
             }
             ret.push(
                 this.showList("footer")

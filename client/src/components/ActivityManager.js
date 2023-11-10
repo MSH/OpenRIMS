@@ -73,8 +73,8 @@ class ActivityManager extends Component{
         this.headerFooter=this.headerFooter.bind(this)
         this.hasCancelled=this.hasCancelled.bind(this)
         this.activityHistory=this.activityHistory.bind(this)
-        this.toggle=this.toggle.bind(this)
-        this.thingComp=this.thingComp.bind(this)
+        //this.toggle=this.toggle.bind(this)
+        //this.thingComp=this.thingComp.bind(this)
         this.createBreadCrumbAndExecutorName=this.createBreadCrumbAndExecutorName.bind(this)
         this.scheduledHistoryTable=this.scheduledHistoryTable.bind(this)
         this.completedHistoryTable=this.completedHistoryTable.bind(this)
@@ -273,7 +273,7 @@ class ActivityManager extends Component{
 
      /**
      * добавляем на экран нужный thing 
-     */
+     
     thingComp(index, thing){
         let flag = false
         if(Fetchers.isGoodArray(this.state.fullcollapse)){
@@ -297,10 +297,10 @@ class ActivityManager extends Component{
             return []
         }
     }
- 
+ */
     /**
      * Ставим отметку какой именно thing нужно открыть
-     */
+    
     toggle(ind) {
         if(this.state.data != undefined && this.state.data.application != undefined){
             if(Fetchers.isGoodArray(this.state.fullcollapse)){
@@ -313,7 +313,7 @@ class ActivityManager extends Component{
             this.setState(this.state.fullcollapse);
         }
     }
-
+ */
     componentDidMount(){
         window.addEventListener("message",this.eventProcessor)
         this.loadData()

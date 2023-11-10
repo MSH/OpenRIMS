@@ -1,5 +1,5 @@
 import React , {Component} from 'react'
-import {Container,Row, Col} from 'reactstrap'
+import {Container,Row, Col, FormGroup, Label, Input} from 'reactstrap'
 import PropTypes from 'prop-types'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
@@ -87,7 +87,7 @@ class DictNode extends Component{
      * @example
      * DictNode.createFields(this.state.data.literals, this)
      */
-    static createFields(literals, component,lines){
+    static createFields(literals, component, lines){
         let ret=[]
         if(lines==undefined){
             lines="4"
@@ -155,7 +155,7 @@ class DictNode extends Component{
                         />
                     </Col>
                     <Col hidden={this.state.data.nodeId==0} xs='12' sm='12' lg='4' xl='4'>
-                    <ButtonUni
+                        <ButtonUni
                             disabled={!this.state.data.leaf}
                             label={this.state.labels.global_suspend}
                             color="warning"

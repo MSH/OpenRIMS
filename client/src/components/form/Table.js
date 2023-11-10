@@ -117,6 +117,6 @@ class Table extends Component{
 export default Table
 Table.propTypes={
     loadAPI : PropTypes.string.isRequired,           // API to load/reload content
-    onSelectSubject: PropTypes.string.isRequired,   // message name for onSelect event
+    onSelectSubject: PropTypes.string.isRequired,   // message name for onSelect or onload event
     recipient:PropTypes.string.isRequired,          //recepient for messaging  
 }

@@ -744,7 +744,10 @@ public class SystemService {
 	 */
 	public List<Concept> guestWorkflow(String guestDictUrl, String appicationUrl, List<Concept> ret)
 			throws ObjectNotFoundException {
-		List<OptionDTO> dictOpt = dictServ.loadPlain(guestDictUrl);
+		//02112023 khomenska refactoring code
+		//List<OptionDTO> dictOpt = dictServ.loadPlain(guestDictUrl);
+		Concept root = closureServ.loadRoot(guestDictUrl);
+		List<OptionDTO> dictOpt = dictServ.loadLevelAsOptions(root);
 		for (OptionDTO opt : dictOpt) {
 			Concept node = closureServ.loadConceptById(opt.getId());
 			String applUrl = literalServ.readValue("applicationurl", node);
@@ -809,7 +812,7 @@ public class SystemService {
 	 * 
 	 * @return
 	 */
-	public List<String> applicationLifeCycleUrls() {
+	public static List<String> applicationLifeCycleUrls() {
 		List<String> ret = new ArrayList<String>();
 		ret.add(DICTIONARY_GUEST_APPLICATIONS);
 		ret.add(DICTIONARY_HOST_APPLICATIONS);

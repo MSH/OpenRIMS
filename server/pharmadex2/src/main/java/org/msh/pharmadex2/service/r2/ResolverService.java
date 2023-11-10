@@ -196,19 +196,14 @@ public class ResolverService {
 				}
 			}
 
-			if(dataType.equalsIgnoreCase("dateBS") || dataType.equalsIgnoreCase("todayBS")) {
-				if(data instanceof LocalDate) {
-					LocalDate ld = (LocalDate) data;
-					String ldStr = boilerServ.localDateToNepali(ld, true);
-					return ldStr;
-				}
-			}
-
-			if(dataType.equalsIgnoreCase("dateBS1") || dataType.equalsIgnoreCase("todayBS1")) {
-				if(data instanceof LocalDate) {
-					LocalDate ld = (LocalDate) data;
-					String ldStr = boilerServ.localDateToNepali(ld, false);
-					return ldStr;
+			if(dataType.equalsIgnoreCase("dateBS1") || dataType.equalsIgnoreCase("todayBS1")
+					||dataType.equalsIgnoreCase("dateBS") || dataType.equalsIgnoreCase("todayBS")
+					|| dataType.equalsIgnoreCase("registeredBS") || dataType.equalsIgnoreCase("expiredBS")
+					|| dataType.equalsIgnoreCase("registeredBS1") || dataType.equalsIgnoreCase("expiredBS1")
+					|| dataType.equalsIgnoreCase("fromBS") || dataType.equalsIgnoreCase("toBS")
+					|| dataType.equalsIgnoreCase("fromBS1") || dataType.equalsIgnoreCase("toBS1")) {
+				if(data instanceof String) {
+					return data;
 				}
 			}
 			// full Gregorian years from date to the current date
@@ -421,6 +416,16 @@ public class ResolverService {
 		LocalDate valLd = data.getDates().get(varName.toUpperCase());
 		if(valLd != null) {
 			value.put("date", valLd);
+			value.put("dateBS", boilerServ.localDateToNepali(valLd,false));
+			value.put("dateBS1", boilerServ.localDateToNepali(valLd,true));
+			value.put("years", valLd);
+			value.put("yearsBS", valLd);
+			value.put("yearsBS1", valLd);
+			// check nepali
+			String nepali=(String) value.get("dateBS");
+			if(nepali==null || nepali.isEmpty()) {
+				value = renderServ.error(varName, "readVariable. Nepali date owerflow for "+varName, value);
+			}
 			return value;
 		}
 		//dictionaries
@@ -458,10 +463,15 @@ public class ResolverService {
 			value.put("literal",valReg.getReg_number().getValue());
 			value.put("registered",valReg.getRegistration_date().getValue());
 			value.put("expired",valReg.getExpiry_date().getValue());
-			value.put("registeredBS",boilerServ.localDateToNepali(valReg.getRegistration_date().getValue(),true));
-			value.put("expiredBS",boilerServ.localDateToNepali(valReg.getExpiry_date().getValue(),true));
-			value.put("registeredBS1",boilerServ.localDateToNepali(valReg.getRegistration_date().getValue(),false));
-			value.put("expiredBS1",boilerServ.localDateToNepali(valReg.getExpiry_date().getValue(),false));
+			value.put("registeredBS",boilerServ.localDateToNepali(valReg.getRegistration_date().getValue(),false));
+			value.put("expiredBS",boilerServ.localDateToNepali(valReg.getExpiry_date().getValue(),false));
+			value.put("registeredBS1",boilerServ.localDateToNepali(valReg.getRegistration_date().getValue(),true));
+			value.put("expiredBS1",boilerServ.localDateToNepali(valReg.getExpiry_date().getValue(),true));
+			// check nepali
+			String nepali=(String) value.get("registeredBS");
+			if(nepali==null || nepali.isEmpty()) {
+				value = renderServ.error(varName, "readVariableFromThing. Nepali date owerflow for "+varName, value);
+			}
 		}
 		//droplist
 		FormFieldDTO<OptionDTO> dropList= data.getDroplist().get(varName.toUpperCase());
@@ -579,6 +589,11 @@ public class ResolverService {
 					value.put("years", dt);
 					value.put("yearsBS", dt);
 					value.put("yearsBS1", dt);
+					// check nepali
+					String nepali=(String) value.get("dateBS");
+					if(nepali==null || nepali.isEmpty()) {
+						value = renderServ.error(varName, "readVariable. Nepali date owerflow for "+varName, value);
+					}
 					return value;
 				}else if(valStr.length() == 0) {
 					value.put("date", valStr);
@@ -1030,6 +1045,12 @@ public class ResolverService {
 			value.put("expired", expDate);
 			value.put("expiredBS", boilerServ.localDateToNepali(expDate, false));
 			value.put("expiredBS1",boilerServ.localDateToNepali(expDate, true));
+			// check nepali
+			String nepali=(String) value.get("registeredBS");
+			String nepali1=(String) value.get("expiredBS");
+			if(nepali==null || nepali.isEmpty() || nepali1==null || nepali1.isEmpty()) {
+				value = renderServ.error(varName, "register. Nepali date owerflow for "+varName, value);
+			}
 		}
 		return value;
 	}

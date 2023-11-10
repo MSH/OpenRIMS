@@ -92,6 +92,10 @@ import com.github.binodnme.dateconverter.utils.DateBS;
 @Service
 public class BoilerService {
 	private static final Logger logger = LoggerFactory.getLogger(BoilerService.class);
+	public static final LocalDate MIN_NEPALI_DATE = LocalDate.of(1944, 1, 1);
+	public static final LocalDate MAX_NEPALI_DATE = LocalDate.of(2044, 1, 1);
+
+
 	@Autowired
 	ConceptRepo conceptRepo;
 	@Autowired
@@ -136,6 +140,7 @@ public class BoilerService {
 	private PubOrgRepo pubOrgRepo;
 	@Autowired
 	private LegacyDataRepo legacyRepo;
+
 	/**
 	 * Convert resource bundle to DTO
 	 * @param bundle
@@ -219,8 +224,8 @@ public class BoilerService {
 			return LocalDateTime.now();
 		}
 		return date.toInstant()
-			      .atZone(ZoneId.systemDefault())
-			      .toLocalDateTime();
+				.atZone(ZoneId.systemDefault())
+				.toLocalDateTime();
 	}
 	/**
 	 * Create display value for all headers
@@ -311,7 +316,7 @@ public class BoilerService {
 		}
 		throw new ObjectNotFoundException("loadThingByNode. Thing not found. Node id is " +node.getID());
 	}
-	
+
 	@Transactional
 	public ThingThing thingThingByNode(Concept node) throws ObjectNotFoundException {
 		List<ThingThing> retl= thingThingRepo.findByConcept(node);
@@ -423,7 +428,7 @@ public class BoilerService {
 		List<History> ret = historyRepo.findAllByApplicationOrderByCome(application);
 		return ret;
 	}
-	
+
 	/**
 	 * load all history for application. Sort by Come
 	 * @param application
@@ -434,7 +439,7 @@ public class BoilerService {
 		List<History> ret = historyRepo.findAllByApplicationDataAndGo(applData, null);
 		return ret;
 	}
-	
+
 	/**
 	 * Extract application or data url using appropriative node
 	 * @param application
@@ -673,49 +678,28 @@ public class BoilerService {
 	 * @return
 	 */
 	public String localDateToNepali(LocalDate ldt, boolean full) {
-		/*List<Integer> nums = new ArrayList<Integer>();
-		nums.add(0x966); // zero
-		nums.add(0x967); // one
-		nums.add(0x968); // two
-		nums.add(0x969); // three
-		nums.add(0x96A); // four
-		nums.add(0x96B); // five
-		nums.add(0x96C); // six
-		nums.add(0x96D); // seven
-		nums.add(0x96E); // eight
-		nums.add(0x96F); // nine
-		 */
-		Date dt = localDateToDate(ldt);
-		DateBS dateBS = DateConverter.convertADToBS(dt);
-		String year = dateBS.getYear()+"";
-		String month= dateBS.getMonth()+1+"";		//2022-11-01 months from 1
-		if(month.length()==1) {
-			month="0"+month;
-		}
-		String day=dateBS.getDay()+"";
-		if(day.length()==1) {
-			day="0"+day;
-		}
-		day=day.substring(0,2);
-		//convert to nepali chars
-		StringBuilder sb = new StringBuilder();
-		String str = year+"-"+month+"-"+day;
-		str=str.trim();
-		String ret=str;
-		if(full) {
-			/*	for (int i = 0; i < str.length(); i++) {
-					String ch=str.substring(i, i+1);
-					if(ch.length()==1) {
-						if(ch.equals("-")) {
-							sb.append("-");
-						}else {
-							Integer code= Integer.valueOf(ch);
-							sb.append(Character.toChars(nums.get(code.intValue())));
-						}
-					}
-				}
-				ret  = sb.toString();*/
-			ret=numberToNepali(str);
+		String ret="";
+		if(ldt.isAfter(MIN_NEPALI_DATE) && ldt.isBefore(MAX_NEPALI_DATE)) {
+			Date dt = localDateToDate(ldt);
+			DateBS dateBS = DateConverter.convertADToBS(dt);
+			String year = dateBS.getYear()+"";
+			String month= dateBS.getMonth()+1+"";		//2022-11-01 months from 1
+			if(month.length()==1) {
+				month="0"+month;
+			}
+			String day=dateBS.getDay()+"";
+			if(day.length()==1) {
+				day="0"+day;
+			}
+			day=day.substring(0,2);
+			//convert to nepali chars
+			StringBuilder sb = new StringBuilder();
+			String str = year+"-"+month+"-"+day;
+			str=str.trim();
+			ret=str;
+			if(full) {
+				ret=numberToNepali(str);
+			}
 		}
 		return ret;
 	}
@@ -1288,7 +1272,7 @@ public class BoilerService {
 					ret=df.format(regNod);
 				}
 				ret=replaceNonPrintCh(ret);
-				
+
 				return ret.trim();
 			} catch (Exception e) {
 				return null;
@@ -1296,7 +1280,7 @@ public class BoilerService {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Get cell value as a number. No exceptions
 	 * @param row
@@ -1332,8 +1316,8 @@ public class BoilerService {
 	 */
 	public LocalDateTime localDateTimeServer(Date dateToConvert) {
 		return Instant.ofEpochMilli(dateToConvert.getTime())
-			      .atZone(ZoneId.systemDefault())
-			      .toLocalDateTime();
+				.atZone(ZoneId.systemDefault())
+				.toLocalDateTime();
 	}
 	/**
 	 * Load thingLink
@@ -1390,7 +1374,7 @@ public class BoilerService {
 			throw new ObjectNotFoundException("findByConcept. Public organization by concept  not found. The Concept Id is "+concept.getID(),logger);
 		}
 	}
-	
+
 	@Transactional
 	public LegacyData findLegacyByConcept(Concept concept) throws ObjectNotFoundException {
 		Optional<LegacyData> leg = legacyRepo.findByConcept(concept);
@@ -1422,18 +1406,18 @@ public class BoilerService {
 			return value;
 		}
 	}
-/**
- *replase non-printable characters
- */
+	/**
+	 *replase non-printable characters
+	 */
 	public String replaceNonPrintCh(String val) {
 		// strips off all non-ASCII characters
 		//val = val.replaceAll("[^\\x00-\\x7F]", "");
-		 
-		    // erases all the ASCII control characters
-			val = val.replaceAll("[\\p{Cntrl}&&[^\r\n\t]]", "");
-		     
-		    // removes non-printable characters from Unicode
-			val = val.replaceAll("\\p{C}", "");
+
+		// erases all the ASCII control characters
+		val = val.replaceAll("[\\p{Cntrl}&&[^\r\n\t]]", "");
+
+		// removes non-printable characters from Unicode
+		val = val.replaceAll("\\p{C}", "");
 		return val;
 	}
 	/** 
@@ -1447,7 +1431,7 @@ public class BoilerService {
 		root=closureServ.getParent(root);
 		return root;
 	}
-	
+
 	/**
 	 * Create a path from levels
 	 * 
@@ -1482,7 +1466,7 @@ public class BoilerService {
 		}
 		return path;
 	}
-	
+
 	/** 
 	 * Load all activities in the workflow
 	 * 
