@@ -3,7 +3,6 @@ package org.msh.pharmadex2.service.r2;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import org.msh.pdex2.dto.i18n.Language;
@@ -14,12 +13,11 @@ import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
-import org.msh.pdex2.model.old.Query;
+import org.msh.pdex2.model.r2.Assembly;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.Thing;
 import org.msh.pdex2.model.r2.ThingDict;
 import org.msh.pdex2.repository.common.JdbcRepository;
-import org.msh.pdex2.repository.common.QueryRepository;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AddressDTO;
 import org.msh.pharmadex2.dto.AssemblyDTO;
@@ -69,8 +67,6 @@ public class DictService {
 	Messages messages;
 	@Autowired
 	AssemblyService assembServ;
-	@Autowired
-	QueryRepository queryRep;
 
 	/**
 	 * Save the node.
@@ -103,7 +99,7 @@ public class DictService {
 							fld.setError(true);
 							fld.setSuggest(messages.get("valueshouldbeunique "));
 							node.setValid(false);
-							
+
 							return node;
 						}
 					}
@@ -366,9 +362,12 @@ public class DictService {
 		data.getLiterals().clear();
 		//create empty literals
 		data.getLiterals().putAll(literalServ.mandatoryLiterals());
-		List<AssemblyDTO> auxLit = assembServ.auxLiterals(data.getUrl());
+		List<Assembly> assms = assembServ.loadDataConfiguration(data.getUrl());
+		List<AssemblyDTO> auxLit = assembServ.auxLiterals(data.getUrl(),assms, new ArrayList<AssemblyDTO>());
 		for(AssemblyDTO adto : auxLit) {
-			data.getLiterals().put(adto.getPropertyName(),FormFieldDTO.of(""));
+			// 2023-11-15 data.getLiterals().put(adto.getPropertyName(),FormFieldDTO.of(""));
+			data.getLiterals().put(adto.getPropertyName(),FormFieldDTO.of("", adto.isReadOnly(), adto.isTextArea()
+					, adto.getAssistant()));
 		}
 		if(data.getNodeId()>0) {
 			//load existing literals
@@ -420,7 +419,7 @@ public class DictService {
 					table.setGeneralSearch(searchStr);
 				}
 			}
-			
+
 			table = loadTable(parentNode, table,new ArrayList<Long>(),false, false);
 			data.setTable(table);
 		}
@@ -509,9 +508,9 @@ public class DictService {
 	public DictionaryDTO createDictionaryFromRoot(DictionaryDTO ret, Concept root) throws ObjectNotFoundException {
 		//ika
 		if(root==null) {
-		//Concept 
-		root = closureServ.loadRoot(ret.getUrl());
-		ret.setSystem(checkSystem(root));
+			//Concept 
+			root = closureServ.loadRoot(ret.getUrl());
+			ret.setSystem(checkSystem(root));
 		}
 		if(ret.isReadOnly()) {
 			ret.setSelectedOnly(true);
@@ -789,7 +788,7 @@ public class DictService {
 			/*
 			recycle= closureServ.loadRoot(SystemService.RECYCLE);
 			jdbcRepo.moveSubTree(conc, recycle);
-			*/
+			 */
 		}
 		if(data.getNodeId()==0 && data.isValid()) {
 			data.setValid(false);
@@ -823,12 +822,11 @@ public class DictService {
 			dict.setSystem(checkSystem(root));//ika
 			data.setSelect(createDictionaryFromRoot(dict, root));
 			reloadTable = false;
-			
+			dict=page(dict);
 			// 31102023 khomenska add LifeCycle marker to DictionaryDTO
-			dict.setLifeCycle(false);
 			List<String> applLifeCycleUrls = SystemService.applicationLifeCycleUrls();
 			if(applLifeCycleUrls.contains(dict.getUrl())) {
-				dict.setLifeCycle(true);
+				dict.getTable().setSelectable(false);
 			}
 		}else if(data.getSelectId() == 0 && data.isEditor()) {//create new fields dictionary
 			DictionaryDTO dict = new DictionaryDTO();
@@ -839,26 +837,23 @@ public class DictService {
 
 		if(reloadTable)
 			loadTableAllDictionaries(data);
-		
 		return data;
 	}
 
+	// 13.12.2023 khomenska remove queryTable from DB
 	public DictionariesDTO loadTableAllDictionaries(DictionariesDTO data) {
 		data.getTable().setSelectable(true);
 		if(data.getTable().getHeaders().getHeaders().size()==0) {
 			data.getTable().setHeaders(createHeadersAllDict(data.getTable().getHeaders()));
 		}
-		Optional<Query> optional = queryRep.findByKey("alldictionary");
-		if(optional.isPresent()) {
-			Query query = optional.get();
-			String lang = messages.getCurrentLocaleStr().toUpperCase();
-			String where = "url LIKE 'dictionary.%' and lang like '" + lang + "'";
+		String query = "select * from alldictionary ";
+		String lang = messages.getCurrentLocaleStr().toUpperCase();
+		String where = "url LIKE 'dictionary.%' and lang like '" + lang + "'";
 
-			List<TableRow> rows = jdbcRepo.qtbGroupReport(query.getSql(), "", where, data.getTable().getHeaders());
-			data.getTable().getHeaders().setPageSize(100);
-			TableQtb.tablePage(rows, data.getTable());
-			//data.setTable(boilerServ.translateRows(data.getTable()));
-		}
+		List<TableRow> rows = jdbcRepo.qtbGroupReport(query, "", where, data.getTable().getHeaders());
+		data.getTable().getHeaders().setPageSize(100);
+		TableQtb.tablePage(rows, data.getTable());
+		//data.setTable(boilerServ.translateRows(data.getTable()));
 
 		return data;
 	}
@@ -878,7 +873,7 @@ public class DictService {
 			String description=literalServ.readValue("description", root);
 			data.getPrefLabel().setValue(prefLabel);
 			data.getDescription().setValue(description);
-			
+
 			if(root.getIdentifier().equals(SystemService.DICTIONARY_ADMIN_UNITS)) {
 				data.setGisvisible(true);
 				String gisloc = literalServ.readValue(LiteralService.GIS_LOCATION, root);
@@ -926,7 +921,7 @@ public class DictService {
 			root.setIdentifier(data.getUrl().getValue());
 			literalServ.createUpdateLiteral("prefLabel", data.getPrefLabel().getValue(), root);
 			literalServ.createUpdateLiteral("description", data.getDescription().getValue(), root);
-			
+
 			if(root.getIdentifier().equals(SystemService.DICTIONARY_ADMIN_UNITS)) {
 				literalServ.createUpdateLiteral(LiteralService.GIS_LOCATION, data.getGisLocation().getValue(), root);
 				literalServ.createUpdateLiteral(LiteralService.ZOMM, data.getZoom().getValue(), root);
@@ -1018,7 +1013,7 @@ public class DictService {
 			for(AssemblyDTO adto : auxLiterals) {
 				prefLabel=prefLabel || adto.getPropertyName().equals("prefLabel");
 				description=description || adto.getPropertyName().equals("description");
-				data.getLiterals().put(adto.getPropertyName(), FormFieldDTO.of("",adto.isReadOnly(), adto.isTextArea()));
+				data.getLiterals().put(adto.getPropertyName(), FormFieldDTO.of("",adto.isReadOnly(), adto.isTextArea(),adto.getAssistant()));
 			}
 		}
 		if(!prefLabel) {
@@ -1215,11 +1210,11 @@ public class DictService {
 	@Transactional
 	public String dictPath(String locale, Concept dictNode) throws ObjectNotFoundException {
 		String ret="";
-		 List<String> retList = literalServ.loadAllParentPrefLabels(dictNode, locale);
-		 ret=String.join(",", retList);
+		List<String> retList = literalServ.loadAllParentPrefLabels(dictNode, locale);
+		ret=String.join(",", retList);
 		return ret;
 	}
-	
+
 	public boolean isAdminUnits(Concept root) {
 		return root.getIdentifier().equalsIgnoreCase("dictionary.admin.units");
 	}
@@ -1282,4 +1277,5 @@ public class DictService {
 		}
 		return data;
 	}
+
 }

@@ -6,6 +6,7 @@ import java.time.ZoneId;
 import java.util.Date;
 
 import org.msh.pdex2.dto.table.TableCell;
+import org.msh.pharmadex2.dto.enums.AssistantEnum;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -24,7 +25,8 @@ public class FormFieldDTO<T> extends FieldSuggest{
 	private int bdScale=2;		//Big decimal scale
 	private boolean mark=false;	//mark this field by color
 	private String detail=""; // 06122022 khomenska auxiliary field, for example for the calendar type depending on the configuration settings
-
+	private AssistantEnum assistant = AssistantEnum.NO;	// do we need assistance to input data to this field?
+	private String description="";								//help or assistant text
 	public FormFieldDTO() {
 		super();
 	}
@@ -102,6 +104,22 @@ public class FormFieldDTO<T> extends FieldSuggest{
 		this.detail = detail;
 	}
 
+	public AssistantEnum getAssistant() {
+		return assistant;
+	}
+
+	public void setAssistant(AssistantEnum assistant) {
+		this.assistant = assistant;
+	}
+
+	public String getDescription() {
+		return description;
+	}
+
+	public void setDescription(String description) {
+		this.description = description;
+	}
+
 	@Override
 	public String toString() {
 		return getValue().toString();
@@ -131,7 +149,23 @@ public class FormFieldDTO<T> extends FieldSuggest{
 		return ret;
 	}
 
-
+	/**
+	 * Create text field, enhanced with assistant
+	 * @param string
+	 * @param readOnly
+	 * @param textArea
+	 * @return
+	 */
+	public static FormFieldDTO<String> of(String string, boolean readOnly, boolean textArea, AssistantEnum assistant) {
+		if(string==null) {
+			string="";
+		}
+		FormFieldDTO<String> ret = new FormFieldDTO<String>(string);
+		ret.setReadOnly(readOnly);
+		ret.setTextArea(textArea);
+		ret.setAssistant(assistant);
+		return ret;
+	}
 
 	public static FormFieldDTO<BigDecimal> of(BigDecimal value, int scale) {
 		BigDecimal myValue = BigDecimal.ZERO;

@@ -24,7 +24,6 @@ import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.FileResource;
 import org.msh.pdex2.repository.common.JdbcRepository;
-import org.msh.pdex2.repository.common.QueryRepository;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.FileDTO;
 import org.msh.pharmadex2.dto.LegacyDataErrorsDTO;
@@ -37,7 +36,6 @@ import org.msh.pharmadex2.service.common.ValidationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -72,8 +70,6 @@ public class ImportATCcodesService {
 	Messages messages;
 	@Autowired
 	AssemblyService assembServ;
-	@Autowired
-	QueryRepository queryRep;
 	@Autowired
 	private ThingService thingServ;
 	@Autowired
@@ -177,7 +173,7 @@ public class ImportATCcodesService {
 				+getCounter().get()
 				+"/"+getTotal().get();
 		data.getLiterals().get(AssemblyService.DATAIMPORT_RESULT).setValue(mess);
-		data=thingServ.thingSaveUnderParent(data, user);
+		data=thingServ.saveUnderParent(data, user);
 		logger.trace(mess);
 	}
 	/**
@@ -188,7 +184,7 @@ public class ImportATCcodesService {
 	 * @throws IOException
 	 */
 	public void importRun(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException, IOException{
-		data=thingServ.thingSaveUnderParent(data, user);
+		data=thingServ.saveUnderParent(data, user);
 		setTotal(new AtomicInteger(0));
 		setCounter(new AtomicInteger(0));
 		writeProtocol(data, user, messages.get("btn_startimport"));

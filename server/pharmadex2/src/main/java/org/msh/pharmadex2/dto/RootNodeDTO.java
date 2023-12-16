@@ -1,5 +1,6 @@
 package org.msh.pharmadex2.dto;
 
+import org.msh.pharmadex2.dto.enums.AssistantEnum;
 import org.msh.pharmadex2.dto.form.AllowValidation;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.dto.form.Validator;
@@ -14,7 +15,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class RootNodeDTO  extends AllowValidation {
 	private long rootId=0;
 	@Validator(above=3,below=80)
-	private FormFieldDTO<String> url = FormFieldDTO.of("");
+	private FormFieldDTO<String> url = FormFieldDTO.of("",true,false, AssistantEnum.URL_DICTIONARY_NEW);
 	@Validator(above=3,below=80)
 	private FormFieldDTO<String> prefLabel = FormFieldDTO.of("");
 	private FormFieldDTO<String> description = FormFieldDTO.of("");

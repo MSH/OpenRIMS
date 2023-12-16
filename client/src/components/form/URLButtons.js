@@ -5,16 +5,18 @@ import Locales from '../utils/Locales'
 
 /**
  * Buttons at the left of URL fiels
+ * ~~~~
+ *  assistant:PropTypes.oneOf(['NO','URL_DICTIONARY_NEW','URL_ANY']).isRequired,    //for which assistant will be needed
+    recipient:PropTypes.string.isRequired,                                          //for messages
+    title:PropTypes.string,     //title text to guide the user
+ * ~~~~
  */
 class URLButtons extends Component{
     constructor(props){
         super(props)
         this.state={
             identifier:Date.now().toString(),
-            labels:{
-                url_assistant:'',
-                paste_url:''
-            }
+            labels:{}
            
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -31,8 +33,6 @@ class URLButtons extends Component{
 
     componentDidMount(){
         window.addEventListener("message",this.eventProcessor)
-        Locales.resolveLabels(this)
-        Locales.createLabels(this)
     }
 
     componentWillUnmount(){
@@ -40,34 +40,38 @@ class URLButtons extends Component{
     }
 
     render(){
-        let select=false
-        if(this.props.select){
-            select=true
+        let title=''
+        if(this.props.title){
+            title=this.props.title
+        }
+        let value=this.props.value
+        if(value == undefined){
+            value=''
         }
         let paramJSON={
             assistant:this.props.assistant,
-            select:select
+            value:value,
+            recipient:this.props.recipient,
+            title:title
         }
         let param = encodeURI(JSON.stringify(paramJSON))
-        return []   //temporarely
-       /*  return(
+        return(
             <ButtonGroup>
-                <Button title={this.state.labels.url_assistant}
+                <Button title={this.props.title}
                     onClick={()=>window.open('/admin#urlassistant/'+param,'_blank')}
                 >
                     <i className="fa fa-question-circle" aria-hidden="true"></i>
                 </Button>
-                <Button title={this.state.labels.paste_url}>
-                    <i className="fa fa-clipboard" aria-hidden="true"></i>
-                </Button>
             </ButtonGroup> 
-        )*/
+        )
     }
 
 
 }
 export default URLButtons
 URLButtons.propTypes={
-    assistant:PropTypes.oneOf(['dictionaries','data','workflow','activity', 'resource']).isRequired,    //for which assistant will be needed
-    select:PropTypes.bool   //false construct the URL, true, select the existing
+    assistant:PropTypes.string.isRequired,    //for which assistant will be needed
+    recipient:PropTypes.string.isRequired,    //for messages
+    value:PropTypes.string,                   //current URL value if one
+    title:PropTypes.string,     //title text to guide the user
 }

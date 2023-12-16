@@ -1,6 +1,5 @@
 import React , {Component} from 'react'
 import {Container, Row, Col} from 'reactstrap'
-import PropTypes from 'prop-types'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
 import Navigator from './utils/Navigator'
@@ -8,10 +7,10 @@ import SearchControlNew from './utils/SearchControlNew'
 import ButtonUni from './form/ButtonUni'
 import Pharmadex from './Pharmadex'
 import CollectorTable from './utils/CollectorTable'
-import FieldGuarded from './form/FieldGuarded'
 import ViewEdit from './form/ViewEdit'
 import Thing from './Thing'
 import Dictionary from './Dictionary'
+import FieldDisplay from './form/FieldDisplay'
 
 /**
  * Administrator of resources
@@ -41,6 +40,7 @@ class Resources extends Component{
                 global_elreference:'',
                 warningRemove:'',
                 global_help:'',
+                items:'',
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -194,10 +194,10 @@ class Resources extends Component{
             return(
             <Container fluid className={Pharmadex.settings.activeBorder}>
                 {this.buttons()}
-                    <FieldGuarded mode="text" attribute="url" component={this} />
+                    <FieldDisplay mode="text" attribute="url" component={this} />
                 <Row>
                     <Col>
-                        <ViewEdit mode='text' component={this} attribute='configUrl' edit />
+                        <FieldDisplay mode='text' component={this} attribute='configUrl' />
                     </Col>
                 </Row>
                 <Row>
@@ -306,9 +306,18 @@ class Resources extends Component{
             return(
                 <Row>
                     <Col>
-                <Dictionary identifier={data.url} data={data} />
-                </Col>
-                    </Row>
+                        <Row>
+                            <Col>
+                                <h5>{this.state.labels.items}</h5>
+                            </Col>
+                        </Row>
+                        <Row>
+                            <Col>
+                                <Dictionary identifier={data.url} data={data} />
+                            </Col>
+                        </Row>
+                    </Col>
+                </Row>
             )
         }
     }

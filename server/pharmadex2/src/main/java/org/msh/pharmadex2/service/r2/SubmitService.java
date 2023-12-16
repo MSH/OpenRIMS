@@ -45,6 +45,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * "Submit" actions services
@@ -83,6 +84,8 @@ public class SubmitService {
 	private MailService mailService;
 	@Autowired
 	private ThingService thingServ;
+	@Autowired
+	private ObjectMapper objectMapper;
 	/**
 	 * Create data for activity submit form Send-submit is not here
 	 * 
@@ -117,7 +120,8 @@ public class SubmitService {
 			}
 			Concept userConc = closureServ.getParent(his.getActivity());
 			//
-			if (accServ.isMyActivity(his.getActivity(), user) || accServ.isSupervisor(user)) {
+			if (accServ.isMyActivity(his.getActivity(), user) || 
+					accServ.isSecretary(user) || accServ.isSupervisor(user)) {
 				if (data.getActions().getRows().size() == 0) {
 					data = createActions(user, data); // list of actions allowed
 				}
@@ -229,8 +233,11 @@ public class SubmitService {
 				}
 				return data;
 			} else {
-				throw new ObjectNotFoundException("submitCreateData. Access denied. current_user/should_be "
-						+ user.getEmail() + "/" + userConc.getIdentifier(), logger);
+				data.setValid(false);
+				data.setIdentifier(messages.get("notaccess"));
+				logger.error("submitCreateData. Access denied. current_user/should_be "
+						+ user.getEmail() + "/" + userConc.getIdentifier());
+				return data;
 			}
 		} else {
 			throw new ObjectNotFoundException("submitCreateData. History ID is ZERO", logger);
@@ -373,7 +380,7 @@ public class SubmitService {
 	private List<String> submitMonitoringAction(UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		History curHis = boilerServ.historyById(data.getHistoryId());
 		List<String> allowed = new ArrayList<String>();
-		if(accServ.isSupervisor(user) || accServ.isModerator(user)) {//SUPERVISOR or moderator
+		if(accServ.isSupervisor(user) || accServ.isModerator(user)||accServ.isSecretary(user)) {//SUPERVISOR or moderator
 			data = validServ.actionReassign(curHis, data);
 			if (data.isValid()) {
 				allowed.add("6"); // reassign the executor
@@ -933,7 +940,7 @@ public class SubmitService {
 				if(systemServ.isAmend(curHis)){
 					// form amendment process, if for the next activity finalization action is  AMEND or ACCEPT,
 					// then, implement the amendment
-					data = amendmentServ.implement(curHis, actConf, data, user);
+					data = amendmentServ.implement(curHis, actConf, data, user, objectMapper);
 				}
 				if (data.isValid()) {
 					// then implement next actions
@@ -1498,7 +1505,7 @@ public class SubmitService {
 			throws ObjectNotFoundException {
 		Concept amended = amendmentServ.amendedConcept(curHis.getApplicationData());
 		Concept amendment = amendmentServ.amendmentConcept(curHis.getApplicationData(), amended);
-		if (!amendmentServ.compareConcepts(amendment, amended)) {
+		if (!amendmentServ.compareConcepts(amendment, amended,objectMapper)) {
 			data.setValid(false);
 			data.setIdentifier(messages.get("amendmentisnotimplemented"));
 		}

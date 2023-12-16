@@ -259,7 +259,7 @@ public class CommonAPI {
 	 * @throws DataNotFoundException 
 	 */
 	@PostMapping("/api/*/common/thing/help")
-	public ThingDTO commonThingHelp(Authentication auth, UriComponentsBuilder uri,@RequestBody ThingDTO data) throws DataNotFoundException {
+	public ThingDTO thingHelp(Authentication auth, UriComponentsBuilder uri,@RequestBody ThingDTO data) throws DataNotFoundException {
 		try {
 			accessControl.allowAuthenticated(auth, uri);
 			data=resource.thingHelp(data);

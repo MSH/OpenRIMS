@@ -28,6 +28,7 @@ import Import_ATC from './Import_ATC'
 import Fetchers from './utils/Fetchers'
 import Formats from './Formats'
 import ReassignUsers from './ReassignUsers'
+import Import_Messages from './Import_Messages'
 
 
 /**
@@ -70,6 +71,7 @@ class Administrate extends Component{
                 formatdate:'',
                 manageauthorities:'',
                 reassignusers:'',
+                importLocales:'',
             },
             isOpen:false,
             menu:'',
@@ -144,6 +146,8 @@ class Administrate extends Component{
                 return <Import_ATC/>
             case "exchangeconfig":
                 return <ExchangeConfiguration/>
+            case "import_messages":
+                return <Import_Messages/>
             case "actuator":
                 return <ActuatorAdm/>
             case "changepass":
@@ -385,6 +389,17 @@ class Administrate extends Component{
                                                     <div>
                                                         <i className="fas fa-file-import mr-1"></i>
                                                         {this.state.labels.exchangeconfig}
+                                                    </div>
+                                                    </NavLink>
+                                                </NavItem>
+                                            </DropdownItem>
+                                            <DropdownItem>
+                                                <NavItem active={this.state.menu=='import_messages'}>
+                                                    <NavLink active={this.state.menu=='import_messages'}
+                                                                href="/admin#administrate/import_messages">
+                                                    <div>
+                                                        <i className="fas fa-file-import mr-1"></i>
+                                                        {this.state.labels.importLocales}
                                                     </div>
                                                     </NavLink>
                                                 </NavItem>

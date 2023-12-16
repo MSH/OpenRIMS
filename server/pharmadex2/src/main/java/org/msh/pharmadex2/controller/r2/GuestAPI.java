@@ -1,5 +1,7 @@
 package org.msh.pharmadex2.controller.r2;
 
+import java.io.IOException;
+
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pharmadex2.dto.AmendmentNewDTO;
@@ -13,6 +15,7 @@ import org.msh.pharmadex2.dto.GisLocationDTO;
 import org.msh.pharmadex2.dto.HostScheduleDTO;
 import org.msh.pharmadex2.dto.LegacyDataDTO;
 import org.msh.pharmadex2.dto.PermitsDTO;
+import org.msh.pharmadex2.dto.ResourceDTO;
 import org.msh.pharmadex2.dto.SubmitRecieptDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.VerifItemDTO;
@@ -30,14 +33,21 @@ import org.msh.pharmadex2.service.r2.DictService;
 import org.msh.pharmadex2.service.r2.InspectionService;
 import org.msh.pharmadex2.service.r2.LegacyDataService;
 import org.msh.pharmadex2.service.r2.RecieptService;
+import org.msh.pharmadex2.service.r2.ResourceService;
 import org.msh.pharmadex2.service.r2.SubmitService;
 import org.msh.pharmadex2.service.r2.SystemService;
 //import org.msh.pharmadex2.service.r2.ThingService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -72,6 +82,8 @@ public class GuestAPI {
 	private AccessControlService accessServ;
 	@Autowired
 	private Messages mess;
+	@Autowired
+	private ResourceService resourceServ;
 
 	/**
 	 * Tiles for landing page
@@ -98,9 +110,10 @@ public class GuestAPI {
 	 */
 	@PostMapping("/api/guest/applications")
 	public DictionaryDTO applications(Authentication auth, @RequestBody DictionaryDTO data) throws DataNotFoundException {
-		//UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
-			data=systemServ.applicationsDictionary("dictionary.guest.applications",data);
+			data=systemServ.processesEnabled(SystemService.DICTIONARY_GUEST_APPLICATIONS, user.getEmail(), data);
+			
 			data=dictService.page(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
@@ -117,9 +130,9 @@ public class GuestAPI {
 	 */
 	@PostMapping("/api/guest/applications/inspections")
 	public DictionaryDTO applicationsInspections(Authentication auth, @RequestBody DictionaryDTO data) throws DataNotFoundException {
-		//UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
+		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
 		try {
-			data=systemServ.applicationsDictionary("dictionary.guest.inspections",data);
+			data=systemServ.processesEnabled(SystemService.DICTIONARY_GUEST_INSPECTIONS, user.getEmail(), data);
 			data=dictService.page(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
@@ -135,9 +148,9 @@ public class GuestAPI {
 	 */
 	@PostMapping("/api/guest/amendments")
 	public DictionaryDTO amendments(Authentication auth, @RequestBody DictionaryDTO data) throws DataNotFoundException {
-		//UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
-			data=systemServ.amendmentDictionary(data);
+			data=systemServ.processesEnabled(SystemService.DICTIONARY_GUEST_AMENDMENTS, user.getEmail(), data);
 			data=dictService.page(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
@@ -172,9 +185,9 @@ public class GuestAPI {
 	 */
 	@PostMapping("/api/guest/deregistration")
 	public DictionaryDTO deregistration(Authentication auth, @RequestBody DictionaryDTO data) throws DataNotFoundException {
-		//UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		try {
-			data=systemServ.deregistrationDict(data);
+			data=systemServ.processesEnabled(SystemService.DICTIONARY_GUEST_DEREGISTRATION, user.getEmail(), data);
 			data=dictService.page(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
@@ -429,5 +442,35 @@ public class GuestAPI {
 		}
 
 		return data;
+	}
+	
+	@PostMapping("/api/guest/application/receipt")
+	public SubmitRecieptDTO applicationReceipt(Authentication auth, UriComponentsBuilder uri, 
+			@RequestBody SubmitRecieptDTO data)
+			throws DataNotFoundException {
+		try {
+			accessServ.allowAuthenticated(auth, uri);
+			data = resourceServ.applReceipt(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e); 
+		} 
+		return data;
+	}
+	
+	@PostMapping("/api/guest/application/receipt/open")
+	public ResponseEntity<Resource> applicationReceiptOpen(Authentication auth, UriComponentsBuilder uri, 
+			@RequestBody SubmitRecieptDTO data)
+			throws DataNotFoundException {
+		try {
+			UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+			ResourceDTO fres = resourceServ.applReceiptOpen(data.getHistoryId(), data.getReceiptDocumentID());
+			Resource res = resourceServ.fileResolve(fres, user);
+			return ResponseEntity.ok()
+					.contentType(MediaType.parseMediaType(fres.getMediaType()))
+					.header(HttpHeaders.CONTENT_DISPOSITION, fres.getContentDisp() + "; filename=\"" + fres.getFileName() + "\"")
+					.header("filename", fres.getFileName()).body(res);
+		} catch (ObjectNotFoundException | IOException e) {
+			throw new DataNotFoundException(e);
+		}
 	}
 }

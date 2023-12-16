@@ -673,6 +673,7 @@ public class DtoService {
 	@Transactional
 	public AssemblyDTO assemblyDto(Assembly assm) throws ObjectNotFoundException {
 		AssemblyDTO ret = new AssemblyDTO();
+		ret.setClazz(assm.getClazz());
 		ret.setPublicAvailable(assm.getPublicavailable());
 		ret.setHideFromApplicant(assm.getHidefromapplicant());
 		ret.setDictUrl(stringVal(assm.getDictUrl()));

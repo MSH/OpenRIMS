@@ -4,6 +4,7 @@ import PropTypes from 'prop-types'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
 import FieldInput from './form/FieldInput'
+import FieldDisplay from './form/FieldDisplay'
 import ButtonUni from './form/ButtonUni'
 import Navigator from './utils/Navigator'
 
@@ -102,13 +103,23 @@ class DictNode extends Component{
                     }else{
                         mode="text"
                     }
-                    ret.push(
-                        <Row key={index}>
-                            <Col>
-                                <FieldInput mode={mode} attribute={key} component={component} data={literals} rows={lines}/>
-                            </Col>
-                        </Row>
+                    if(literals[key].readOnly){
+                        ret.push(
+                            <Row key={index}>
+                                <Col>
+                                    <FieldDisplay mode={mode} attribute={key} component={component} data={literals} rows={lines}/>
+                                </Col>
+                            </Row>
+                        )
+                    }else{
+                        ret.push(
+                            <Row key={index}>
+                                <Col>
+                                    <FieldInput mode={mode} attribute={key} component={component} data={literals} rows={lines}/>
+                                </Col>
+                            </Row>
                     )
+                    }
                 }else{
                     delete literals[key]
                 }
@@ -138,7 +149,8 @@ class DictNode extends Component{
     buildButtons(){
         return (
             <Row>
-                    <Col xs='12' sm='12' lg='4' xl='4'>
+                    <Col xs='0' sm='0' lg='0' xl='3' />
+                    <Col xs='12' sm='12' lg='4' xl='3'>
                         <ButtonUni
                             label={this.state.labels.save}
                             color='primary'
@@ -154,7 +166,7 @@ class DictNode extends Component{
                             }}
                         />
                     </Col>
-                    <Col hidden={this.state.data.nodeId==0} xs='12' sm='12' lg='4' xl='4'>
+                    <Col hidden={this.state.data.nodeId==0} xs='12' sm='12' lg='4' xl='3'>
                         <ButtonUni
                             disabled={!this.state.data.leaf}
                             label={this.state.labels.global_suspend}
@@ -173,10 +185,11 @@ class DictNode extends Component{
                             }}
                         />
                     </Col>
-                    <Col xs='12' sm='12' lg='4' xl='4'>
+                    <Col xs='12' sm='12' lg='4' xl='3'>
                     <ButtonUni
                             label={this.state.labels.cancel}
                             color='secondary'
+                            outline
                             onClick={this.props.onCancel}
                         />
                     </Col>
@@ -192,7 +205,7 @@ class DictNode extends Component{
             <Container fluid>
                 {this.buildButtons()}
                 {DictNode.createFields(this.state.data.literals, this)}
-                {this.buildButtons()}
+                
                 <Row style={{height:'20px'}}></Row>
             </Container>
         )

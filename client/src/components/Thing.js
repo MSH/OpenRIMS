@@ -888,6 +888,10 @@ class Thing extends Component{
                                 this.setState(this.state)
                                 if(this.state.data.helpDocumentID>0){
                                     window.open('/api/common/thing/help/open/'+this.state.data.helpDocumentID,'_blank').focus()
+                                }else{
+                                    if(this.state.data.helpDocumentID==-1){ //stored in
+                                        window.open('/shablon/'+this.state.data.url+'.pdf','_blank').focus()
+                                    }
                                 }
                             })
                         }}

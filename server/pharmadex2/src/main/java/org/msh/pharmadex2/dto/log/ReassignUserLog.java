@@ -2,11 +2,14 @@ package org.msh.pharmadex2.dto.log;
 
 import org.msh.pharmadex2.dto.form.AllowValidation;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 /**
  * A log record JSON packed into a concept.label field
  * @author alexk
  *
  */
+@JsonIgnoreProperties(ignoreUnknown=true)
 public class ReassignUserLog extends AllowValidation {
 	private String emailFrom="";
 	private String emailTo="";

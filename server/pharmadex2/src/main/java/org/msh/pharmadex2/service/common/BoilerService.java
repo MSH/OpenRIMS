@@ -29,7 +29,6 @@ import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.i18n.ResourceBundle;
-import org.msh.pdex2.model.old.Query;
 import org.msh.pdex2.model.old.User;
 import org.msh.pdex2.model.r2.Assembly;
 import org.msh.pdex2.model.r2.Concept;
@@ -49,7 +48,6 @@ import org.msh.pdex2.model.r2.ThingRegister;
 import org.msh.pdex2.model.r2.ThingScheduler;
 import org.msh.pdex2.model.r2.ThingThing;
 import org.msh.pdex2.repository.common.JdbcRepository;
-import org.msh.pdex2.repository.common.QueryRepository;
 import org.msh.pdex2.repository.common.UserRepo;
 import org.msh.pdex2.repository.r2.AssemblyRepo;
 import org.msh.pdex2.repository.r2.ConceptRepo;
@@ -73,7 +71,6 @@ import org.msh.pharmadex2.dto.FileResourceDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.service.r2.AssemblyService;
 import org.msh.pharmadex2.service.r2.LiteralService;
-import org.msh.pharmadex2.service.r2.SystemService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -100,8 +97,6 @@ public class BoilerService {
 	ConceptRepo conceptRepo;
 	@Autowired
 	Messages messages;
-	@Autowired
-	QueryRepository queryRepo;
 	@Autowired
 	ThingRepo thingRepo;
 	@Autowired
@@ -278,14 +273,14 @@ public class BoilerService {
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
-	public String loadQuery(String key) throws ObjectNotFoundException {
+	/*public String loadQuery(String key) throws ObjectNotFoundException {
 		Optional<Query> qo = queryRepo.findByKey(key);
 		if(qo.isPresent()) {
 			return qo.get().getSql();
 		}else {
 			throw new ObjectNotFoundException("Query not found. Key is "+key, logger);
 		}
-	}
+	}*/
 	/**
 	 * Load a thing by node or return new empty thing
 	 * @param node

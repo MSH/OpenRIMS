@@ -304,7 +304,7 @@ public class ImportExportWorkflowService {
 			colNo=1;
 		}
 		act.setStrict(true);
-		act=thingServ.thingSaveUnderParent(act, user);
+		act=thingServ.saveUnderParent(act, user);
 		return act;
 	}
 	/**

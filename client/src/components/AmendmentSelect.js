@@ -3,7 +3,7 @@ import {Container, Row, Col} from 'reactstrap'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
 import Navigator from './utils/Navigator'
-import Dictionary from './Dictionary'
+import TableSearch from './utils/TableSearch'
 import ApplicationList from './ApplicationList'
 import AmendmentAdd from './AmendmentAdd'
 
@@ -18,6 +18,7 @@ class AmendmentSelect extends Component{
             data:{},                            //DictionaryDTO
             labels:{
                 amdmt_type:'',
+                search:''
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -32,7 +33,7 @@ class AmendmentSelect extends Component{
      * @param {Window Event} event 
      */
     eventProcessor(event){
-        let data=event.data
+        /*let data=event.data
         if(data.subject=="onSelectionChange" && data.from==this.state.identifier+"_dict"){
             this.selectRow(data.data)
             this.state.data=data.data
@@ -42,13 +43,15 @@ class AmendmentSelect extends Component{
             this.state.data=data.data
             this.markSelected()
             this.setState(this.state)
-        }
+        }*/
     }
 
-    selectRow(data){
-        if(Fetchers.isGoodArray(data.table.rows)){
-            data.table.rows.forEach(row=>{
-                if(row.selected){
+    selectRow(selRowNo){
+        if(Fetchers.isGoodArray(this.state.data.table.rows)){
+            this.state.data.table.rows.forEach((row, index)=>{
+                row.selected = false
+                if(index == selRowNo){
+                    row.selected = true
                     Fetchers.writeLocaly("amendments_selected_row",row.dbID)
                 }
             })
@@ -72,7 +75,7 @@ class AmendmentSelect extends Component{
                 }
             })
         }
-        Navigator.message(this.state.identifier,this.state.identifier+"_dict",'refreshData',{})
+       // Navigator.message(this.state.identifier,this.state.identifier+"_dict",'refreshData',{})
     }
 
     loadData(){
@@ -129,21 +132,25 @@ class AmendmentSelect extends Component{
             <Container fluid>
                 <Row>
                     <Col xs='12' sm='12' lg='6' xl='6'>
-                        <Row>
-                            <Col>
-                                <h5>{this.state.labels.amdmt_type}</h5>
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col>
-                                <Dictionary
-                                    data={this.state.data}
-                                    identifier={this.state.identifier+"_dict"}
-                                    recipient={this.state.identifier}
-                                    display
-                                />
-                            </Col>
-                        </Row>
+                        <TableSearch 
+                            label={this.state.labels.search}
+                            tableData={this.state.data.table} 
+                            loader={this.loadData}
+                            title={this.state.data.home}
+                            styleCorrector={(header)=>{
+                                if(header=='pref'){
+                                    return {width:'30%'}
+                                }
+                            }}
+                            linkProcessor={(rowNo,cellNo)=>{
+                                this.selectRow(rowNo)
+                                this.setState(this.state)
+                            }}
+                            selectRow={(rowNo)=>{
+                                this.selectRow(rowNo)
+                                this.setState(this.state)
+                            }}
+                        />
                     </Col>
                     <Col xs='12' sm='12' lg='6' xl='6'>
                         {this.applications()}

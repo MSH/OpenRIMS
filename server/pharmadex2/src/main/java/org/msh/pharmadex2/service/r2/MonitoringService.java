@@ -71,7 +71,7 @@ public class MonitoringService {
 	 */
 	@Transactional
 	public ApplicationsDTO monitoringFullSearch(ApplicationsDTO data, UserDetailsDTO user, String searchStr) throws ObjectNotFoundException {
-//		if(accServ.isSupervisor(user) || accServ.isSecretary(user) || accServ.isModerator(user) || accServ.isApplicant(user)) {
+		//if(accServ.isSupervisor(user) || accServ.isSecretary(user) || accServ.isModerator(user) || accServ.isApplicant(user)) {
 		if(true) {
 			setDateActual(data);
 			setTypes(data);
@@ -127,12 +127,15 @@ public class MonitoringService {
 				jdbcRepo.monitoringFull(user.getEmail(), search, ownerSearch);
 				select = "select * from _monitoringfull as m";
 			}
+			if(accServ.isSupervisor(user) || accServ.isSecretary(user) || accServ.isModerator(user) || accServ.isApplicant(user)) {
 			List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", mainWhere, table.getHeaders());
 			TableQtb.tablePage(rows, table);
 			table = boilerServ.translateRows(table);
 			table.setSelectable(true);
 			data.setFullsearch(table);
+			}
 		}
+		
 
 		return data;
 	}
@@ -613,7 +616,7 @@ public class MonitoringService {
 	private Headers supervisorHeaders(Headers headers, boolean showExecutor) {
 		headers.getHeaders().clear();
 		headers.getHeaders().add(TableHeader.instanceOf(
-				"reference", 
+				"ID", 
 				"references",
 				true,
 				true,

@@ -22,6 +22,7 @@ import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.exception.DataNotFoundException;
 import org.msh.pharmadex2.service.common.ContextServices;
 import org.msh.pharmadex2.service.common.UserService;
+import org.msh.pharmadex2.service.common.ValidationService;
 import org.msh.pharmadex2.service.r2.ContentService;
 import org.msh.pharmadex2.service.r2.ExchangeConfigMainService;
 import org.msh.pharmadex2.service.r2.ReportService;
@@ -68,6 +69,8 @@ public class PublicAPI{
 	private ReportService reportServ;
 	@Autowired
 	ExchangeConfigMainService exchangeMainServ;
+	@Autowired
+	private ValidationService validService;
 
 	@Value("${app.buildTime}")
 	private String buildTime;
@@ -336,7 +339,11 @@ public class PublicAPI{
 	public PublicPermitDTO permitData(Authentication auth, @RequestBody PublicPermitDTO data) throws DataNotFoundException{
 		try {
 			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-			data=reportServ.permitData(user, data);
+			if(!validService.IsNotSubmittedGuest(data.getPermitDataID())) {
+				data=reportServ.permitData(user, data);
+			}else {
+				
+			}
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}

@@ -8,7 +8,6 @@ import RootNode from './RootNode'
 import SearchControlNew from './utils/SearchControlNew'
 import CollectorTable from './utils/CollectorTable'
 import Pharmadex from './Pharmadex'
-import Navigator from './utils/Navigator'
 
 /**
  * All dictionaries in use with the possibility to add new ones
@@ -165,48 +164,18 @@ class Dictionaries extends Component{
             return []
         }
         return(
-            /*<Container fluid>
-                <Row className="pb-5">
-                    <Col xs='12'sm='12' lg='10' xl='10'>
-                    </Col>
-                    <Col xs='12'sm='12' lg='2' xl='2'>
-                        <ButtonUni
-                            label={this.state.labels.newdictionary}
-                            color="primary"
-                            onClick={()=>{
-                                this.state.data.selectId = 0
-                                this.state.data.editor = true
-                                this.state.showEditForm = true
-                                this.state.showListForm=false
-                                this.load()
-                            }}
-                        />
-                    </Col>
-                </Row>
-                {this.activeComponent()}
-            </Container>*/
             <Container fluid>
                 <Row>
                     <Col xs='12'sm='12' lg='10' xl='10' className="d-flex justify-content-center">
                         <h6>{this.state.labels.dictionaries}</h6>
                     </Col>
-                    <Col xs='12' sm='12' lg='1' xl='1'>
+                    <Col xs='12' sm='12' lg='2' xl='2'>
                         <ButtonUni
                             label={this.state.labels.global_help}
                             onClick={()=>{
                                 window.open('/api/admin/help/dictionaries','_blank').focus()
                             }}
                             color="info"
-                        />
-                    </Col>
-                    <Col xs='12'sm='12' lg='1' xl='1'>
-                        <ButtonUni
-                            label={this.state.labels.global_cancel}
-                            onClick={()=>{
-                                window.location="/"+Navigator.tabSetName()+"#"+Navigator.tabName()
-                            }}
-                            color="info"
-                            outline
                         />
                     </Col>
                 </Row>

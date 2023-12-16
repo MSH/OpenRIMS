@@ -229,24 +229,7 @@ public class UserService implements UserDetailsService {
 		return user;
 	}
 
-	/**
-	 * Assign default passwords=MD5 representation of user's raw password
-	 */
-	public void assignDefaultPasswords() {
-		Iterable<User> users = userRepo.findAll();
-		if(users != null){
-			for(User u : users){
-				if(u.getPassword()==null){
-					u.setPassword(password.encode(u.getUsername()));
-					userRepo.save(u);
-				}
-				if(u.getPassword().equalsIgnoreCase("123")) {
-					u.setPassword(password.encode(";f,jtl12_hfp"));
-					userRepo.save(u);
-				}
-			}
-		}
-	}
+
 
 	/**
 	 * User to UserDTO

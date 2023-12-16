@@ -8,6 +8,7 @@ import ButtonUni from './form/ButtonUni'
 import ViewEdit from './form/ViewEdit'
 import Pharmadex from './Pharmadex'
 import FieldDisplay from './form/FieldDisplay'
+import Downloader from './utils/Downloader'
 
 /**
  * Submit reciept data
@@ -25,6 +26,7 @@ class SubmitReciept extends Component{
                 form_ok:'',
                 submitreceipt:'',
                 global_print:'',
+                global_upload:'',
             },
             data:{
                 historyId:this.props.historyId, //SubmitRecieptDTO
@@ -64,7 +66,25 @@ class SubmitReciept extends Component{
     buttons(){
         return(
             <Row className='d-print-none'>
-                <Col xs='12' sm='12' lg='8' xl='10'>
+                <Col xs='12' sm='12' lg='6' xl='9'>
+                </Col>
+                <Col xs='12' sm='12' lg='2' xl='1'>
+                    <ButtonUni
+                        label={this.state.labels.global_upload}
+                        color='primary'
+                        onClick={()=>{
+                            let data={
+                                historyId:this.state.data.historyId
+                            }
+                            Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/application/receipt", data, (query,result)=>{
+                                data=result
+                                if(data.receiptDocumentID>0){
+                                    let dl = new Downloader()
+                                    dl.postDownload('/api/guest/application/receipt/open', data, "file.bin")
+                                }
+                            })
+                        }}
+                    />
                 </Col>
                 <Col xs='12' sm='12' lg='2' xl='1'>
                     <ButtonUni

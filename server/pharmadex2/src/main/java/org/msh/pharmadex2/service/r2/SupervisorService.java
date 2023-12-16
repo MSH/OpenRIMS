@@ -33,6 +33,7 @@ import org.msh.pharmadex2.dto.TileDTO;
 import org.msh.pharmadex2.dto.URLAssistantDTO;
 import org.msh.pharmadex2.dto.WorkflowDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
+import org.msh.pharmadex2.dto.enums.AssistantEnum;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.common.DtoService;
@@ -1042,138 +1043,6 @@ public class SupervisorService {
 		data.getPath().clear();
 		data = workflowConfiguration(data, user);
 		return data;
-	}
-	/**
-	 * Assist to select URL in URL fields
-	 * @param data
-	 * @return
-	 */
-	@Transactional
-	public URLAssistantDTO urlAssist(URLAssistantDTO data) {
-		switch (data.getAssistant().toLowerCase()) {
-		case "dictionaries":
-			data = urlAssistantDict(data);
-			break;
-		default:
-			break;
-		}
-		return data;
-	}
-	/**
-	 * Assist to construct/select dictionary URL
-	 * @param data
-	 * @return
-	 */
-	private URLAssistantDTO urlAssistantDict(URLAssistantDTO data) {
-		data=urlAssistantDomainDict(data);
-		data=urlAssistantSubDomainDict(data);
-		data=urlAssistantUrlsDict(data);
-		return data;
-	}
-	/**
-	 * Assist to select URL's
-	 * @param data
-	 * @return
-	 */
-	private URLAssistantDTO urlAssistantUrlsDict(URLAssistantDTO data) {
-		if(!data.getSelectedSubDomain().isEmpty()) {
-			if(data.getUrls().getHeaders().getHeaders().isEmpty()) {
-				data.getUrls().getHeaders().getHeaders().add(TableHeader.instanceOf(
-						"URL",
-						messages.get("urls"),
-						true,
-						true,
-						true,
-						TableHeader.COLUMN_STRING,
-						0));
-				data.getUrls().getHeaders().getHeaders().add(TableHeader.instanceOf(
-						"description",
-						messages.get("description"),
-						true,
-						true,
-						true,
-						TableHeader.COLUMN_STRING,
-						0));
-			}
-			//TODO query
-		}else {
-			
-		}
-		return data;
-	}
-
-	/**
-	 * 
-	 * @param data
-	 * @return
-	 */
-	private URLAssistantDTO urlAssistantSubDomainDict(URLAssistantDTO data) {
-		if(!data.getSelectedDomain().isEmpty()) {
-			if(data.getSubDomain().getHeaders().getHeaders().isEmpty()) {
-				data.getSubDomain().getHeaders().getHeaders().add(TableHeader.instanceOf(
-						"subdomain",
-						messages.get("subdomain"),
-						true,
-						true,
-						true,
-						TableHeader.COLUMN_STRING,
-						0));
-				data.getSubDomain().getHeaders().getHeaders().get(0).setSortValue(TableHeader.SORT_ASC);
-			}
-			String select ="select * from (SELECT distinct SUBSTRING_INDEX(u.URL,'.',3) as 'subdomain'\r\n" + 
-					"FROM url_dictionaries u) t";
-			String where="subdomain like '"+data.getSelectedDomain()+"%'";
-			List<TableRow> rows=jdbcRepo.qtbGroupReport(select, "", where, data.getSubDomain().getHeaders());
-			urlTableRows(data.getSubDomain(),data.getSelectedSubDomain() ,rows);
-		}else {
-			data.setSelectedSubDomain("");
-			data.getSubDomain().getRows().clear();
-		}
-		return data;
-	}
-
-	/**
-	 * Get domains for all dictionaries into the doamin table
-	 * Select a domain if needed
-	 * @param data
-	 * @return
-	 */
-	private URLAssistantDTO urlAssistantDomainDict(URLAssistantDTO data) {
-		if(data.getDomain().getHeaders().getHeaders().isEmpty()) {
-			data.getDomain().getHeaders().getHeaders().add(TableHeader.instanceOf(
-					"domain",
-					messages.get("domain"),
-					true,
-					true,
-					true,
-					TableHeader.COLUMN_STRING,
-					0));
-			data.getDomain().getHeaders().getHeaders().get(0).setSortValue(TableHeader.SORT_ASC);
-		}
-		String select = "select * from (SELECT distinct SUBSTRING_INDEX(u.URL,'.',2) as 'domain'\r\n" + 
-				"FROM url_dictionaries u) t";
-		List<TableRow> rows=jdbcRepo.qtbGroupReport(select, "", "", data.getDomain().getHeaders());
-		urlTableRows(data.getDomain(),data.getSelectedDomain() ,rows);
-		return data;
-	}
-	/**
-	 * Prepare rows for domain/subdomain tables
-	 * @param data
-	 * @param rows
-	 */
-	public void urlTableRows(TableQtb table, String selectedUrl, List<TableRow> rows) {
-		if(!selectedUrl.isEmpty()) {
-			for(TableRow row : rows) {
-				if(row.getRow().get(0).getValue().equalsIgnoreCase(selectedUrl)) {
-					row.setSelected(true);
-				}
-			}
-		}else {
-			for(TableRow row : rows) {
-				row.setSelected(false);
-			}
-		}
-		TableQtb.tablePage(rows, table);
 	}
 
 }

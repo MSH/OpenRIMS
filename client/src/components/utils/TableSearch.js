@@ -1,18 +1,26 @@
 import React , {Component} from 'react'
 import {Container, Row, Col} from 'reactstrap'
 import PropTypes from 'prop-types'
-import Locales from './Locales'
 import Pharmadex from '../Pharmadex'
 import CollectorTable from './CollectorTable'
 import SearchControl from './SearchControl'
+import Fetchers from './Fetchers'
+import Navigator from './Navigator'
 
 /**
  * The Search component along with the Table component. 
  * It is only to avoid redundancy
  * ```
- * tableData: PropTypes.object.isRequired, //complex table data model, see Java implementation
- * loader:PropTypes.func.isRequired,    // reload table data
- * label:PropTypes.string.isRequired    // label inside the search
+ * identifier:PropTypes.string,          //address to receie and return address to send messages. Default is timestamp
+    tableData: PropTypes.object.isRequired, //complex table data model, see Java implementation TableQtb.java
+    loader:PropTypes.func.isRequired,    // reload table data
+    label:PropTypes.string.isRequired,    // label inside the search
+    title:PropTypes.string,                  //the upper title (optional)      
+    styleCorrector:PropTypes.func,          // styleCorrector function
+    linkProcessor:PropTypes.func,          // function on click firstColumn
+    selectRow:PropTypes.func,               // function on checkBox click
+
+    Can process message CleanUpSearch - clean up filters and search criteria
  * ```
  * 
  */
@@ -20,8 +28,12 @@ class TableSearch extends Component{
     constructor(props){
         super(props)
         this.state={
-            identifier:Date.now().toString(),
-            labels:{}
+            labels:{},
+        }
+        if(this.props.identifier == undefined){
+            this.state.identifier=Date.now().toString() //default
+        }else{
+            this.state.identifier=this.props.identifier //the callar will send messages
         }
         this.eventProcessor=this.eventProcessor.bind(this)
     }
@@ -30,10 +42,21 @@ class TableSearch extends Component{
      * Listen messages from other components
      * @param {Window Event} event 
      */
-        eventProcessor(event){
-            let data=event.data
-           
+    eventProcessor(event){
+        let data=event.data
+        if(data.to==this.state.identifier){
+            if(data.subject=='CleanUpSearch'){
+                let headers=this.props.tableData.headers.headers;
+                if(Fetchers.isGoodArray(headers)){
+                    headers.forEach(header => {
+                        header.generalCondition=''
+                    });
+                }
+                this.setState(this.state)
+                Navigator.message(this.state.identifier, this.state.identifier+'searchbox','CleanUpSearchBox',{})
+            }
         }
+    }
 
     componentDidMount(){
         window.addEventListener("message",this.eventProcessor)
@@ -53,7 +76,7 @@ class TableSearch extends Component{
                 </Row>
                 <Row className='mb-3'>
                     <Col>
-                        <SearchControl  label={this.props.label} table={this.props.tableData} loader={this.props.loader}/>
+                        <SearchControl identifier={this.state.identifier+'searchbox'}  label={this.props.label} table={this.props.tableData} loader={this.props.loader}/>
                     </Col>
                 </Row>
                 <Row>
@@ -62,6 +85,16 @@ class TableSearch extends Component{
                             tableData={this.props.tableData}
                             loader={this.props.loader}
                             headBackground={Pharmadex.settings.tableHeaderBackground}
+                            styleCorrector={this.props.styleCorrector}
+                            linkProcessor={()=>{
+                                if(this.props.linkProcessor == null){
+                                    return ;
+                                }else{
+                                    this.props.linkProcessor
+                                }
+                            }
+                                }
+                            selectRow={this.props.selectRow}
                         />
                     </Col>
                 </Row>
@@ -73,8 +106,12 @@ class TableSearch extends Component{
 }
 export default TableSearch
 TableSearch.propTypes={
+    identifier:PropTypes.string,            //address to receie and return address to send messages. Default is timestamp
     tableData: PropTypes.object.isRequired, //complex table data model, see Java implementation TableQtb.java
     loader:PropTypes.func.isRequired,    // reload table data
     label:PropTypes.string.isRequired,    // label inside the search
-    title:PropTypes.string                  //the upper title (optional)      
+    title:PropTypes.string,                  //the upper title (optional)      
+    styleCorrector:PropTypes.func,          // styleCorrector function
+    linkProcessor:PropTypes.func,          // function on click firstColumn
+    selectRow:PropTypes.func,               // function on checkBox click
 }

@@ -2,7 +2,7 @@ import React , {Component} from 'react'
 import {Row, Col, Container} from 'reactstrap'
 import Fetchers from './utils/Fetchers'
 import Locales from './utils/Locales'
-import Dictionary from './Dictionary'
+import TableSearch from './utils/TableSearch'
 import ApplicationList from './ApplicationList'
 import Navigator from './utils/Navigator'
 import HostSchedule from './HostSchedule'
@@ -23,6 +23,7 @@ class ApplicationSelect extends Component{
             labels:{
                 manageapplications:'',
                 global_cancel:'',
+                search:''
             },
             data:{},    //DictionaryDTO
         }
@@ -37,7 +38,7 @@ class ApplicationSelect extends Component{
      * listen for onSelectionChange broadcast from the dictionary
      */
       eventProcessor(event){
-        let data=event.data
+        /*let data=event.data
         if(data.subject=="onSelectionChange" && data.from==this.state.identifier+"_dict"){
             this.selectRow(data.data)
             this.state.data=data.data
@@ -47,7 +48,7 @@ class ApplicationSelect extends Component{
             this.state.data=data.data
             this.markSelected()
             this.setState(this.state)
-        }
+        }*/
     }
     componentDidMount(){
         window.addEventListener("message",this.eventProcessor)
@@ -55,10 +56,12 @@ class ApplicationSelect extends Component{
         this.loadData()
         
     }
-    selectRow(data){
-        if(Fetchers.isGoodArray(data.table.rows)){
-            data.table.rows.forEach(row=>{
-                if(row.selected){
+    selectRow(selRowNo){
+        if(Fetchers.isGoodArray(this.state.data.table.rows)){
+            this.state.data.table.rows.forEach((row, index)=>{
+                row.selected = false
+                if(index == selRowNo){
+                    row.selected = true
                     Fetchers.writeLocaly("application_selected_row",row.dbID)
                 }
             })
@@ -74,7 +77,7 @@ class ApplicationSelect extends Component{
                 }
             })
         }
-        Navigator.message(this.state.identifier,this.state.identifier+"_dict",'refreshData',{})
+        //Navigator.message(this.state.identifier,this.state.identifier+"_dict",'refreshData',{})
     }
 
     loadData(){
@@ -120,16 +123,25 @@ class ApplicationSelect extends Component{
             <Container fluid>
                 <Row>
                     <Col>
-                        <Row>
-                            <Col>
-                                <Dictionary
-                                    identifier={this.state.identifier+"_dict"}
-                                    recipient={this.state.identifier}
-                                    data={this.state.data}
-                                    display
-                                />
-                            </Col>
-                        </Row>
+                        <TableSearch 
+                            label={this.state.labels.search}
+                            tableData={this.state.data.table} 
+                            loader={this.loadData}
+                            title={this.state.data.home}
+                            styleCorrector={(header)=>{
+                                if(header=='pref'){
+                                    return {width:'30%'}
+                                }
+                            }}
+                            linkProcessor={(rowNo,cellNo)=>{
+                                this.selectRow(rowNo)
+                                this.setState(this.state)
+                            }}
+                            selectRow={(rowNo)=>{
+                                this.selectRow(rowNo)
+                                this.setState(this.state)
+                            }}
+                        />
                         <Row>
                             <Col>
                                 <HostSchedule

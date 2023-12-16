@@ -26,6 +26,7 @@ import org.msh.pharmadex2.controller.common.DocxView;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.PersonSelectorDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
+import org.msh.pharmadex2.dto.SubmitRecieptDTO;
 import org.msh.pharmadex2.dto.SystemImageDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
@@ -404,74 +405,165 @@ public class ResourceService {
 			}
 		}
 	}
-		/**
-		 * Determine URL to get thing help document from image.resources
-		 * @param data
-		 * @return
-		 * @throws ObjectNotFoundException 
-		 */
-		@Transactional
-		public ThingDTO thingHelp(ThingDTO data) throws ObjectNotFoundException {
-			Concept node = fileNode("images.design", data.getUrl());
-			if(node != null) {
-				data.setHelpDocumentID(node.getID());
-			}else {
-				data.setHelpDocumentID(0l);
+	/**
+	 * Determine URL to get thing help document from image.resources
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public ThingDTO thingHelp(ThingDTO data) throws ObjectNotFoundException {
+		Concept node = fileNode("images.design", data.getUrl());
+		if(node != null) {
+			data.setHelpDocumentID(node.getID());
+		}else {
+			InputStream in = getClass().getResourceAsStream("/static/shablon/"+data.getUrl()+".pdf");
+			if(in!=null) {
+				data.setHelpDocumentID(-1l);
 			}
-			return data;
 		}
-		/**
-		 * Open thing help document
-		 * @param id
-		 * @return
-		 * @throws IOException 
-		 * @throws ObjectNotFoundException 
-		 */
-		@Transactional
-		public ResponseEntity<Resource> thingHelpOpen(Long id) throws ObjectNotFoundException, IOException {
-			Concept node = closureServ.loadConceptById(id);
-			String typeOpen = "inline";
-			String mediaType = "application/pdf";
-			return createFileResponse(node.getLabel(), node, typeOpen, mediaType);
-		}
-
-		/**
-		 * The Workflow Manual
-		 * @return
-		 * @throws IOException 
-		 * @throws ObjectNotFoundException 
-		 */
-		@Transactional
-		public ResponseEntity<Resource> adminManualWorkflow() throws ObjectNotFoundException, IOException {
-			return downloadFile("resources.manual.workflow","WorkflowManual.pdf");
-		}
-		/**
-		 * The Resource creation help
-		 * @return
-		 * @throws IOException 
-		 * @throws ObjectNotFoundException 
-		 */
-		@Transactional
-		public ResponseEntity<Resource> resourceHelp() throws ObjectNotFoundException, IOException {
-			return downloadFile("resources.creation.help","ResourceHelp.pdf");
-		}
-		/**
-		 * An example of date format
-		 * @return
-		 * @throws IOException 
-		 * @throws ObjectNotFoundException 
-		 */
-		@Transactional
-		public ResponseEntity<Resource> dateFormatHelp() throws ObjectNotFoundException, IOException {
-			return downloadFile("custom.date.format.help","CustomDateFormat.pdf");
-		}
-		/**
-		 * Applicant reassignment help
-		 * @return
-		 * @throws ObjectNotFoundException
-		 * @throws IOException
-		 */
-		public ResponseEntity<Resource> adminHelpReassignApplicant() throws ObjectNotFoundException, IOException {
-			return downloadFile("reassign.applicant.help","OpenRIMSReassignApplicant.pdf");
-		}
+		return data;
 	}
+	/**
+	 * Open thing help document
+	 * @param id
+	 * @return
+	 * @throws IOException 
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public ResponseEntity<Resource> thingHelpOpen(Long id) throws ObjectNotFoundException, IOException {
+		Concept node = closureServ.loadConceptById(id);
+		String typeOpen = "inline";
+		String mediaType = "application/pdf";
+		return createFileResponse(node.getLabel(), node, typeOpen, mediaType);
+	}
+
+	/**
+	 * The Workflow Manual
+	 * @return
+	 * @throws IOException 
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public ResponseEntity<Resource> adminManualWorkflow() throws ObjectNotFoundException, IOException {
+		return downloadFile("resources.manual.workflow","WorkflowManual.pdf");
+	}
+	/**
+	 * The Resource creation help
+	 * @return
+	 * @throws IOException 
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public ResponseEntity<Resource> resourceHelp() throws ObjectNotFoundException, IOException {
+		return downloadFile("resources.creation.help","ResourceHelp.pdf");
+	}
+	/**
+	 * An example of date format
+	 * @return
+	 * @throws IOException 
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public ResponseEntity<Resource> dateFormatHelp() throws ObjectNotFoundException, IOException {
+		return downloadFile("custom.date.format.help","CustomDateFormat.pdf");
+	}
+	/**
+	 * Applicant reassignment help
+	 * @return
+	 * @throws ObjectNotFoundException
+	 * @throws IOException
+	 */
+	public ResponseEntity<Resource> adminHelpReassignApplicant() throws ObjectNotFoundException, IOException {
+		return downloadFile("reassign.applicant.help","OpenRIMSReassignApplicant.pdf");
+	}
+	/**
+	 * Help to import local language
+	 * @return
+	 * @throws IOException 
+	 * @throws ObjectNotFoundException 
+	 */
+	public ResponseEntity<Resource> adminHelpImportMessages() throws ObjectNotFoundException, IOException {
+		return downloadFile("system.import.locales.help","DefinitionLocalLanguage.pdf");
+	}
+
+	/**
+	 * Determine URL to get thing help document from image.resources
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public SubmitRecieptDTO applReceipt(SubmitRecieptDTO data) throws ObjectNotFoundException {
+		History his = boilerServ.historyById(data.getHistoryId());
+		Concept dictNode = his.getApplDict();
+		String url = literalServ.readValue("dataurl", dictNode);
+		url += SystemService.SUFF_RECEIPT_BYTEMPL;
+		Concept node = fileNode("images.design", url);
+		if(node != null && node.getID() > 0) {
+			data.setReceiptDocumentID(node.getID());
+		}else {
+			data.setReceiptDocumentID(0l);
+		}
+		return data;
+	}
+
+	@Transactional
+	public ResourceDTO applReceiptOpen(long historyId, long tmplid) throws ObjectNotFoundException {
+		ResourceDTO resDto = new ResourceDTO();
+		resDto.setHistoryId(historyId);
+		Concept node = closureServ.loadConceptById(tmplid);
+		if(node != null && node.getID() > 0) {
+			FileResource fres = boilerServ.fileResourceByNode(node);
+			resDto.setFileName(node.getLabel());
+			resDto.setFileSize(fres.getFileSize());
+			resDto.setContentDisp("inline");
+			resDto.setMediaType(fres.getMediatype());
+			resDto.setFileId(fres.getID());
+		}
+		return resDto;
+	}
+	/**
+	 * Is it resource URL
+	 * @param url
+	 * @return
+	 */
+	public boolean isResourceUrl(String url) {
+		List<Concept> concList = closureServ.loadAllConceptsByIdentifier(url);
+		for(Concept conc : concList) {
+			Concept lang = closureServ.getParent(conc);
+			if(lang!=null) {
+				Concept root = closureServ.getParent(lang);
+				if(root !=null) {
+					if(root.getIdentifier().equalsIgnoreCase(SystemService.RESOURCES_COLLECTIONS_ROOT)) {
+						return true;
+					}
+				}
+			}
+		}
+		return false;
+	}
+	/**
+	 * Get resource data configuration URL by resource URL
+	 * @param resourceUrl
+	 * @return
+	 */
+	@Transactional
+	public String dataConfigUrl(String resourceUrl) {
+		String ret="";
+		List<Concept> conList=closureServ.loadAllConceptsByIdentifier(resourceUrl);
+		for(Concept con : conList) {
+			Concept lang = closureServ.getParent(con);
+			if(lang != null) {
+				Concept root= closureServ.getParent(lang);
+				if(root != null) {
+					if(root.getIdentifier().equalsIgnoreCase(SystemService.RESOURCES_COLLECTIONS_ROOT)) {
+						return con.getLabel();
+					}
+				}
+			}
+		}
+		return ret;
+	}
+}

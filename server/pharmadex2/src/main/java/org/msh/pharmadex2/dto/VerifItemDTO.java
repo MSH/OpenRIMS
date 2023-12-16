@@ -10,6 +10,7 @@ public class VerifItemDTO extends AllowValidation{
 	private String url = "";
     private Long applDictNodeId = 0l;
     private Long applID = 0l;
+    private boolean canAdd = true;
     
 	public String getUrl() {
 		return url;
@@ -28,6 +29,12 @@ public class VerifItemDTO extends AllowValidation{
 	}
 	public void setApplID(Long applID) {
 		this.applID = applID;
+	}
+	public boolean isCanAdd() {
+		return canAdd;
+	}
+	public void setCanAdd(boolean canAdd) {
+		this.canAdd = canAdd;
 	}
     
     

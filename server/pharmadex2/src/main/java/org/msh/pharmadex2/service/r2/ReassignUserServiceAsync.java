@@ -108,7 +108,7 @@ public class ReassignUserServiceAsync {
 			if(!info.isValid()) {
 				mess=info.getIdentifier();
 			}
-			eventLog.applicantReassign(emailExec, emailFrom, emailTo
+			eventLog.applicantReassignEvent(emailExec, emailFrom, emailTo
 					,info.getCompl(), info.getComplOf(), mess);
 		} catch (ObjectNotFoundException e) {
 			logger.error("applicantReassignRunAsync "+e.getMessage());

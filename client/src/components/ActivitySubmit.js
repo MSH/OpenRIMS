@@ -100,13 +100,18 @@ loadNext(){
     loader(){
         Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName()+"/activity/submit/create/data", this.state.data, (query, result)=>{
             this.state.data=result
-            if(this.state.data.actions.rows.length>0){
-                this.state.data.reloadExecs=false
-                Locales.createLabels(this)
-                Locales.resolveLabels(this)
-                this.setState(this.state)
+            if(this.state.data.valid){
+                if(this.state.data.actions.rows.length>0){
+                    this.state.data.reloadExecs=false
+                    Locales.createLabels(this)
+                    Locales.resolveLabels(this)
+                    this.setState(this.state)
+                }else{
+                    Navigator.message(this.state.identifier, this.props.recipient, "submitClose", {})
+                }
             }else{
-                Navigator.message(this.state.identifier, this.props.recipient, "submitClose", {})
+                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'danger'})
+                this.setState(this.state)
             }
         })
     }

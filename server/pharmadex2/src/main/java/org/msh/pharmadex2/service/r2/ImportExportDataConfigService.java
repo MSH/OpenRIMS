@@ -337,7 +337,7 @@ public class ImportExportDataConfigService {
 		data.clearErrors();
 		Concept parent=closureServ.loadRoot(data.getUrl());
 		data.setParentId(parent.getID());
-		data= thingServ.thingSaveUnderParent(data, user);
+		data= thingServ.saveUnderParent(data, user);
 		if(data.isValid()) {
 			XSSFWorkbook wb = loadDataConfiguration(data);
 			if(wb != null) {

@@ -1,8 +1,8 @@
 package org.msh.pharmadex2.dto;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 
+import org.msh.pharmadex2.dto.enums.AssistantEnum;
 import org.msh.pharmadex2.dto.form.AllowValidation;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -14,6 +14,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  */
 @JsonIgnoreProperties(ignoreUnknown=true)
 public class AssemblyDTO extends AllowValidation {
+	private String clazz = "";
 	private boolean publicAvailable=false;
 	private boolean hideFromApplicant=false;
 	private String url="";
@@ -33,7 +34,15 @@ public class AssemblyDTO extends AllowValidation {
 	private String fileTypes=""; //see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/accept
 	//description for help
 	private String description="";
-
+	//assistant required
+	private AssistantEnum assistant = AssistantEnum.NO;
+	
+	public String getClazz() {
+		return clazz;
+	}
+	public void setClazz(String clazz) {
+		this.clazz = clazz;
+	}
 	public boolean isPublicAvailable() {
 		return publicAvailable;
 	}
@@ -136,11 +145,22 @@ public class AssemblyDTO extends AllowValidation {
 	public void setDescription(String description) {
 		this.description = description;
 	}
+	public AssistantEnum getAssistant() {
+		return assistant;
+	}
+	public void setAssistant(AssistantEnum assistant) {
+		this.assistant = assistant;
+	}
 	@Override
 	public String toString() {
-		return "AssemblyDTO [url=" + url + ", propertyName=" + propertyName + ", required=" + required + ", readOnly="
-				+ readOnly + ", textArea=" + textArea + ", mult=" + mult + "]";
+		return "AssemblyDTO [publicAvailable=" + publicAvailable + ", hideFromApplicant=" + hideFromApplicant + ", url="
+				+ url + ", dictUrl=" + dictUrl + ", auxDataUrl=" + auxDataUrl + ", propertyName=" + propertyName
+				+ ", required=" + required + ", readOnly=" + readOnly + ", textArea=" + textArea + ", mult=" + mult
+				+ ", unique=" + unique + ", prefLabel=" + prefLabel + ", min=" + min + ", max=" + max + ", fileTypes="
+				+ fileTypes + ", description=" + description + ", assistant=" + assistant + "]";
 	}
+	
+
 	
 	
 }

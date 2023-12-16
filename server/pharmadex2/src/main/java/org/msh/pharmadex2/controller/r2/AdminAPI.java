@@ -2,11 +2,16 @@ package org.msh.pharmadex2.controller.r2;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
+
+import javax.servlet.http.HttpServletResponse;
 
 import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
+import org.msh.pharmadex2.controller.common.ExcelView;
 import org.msh.pharmadex2.dto.AboutDTO;
 import org.msh.pharmadex2.dto.ActuatorAdmDTO;
 import org.msh.pharmadex2.dto.AsyncInformDTO;
@@ -20,7 +25,9 @@ import org.msh.pharmadex2.dto.DictNodeDTO;
 import org.msh.pharmadex2.dto.DictionariesDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.ExchangeConfigDTO;
+import org.msh.pharmadex2.dto.FileDTO;
 import org.msh.pharmadex2.dto.FormatsDTO;
+import org.msh.pharmadex2.dto.ImportLocalesDTO;
 import org.msh.pharmadex2.dto.MessageDTO;
 import org.msh.pharmadex2.dto.PublicOrgDTO;
 import org.msh.pharmadex2.dto.ReassignUserDTO;
@@ -33,13 +40,14 @@ import org.msh.pharmadex2.dto.URLAssistantDTO;
 import org.msh.pharmadex2.dto.UserElementDTO;
 import org.msh.pharmadex2.dto.WorkflowDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
+import org.msh.pharmadex2.dto.log.EventLogDTO;
 import org.msh.pharmadex2.exception.DataNotFoundException;
 import org.msh.pharmadex2.service.common.UserService;
 import org.msh.pharmadex2.service.common.ValidationService;
-import org.msh.pharmadex2.service.r2.AccessControlService;
 import org.msh.pharmadex2.service.r2.ActuatorService;
 import org.msh.pharmadex2.service.r2.ApplicationService;
 import org.msh.pharmadex2.service.r2.AssemblyService;
+import org.msh.pharmadex2.service.r2.AssistanceService;
 import org.msh.pharmadex2.service.r2.ContentService;
 import org.msh.pharmadex2.service.r2.DWHService;
 import org.msh.pharmadex2.service.r2.DictService;
@@ -50,6 +58,8 @@ import org.msh.pharmadex2.service.r2.ImportBService;
 import org.msh.pharmadex2.service.r2.ImportExportDataConfigService;
 import org.msh.pharmadex2.service.r2.ImportExportDictionaryService;
 import org.msh.pharmadex2.service.r2.ImportExportWorkflowService;
+import org.msh.pharmadex2.service.r2.ImportLocalesService;
+import org.msh.pharmadex2.service.r2.LoggerEventService;
 import org.msh.pharmadex2.service.r2.MailService;
 import org.msh.pharmadex2.service.r2.MetricService;
 import org.msh.pharmadex2.service.r2.PubOrgService;
@@ -63,6 +73,7 @@ import org.msh.pharmadex2.service.r2.SystemService;
 import org.msh.pharmadex2.service.r2.ThingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -74,6 +85,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -143,7 +156,12 @@ public class AdminAPI {
 	ReassignUserService reassignService;
 	@Autowired
 	ReassignUserServiceAsync reassignServiceAsync;
-
+	@Autowired
+	private AssistanceService assistServ;
+	@Autowired
+	private ImportLocalesService importLocalesServ;
+	@Autowired
+	private LoggerEventService logEventServ;
 
 	/**
 	 * Tiles for landing page
@@ -816,6 +834,7 @@ public class AdminAPI {
 	public DictionaryDTO resourceDictPrepare(@RequestBody ThingDTO data) throws DataNotFoundException {
 		try {
 			DictionaryDTO ret = superVisServ.resourceDictPrepare(data);
+			ret=dictServ.page(ret);
 			return ret;
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
@@ -859,7 +878,7 @@ public class AdminAPI {
 	@PostMapping("/api/admin/report/configuration/load")
 	public ReportConfigDTO reportConfigurationLoad(Authentication auth,@RequestBody ReportConfigDTO data) throws DataNotFoundException {
 		try {UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-			data = reportServ.reportConfigurationLoad(user, data);
+		data = reportServ.reportConfigurationLoad(user, data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -1138,7 +1157,24 @@ public class AdminAPI {
 			throw new DataNotFoundException(e);
 		}
 	}
-	
+
+	/**
+	 * Download or read DictionaryCreationMaintenance
+	 * @return
+	 * @throws DataNotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value="/api/admin/help/import/messages", method = RequestMethod.GET)
+	public ResponseEntity<Resource> helpImportMessages() throws DataNotFoundException, IOException {
+		ResponseEntity<Resource> res;
+		try {
+			res = resourceServ.adminHelpImportMessages();
+			return res;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+
 	/**
 	 * Download or read DictionaryCreationMaintenance
 	 * @return
@@ -1155,7 +1191,7 @@ public class AdminAPI {
 			throw new DataNotFoundException(e);
 		}
 	}
-	
+
 	/**
 	 * Download or read ImportConfigProcessInstruction
 	 * @return
@@ -1222,7 +1258,7 @@ public class AdminAPI {
 			throw new DataNotFoundException(e);
 		}
 	}
-	
+
 	/**
 	 * Download or read resource creation guide
 	 * @return
@@ -1404,19 +1440,19 @@ public class AdminAPI {
 		data = exchangeServ.importResource(data);
 		return data;
 	}
-	
+
 	@PostMapping("/api/admin/exchange/dataconfig/import")
 	public ExchangeConfigDTO importDataConfig(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
 		data = exchangeServ.importDataConfig(data);
 		return data;
 	}
-	
+
 	@PostMapping("/api/admin/exchange/workflows/importall")
 	public ExchangeConfigDTO importAllWorkflows(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
 		data = exchangeServ.importAllWorkflows(data);
 		return data;
 	}
-	
+
 	@PostMapping("/api/admin/exchange/dictionary/load")
 	public DictionaryDTO loadDictionary(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException {
 		DictionaryDTO ret = exchangeServ.loadDictionary(data);
@@ -1531,7 +1567,7 @@ public class AdminAPI {
 			throw new DataNotFoundException(e);
 		}
 	}
-	
+
 	/**
 	 * Save a date format definitions
 	 * @param data
@@ -1540,7 +1576,42 @@ public class AdminAPI {
 	 */
 	@PostMapping("/api/admin/url/assist")
 	public URLAssistantDTO urlAssist(@RequestBody URLAssistantDTO data) throws DataNotFoundException {
-		data=superVisServ.urlAssist(data);
+		try {
+			data=assistServ.assistanceMain(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException();
+		}
+		return data;
+	}
+	/**
+	 * Save a date format definitions
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException 
+	 */
+	@PostMapping("/api/admin/url/assist/validate")
+	public URLAssistantDTO urlAssistValidate(@RequestBody URLAssistantDTO data) throws DataNotFoundException {
+		try {
+			data=assistServ.validate(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	/**
+	 * Preview dictionary, thing, or nothing :)
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/url/assist/preview")
+	public URLAssistantDTO urlAssistPreview(Authentication auth,@RequestBody URLAssistantDTO data) throws DataNotFoundException {
+		try {
+			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+			data=assistServ.preview(data,user);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
 		return data;
 	}
 	/**
@@ -1566,6 +1637,7 @@ public class AdminAPI {
 	@PostMapping("/api/admin/reassign/applicant/details")
 	public ReassignUserDTO reassignApplicantDetails( @RequestBody ReassignUserDTO data) {
 		data=reassignService.applicantDetails(data);
+		data = logEventServ.userReassignLog(data);
 		return data;
 	}
 	/**
@@ -1591,7 +1663,7 @@ public class AdminAPI {
 	 */
 	@PostMapping("/api/admin/reassign/appicant/progress/load")
 	public AsyncInformDTO reassignApplicantProgressLoad(@RequestBody AsyncInformDTO data) {
-			data=reassignServiceAsync.applicantProgressLoad(data);
+		data=reassignServiceAsync.applicantProgressLoad(data);
 		return data;
 	}
 	/**
@@ -1601,13 +1673,98 @@ public class AdminAPI {
 	 */
 	@PostMapping("/api/admin/reassign/appicant/progress/cancel")
 	public AsyncInformDTO reassignApplicantProgressCancel(@RequestBody AsyncInformDTO data) {
-			data=reassignServiceAsync.applicantProgressCancel();
+		data=reassignServiceAsync.applicantProgressCancel();
 		return data;
 	}
-	
+
 	@PostMapping("/api/admin/reassign/users/log")
 	public ReassignUserDTO reassignUsersLog(@RequestBody ReassignUserDTO data) {
-		data = reassignService.eventLog(data);
+		data = logEventServ.userReassignLog(data);
+		return data;
+	}
+
+	@PostMapping("/api/admin/import/locales/load")
+	public ImportLocalesDTO importLocalesLoad(Authentication auth, @RequestBody ImportLocalesDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		try {
+			data = importLocalesServ.importLoad(data, user);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+
+	@PostMapping("/api/admin/import/locales/loadmessages")
+	public TableQtb importLocalesLoadMessages(Authentication auth, @RequestBody TableQtb data) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		//try {
+		data = importLocalesServ.loadMessages(data);
+		//} catch (ObjectNotFoundException e) {
+		//	throw new DataNotFoundException(e);
+		//}
+		return data;
+	}
+
+	@PostMapping("/api/admin/import/locales/verif")
+	public ImportLocalesDTO importLocalesVerif(Authentication auth, @RequestBody ImportLocalesDTO data) throws DataNotFoundException {
+		try {
+			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+			data = importLocalesServ.importVerify(data);
+			if(data.isValid()) {
+				data=importLocalesServ.save(data,user);
+			}
+		} catch (ObjectNotFoundException | IOException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+
+	@PostMapping("/api/admin/import/locales/run")
+	public ImportLocalesDTO importLocalesRun(Authentication auth, @RequestBody ImportLocalesDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		try {
+			data = importLocalesServ.importRun(data, user);
+			//data.setThing(thingServ.loadThing(data.getThing(), user));
+			return data;
+		} catch (ObjectNotFoundException | IOException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+
+	@PostMapping("/api/admin/import/locales/download")
+	public ModelAndView importLocalesDownload(Authentication auth, UriComponentsBuilder uri, 
+			@RequestBody ThingDTO data,
+			HttpServletResponse response) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		TableQtb table = new TableQtb();
+
+		try {
+			table = importLocalesServ.downloadTemplate(user);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+
+		Map<String, Object> model = new HashMap<String, Object>();
+		//Sheet Name - locale
+		model.put(ExcelView.SHEETNAME, "Locales");
+		//Headers List - set width column
+		model.put(ExcelView.HEADERS, table.getHeaders().getHeaders());
+		//Rows
+		model.put(ExcelView.ROWS, table.getRows());
+		response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"messages.xlsx\"");
+		response.setHeader("filename", "messages.xlsx");
+		return new ModelAndView(new ExcelView(), model);
+	}
+	/**
+	 * Get import language log
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/import/locales/log")
+	public EventLogDTO importLocalesLog(Authentication auth, @RequestBody EventLogDTO data) throws DataNotFoundException {
+		data=logEventServ.importLocalesLog(data);
 		return data;
 	}
 }

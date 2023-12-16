@@ -1,8 +1,7 @@
 package org.msh.pharmadex2.dto;
 
-import java.util.List;
-
 import org.msh.pdex2.dto.table.TableQtb;
+import org.msh.pharmadex2.dto.enums.AssistantEnum;
 import org.msh.pharmadex2.dto.form.AllowValidation;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
 
@@ -18,8 +17,8 @@ public class ResourceDTO extends AllowValidation {
 	private Long selected = 0l;
 	private long nodeId=0;
 	private String varName="";
-	private FormFieldDTO<String> url= FormFieldDTO.of("");
-	private FormFieldDTO<String> configUrl= FormFieldDTO.of("");
+	private FormFieldDTO<String> url= FormFieldDTO.of("",false,false, AssistantEnum.URL_RESOURCE_NEW);
+	private FormFieldDTO<String> configUrl= FormFieldDTO.of("",false,false, AssistantEnum.URL_DATA_ANY);
 	private FormFieldDTO<String> description = FormFieldDTO.of("");
 	//link to an application
 	private long historyId=0;

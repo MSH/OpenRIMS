@@ -17,6 +17,9 @@ public class SubmitRecieptDTO extends AllowValidation {
 	private FormFieldDTO<String> references=FormFieldDTO.of("");
 	private FormFieldDTO<String> office=FormFieldDTO.of("");
 	
+	//receipt document, if one
+	private long receiptDocumentID = 0l;
+		
 	public long getHistoryId() {
 		return historyId;
 	}
@@ -59,6 +62,12 @@ public class SubmitRecieptDTO extends AllowValidation {
 	}
 	public void setOffice(FormFieldDTO<String> office) {
 		this.office = office;
+	}
+	public long getReceiptDocumentID() {
+		return receiptDocumentID;
+	}
+	public void setReceiptDocumentID(long receiptDocumentID) {
+		this.receiptDocumentID = receiptDocumentID;
 	}
 
 }

@@ -14,6 +14,11 @@ import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.services.r2.ClosureService;
+import org.msh.pharmadex2.dto.ImportLocalesDTO;
+import org.msh.pharmadex2.dto.ReassignUserDTO;
+import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
+import org.msh.pharmadex2.dto.log.EventLogDTO;
+import org.msh.pharmadex2.dto.log.ImportLanguageDTO;
 import org.msh.pharmadex2.dto.log.ReassignUserLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +39,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @Service
 @Transactional
 public class LoggerEventService {
+	private static final String LOG_LANGUAGE_REPLACE = "log.language.replace";
 	private static final String LOG_USER_REASSIGN = "log.user.reassign";
 	private static final Logger logger = LoggerFactory.getLogger(LoggerEventService.class);
 	@Autowired
@@ -44,6 +50,7 @@ public class LoggerEventService {
 	private Messages messages;
 	@Autowired
 	private JdbcRepository jdbcRepo;
+	
 	/**
 	 * Reassign processes, activities and data belongs to emailFrom to emailTo
 	 * @param emailExec Supervisor that asks for reassign
@@ -54,13 +61,10 @@ public class LoggerEventService {
 	 * @param description human readable descriptin
 	 * @throws ObjectNotFoundException
 	 */
-	public void applicantReassign(String emailExec, String emailFrom, String emailTo
+	@Transactional
+	public void applicantReassignEvent(String emailExec, String emailFrom, String emailTo
 			, long completed, long total, String description) throws ObjectNotFoundException {
-		//build or get a tree
-		Concept root=closureServ.loadRoot(LOG_USER_REASSIGN);
-		Concept email=new Concept();
-		email.setIdentifier(emailExec);
-		email=closureServ.saveToTree(root, email);
+		Concept email = rootForRecord(LOG_USER_REASSIGN,emailExec);
 		//add a record
 		Concept record=new Concept();
 		record.setIdentifier(LocalDateTime.now().toString());
@@ -77,6 +81,22 @@ public class LoggerEventService {
 			logger.error(e.getMessage(), e);
 			throw new ObjectNotFoundException(e.getMessage());
 		}
+	}
+	/**
+	 * Get root concept to add a log concept
+	 * @param logRoot
+	 * @param emailExec
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	@Transactional
+	public Concept rootForRecord(String logRoot, String emailExec) throws ObjectNotFoundException {
+		//build or get a tree
+		Concept root=closureServ.loadRoot(logRoot);
+		Concept email=new Concept();
+		email.setIdentifier(emailExec);
+		email=closureServ.saveToTree(root, email);
+		return email;
 	}
 	public List<TableHeader> userReassignHeaders() {
 		List<TableHeader> ret = new ArrayList<TableHeader>();
@@ -127,6 +147,116 @@ public class LoggerEventService {
 				true,
 				true,
 				TableHeader.COLUMN_STRING,
+				0));
+		ret.get(0).setSort(true);
+		ret.get(0).setSortValue(TableHeader.SORT_DESC);
+		return ret;
+	}
+	/**
+	 * Log import language event
+	 * @param logDTO
+	 * @param user
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public void importLanguageEvent(ImportLanguageDTO logDTO, UserDetailsDTO user) throws ObjectNotFoundException {
+		Concept email = rootForRecord(LOG_LANGUAGE_REPLACE,user.getEmail());
+		//add a record
+		Concept record=new Concept();
+		record.setIdentifier(LocalDateTime.now().toString());
+		try {
+			record.setLabel(objectMapper.writeValueAsString(logDTO));
+			record=closureServ.saveToTree(email, record);
+		} catch (JsonProcessingException e) {
+			logger.error(e.getMessage(), e);
+			throw new ObjectNotFoundException(e.getMessage());
+		}
+	}
+	/**
+	 * Previous reassign actions
+	 * @param data
+	 * @return
+	 */
+	public ReassignUserDTO userReassignLog(ReassignUserDTO data) {
+		if(!data.getEventLog().hasHeaders()) {
+			data.getEventLog().getHeaders().getHeaders().clear();
+			data.getEventLog().getHeaders().getHeaders().addAll(userReassignHeaders());
+		}
+		jdbcRepo.userReassignLog(data.getEventLog());
+		data.getEventLog().setSelectable(false);
+		return data;
+	}
+	/**
+	 * Get import locales log
+	 * @param data
+	 * @return
+	 */
+	public EventLogDTO importLocalesLog(EventLogDTO data) {
+		data.setTitle(messages.get("importLocales"));
+		if(data.getEventLog().getHeaders().getHeaders().isEmpty()) {
+			data.getEventLog().getHeaders().getHeaders().addAll(importLocalesHeaders());
+		}
+		jdbcRepo.importLocalesLog(data.getEventLog());
+		data.getEventLog().setSelectable(false);
+		return data;
+	}
+	private List<TableHeader> importLocalesHeaders() {
+		List<TableHeader> ret = new ArrayList<TableHeader>();
+		ret.add(TableHeader.instanceOf(
+				"eventDate",
+				messages.get("global_date"),
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_LOCALDATETIME,
+				0));
+		ret.add(TableHeader.instanceOf(
+				"executor",
+				messages.get("employee"),
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_STRING,
+				0));
+		ret.add(TableHeader.instanceOf(
+				"oldLanguage",
+				messages.get("oldLanguage"),
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_STRING,
+				0));
+		ret.add(TableHeader.instanceOf(
+				"newLanguage",
+				messages.get("newLanguage"),
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_STRING,
+				0));
+		ret.add(TableHeader.instanceOf(
+				"total",
+				messages.get("total"),
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_LONG,
+				0));
+		ret.add(TableHeader.instanceOf(
+				"imported",
+				messages.get("imported"),
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_LONG,
+				0));
+		ret.add(TableHeader.instanceOf(
+				"updated",
+				messages.get("updated"),
+				true,
+				true,
+				true,
+				TableHeader.COLUMN_LONG,
 				0));
 		ret.get(0).setSort(true);
 		ret.get(0).setSortValue(TableHeader.SORT_DESC);

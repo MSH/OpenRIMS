@@ -143,14 +143,22 @@ class Navigator{
 /* ************************************** window.postMessage simplify****************************************** */
 
 /**
- * issue a message to other components
- * @param {string} from - sender 
- * @param {string} to   - receiver, * means broadcast
- * @param {string} subject - subject to distinct messages, 
- * @param {object} data - data should be created by the sender and be inrerpretated by the receiver 
+ * issue a message to other components on this or opener window
+ * ~~~
+ * {from:from,to:to,subject:subject,data:data}
+ *  from - sender 
+ *  to   - receiver, * means broadcast
+ *  subject - subject to distinct messages, 
+ *  data - data should be created by the sender and be inrerpretated by the receiver
+ *  opener - window.opener in case if the message intends to the opener, otherwise skip this parameter 
+ * ~~~
  */
-static message(from,to, subject, data){
-    window.postMessage({from:from,to:to,subject:subject,data:data},window.location)
+static message(from,to, subject, data, opener){
+    let win=window
+    if(opener != undefined){
+        win=opener
+    }
+    win.postMessage({from:from,to:to,subject:subject,data:data},window.location)
 }
 
 

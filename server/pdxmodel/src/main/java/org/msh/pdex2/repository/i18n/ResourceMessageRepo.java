@@ -12,4 +12,7 @@ public interface ResourceMessageRepo extends CrudRepository<ResourceMessage, Lon
 
 	@Query("SELECT rm FROM ResourceMessage as rm where rm.message_key like :key and key_bundle=:keyBundle")
 	List<ResourceMessage> findByMessage_key(String key, int keyBundle);
+	
+	@Query("SELECT rm FROM ResourceMessage as rm where key_bundle=:keyBundle")
+	List<ResourceMessage> findByKeyBundle(int keyBundle);
 }

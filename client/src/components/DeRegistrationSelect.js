@@ -3,7 +3,7 @@ import {Container, Row, Col} from 'reactstrap'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
 import Navigator from './utils/Navigator'
-import Dictionary from './Dictionary'
+import TableSearch from './utils/TableSearch'
 import ApplicationList from './ApplicationList'
 import DeregistrationAdd from './DeregistrationAdd'
 
@@ -17,13 +17,14 @@ class DeRegistrationSelect extends Component{
             identifier:Date.now().toString(),
             data:{},
             labels:{
-                deregistration:''
+                search:''
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
         this.derRegistrationAdd=this.derRegistrationAdd.bind(this)
         this.selectRow=this.selectRow.bind(this)
         this.markSelected=this.markSelected.bind(this)
+        this.loadData=this.loadData.bind(this)
     }
 
     /**
@@ -31,7 +32,7 @@ class DeRegistrationSelect extends Component{
      * @param {Window Event} event 
      */
     eventProcessor(event){
-        let data=event.data
+        /*let data=event.data
         if(data.subject=="onSelectionChange" && data.from==this.state.identifier+"_dict"){
             this.selectRow(data.data)
             this.state.data=data.data
@@ -41,13 +42,16 @@ class DeRegistrationSelect extends Component{
             this.state.data=data.data
             this.markSelected()
             this.setState(this.state)
-        }
+        }*/
     }
 
     componentDidMount(){
         window.addEventListener("message",this.eventProcessor)
         Locales.resolveLabels(this)
+        this.loadData()
+    }
 
+    loadData(){
         Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/deregistration", this.state.data, (query,result)=>{
             this.state.data=result
             this.markSelected()
@@ -57,10 +61,13 @@ class DeRegistrationSelect extends Component{
             this.setState(this.state)
         })
     }
-    selectRow(data){
-        if(Fetchers.isGoodArray(data.table.rows)){
-            data.table.rows.forEach(row=>{
-                if(row.selected){
+
+    selectRow(selRowNo){
+        if(Fetchers.isGoodArray(this.state.data.table.rows)){
+            this.state.data.table.rows.forEach((row, index)=>{
+                row.selected = false
+                if(index == selRowNo){
+                    row.selected = true
                     Fetchers.writeLocaly("deregistr_selected_row",row.dbID)
                 }
             })
@@ -76,7 +83,7 @@ class DeRegistrationSelect extends Component{
                 }
             })
         }
-        Navigator.message(this.state.identifier,this.state.identifier+"_dict",'refreshData',{})
+        //Navigator.message(this.state.identifier,this.state.identifier+"_dict",'refreshData',{})
     }
     componentWillUnmount(){
         window.removeEventListener("message",this.eventProcessor)
@@ -128,21 +135,25 @@ class DeRegistrationSelect extends Component{
             <Container fluid>
                 <Row>
                     <Col xs='12' sm='12' lg='6' xl='6'>
-                        <Row>
-                            <Col>
-                                <h5>{this.state.labels.deregistration}</h5>
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col>
-                                <Dictionary
-                                data={this.state.data}
-                                identifier={this.state.identifier+"_dict"}
-                                recipient={this.state.identifier}
-                                display
-                                />
-                            </Col>
-                        </Row>
+                        <TableSearch 
+                            label={this.state.labels.search}
+                            tableData={this.state.data.table} 
+                            loader={this.loadData}
+                            title={this.state.data.home}
+                            styleCorrector={(header)=>{
+                                if(header=='pref'){
+                                    return {width:'30%'}
+                                }
+                            }}
+                            linkProcessor={(rowNo,cellNo)=>{
+                                this.selectRow(rowNo)
+                                this.setState(this.state)
+                            }}
+                            selectRow={(rowNo)=>{
+                                this.selectRow(rowNo)
+                                this.setState(this.state)
+                            }}
+                        />
                     </Col>
                     <Col>
                         <Row>

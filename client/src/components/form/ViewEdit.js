@@ -4,10 +4,14 @@ import FieldInput from './FieldInput'
 import FieldDisplay from'./FieldDisplay'
 
 /**
- * View or edit text, textarea or numeric
- * Free hand input or display - text, textarea, numbers along with label above
- * Require from the caller component this.state.data[attribute] and this.state.labels[attribute] as a valid label
- * Require FormFieldDTO object for this.state.data[attribute]
+ * ~~~~
+ * mode: PropTypes.oneOf(['text','textarea','number']).isRequired,
+    attribute  :PropTypes.string.isRequired,                        //should be component.state.labels[attribute] and component.state.data[attribute]
+    component   :PropTypes.object.isRequired,                        //caller component
+    data:PropTypes.object,                                           //data source where FormFieldDTO can be get by name. The default is component.state.data
+    edit:   PropTypes.bool,                                           //view or edit
+    hideEmpty : PropTypes.bool,                                      //hide empty in display mode
+~~~~
  * @example
  * <ViewEdit mode='text' attribute='firstName' component={this} edit /> will be editable
  * <ViewEdit mode='text' attribute='firstName' component={this} />      will not be editable

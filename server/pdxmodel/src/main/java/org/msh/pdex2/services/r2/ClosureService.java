@@ -86,7 +86,7 @@ public class ClosureService {
 					toInsert.add(closure);
 					if(parent != null) {
 						parent = loadConceptById(parent.getID());
-		
+
 						List<Closure> childs = closureRepo.findByParentAndLevel(parent, 1);
 						//for(Closure child :parent.getChilds()) {			//check unique identifier on a level 
 						for(Closure child :childs) {
@@ -110,7 +110,7 @@ public class ClosureService {
 							}
 							//}
 						}
-		
+
 						//closures to all parents of the parent and parent itself ONLY FOR NEW CONCEPT!!!!
 						List<Closure> allParents = closureRepo.findByChild(parent);
 						for(Closure clos : allParents) {
@@ -280,7 +280,7 @@ public class ClosureService {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Load or create and save root concept by identifier
 	 * @param identifier
@@ -506,13 +506,14 @@ public class ClosureService {
 		ret=conceptRepo.findAllByIdentifierAndLabel(identifier, label);
 		return ret;
 	}
-	
+
 	/**
 	 * Load concept by Identifier
 	 * @param identifier
 	 * @param label
-	 * @return
+	 * @return null if not found
 	 */
+	@Transactional
 	public Concept loadConceptByIdentifier(String identifier) {
 		List<Concept> ret = new ArrayList<Concept>();
 		ret = conceptRepo.findAllByIdentifier(identifier);
@@ -521,12 +522,18 @@ public class ClosureService {
 		}
 		return null;
 	}
-	
+	@Transactional
+	public List<Concept> loadAllConceptsByIdentifier(String identifier) {
+		List<Concept> ret = new ArrayList<Concept>();
+		ret = conceptRepo.findAllByIdentifier(identifier);
+		return ret;
+	}
+
 	/**
 	 * Load concept by Identifier and find first ACTIVE Concept
 	 * @param identifier
 	 * @param label
-	 * @return
+	 * @return empty list if not found
 	 */
 	public Concept loadConceptByIdentifierActive(String identifier) {
 		Concept concept = null;
@@ -542,7 +549,7 @@ public class ClosureService {
 		}
 		return concept;
 	}
-	
+
 
 	/**
 	 * Find concept in a branch by the identifier.
@@ -568,30 +575,30 @@ public class ClosureService {
 			}
 		}
 	}
-		/**
-		 * Find concept activ in a branch by the identifier .
-		 * @param root
-		 * @param string
-		 * @return if not found, return new concept with the identifier given
-		 * @throws ObjectNotFoundException 
-		 */
-		@Transactional
-		public Concept findActivConceptInBranchByIdentifier(Concept root, String identifier) throws ObjectNotFoundException {
-			List<Closure> childs = closureRepo.findInBranchByConceptIdentifier(root, identifier);
-			if(childs.size()==1) {
-				return childs.get(0).getChild();
+	/**
+	 * Find concept activ in a branch by the identifier .
+	 * @param root
+	 * @param string
+	 * @return if not found, return new concept with the identifier given
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public Concept findActivConceptInBranchByIdentifier(Concept root, String identifier) throws ObjectNotFoundException {
+		List<Closure> childs = closureRepo.findInBranchByConceptIdentifier(root, identifier);
+		if(childs.size()==1) {
+			return childs.get(0).getChild();
+		}else {
+			if(childs.size()==0) {
+				Concept ret = new Concept();
+				ret.setIdentifier(identifier);
+				return ret;
 			}else {
-				if(childs.size()==0) {
-					Concept ret = new Concept();
-					ret.setIdentifier(identifier);
-					return ret;
-			}else {
-					List<Closure> activ= new ArrayList<Closure>();
-					for(Closure clo:childs) {
-						if(clo.getChild().getActive()) {
-							activ.add(clo);
-						}
+				List<Closure> activ= new ArrayList<Closure>();
+				for(Closure clo:childs) {
+					if(clo.getChild().getActive()) {
+						activ.add(clo);
 					}
+				}
 				if(activ.size()==0) {
 					Concept ret1 = new Concept();
 					ret1.setIdentifier(identifier);
@@ -606,6 +613,8 @@ public class ClosureService {
 			}
 		}
 	}
+
+	
 
 
 }

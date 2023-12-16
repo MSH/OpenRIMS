@@ -1,5 +1,6 @@
 package org.msh.pharmadex2;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Field;
@@ -12,6 +13,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
@@ -19,6 +22,7 @@ import javax.mail.internet.InternetAddress;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.beanutils.PropertyUtilsBean;
 import org.apache.commons.lang3.reflect.FieldUtils;
+import org.apache.commons.validator.UrlValidator;
 import org.junit.jupiter.api.Test;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
@@ -56,7 +60,7 @@ public class ElStupido {
 		String a1= "test@theta.com.ua";
 		String a2="test/test@test.com";
 		String a3="Google Calendar <calendar-notification@google.com>";
-		
+
 		InternetAddress ia = new InternetAddress(a3,true);
 		System.out.println(ia.getAddress());
 		ia = new InternetAddress(a2,true);
@@ -66,7 +70,7 @@ public class ElStupido {
 		ia = new InternetAddress("elStupido",true);
 		System.out.println(ia.getAddress());	
 	}
-	
+
 	@Test
 	public void localDate() {
 		LocalDate ld;
@@ -94,16 +98,16 @@ public class ElStupido {
 		DateBS dateBS = DateConverter.convertADToBS(date);  //returns corresponding DateBS
 		System.out.println(dateBS.toString());
 	}
-	
+
 	@Test
 	public void monthBetween() {
 		long monthsBetween = ChronoUnit.MONTHS.between(
-			     YearMonth.from(LocalDate.parse("2016-12-01")), 
-			     YearMonth.from(LocalDate.parse("2016-11-03"))
-			);
+				YearMonth.from(LocalDate.parse("2016-12-01")), 
+				YearMonth.from(LocalDate.parse("2016-11-03"))
+				);
 		System.out.println(monthsBetween);
 	}
-	
+
 	@Test
 	public void genericClass() {
 		FormFieldDTO<Long> ffld = new FormFieldDTO<Long>();
@@ -115,5 +119,25 @@ public class ElStupido {
 		System.out.println(SystemService.ACTORS_AUTHENTICATED);
 		System.out.println(SystemService.ACTORS_ALL);
 	}
-	
+
+	@Test
+	public void validURL() {
+		String URL_REGEX =
+				"[A-Za-z0-9]+((\\.)?[A-Za-z0-9]+)*";
+		Pattern URL_PATTERN = Pattern.compile(URL_REGEX);
+		Matcher urlMatcher = URL_PATTERN.matcher("");
+		assertFalse(urlMatcher.matches());
+		 urlMatcher = URL_PATTERN.matcher("aba");
+		assertTrue(urlMatcher.matches());
+		urlMatcher = URL_PATTERN.matcher("aba.");
+		assertFalse(urlMatcher.matches());
+		urlMatcher = URL_PATTERN.matcher("aba.jabba");
+		assertTrue(urlMatcher.matches());
+		urlMatcher = URL_PATTERN.matcher("aba..");
+		assertFalse(urlMatcher.matches());
+		urlMatcher = URL_PATTERN.matcher("aba.jaba.baba");
+		assertTrue(urlMatcher.matches());
+
+	}
+
 }

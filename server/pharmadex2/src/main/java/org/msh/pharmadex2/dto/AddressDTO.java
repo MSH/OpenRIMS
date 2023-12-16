@@ -1,10 +1,5 @@
 package org.msh.pharmadex2.dto;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.msh.pharmadex2.dto.form.AllowValidation;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;

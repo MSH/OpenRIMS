@@ -1,5 +1,5 @@
 import React , {Component} from 'react'
-import {Container, Row, Col, Button, Breadcrumb, BreadcrumbItem,Collapse, Alert,Card, CardBody, CardTitle} from 'reactstrap'
+import {Container, Row, Col, Button, Breadcrumb, BreadcrumbItem,Collapse, Alert,Card, CardBody, CardTitle, Label} from 'reactstrap'
 import PropTypes from 'prop-types'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
@@ -13,6 +13,7 @@ import ActivityHistoryData from './ActivityHistoryData'
 import Alerts from './utils/Alerts'
 import AmendmentActivity from './AmendmentActivity'
 import ThingsPublisher from './reports/ThingsPublisher'
+import Downloader from './utils/Downloader'
 
 /**
  * Manages an activity
@@ -49,7 +50,8 @@ class ActivityManager extends Component{
                 return_action:'',
                 save_error:'',
                 backDlg_war:'',
-                application_nextEv:''
+                application_nextEv:'',
+                uploadApplReceipt:''
             },
             history:{ //history table
                 historyId:this.props.historyId,
@@ -431,7 +433,26 @@ class ActivityManager extends Component{
                                         {this.state.data.application[0].title}
                                     </CardTitle>
                                     <CardBody>
-                                        <ThingsPublisher data={this.state.data.application} recipient={this.state.identifier}/ >
+                                        <Row className='d-print-none' hidden={!this.state.data.guest}>
+                                            <Col xs='12' sm='12' lg='12' xl='12' className='d-flex justify-content-end'>
+                                                <Button key={100} color="link" size='sm'
+                                                    onClick={()=>{
+                                                        let data={
+                                                            historyId:this.state.data.application[0].historyId
+                                                        }
+                                                        Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/application/receipt", data, (query,result)=>{
+                                                            data=result
+                                                            if(data.receiptDocumentID>0){
+                                                                let dl = new Downloader()
+                                                                dl.postDownload('/api/guest/application/receipt/open', data, "file.bin")
+                                                            }
+                                                        })
+                                                    }}>
+                                                        {this.state.labels.uploadApplReceipt}
+                                                </Button>
+                                            </Col>
+                                        </Row>
+                                        <ThingsPublisher data={this.state.data.application} recipient={this.state.identifier} / >
                                     </CardBody>
                                 </Card>
                                 

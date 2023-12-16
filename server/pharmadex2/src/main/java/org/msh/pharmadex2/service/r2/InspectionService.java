@@ -48,6 +48,7 @@ public class InspectionService {
 			//set permit type name
 			Concept item = closureServ.loadConceptById(data.getDictItemId());
 			data.setPermitType(literalServ.readPrefLabel(item));
+			data.setCanAdd(item.getActive());
 			//create a table with permits
 			String url=literalServ.readValue("url", item);
 			String applDataUrl = literalServ.readValue("dataurl", item);

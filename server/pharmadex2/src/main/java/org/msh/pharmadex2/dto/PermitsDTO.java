@@ -15,6 +15,8 @@ public class PermitsDTO extends AllowValidation {
 	private long dictItemId=0;		// item in any "guest" dictionary
 	private String permitType="";	// the permit type name, e.g. Individual owner pharmacies
 	private TableQtb table= new TableQtb();	//table to show/select permits
+	private boolean canAdd = false;
+	
 	public long getDictItemId() {
 		return dictItemId;
 	}
@@ -32,6 +34,12 @@ public class PermitsDTO extends AllowValidation {
 	}
 	public void setTable(TableQtb table) {
 		this.table = table;
+	}
+	public boolean isCanAdd() {
+		return canAdd;
+	}
+	public void setCanAdd(boolean canAdd) {
+		this.canAdd = canAdd;
 	}
 	
 }

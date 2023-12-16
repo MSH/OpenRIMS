@@ -113,9 +113,9 @@ class ResourcesUsage extends Component{
                             }
                             let paramStr=JSON.stringify(data)
                             let paramEnc = encodeURI(paramStr)
-                            window.open('/api/'+Navigator.tabSetName() +'/resource/download/param='+paramEnc, "_blank")
-                            //let dl = new Downloader()
-                            //dl.postDownload('/api/'+Navigator.tabSetName() +'/resource/download/form', data, "file.bin")
+                            //window.open('/api/'+Navigator.tabSetName() +'/resource/download/param='+paramEnc, "_blank")
+                            let dl = new Downloader()
+                            dl.postDownload('/api/'+Navigator.tabSetName() +'/resource/download/form', data, "file.bin")
                         })
                     }}
                 />

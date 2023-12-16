@@ -95,8 +95,10 @@ class PermitList extends Component{
                              loader={this.load}
                              headBackground={Pharmadex.settings.tableHeaderBackground}
                              linkProcessor={(row,col)=>{
-                                Navigator.message(this.state.identifier, this.props.recipient, "onPermitSelected",
-                                        this.state.data.table.rows[row].dbID)
+                                if(this.state.data.canAdd){
+                                    Navigator.message(this.state.identifier, this.props.recipient, "onPermitSelected",
+                                    this.state.data.table.rows[row].dbID)
+                                }
                              }}
                         />
                     </Col>

@@ -66,8 +66,8 @@ public class ImportAdmUnitsService {
 	Messages messages;
 	@Autowired
 	AssemblyService assembServ;
-	@Autowired
-	QueryRepository queryRep;
+	//@Autowired
+	//QueryRepository queryRep;
 	@Autowired
 	private ThingService thingServ;
 	@Autowired

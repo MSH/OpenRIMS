@@ -244,7 +244,7 @@ public class Messages {
 	public ResourceBundle getCurrentBundle() {
 		Iterable<ResourceBundle> bundles = bundleRepo.findAll();
 		for(ResourceBundle bundle : bundles) {
-			if(bundle.getLocale().toUpperCase().equals(getCurrentLocaleStr())) {
+			if(bundle.getLocale().equalsIgnoreCase(getCurrentLocaleStr())) {
 				return bundle;
 			}
 		}

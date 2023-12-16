@@ -66,7 +66,7 @@ public class PdfService {
 				//thing = thingServ.path(thing);
 				list.add(thing);
 				List<Assembly> allAssms = assemblyServ.loadDataConfiguration(thing.getUrl());
-				List<AssemblyDTO> persons = assemblyServ.auxPersons(thing.getUrl(),allAssms);
+				List<AssemblyDTO> persons = assemblyServ.auxPersons(thing.getUrl(),allAssms, new ArrayList<AssemblyDTO>());
 				if(persons != null && persons.size() > 0) {
 					for(AssemblyDTO assembly:persons) {
 						Concept pconcept = closureServ.loadConceptById(thing.getNodeId());

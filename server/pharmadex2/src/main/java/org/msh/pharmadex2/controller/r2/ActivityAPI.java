@@ -2,6 +2,7 @@ package org.msh.pharmadex2.controller.r2;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
@@ -15,6 +16,7 @@ import org.msh.pharmadex2.dto.ActivityHistoryDataDTO;
 import org.msh.pharmadex2.dto.ActivitySubmitDTO;
 import org.msh.pharmadex2.dto.ApplicationHistoryDTO;
 import org.msh.pharmadex2.dto.ApplicationsDTO;
+import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.CheckListDTO;
 import org.msh.pharmadex2.dto.DataUnitDTO;
 import org.msh.pharmadex2.dto.FileDTO;
@@ -430,7 +432,7 @@ public class ActivityAPI{
 		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
 		try {
 			if(data.getParentId()>0) {
-				data = thingServ.thingSaveUnderParent(data,user);
+				data = thingServ.saveUnderParent(data,user);
 			}else {
 				data=thingServ.saveUnderOwner(data, user);
 			}
@@ -444,7 +446,8 @@ public class ActivityAPI{
 	public ThingDTO thingValidate(Authentication auth, UriComponentsBuilder uri,@RequestBody ThingDTO data) throws DataNotFoundException {
 		accServ.allowAuthenticated(auth, uri);
 		try {
-			data = validServ.thing(data,true);
+			List<AssemblyDTO> storedDataConfig = thingServ.loadDataConfigurationFromNode(data.getNodeId());
+			data = validServ.thing(data,storedDataConfig,true);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -688,7 +691,7 @@ public class ActivityAPI{
 			logger.trace("finish "+fres.getFileName());
 			return ResponseEntity.ok()
 					.contentType(MediaType.parseMediaType(fres.getMediaType()))
-					.contentLength(fres.getFileSize())
+					//.contentLength(fres.getFileSize()) 2023-11-13
 					.header(HttpHeaders.CONTENT_DISPOSITION, fres.getContentDisp() + "; filename=\"" + fres.getFileName() + "\"")
 					.header("filename", fres.getFileName()).body(res);
 		} catch (ObjectNotFoundException | IOException e) {

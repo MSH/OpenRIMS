@@ -4,6 +4,7 @@ import PropTypes from 'prop-types'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
 import Navigator from './utils/Navigator'
+import ThingsPublisher from './reports/ThingsPublisher'
 import Thing from './Thing'
 
 /**
@@ -117,7 +118,32 @@ class AmendmentActivity extends Component{
             if(dataUnit != undefined){
                 let path=this.state.data.modiPath[this.state.index-1].path
                 if(Fetchers.isGoodArray(path)){
-                    path.forEach((thing, index)=>{
+                    if(this.state.index == this.state.data.modiPath.length){
+                        ret.push(
+                            <ThingsPublisher data={path} recipient={this.state.identifier}/>
+                        )
+                    }else{
+                        path.forEach((thing, index)=>{
+                            //thing.readOnly=true
+                            ret.push(
+                                <h4 key={index+1000}>
+                                    {thing.title}
+                                </h4>
+                            )
+                        thing.repaint=true
+                        ret.push(
+                            <Thing key={index+1}
+                            data={thing}
+                            recipient={this.state.identifier}
+                            readOnly={true}
+                            narrow
+                            repaint
+                            />
+                            )
+                        })
+                    }
+                    
+                    /*path.forEach((thing, index)=>{
                         //thing.readOnly=true
                         ret.push(
                             <h4 key={index+1000}>
@@ -134,7 +160,7 @@ class AmendmentActivity extends Component{
                         repaint
                         />
                         )
-                    })
+                    })*/
                 }
             }
         return ret

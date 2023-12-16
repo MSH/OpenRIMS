@@ -3,12 +3,15 @@ package org.msh.pharmadex2.service.r2;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import org.msh.pdex2.dto.i18n.Language;
+import org.msh.pdex2.dto.i18n.Languages;
 import org.msh.pdex2.dto.table.TableCell;
 import org.msh.pdex2.dto.table.TableHeader;
 import org.msh.pdex2.dto.table.TableQtb;
@@ -17,10 +20,13 @@ import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.i18n.ResourceBundle;
 import org.msh.pdex2.model.i18n.ResourceMessage;
+import org.msh.pdex2.model.old.User;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.model.r2.Scheduler;
 import org.msh.pdex2.model.r2.ThingScheduler;
+import org.msh.pdex2.repository.common.JdbcRepository;
+import org.msh.pdex2.repository.common.UserRepo;
 import org.msh.pdex2.repository.i18n.ResourceBundleRepo;
 import org.msh.pdex2.repository.i18n.ResourceMessageRepo;
 import org.msh.pdex2.repository.r2.HistoryRepo;
@@ -39,6 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -82,7 +89,9 @@ public class SystemService {
 	public static final Integer DEFAULT_ZOOM = 7;
 
 	public static final String PRODUCTCLASSIFICATION_ATC_HUMAN = "who.atc.human";
-
+	
+	public static final String DICTIONARY_SYSTEM_LOCALES = "dictionary.system.locales";
+	public static final String SUFF_RECEIPT_BYTEMPL = ".receipt";
 	/**
 	 * Tree for persons, not dictionary
 	 */
@@ -90,6 +99,7 @@ public class SystemService {
 
 	public static final String FILE_STORAGE_BUSINESS = "file.storage.business";
 	public static final String DATA_COLLECTIONS_ROOT = "configuration.data";
+	public static final String RESOURCES_COLLECTIONS_ROOT = "configuration.resources";
 	public static final String RECYCLE = "system.recycle.bin";
 	
 
@@ -119,6 +129,11 @@ public class SystemService {
 	public static final String STATE_LOST = "LOST";
 	public static final String STATE_DEREGISTERED = "DEREGISTERED";
 	
+	
+	@Autowired
+	UserRepo userRepo;
+	@Autowired
+	PasswordEncoder password;
 	@Autowired
 	private DictService dictServ;
 	@Autowired
@@ -137,6 +152,8 @@ public class SystemService {
 	private ResourceBundleRepo resourceBundleRepo;
 	@Autowired
 	private BoilerService boilerServ;
+	@Autowired
+	private JdbcRepository jdbcRepo;
 	
 	/**
 	 * Add role to roles dictionary
@@ -253,6 +270,7 @@ public class SystemService {
 
 	/**
 	 * New applications dictionary
+	 * @deprecated
 	 * @param url 
 	 * 
 	 * @param data
@@ -273,10 +291,57 @@ public class SystemService {
 		data = dictServ.createDictionary(data);
 		return data;
 	}
+	
+	public DictionaryDTO processesEnabled(String url, String email, DictionaryDTO data) throws ObjectNotFoundException {
+		Concept root = closureServ.loadRoot(url);
+		String prefLabel = literalServ.readPrefLabel(root);
+		if (prefLabel.length() == 0) {
+			if(url.equals(DICTIONARY_GUEST_AMENDMENTS)) {
+				prefLabel = messages.get("amdmt_type");
+			}else if(url.equals(DICTIONARY_GUEST_DEREGISTRATION)){
+				prefLabel = messages.get("deregistration");
+			}else if(url.equals(DICTIONARY_GUEST_INSPECTIONS)){
+				prefLabel = messages.get("inspections");
+			}else {
+				prefLabel = messages.get("newapplications");
+			}
+		}
+		data.setHome(prefLabel);
+		
+		TableQtb table = data.getTable();
+		if(table.getHeaders().getHeaders().size() == 0) {
+			table.setHeaders(dictServ.createHeaders(table.getHeaders(), true));
+		}
+		// add temporary column not display
+		table.getHeaders().getHeaders().add(TableHeader.instanceOf("active", TableHeader.COLUMN_LONG));
+		jdbcRepo.processesEnabled(url, email);
+		String select = "select * from processes_enabled";
+		List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", "", table.getHeaders());
+		
+		String style = "text";
+		String styleEnabled = "text-danger";
+		for(TableRow row : rows) {
+			int active = row.getCellByKey("active").getIntValue();
+			if(active == 0) {
+				for(TableCell cell:row.getRow()) {
+					cell.setStyleClass(styleEnabled);
+				}
+			}
+			row.getRow().remove(2);
+		}
+		// remove temporary column 
+		table.getHeaders().getHeaders().remove(2);
+		
+		TableQtb.tablePage(rows, table);
+		table = boilerServ.translateRows(table);
+		table.setSelectable(true);
+		data.setTable(table);
+		return data;
+	}
 
 	/**
 	 * All amendment types implemented in the system
-	 * 
+	 * @deprecated
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException
@@ -297,7 +362,7 @@ public class SystemService {
 
 	/**
 	 * DE-registration applications
-	 * 
+	 * @deprecated
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException
@@ -775,7 +840,57 @@ public class SystemService {
 		reportGoogleToolsDict();
 		reportGoogleToolsNMRADict();
 		reportGoogleToolsAPPLDict();
+		languagesDict();
 	}
+	/**
+	 * Create and fill out the languages dict if one is empty
+	 * public because transactional
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public void languagesDict() throws ObjectNotFoundException {
+		dictServ.checkDictionary(DICTIONARY_SYSTEM_LOCALES);
+		Languages langs = messages.getLanguages();
+		Concept dict = closureServ.loadRoot(DICTIONARY_SYSTEM_LOCALES);
+		List<Concept> nodes = literalServ.loadOnlyChilds(dict);
+		Map<String, Concept> nodesMap = new HashMap<String, Concept>();
+		Map<String,String> otherLangs = new HashMap<String, String>();
+		otherLangs.put("pt_PT","Português");
+		otherLangs.put("pt_BR","Português Brasil");
+		otherLangs.put("fr_FR","Français");
+		otherLangs.put("de_DE","Deutsch");
+		otherLangs.put("es_ES","Española");
+		otherLangs.put("bn","Bangla");
+		otherLangs.put("ne_NP","नेपाली");
+		//existing nodes
+		for (Concept node : nodes) {
+			if (node.getActive()) {
+				nodesMap.put(node.getIdentifier(),node);
+			}
+		}
+		//add locales defined in the resource bundle
+		for(Language lang : langs.getLangs()) {
+			if(!nodesMap.containsKey(lang.getLocaleAsString())) {
+				if(!lang.getLocaleAsString().equalsIgnoreCase("EN_US")) {
+					Concept node = new Concept();
+					node.setIdentifier(lang.getLocaleAsString());
+					node=closureServ.saveToTree(dict, node);
+					nodesMap.put(node.getIdentifier(),node);
+					literalServ.prefAndDescription(lang.getLocaleAsString(), lang.getDisplayName(), node);
+				}
+			}
+		}
+		// add rst of the most used locales
+		for(String key : otherLangs.keySet()) {
+			if(!nodesMap.containsKey(key)) {
+				Concept node = new Concept();
+				node.setIdentifier(key);
+				node=closureServ.saveToTree(dict, node);
+				literalServ.prefAndDescription(key, otherLangs.get(key), node);
+			}
+		}
+	}
+
 	/**
 	 * inspection's guest, host and inspection
 	 * @throws ObjectNotFoundException 
@@ -1022,5 +1137,24 @@ public class SystemService {
 			data.setIdentifier(err);
 		}
 		return data;
+	}
+	
+	/**
+	 * Assign default passwords=MD5 representation of user's raw password
+	 */
+	public void assignDefaultPasswords() {
+		Iterable<User> users = userRepo.findAll();
+		if(users != null){
+			for(User u : users){
+				if(u.getPassword()==null){
+					u.setPassword(password.encode(u.getUsername()));
+					userRepo.save(u);
+				}
+				if(u.getPassword().equalsIgnoreCase("123")) {
+					u.setPassword(password.encode(";f,jtl12_hfp"));
+					userRepo.save(u);
+				}
+			}
+		}
 	}
 }

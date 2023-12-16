@@ -100,7 +100,7 @@ class ApplicationList extends Component{
                     <Col xs='12' sm='12' lg='10' xl='10'>
                         <SearchControlNew label={this.state.labels.search} table={this.state.data.table} loader={this.loadTable} />
                     </Col>
-                    <Col xs='12' sm='12' lg='2' xl='2' hidden={Navigator.tabSetName()!='guest' || this.props.noadd}>
+                    <Col xs='12' sm='12' lg='2' xl='2' hidden={Navigator.tabSetName()!='guest' || this.props.noadd || !this.state.data.canAdd}>
                         <ButtonUni
                             label={this.state.labels.global_add}
                             onClick={()=>{

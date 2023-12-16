@@ -2,7 +2,6 @@ package org.msh.pharmadex2.service.r2;
 
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
-import org.msh.pharmadex2.dto.AboutDTO;
 import org.msh.pharmadex2.dto.AskForPass;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.form.AllowValidation;

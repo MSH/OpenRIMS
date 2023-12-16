@@ -124,6 +124,7 @@ public class ApplicationService {
 	public ApplicationsDTO applicatonsTable(ApplicationsDTO data, UserDetailsDTO user, String searchStr) throws ObjectNotFoundException {
 		if (data.getDictItemId() > 0) {
 			Concept dictItem = closureServ.loadConceptById(data.getDictItemId());
+			data.setCanAdd(dictItem.getActive());
 			String appUrl = literalServ.readValue("applicationurl", dictItem);
 			String dataUrl = literalServ.readValue("dataurl", dictItem);
 			if(data.isAmendment()) {
@@ -925,11 +926,12 @@ public class ApplicationService {
 			//get the most appropriate history using dataId
 			if(data.getDataId()>0) {
 				Concept applData= closureServ.loadConceptById(data.getDataId());
-				List<History> allHis = historyRepo.findAllByApplicationDataOrderByID(applData);
+				List<History> allHis = historyRepo.findAllByApplicationDataOrderByCome(applData);
 				//search for opened initial application record 
 				for(History h : allHis) {
 					if(h.getActivityData()!=null && h.getApplicationData()!=null &&
-							h.getActivityData().getID()==h.getApplicationData().getID() && h.getActConfig()==null && h.getGo()==null) {
+							h.getActivityData().getID()==h.getApplicationData().getID() && h.getActConfig()==null && h.getGo()==null
+							&& h.getApplDict().getID()==data.getApplDictNodeId()) {
 						data.setHistoryId(h.getID());
 						data.setApplication(true);
 						return data;
@@ -939,7 +941,7 @@ public class ApplicationService {
 				//search for any opened history record assigned 
 				for(History h : allHis) {
 					his=h;	//suppose..
-					if(h.getGo()==null ) {
+					if(h.getGo()==null) {
 						Concept worker = closureServ.getParent(h.getActivity());
 						if(accServ.sameEmail(user.getEmail(), worker.getIdentifier())){
 							data.setHistoryId(h.getID());

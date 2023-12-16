@@ -140,7 +140,7 @@ class Content extends Component{
             case "urlassistant":
                 let parStr = Navigator.parameterValue()
                 let params=JSON.parse(parStr)
-                return <URLAssistant assistant={params.assistant} select={params.select} />
+                return <URLAssistant assistant={params.assistant} value={params.value} recipient={params.recipient} title={params.title} />
             default:
                 return this.paintRows()
         }

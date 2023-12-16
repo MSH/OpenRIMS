@@ -15,14 +15,11 @@ import org.apache.http.ssl.TrustStrategy;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pharmadex2.service.common.ContextServices;
-import org.msh.pharmadex2.service.common.UserService;
-import org.msh.pharmadex2.service.r2.AmendmentService;
 import org.msh.pharmadex2.service.r2.SystemService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.event.ContextRefreshedEvent;
@@ -49,13 +46,9 @@ public class Pharmadex2Application implements WebMvcConfigurer  {
 	}
 
 	@Autowired
-	UserService userService;
-	@Autowired
 	SystemService systemService;
 	@Autowired
 	Messages messages;
-	@Autowired
-	AmendmentService amendServ;
 	@Value( "${spring.web.locale:en_US}" )
 	String defaultLocaleName;
 
@@ -72,13 +65,7 @@ public class Pharmadex2Application implements WebMvcConfigurer  {
 			public void onApplicationEvent(ContextRefreshedEvent event) {
 				messages.loadLanguages();
 				contextServ.removeAllContexts();
-				userService.assignDefaultPasswords();
-				try {
-					amendServ.rewriteAmendedData();
-				} catch (ObjectNotFoundException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}				//TODO temporary!!!!
+				systemService.assignDefaultPasswords();
 				try {
 					systemService.checkDictionaries();
 				} catch (ObjectNotFoundException e) {

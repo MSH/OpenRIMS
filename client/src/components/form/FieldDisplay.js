@@ -1,26 +1,56 @@
 import React , {Component} from 'react'
-import {FormGroup, Label, Container, FormText} from 'reactstrap'
+import {FormGroup, Label, Container, FormText,Row,Col} from 'reactstrap'
 import PropTypes from 'prop-types'
+import URLButtons from './URLButtons'
 
 /**
  * Display field data - text, number, date, time, boolean
- * Require from the caller component this.state.data[attribute] and this.state.labels[attribute] as a valid label
- * Require complex FormFieldDTO object for this.state.data[attribute]
- * modes are ['text','textarea','number', 'date', 'boolean','time']
- * The component should has this.state.labels.locale as a valid language tag (i.e. en-US, not en_us) and this.state.labels[attribute] as a valid label
+ * ~~~~
+ * mode: PropTypes.oneOf(['text','textarea','number', 'date', 'boolean','time']).isRequired,
+    attribute  :PropTypes.string.isRequired,                        //name of a OptionDTO text or number attribute
+    hideEmpty   :PropTypes.bool,                                     //hide empty fields
+    component   :PropTypes.object.isRequired,                        //caller component
+    data:PropTypes.object,                                           //data source where FormFieldDTO can be get by name. The default is component.state.data
+ * ~~~~
  * @example
  * <FieldDisplay data={this.state.data.literals} mode='text' attribute='firstName' component={this} hideEmpty=false} />
  */
 class FieldDisplay extends Component{
     constructor(props){
         super(props)
+        this.identifier=Date.now().toString()+this.props.attribute
+        
         this.prepareText=this.prepareText.bind(this)
         this.notEmptyText=this.notEmptyText.bind(this)
         this.hideIt=this.hideIt.bind(this)
         this.notEmptyLabel=this.notEmptyLabel.bind(this)
+        this.assist=this.assist.bind(this)
+        this.eventProcessor=this.eventProcessor.bind(this)
+        this.fieldData=this.fieldData.bind(this)
+        this.simpleText=this.simpleText.bind(this)
+    }
+   /**
+     * Listen messages from the assistant
+     * @param {Window Event} event 
+     */
+    eventProcessor(event){
+        let eventData=event.data
+        let data = this.fieldData()[this.props.attribute]             //get FieldDTO object
+        let assistant=data.assistant
+        if(eventData.subject==assistant){
+            if(eventData.to==this.identifier){
+                data.value=eventData.data
+                this.props.component.setState(this.props.component.state)
+            }
+        }
     }
 
-
+    componentDidMount(){
+        window.addEventListener("message",this.eventProcessor)
+    }
+    componentWillUnmount(){
+        window.removeEventListener("message",this.eventProcessor)
+    }
     /**
      * hide an empty display only attribute
      */
@@ -56,15 +86,24 @@ class FieldDisplay extends Component{
             return value
         }
     }
+    simpleText(value){
+        let ret = this.prepareText()
+        if(typeof ret === 'object'){
+            return ''
+        }else{
+            return ret
+        }
+    }
     /**
      * Ensure text, prepare right format for numbers, dates
      * @param {string} value 
      */
     prepareText(){
-        let data = this.props.component.state.data
+        /* let data = this.props.component.state.data
         if(this.props.data != undefined){
             data=this.props.data
-        }
+        } */
+        let data=this.fieldData()
         let value = data[this.props.attribute].value    //not formatted
         let valueStr=data[this.props.attribute].valueStr   //pre-formatted, if one
         if(this.props.mode=='text' || this.props.mode=='textarea'){
@@ -82,11 +121,6 @@ class FieldDisplay extends Component{
         }
 
         if(this.props.mode=='number'){
-           // if(!Number.isNaN(value)){
-           //     let numVal = new Number(value)
-           //     return numVal.toLocaleString(this.props.component.state.labels.locale.replace("_","-"),{useGrouping:true, minimumFractionDigits:2,maximumFractionDigits:2})
-        //
-        //    }else{
                 if(value!='0'){
                     return value;
                 }else{
@@ -150,25 +184,58 @@ class FieldDisplay extends Component{
             return[]
         }
     }
+    /**
+     * Place the assistant
+     */
+    assist(assistant, description){
+        let ret=""
+        let component=this.props.component
+        let key = this.props.attribute
+        if(assistant != 'NO'){
+            ret=<URLButtons assistant={assistant} value={this.simpleText()} recipient={this.identifier} title={component.state.labels[key]}/>
+        }
+        return ret
+    }
+   /**
+     * Calculate field's data (FieldDTO object)
+     */
+   fieldData(){
+        let data=this.props.component.state.data
+        if(this.props.data != undefined){
+            data=this.props.data
+        }
+        return data
+    }
     render(){
         if(this.hideIt()){
             return []
         }
-        let data = this.props.component.state.data
+       /*  let data = this.props.component.state.data
         if(this.props.data != undefined){
             data=this.props.data
-        }
-
+        } */
+        let data=this.fieldData()
         let text = this.prepareText()
+        let assistCol=0
+        if(data.assistant!='NO'){
+            assistCol=1
+        }
         if(text != 'undefined'){
             return(
-            <FormGroup>
-                {this.notEmptyLabel()}     
-                <Container fluid style={{fontSize:'0.8rem'}}>
-                    {text}
-                    <FormText color="danger">{data[this.props.attribute].suggest}</FormText>
-                </Container>
-            </FormGroup>
+            <Row>
+                <Col xs='12' sm='12' lg='12' xl='11'>
+                    <FormGroup>
+                        {this.notEmptyLabel()}     
+                        <Container fluid style={{fontSize:'0.8rem'}}>
+                        {text}
+                            <FormText color="danger">{data[this.props.attribute].suggest}</FormText>
+                        </Container>
+                    </FormGroup>
+                </Col>
+                <Col xs='12' sm='12' lg='12' xl={assistCol}>
+                    {this.assist(data[this.props.attribute].assistant, data[this.props.attribute].description)}
+                </Col>
+            </Row>
             )
         }else{
             return []

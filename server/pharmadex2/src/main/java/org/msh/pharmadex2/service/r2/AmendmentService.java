@@ -42,6 +42,7 @@ import org.msh.pharmadex2.dto.DataUnitDTO;
 import org.msh.pharmadex2.dto.FileDTO;
 import org.msh.pharmadex2.dto.PersonDTO;
 import org.msh.pharmadex2.dto.PersonSelectorDTO;
+import org.msh.pharmadex2.dto.ThingConfigurationDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
@@ -52,6 +53,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Amendment related services
@@ -179,11 +183,13 @@ public class AmendmentService {
 	 * @param nextActConf
 	 * @param user 
 	 * @param user
+	 * @param objectMapper2 
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	public ActivitySubmitDTO implement(History curHis, Concept nextActConf, ActivitySubmitDTO data, UserDetailsDTO user)
+	public ActivitySubmitDTO implement(History curHis, Concept nextActConf, ActivitySubmitDTO data, 
+			UserDetailsDTO user, ObjectMapper objectMapper)
 			throws ObjectNotFoundException {
 		// which data should be amended
 		if (isActivityAmendOrAccept(nextActConf)) {
@@ -192,14 +198,15 @@ public class AmendmentService {
 			Concept oldStored = storedValues(amendment, user);
 			if (amended != null && amendment != null) {
 				String configUrl = closureServ.getUrlByNode(amendment);
-				oldStored = implementLiterals(configUrl, amendment, amended, oldStored);
-				oldStored = implementAddress(configUrl, amendment, amended, oldStored);
-				oldStored = implementFiles(configUrl, amendment, amended, oldStored);
-				oldStored = implementDictionaries(configUrl, amendment, amended, oldStored);
-				oldStored = implementDropList(configUrl, amendment, amended, oldStored);
-				oldStored = implementIntervals(configUrl, amendment, amended, oldStored);
-				oldStored = implementLinks(configUrl, amendment, amended, oldStored);
-				oldStored = implementPersons(configUrl, amendment, amended, oldStored);
+				List<AssemblyDTO> storedConfig = loadStoredConfigFromConcept(amendment, objectMapper);
+				oldStored = implementLiterals(configUrl, amendment, amended,storedConfig, oldStored);
+				oldStored = implementAddress(configUrl, amendment, amended,storedConfig, oldStored);
+				oldStored = implementFiles(configUrl, amendment, amended,storedConfig, oldStored);
+				oldStored = implementDictionaries(configUrl, amendment, amended,storedConfig, oldStored);
+				oldStored = implementDropList(configUrl, amendment, amended,storedConfig, oldStored);
+				oldStored = implementIntervals(configUrl, amendment, amended,storedConfig, oldStored);
+				oldStored = implementLinks(configUrl, amendment, amended,storedConfig, oldStored);
+				oldStored = implementPersons(configUrl, amendment, amended,storedConfig, oldStored);
 			} else {
 				data.setValid(false);
 				data.setIdentifier(mess.get("invalidmodification"));
@@ -213,14 +220,18 @@ public class AmendmentService {
 	 * @param configUrl 
 	 * @param amendment amendment data
 	 * @param amended amended data
+	 * @param storedConfig 
 	 * @param storedValues to store old persons
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	private Concept implementPersons(String configUrl, Concept amendment, Concept amended, Concept storedValues) throws ObjectNotFoundException {
-		List<Assembly> assemblies =assemblyServ.loadDataConfiguration(configUrl);
-		List<AssemblyDTO> ads = assemblyServ.auxPersons(configUrl,assemblies);
+	private Concept implementPersons(String configUrl, Concept amendment, Concept amended, List<AssemblyDTO> storedConfig, Concept storedValues) throws ObjectNotFoundException {
+		List<Assembly> assemblies = new ArrayList<Assembly>();
+		if(storedConfig.isEmpty()) {
+			assemblies =assemblyServ.loadDataConfiguration(configUrl);
+		}
+		List<AssemblyDTO> ads = assemblyServ.auxPersons(configUrl,assemblies, storedConfig);
 		//prepare
 		List<String> keys = new ArrayList<String>();
 		for(AssemblyDTO ad : ads) {
@@ -330,14 +341,18 @@ public class AmendmentService {
 	 * @param configUrl
 	 * @param amendment
 	 * @param amended
+	 * @param storedConfig 
 	 * @param oldStored
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	private Concept implementDictionaries(String configUrl, Concept amendment, Concept amended, Concept storedValues) throws ObjectNotFoundException {
-		List<Assembly> assemblies =assemblyServ.loadDataConfiguration(configUrl);
-		List<AssemblyDTO> ads = assemblyServ.auxDictionaries(configUrl,assemblies);
+	private Concept implementDictionaries(String configUrl, Concept amendment, Concept amended, List<AssemblyDTO> storedConfig, Concept storedValues) throws ObjectNotFoundException {
+		List<Assembly> assemblies = new ArrayList<Assembly>();
+		if(storedConfig.isEmpty()) {
+			assemblies =assemblyServ.loadDataConfiguration(configUrl);
+		}
+		List<AssemblyDTO> ads = assemblyServ.auxDictionaries(configUrl,assemblies,storedConfig);
 		if(ads.size()>0) {
 			//prepare
 			List<String> keys = new ArrayList<String>();
@@ -372,20 +387,44 @@ public class AmendmentService {
 		}
 		return storedValues;
 	}
-	
+	/**
+	 * Load assemblyDTO stored into the concept
+	 * @param objectMapper 
+	 * @param amendment
+	 * @return empty list if none
+	 */
+	private List<AssemblyDTO> loadStoredConfigFromConcept(Concept concept, ObjectMapper objectMapper) {
+		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
+		if(concept!=null) {
+			if(concept.getLabel()!=null) {
+				try {
+					ThingConfigurationDTO dto = objectMapper.readValue(concept.getLabel(), ThingConfigurationDTO.class);
+					ret.addAll(dto.getAssemblies());
+				} catch (JsonProcessingException e) {
+					//nothing to do
+				}
+			}
+		}
+		return ret;
+	}
+
 	/**
 	 * Implement dictionaries modification
 	 * @param configUrl
 	 * @param amendment
 	 * @param amended
+	 * @param storedConfig 
 	 * @param oldStored
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	private Concept implementDropList(String configUrl, Concept amendment, Concept amended, Concept storedValues) throws ObjectNotFoundException {
-		List<Assembly> assemblies =assemblyServ.loadDataConfiguration(configUrl);
-		List<AssemblyDTO> ads = assemblyServ.auxDropListData(configUrl, assemblies);
+	private Concept implementDropList(String configUrl, Concept amendment, Concept amended, List<AssemblyDTO> storedConfig, Concept storedValues) throws ObjectNotFoundException {
+		List<Assembly> assemblies = new ArrayList<Assembly>();
+		if(storedConfig.isEmpty()) {
+			assemblies =assemblyServ.loadDataConfiguration(configUrl);
+		}
+		List<AssemblyDTO> ads = assemblyServ.auxDropListData(configUrl, assemblies,storedConfig);
 		if(ads.size()>0) {
 			//prepare
 			List<String> keys = new ArrayList<String>();
@@ -454,14 +493,18 @@ public class AmendmentService {
 	 * @param configUrl amendment configuration URL
 	 * @param amendment amendment concept
 	 * @param amended amended concept
+	 * @param storedConfig 
 	 * @param oldStored storage for old values
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	private Concept implementFiles(String configUrl, Concept amendment, Concept amended, Concept storedValues) throws ObjectNotFoundException {
-		List<Assembly> assemblies =assemblyServ.loadDataConfiguration(configUrl);
-		List<AssemblyDTO> ads = assemblyServ.auxDocuments(configUrl,assemblies);
+	private Concept implementFiles(String configUrl, Concept amendment, Concept amended, List<AssemblyDTO> storedConfig, Concept storedValues) throws ObjectNotFoundException {
+		List<Assembly> assemblies = new ArrayList<Assembly>();
+		if(storedConfig.isEmpty()) {
+			assemblies =assemblyServ.loadDataConfiguration(configUrl);
+		}
+		List<AssemblyDTO> ads = assemblyServ.auxDocuments(configUrl,assemblies,storedConfig);
 		if(ads.size()>0) {
 			//prepare
 			List<String> keys = new ArrayList<String>();
@@ -572,17 +615,21 @@ public class AmendmentService {
 	 * @param configUrl    configuration URL
 	 * @param amendment
 	 * @param amended
+	 * @param storedConfig 
 	 * @param storedValues
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	private Concept implementAddress(String configUrl, Concept amendment, Concept amended, Concept storedValues)
+	private Concept implementAddress(String configUrl, Concept amendment, Concept amended, List<AssemblyDTO> storedConfig, Concept storedValues)
 			throws ObjectNotFoundException {
 		Thing storedThing = storedThing(storedValues);
 		Thing amendedThing = boilerServ.thingByNode(amended);
-		List<Assembly> assemblies =assemblyServ.loadDataConfiguration(configUrl);
-		List<AssemblyDTO> ads = assemblyServ.auxAddresses(configUrl,assemblies);
+		List<Assembly> assemblies = new ArrayList<Assembly>();
+		if(storedConfig.isEmpty()) {
+			assemblies =assemblyServ.loadDataConfiguration(configUrl);
+		}
+		List<AssemblyDTO> ads = assemblyServ.auxAddresses(configUrl,assemblies,storedConfig);
 		Map<String, ThingThing> oldValue = mapThingThing(ads, amended);
 		Map<String, ThingThing> newValue = mapThingThing(ads, amendment);
 		Map<String, ThingThing> oldStored = mapThingThing(ads, storedValues);
@@ -693,13 +740,14 @@ public class AmendmentService {
 	 * @param configUrl
 	 * @param amendment
 	 * @param amended
+	 * @param storedConfig 
 	 * @param oldValues
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
-	private Concept implementLiterals(String configUrl, Concept amendment, Concept amended, Concept oldValues)
+	private Concept implementLiterals(String configUrl, Concept amendment, Concept amended, List<AssemblyDTO> storedConfig, Concept oldValues)
 			throws ObjectNotFoundException {
-		List<AssemblyDTO> all = primitiveCollect(configUrl, amendment);
+		List<AssemblyDTO> all = primitiveCollect(configUrl, storedConfig, amendment);
 		for (AssemblyDTO lit : all) {
 			String oldValue = literalServ.readValue(lit.getPropertyName(), amended);
 			String newValue = literalServ.readValue(lit.getPropertyName(), amendment);
@@ -715,19 +763,23 @@ public class AmendmentService {
 	 * Collect all primitives (strings, literals, numbers, dates,logicals)
 	 * 
 	 * @param configUrl
+	 * @param storedConfig 
 	 * @param amendment
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	public List<AssemblyDTO> primitiveCollect(String configUrl, Concept amendment) throws ObjectNotFoundException {
+	public List<AssemblyDTO> primitiveCollect(String configUrl, List<AssemblyDTO> storedConfig, Concept amendment) throws ObjectNotFoundException {
 		List<AssemblyDTO> all = new ArrayList<AssemblyDTO>();
-		List<Assembly> assemblies =assemblyServ.loadDataConfiguration(configUrl);
-		all.addAll(assemblyServ.auxStrings(configUrl,assemblies));
-		all.addAll(assemblyServ.auxLiterals(configUrl,assemblies));
-		all.addAll(assemblyServ.auxNumbers(configUrl,assemblies));
-		all.addAll(assemblyServ.auxDates(configUrl,assemblies));
-		all.addAll(assemblyServ.auxLogicals(configUrl,assemblies));
+		List<Assembly> assemblies = new ArrayList<Assembly>();
+		if(storedConfig.isEmpty()) {
+			assemblies =assemblyServ.loadDataConfiguration(configUrl);
+		}
+		all.addAll(assemblyServ.auxStrings(configUrl,assemblies,storedConfig));
+		all.addAll(assemblyServ.auxLiterals(configUrl,assemblies,storedConfig));
+		all.addAll(assemblyServ.auxNumbers(configUrl,assemblies,storedConfig));
+		all.addAll(assemblyServ.auxDates(configUrl,assemblies,storedConfig));
+		all.addAll(assemblyServ.auxLogicals(configUrl,assemblies,storedConfig));
 		return all;
 	}
 
@@ -737,15 +789,20 @@ public class AmendmentService {
 	 * @param configUrl
 	 * @param amendment
 	 * @param amended
+	 * @param storedConfig 
 	 * @param oldValues
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
-	private Concept implementIntervals(String configUrl, Concept amendment, Concept amended, Concept oldValues)
+	private Concept implementIntervals(String configUrl, Concept amendment, Concept amended,
+			List<AssemblyDTO> storedConfig, Concept oldValues)
 			throws ObjectNotFoundException {
 		DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE;
-		List<Assembly> assemblies = assemblyServ.loadDataConfiguration(configUrl);
-		List<AssemblyDTO> ads = assemblyServ.auxIntervals(configUrl, assemblies);
+		List<Assembly> assemblies = new ArrayList<Assembly>();
+		if(storedConfig.isEmpty()) {
+			assemblies = assemblyServ.loadDataConfiguration(configUrl);
+		}
+		List<AssemblyDTO> ads = assemblyServ.auxIntervals(configUrl, assemblies,storedConfig);
 		if(ads.size() > 0) {
 			//prepare
 			for(AssemblyDTO ad : ads) {
@@ -772,10 +829,13 @@ public class AmendmentService {
 		return oldValues;
 	}
 	
-	private Concept implementLinks(String configUrl, Concept amendment, Concept amended, Concept storedValues)
+	private Concept implementLinks(String configUrl, Concept amendment, Concept amended, List<AssemblyDTO> storedConfig, Concept storedValues)
 			throws ObjectNotFoundException {
-		List<Assembly> assemblies = assemblyServ.loadDataConfiguration(configUrl);
-		List<AssemblyDTO> ads = assemblyServ.auxLinks(configUrl, assemblies);
+		List<Assembly> assemblies = new ArrayList<Assembly>();
+		if(storedConfig.isEmpty()) {
+			assemblies =assemblyServ.loadDataConfiguration(configUrl);
+		}
+		List<AssemblyDTO> ads = assemblyServ.auxLinks(configUrl, assemblies,storedConfig);
 		if(ads.size() > 0) {
 			//prepare
 			List<String> keys = new ArrayList<String>();
@@ -1216,11 +1276,12 @@ public class AmendmentService {
 	 * Compare amendment and amended data. Mark changed amendment data
 	 * 
 	 * @param data
+	 * @param objectMapper 
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	public ThingDTO diffMark(ThingDTO data) throws ObjectNotFoundException {
+	public ThingDTO diffMark(ThingDTO data, ObjectMapper objectMapper) throws ObjectNotFoundException {
 		if (data.getModiUnitId() > 0 && data.getNodeId() > 0 && data.getApplDictNodeId() > 0) {
 			Concept dictNode = closureServ.loadConceptById(data.getApplDictNodeId());
 			Concept node = closureServ.loadConceptById(data.getNodeId());
@@ -1228,7 +1289,7 @@ public class AmendmentService {
 			String amdUrl = literalServ.readValue("url", dictNode);
 			if (data.getUrl().equalsIgnoreCase(amdUrl)) {
 				data = primitivesDiffMark(data, node, modiUnit);
-				data = addressesDiffMark(data, node, modiUnit);
+				data = addressesDiffMark(data, node, modiUnit, objectMapper);
 				data = dictionariesDiffMark(data, node, modiUnit);
 				data = documentDiffMark(data, node, modiUnit);
 				data = personsDiffMark(data, node, modiUnit);
@@ -1658,12 +1719,13 @@ public class AmendmentService {
 	 * @param data
 	 * @param node
 	 * @param modiUnit
+	 * @param objectMapper 
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	private ThingDTO addressesDiffMark(ThingDTO data, Concept node, Concept modiUnit) throws ObjectNotFoundException {
-		List<String> difKeys = addressesCompare(node, modiUnit);
+	private ThingDTO addressesDiffMark(ThingDTO data, Concept node, Concept modiUnit, ObjectMapper objectMapper) throws ObjectNotFoundException {
+		List<String> difKeys = addressesCompare(node, modiUnit, objectMapper);
 		for (String key : difKeys) {
 			data.getAddresses().get(key).setChanged(true);
 		}
@@ -1675,18 +1737,23 @@ public class AmendmentService {
 	 * 
 	 * @param amendment
 	 * @param amended
+	 * @param objectMapper 
 	 * @return list of addresses variables names for which addresses are different
 	 * @throws ObjectNotFoundException
 	 */
-	List<String> addressesCompare(Concept amendment, Concept amended) throws ObjectNotFoundException {
+	List<String> addressesCompare(Concept amendment, Concept amended, ObjectMapper objectMapper) throws ObjectNotFoundException {
 		List<String> ret = new ArrayList<String>();
 		String nodeUrl = closureServ.getUrlByNode(amendment);
 		Thing oldThing = boilerServ.thingByNode(amended);
 		Thing newThing = boilerServ.thingByNode(amendment);
 		Map<String, Concept> newAddr = new LinkedHashMap<String, Concept>();
 		Map<String, Concept> oldAddr = new LinkedHashMap<String, Concept>();
-		List<Assembly> assemblies =assemblyServ.loadDataConfiguration(nodeUrl);
-		List<AssemblyDTO> adl = assemblyServ.auxAddresses(nodeUrl,assemblies);
+		List<Assembly> assemblies = new ArrayList<Assembly>();
+		List<AssemblyDTO> storedConfig = loadStoredConfigFromConcept(amendment, objectMapper);
+		if(storedConfig.isEmpty()) {
+			assemblies =assemblyServ.loadDataConfiguration(nodeUrl);
+		}
+		List<AssemblyDTO> adl = assemblyServ.auxAddresses(nodeUrl,assemblies,storedConfig);
 		for (AssemblyDTO ad : adl) {
 			String key = ad.getPropertyName();
 			// collect addresses
@@ -1802,21 +1869,23 @@ public class AmendmentService {
 	 * 
 	 * @param amendment
 	 * @param amended
+	 * @param objectMapper 
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	public boolean compareConcepts(Concept amendment, Concept amended) throws ObjectNotFoundException {
+	public boolean compareConcepts(Concept amendment, Concept amended, ObjectMapper objectMapper) throws ObjectNotFoundException {
 		String configUrl = closureServ.getUrlByNode(amendment);
 		// primitives
-		List<AssemblyDTO> primitives = primitiveCollect(configUrl, amendment);
+		List<AssemblyDTO> storedConfig = loadStoredConfigFromConcept(amendment,objectMapper);
+		List<AssemblyDTO> primitives = primitiveCollect(configUrl,storedConfig, amendment);
 		for (AssemblyDTO ad : primitives) {
 			if (!compareLiteral(ad.getPropertyName(), amendment, amended)) {
 				return false;
 			}
 		}
 		// addresses
-		List<String> diff = addressesCompare(amendment, amended);
+		List<String> diff = addressesCompare(amendment, amended, objectMapper);
 		if (diff.size() > 0) {
 			return false;
 		}

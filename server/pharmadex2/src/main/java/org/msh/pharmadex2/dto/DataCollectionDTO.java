@@ -1,6 +1,7 @@
 package org.msh.pharmadex2.dto;
 
 import org.msh.pdex2.dto.table.TableQtb;
+import org.msh.pharmadex2.dto.enums.AssistantEnum;
 import org.msh.pharmadex2.dto.form.AllowValidation;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
 
@@ -13,7 +14,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties(ignoreUnknown=true)
 public class DataCollectionDTO extends AllowValidation {
 	private long nodeId=0;
-	private FormFieldDTO<String> url= FormFieldDTO.of("");
+	private FormFieldDTO<String> url= FormFieldDTO.of("",false,false,AssistantEnum.URL_DATA_NEW);
 	private FormFieldDTO<String> description = FormFieldDTO.of("");
 	//reporting
 	private TableQtb table = new TableQtb();

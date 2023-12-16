@@ -27,6 +27,7 @@ public class ApplicationsDTO extends AllowValidation {
 	private boolean amendment=false;
 	private FormFieldDTO<OptionDTO> prod_app_type = new FormFieldDTO<OptionDTO>();
 	private FormFieldDTO<OptionDTO> state = new FormFieldDTO<OptionDTO>();
+	private boolean canAdd = false;
 	
 	public String getUrl() {
 		return url;
@@ -124,4 +125,13 @@ public class ApplicationsDTO extends AllowValidation {
 		this.state = state;
 	}
 
+	public boolean isCanAdd() {
+		return canAdd;
+	}
+
+	public void setCanAdd(boolean canAdd) {
+		this.canAdd = canAdd;
+	}
+
+	
 }

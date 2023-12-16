@@ -48,6 +48,8 @@ public class WebApp {
 
 	@Value("${server.servlet.context-path:}")
 	private String contextPath;
+	@Value("${pharmadex.google.analytic4.id:}")
+	private String ga4ID;
 	@Autowired
 	ContextServices contextServ;
 	@Autowired
@@ -235,6 +237,7 @@ public class WebApp {
 	private ModelAndView createWithBundles(String entryPoint) {
 		ModelAndView mv = new ModelAndView("page");
 		mv.addObject("title", messages.get("application"));
+		mv.addObject("ga4",ga4ID);
 		PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
 		try {
 			Resource[] bundles = resolver.getResources("classpath:static/js/*.js");

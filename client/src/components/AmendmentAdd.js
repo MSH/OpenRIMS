@@ -102,7 +102,9 @@ class AmendmentAdd extends Component{
             if(result.valid){
                 this.runNewAmendment(rowNo)
             }else{
-                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:result.identifier, color:'danger'})
+                if(result.identifier != ""){
+                    Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:result.identifier, color:'danger'})
+                }
                 this.setState(this.state)
             }
         })

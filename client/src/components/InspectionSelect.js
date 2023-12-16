@@ -4,7 +4,7 @@ import PropTypes from 'prop-types'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
 import Navigator from './utils/Navigator'
-import Dictionary from './Dictionary'
+import TableSearch from './utils/TableSearch'
 import HostSchedule from './HostSchedule'
 import ApplicationList from './ApplicationList'
 import PermitList from './PermitList'
@@ -23,6 +23,7 @@ class InspectionSelect extends Component{
             labels:{
                 inspections:'',
                 clickforinspect : '',
+                search:''
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -40,19 +41,19 @@ class InspectionSelect extends Component{
      */
     eventProcessor(event){
         let data=event.data
-        if(data.subject=="onSelectionChange" && data.from==this.state.identifier+"_dict"){
+        /*if(data.subject=="onSelectionChange" && data.from==this.state.identifier+"_dict"){
             this.selectRow(data.data)
             this.state.data=data.data
             this.setState(this.state)
-        }
+        }*/
         if(data.to==this.state.identifier && data.subject=='onPermitSelected'){
             this.addInspection(data.data)
         }
-        if(data.subject=="onDictionaryReloaded" && data.from==this.state.identifier+"_dict"){
+        /*if(data.subject=="onDictionaryReloaded" && data.from==this.state.identifier+"_dict"){
             this.state.data=data.data
             this.markSelected()
             this.setState(this.state)
-        }
+        }*/
     }
 
     /**
@@ -79,10 +80,12 @@ class InspectionSelect extends Component{
         Locales.createLabels(this)
         this.loadData()
     }
-    selectRow(data){
-        if(Fetchers.isGoodArray(data.table.rows)){
-            data.table.rows.forEach(row=>{
-                if(row.selected){
+    selectRow(selRowNo){
+        if(Fetchers.isGoodArray(this.state.data.table.rows)){
+            this.state.data.table.rows.forEach((row, index)=>{
+                row.selected = false
+                if(index == selRowNo){
+                    row.selected = true
                     Fetchers.writeLocaly("application_inspection_selected_row",row.dbID)
                 }
             })
@@ -98,7 +101,7 @@ class InspectionSelect extends Component{
                 }
             })
         }
-        Navigator.message(this.state.identifier,this.state.identifier+"_dict",'refreshData',{})
+        //Navigator.message(this.state.identifier,this.state.identifier+"_dict",'refreshData',{})
     }
     loadData(){
         Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName() +"/applications/inspections", this.state.data, (query,result)=>{
@@ -159,25 +162,37 @@ class InspectionSelect extends Component{
     }
 
     render(){
+        if(this.state.data.table == undefined){
+            return []
+        }
         return(
             <Container fluid>
-                <Row>
+                {/*<Row>
                     <Col>
                         <h5>{this.state.labels.inspections}</h5>
                     </Col>
-                </Row>
+        </Row>*/}
                 <Row>
                     <Col xs='12' sm='12' lg='6' xl='6'>
-                        <Row>
-                            <Col>
-                                <Dictionary
-                                    identifier={this.state.identifier+"_dict"}
-                                    data={this.state.data}                           //DictionaryDTO
-                                    recipient={this.state.identifier}                //recipient of messages
-                                    display                                         //display only
-                                />
-                            </Col>
-                        </Row>
+                        <TableSearch 
+                            label={this.state.labels.search}
+                            tableData={this.state.data.table} 
+                            loader={this.loadData}
+                            title={this.state.data.home}
+                            styleCorrector={(header)=>{
+                                if(header=='pref'){
+                                    return {width:'30%'}
+                                }
+                            }}
+                            linkProcessor={(rowNo,cellNo)=>{
+                                this.selectRow(rowNo)
+                                this.setState(this.state)
+                            }}
+                            selectRow={(rowNo)=>{
+                                this.selectRow(rowNo)
+                                this.setState(this.state)
+                            }}
+                        />
                         <Row>
                             <Col>
                             <HostSchedule

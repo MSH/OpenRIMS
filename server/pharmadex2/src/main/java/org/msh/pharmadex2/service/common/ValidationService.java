@@ -20,6 +20,7 @@ import java.util.regex.Pattern;
 import javax.imageio.ImageIO;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
+
 import org.msh.pdex2.dto.table.Headers;
 import org.msh.pdex2.dto.table.TableCell;
 import org.msh.pdex2.dto.table.TableHeader;
@@ -33,14 +34,11 @@ import org.msh.pdex2.model.r2.Assembly;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.model.r2.Register;
-import org.msh.pdex2.model.r2.Scheduler;
 import org.msh.pdex2.model.r2.Thing;
 import org.msh.pdex2.model.r2.ThingDict;
-import org.msh.pdex2.model.r2.ThingScheduler;
 import org.msh.pdex2.model.r2.ThingThing;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.common.UserRepo;
-import org.msh.pdex2.repository.r2.HistoryRepo;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.ActivitySubmitDTO;
 import org.msh.pharmadex2.dto.AddressDTO;
@@ -62,7 +60,6 @@ import org.msh.pharmadex2.dto.MessageDTO;
 import org.msh.pharmadex2.dto.PersonDTO;
 import org.msh.pharmadex2.dto.PublicOrgDTO;
 import org.msh.pharmadex2.dto.QuestionDTO;
-import org.msh.pharmadex2.dto.ReassignUserDTO;
 import org.msh.pharmadex2.dto.RegisterDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
 import org.msh.pharmadex2.dto.RootNodeDTO;
@@ -114,8 +111,6 @@ public class ValidationService {
 	private JdbcRepository jdbcRepo;
 	@Autowired
 	private AmendmentService amendmentServ;
-	@Autowired
-	private HistoryRepo histRepo;
 
 	/**
 	 * ^[a-z]{1,} - первый символ всегда буква
@@ -154,7 +149,8 @@ public class ValidationService {
 			error((AllowValidation)data, messages.get("error_preflabel"),strict);
 		}
 		//aux
-		List<AssemblyDTO> auxFlds = assemblyServ.auxLiterals(data.getUrl());
+		List<Assembly> assms = assemblyServ.loadDataConfiguration(data.getUrl());
+		List<AssemblyDTO> auxFlds = assemblyServ.auxLiterals(data.getUrl(), assms, new ArrayList<AssemblyDTO>());
 		for(AssemblyDTO afld : auxFlds) {
 			if(afld.isRequired()) {
 				FormFieldDTO<String> fld=data.getLiterals().get(afld.getPropertyName());
@@ -348,25 +344,28 @@ public class ValidationService {
 	/**
 	 * General thing validation in accjrdance with thing URL
 	 * @param data
+	 * 
 	 * @param strict 
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public ThingDTO thing(ThingDTO data, boolean strict) throws ObjectNotFoundException {
+	public ThingDTO thing(ThingDTO data,List<AssemblyDTO> dataConfigStored, boolean strict) throws ObjectNotFoundException {
 		//prepare data
 		data.clearErrors();
-		List<Assembly> allAssms = assemblyServ.loadDataConfiguration(data.getUrl());
-
+		List<Assembly> allAssms = new ArrayList<Assembly>();
+		if(dataConfigStored.isEmpty()) {
+			allAssms = assemblyServ.loadDataConfiguration(data.getUrl());
+		}
 		//validate all components
-		List<AssemblyDTO> legs = assemblyServ.auxLegacyData(data.getUrl(), allAssms);
+		List<AssemblyDTO> legs = assemblyServ.auxLegacyData(data.getUrl(), allAssms, dataConfigStored);
 		for(AssemblyDTO l : legs) {
 			if(l.isRequired()) {
 				mandatoryLegacy(data, l,strict);
 			}
 		}
 
-		List<AssemblyDTO> s = assemblyServ.auxStrings(data.getUrl(),allAssms);
+		List<AssemblyDTO> s = assemblyServ.auxStrings(data.getUrl(),allAssms,dataConfigStored);
 		for(AssemblyDTO str : s) {
 			if(str.getFileTypes().length()>0) {
 				data=checkPattern(data,str, data.getStrings(),  strict);
@@ -375,7 +374,7 @@ public class ValidationService {
 				mandatoryString(data, str, strict);
 			}
 		}
-		List<AssemblyDTO> lits = assemblyServ.auxLiterals(data.getUrl(),allAssms);
+		List<AssemblyDTO> lits = assemblyServ.auxLiterals(data.getUrl(),allAssms,dataConfigStored);
 		for(AssemblyDTO lit : lits) {
 			if(lit.getFileTypes().length()>0) {
 				data=checkPattern(data,lit, data.getLiterals(),strict);
@@ -401,78 +400,70 @@ public class ValidationService {
 		}
 
 
-		List<AssemblyDTO> dats = assemblyServ.auxDates(data.getUrl(),allAssms);
+		List<AssemblyDTO> dats = assemblyServ.auxDates(data.getUrl(),allAssms,dataConfigStored);
 		for(AssemblyDTO dat : dats) {
 			if(dat.isRequired()) {
 				mandatoryDate(data.getDates().get(dat.getPropertyName()),dat, strict);
 			}
 		}
-		List<AssemblyDTO> nums = assemblyServ.auxNumbers(data.getUrl(),allAssms);
+		List<AssemblyDTO> nums = assemblyServ.auxNumbers(data.getUrl(),allAssms,dataConfigStored);
 		for(AssemblyDTO num : nums) {
 			if(num.isRequired()) {
 				mandatoryNumber(data.getNumbers().get(num.getPropertyName()),num,strict);
 			}
 		}
-		List<AssemblyDTO> dicts = assemblyServ.auxDictionaries(data.getUrl(),allAssms);
+		List<AssemblyDTO> dicts = assemblyServ.auxDictionaries(data.getUrl(),allAssms,dataConfigStored);
 		for(AssemblyDTO dic : dicts) {
 			if(dic.isRequired()) {
 				DictionaryDTO dict = data.getDictionaries().get(dic.getPropertyName());
 				dictionary(dict,dic.getDescription(),strict);
 			}
 		}
-		List<AssemblyDTO> addrs = assemblyServ.auxAddresses(data.getUrl(),allAssms);
+		List<AssemblyDTO> addrs = assemblyServ.auxAddresses(data.getUrl(),allAssms,dataConfigStored);
 		for(AssemblyDTO addr : addrs) {
 			if(addr.isRequired()) {
 				mandatoryAddress(data.getAddresses().get(addr.getPropertyName()),strict);
 			}
 		}
-		List<AssemblyDTO> docs = assemblyServ.auxDocuments(data.getUrl(),allAssms);
+		List<AssemblyDTO> docs = assemblyServ.auxDocuments(data.getUrl(),allAssms,dataConfigStored);
 		for(AssemblyDTO doc: docs) {
 			if(doc.isRequired()) {
 				mandatoryDoc(data.getDocuments().get(doc.getPropertyName()),doc,strict);
 			}
 		}
-		List<AssemblyDTO> schds = assemblyServ.auxSchedulers(data.getUrl(),allAssms);
+		List<AssemblyDTO> schds = assemblyServ.auxSchedulers(data.getUrl(),allAssms,dataConfigStored);
 		for(AssemblyDTO sch : schds) {
 			if(sch.isRequired()) {
 				mandatoryScheduler(sch, data.getSchedulers().get(sch.getPropertyName()),strict);
 			}
 		}
-		List<AssemblyDTO> regs = assemblyServ.auxRegisters(data.getUrl(),allAssms);
+		List<AssemblyDTO> regs = assemblyServ.auxRegisters(data.getUrl(),allAssms,dataConfigStored);
 		for(AssemblyDTO reg : regs) {
 			if(reg.isRequired()) {
 				mandatoryRegister(reg, data.getRegisters().get(reg.getPropertyName()),strict);
 			}
 		}
-		List<AssemblyDTO> pers = assemblyServ.auxPersons(data.getUrl(),allAssms);
+		List<AssemblyDTO> pers = assemblyServ.auxPersons(data.getUrl(),allAssms,dataConfigStored);
 		for(AssemblyDTO per : pers) {
 			if(per.isRequired()) {
 				mandatoryPersons(data, per.getPropertyName(),per,strict);
 			}
 		}
 
-		List<AssemblyDTO> atc = assemblyServ.auxAtc(data.getUrl(),allAssms);
+		List<AssemblyDTO> atc = assemblyServ.auxAtc(data.getUrl(),allAssms,dataConfigStored);
 		for(AssemblyDTO a : atc) {
 			if(a.isRequired()) {
 				mandatoryAtc(data,a.getPropertyName(),a,strict);
 			}
 		}
-		List<AssemblyDTO> intervals = assemblyServ.auxIntervals(data, "intervals");
+		List<AssemblyDTO> intervals = assemblyServ.auxIntervals(data, "intervals",dataConfigStored);
 		for(AssemblyDTO interval : intervals) {
 			mandatoryInterval(data, interval,strict);
 		}
-		List<AssemblyDTO> links=assemblyServ.auxLinks(data.getUrl(), allAssms);
+		List<AssemblyDTO> links=assemblyServ.auxLinks(data.getUrl(), allAssms,dataConfigStored);
 		mandatoryLinks(data, links, strict);
 
-		/*19122022 khomka
-		List<AssemblyDTO> things = assemblyServ.auxThings(data.getUrl(),allAssms);
-		for(AssemblyDTO thing :things) {
-			if(thing.isRequired()) {
-				mandatoryThing(data.getThings().get(thing.getPropertyName()));
-			}
-		}
-		 */
-		List<AssemblyDTO> droplists = assemblyServ.auxDropListData(data.getUrl(),allAssms);
+		List<AssemblyDTO> droplists = assemblyServ.auxDropListData(data.getUrl(),allAssms,dataConfigStored);
 		for(AssemblyDTO droplist :droplists) {
 			if(droplist.isRequired()) {
 				mandatoryDropList(data.getDroplist().get(droplist.getPropertyName()), strict, droplist);
@@ -481,7 +472,12 @@ public class ValidationService {
 		data.propagateValidation();
 		return data;
 	}
-
+	/**
+	 * Check mandatory filled droplists
+	 * @param data
+	 * @param strict
+	 * @param droplist
+	 */
 	private void mandatoryDropList(FormFieldDTO<OptionDTO> data, boolean strict, AssemblyDTO droplist) {
 		data.setError(false);
 		if(data.getValue().getId()==0) {
@@ -497,11 +493,6 @@ public class ValidationService {
 
 	}
 
-	public List<AssemblyDTO> loadThingByConfig(ThingDTO data) throws ObjectNotFoundException {
-		List<Assembly> allAssms = assemblyServ.loadDataConfiguration(data.getUrl());
-		List<AssemblyDTO> things = assemblyServ.auxThings(data.getUrl(),allAssms);
-		return things;
-	}
 
 	private void mandatoryLinks(ThingDTO data, List<AssemblyDTO> links, boolean strict) {
 		for(AssemblyDTO aDto : links) {
@@ -1587,7 +1578,7 @@ public class ValidationService {
 	 */
 	@Transactional
 	public ThingDTO resource(ThingDTO data, boolean strict) throws ObjectNotFoundException {
-		data=thing(data,strict);
+		data=thing(data,new ArrayList<AssemblyDTO>(),strict);
 		return data;
 	}
 
@@ -2201,13 +2192,14 @@ public class ValidationService {
 	 * zero/zero for non images means any acceptable size
 	 * @param data
 	 * @param fileBytes
+	 * @param storedAssms 
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	public FileDTO file(FileDTO data, byte[] fileBytes) throws ObjectNotFoundException {
+	public FileDTO file(FileDTO data, byte[] fileBytes, List<AssemblyDTO> storedAssms) throws ObjectNotFoundException {
 		data.clearErrors();
 		List<Assembly> allAssms = assemblyServ.loadDataConfiguration(data.getThingUrl());
-		List<AssemblyDTO> assms = assemblyServ.auxDocuments(data.getThingUrl(),allAssms);
+		List<AssemblyDTO> assms = assemblyServ.auxDocuments(data.getThingUrl(),allAssms,storedAssms);
 		String media = data.getMediaType().toUpperCase();
 		String description="";
 		String dimen="";
@@ -2263,44 +2255,52 @@ public class ValidationService {
 	/**
 	 * Validate all additional pages if ones
 	 * @param assemblies
+	 * @param storedConfig 
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public ThingDTO validateThingsIncluded(List<Assembly> assemblies, ThingDTO data) throws ObjectNotFoundException {
+	public ThingDTO validateThingsIncluded(List<Assembly> assemblies, List<AssemblyDTO> storedConfig, ThingDTO data) throws ObjectNotFoundException {
+		if(storedConfig.isEmpty()) {
 		for(Assembly  assm : assemblies ) {
 			if(assm.getClazz().equalsIgnoreCase("things")) {
-				data=validateThingIncluded(assm,data);
+				AssemblyDTO dto = dtoServ.assemblyDto(assm);
+				data=validateThingIncluded(dto,data);
+			}
+		}
+		}else {
+			for(AssemblyDTO dto : storedConfig) {
+				data=validateThingIncluded(dto,data);
 			}
 		}
 		return data;
 	}
 	/**
 	 * Validate an additional page definition
-	 * @param assm
+	 * @param dto
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	private ThingDTO validateThingIncluded(Assembly assm, ThingDTO data) throws ObjectNotFoundException {
+	private ThingDTO validateThingIncluded(AssemblyDTO dto, ThingDTO data) throws ObjectNotFoundException {
 		data.clearErrors();
 		//rule 1. The URL should be defined
-		if(assm.getUrl() == null) {
+		if(data.getUrl() == null) {
 			data.addError(messages.get("emptyurl"));
 		}else {
-			if(assm.getUrl().length()==0) {
+			if(data.getUrl().length()==0) {
 				data.addError(messages.get("emptyurl"));
 			}else {
 				//rule 2. If the thing contains class "persons" the aux URL should be defined 
-				List<Assembly> clazzes =  assemblyServ.loadDataConfiguration(assm.getUrl());
+				List<Assembly> clazzes =  assemblyServ.loadDataConfiguration(dto.getUrl());
 				for(Assembly clazz : clazzes) {
 					if(clazz.getClazz().equalsIgnoreCase("persons")) {
-						if(assm.getAuxDataUrl()==null) {
+						if(dto.getAuxDataUrl()==null) {
 							data.addError(messages.get("emptyauxurl"));
 						}else {
-							if(assm.getAuxDataUrl().length()==0) {
+							if(dto.getAuxDataUrl().length()==0) {
 								data.addError(messages.get("emptyauxurl"));
 							}
 						}
@@ -2353,17 +2353,23 @@ public class ValidationService {
 		data.clearErrors();
 		data.setValid(true);
 		Concept dictNode = closureServ.loadConceptById(data.getApplDictNodeId());
-		String url = literalServ.readValue("applicationurl", dictNode);
-		data = (VerifItemDTO)validWorkFlowConfig(data, url);
-		if(data.isValid()) {
-			Concept applData=closureServ.loadConceptById(data.getApplID());
-			data = (VerifItemDTO) hasActivities(SystemService.DICTIONARY_GUEST_AMENDMENTS, applData, data, curHis);
+		data.setCanAdd(dictNode.getActive());
+		if(dictNode.getActive()) {
+			String url = literalServ.readValue("applicationurl", dictNode);
+			data = (VerifItemDTO)validWorkFlowConfig(data, url);
 			if(data.isValid()) {
-				data = (VerifItemDTO) hasActivities(SystemService.DICTIONARY_GUEST_DEREGISTRATION,applData,data, curHis);
+				Concept applData=closureServ.loadConceptById(data.getApplID());
+				data = (VerifItemDTO) hasActivities(SystemService.DICTIONARY_GUEST_AMENDMENTS, applData, data, curHis);
+				if(data.isValid()) {
+					data = (VerifItemDTO) hasActivities(SystemService.DICTIONARY_GUEST_DEREGISTRATION,applData,data, curHis);
+				}
+				if(data.isValid()) {
+					data = (VerifItemDTO) hasActivities(SystemService.DICTIONARY_SHUTDOWN_APPLICATIONS,applData,data,curHis);
+				}
 			}
-			if(data.isValid()) {
-				data = (VerifItemDTO) hasActivities(SystemService.DICTIONARY_SHUTDOWN_APPLICATIONS,applData,data,curHis);
-			}
+		}else {
+			data.setValid(false);
+			data.setIdentifier("");
 		}
 		return data;
 	}
@@ -2483,23 +2489,9 @@ public class ValidationService {
 		return data;
 	}
 
-	private boolean hasSchedulers(Concept c) throws ObjectNotFoundException {
-		boolean hasSchedulers = false;
-		String dataurl = literalServ.readValue("dataurl", c);
-		List<Assembly> assemblies = assemblyServ.loadDataConfiguration(dataurl);
-		List<AssemblyDTO> schedulers = assemblyServ.auxSchedulers(dataurl, assemblies);
-		if(schedulers != null && schedulers.size() > 0) {
-			hasSchedulers = true;
-		}
-
-		return hasSchedulers;
-	}
-
 	private boolean hasFinals(Concept c) throws ObjectNotFoundException {
 		boolean hasFinalization = false;
-
 		Thing thing = boilerServ.thingByNode(c);
-
 		for(ThingDict dict : thing.getDictionaries()) {
 			if(dict.getUrl().equalsIgnoreCase(SystemService.DICTIONARY_SYSTEM_FINALIZATION)){
 				if(!dict.getConcept().getIdentifier().equalsIgnoreCase(SystemService.FINAL_NO)){
@@ -2507,32 +2499,8 @@ public class ValidationService {
 				}
 			}
 		}
-
 		return hasFinalization;
 	}
-
-	/**
-	 * Is it guest or host application?
-	 * @param curHis
-	 * @return
-	 */
-	private boolean isGuestOrHostFinalize(History curHis) {
-		boolean ret=false;
-		try {
-			if(isActivitySubmitApprove(curHis)) {
-				Concept dictItem = curHis.getApplDict();
-				if(dictItem != null) {
-					Concept dict = closureServ.getParent(dictItem);
-					ret = dict.getIdentifier().equalsIgnoreCase(SystemService.DICTIONARY_GUEST_APPLICATIONS) || 
-							dict.getIdentifier().equalsIgnoreCase(SystemService.DICTIONARY_HOST_APPLICATIONS);
-				}
-			}
-		} catch (ObjectNotFoundException e) {
-			//nothing to do
-		}
-		return ret;
-	}
-
 
 	/**
 	 * Does not submitted guest application exist for the permit
@@ -2738,5 +2706,7 @@ public class ValidationService {
 		}
 		return data;
 	}
+
+
 
 }

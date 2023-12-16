@@ -17,7 +17,7 @@ import FieldUpload from './form/FieldUpload'
  * Allows:
  * - establish/remove relations to the nodes on a level of a dictionary tree.
  * - add nodes to the level if not "display"
- * @Usage
+ * ~~~~
   <Dictionary
     identifier={this.state.identifier+'mydict'}     //address of this dictionary for messages, if needed
     data={this.state.data.mydict}                   //DictionaryDTO
@@ -38,7 +38,7 @@ import FieldUpload from './form/FieldUpload'
  * @example
  * <Dictionary identifier={this.state.data.dictionaries[i].url} recipien={this.state.identifier} data={this.state.data.dictionaries[i]} display />
  *  />
- *      
+ *  ~~~~   
  * 23.08.2022 khomenska
  * Add sendMessSave:false - используем, когда по клику на Save нужно еще где то что-то сделать, вне словаря
  */
@@ -506,8 +506,7 @@ class Dictionary extends Component{
                             </Col>
                         </Row>
                         <Row>
-                            <Col xs='12' sm='12' lg='4' xl='4' >
-                            </Col>
+                            <Col xs='12' sm='12' lg='4' xl='4' />
                             <Col xs='12' sm='12' lg='4' xl='4' className="d-flex justify-content-end">
                                     <ButtonUni
                                         label={this.state.labels.global_save}
@@ -589,26 +588,50 @@ class Dictionary extends Component{
                     </Col>
                    
                 </Row>
-                <Row >
+                <Row hidden={this.state.data.readOnly || !this.canAdd()} className='mb-2'>
+                    <Col xs='12' sm='12' lg='0' xl='3'>
+                    </Col>
+                    <Col xs='12' sm='12' lg='4' xl='3'>
+                        <ButtonUni
+                            onClick={()=>{
+                                this.exportClick()
+                            }}
+                            label={this.state.labels.global_export_short}
+                            color="success"
+                        />
+                    </Col>
+                    <Col xs='12' sm='12' lg='4' xl='3'>
+                        <ButtonUni
+                            onClick={()=>{
+                                this.loadImport()
+                            }}
+                            label={this.state.labels.global_import_short}
+                            color="info"
+                        />
+                    </Col>
+                    <Col xs='12' sm='12' lg='4' xl='3'>
+                        <ButtonUni
+                            onClick={()=>{
+                                this.state.activeNode=0;
+                                this.state.edit=true
+                                this.setState(this.state)
+                            }}
+                            label={this.state.labels.global_add}
+                            color="primary"
+                        />
+                    </Col>
+                </Row>
+                <Row className='mb-2'>
                     <Col xs='12' sm='12' lg='12' xl='12' >
                         <div hidden={this.state.data.selection.value.options.length<=1}>
                             <FieldOption attribute="selection" component={this} />
                         </div>
                     </Col>
                 </Row>
-                <Row hidden={this.state.data.readOnly}>
-                    <Col xs='12' sm='12' lg='12' xl='4'>
+                <Row hidden={this.state.data.readOnly} className='mb-2'>
+                    <Col xs='12' sm='12' lg='12' xl='8'>
                         <div hidden={hideControls}>
-                        <SearchControlNew label={this.state.labels.search} table={this.state.data.table} loader={this.tableLoader}/>
-                        </div>
-                        <div hidden={!this.canAdd()}>
-                            <ButtonUni
-                                onClick={()=>{
-                                    this.exportClick()
-                                }}
-                                label={this.state.labels.global_export_short}
-                                color="success"
-                            />
+                            <SearchControlNew label={this.state.labels.search} table={this.state.data.table} loader={this.tableLoader}/>
                         </div>
                     </Col>
                     <Col xs='12' sm='12' lg='12' xl='4'>
@@ -627,28 +650,6 @@ class Dictionary extends Component{
                                 {this.state.labels.selectedonly}
                             </Label>
                         </FormGroup>
-                        <div hidden={!this.canAdd()}>
-                            <ButtonUni
-                                onClick={()=>{
-                                    this.loadImport()
-                                }}
-                                label={this.state.labels.global_import_short}
-                                color="info"
-                            />
-                        </div>
-                    </Col>
-                    <Col xs='12' sm='12' lg='12' xl='4' className="pb-2" >
-                        <div hidden={!this.canAdd()}>
-                            <ButtonUni
-                                onClick={()=>{
-                                    this.state.activeNode=0;
-                                    this.state.edit=true
-                                    this.setState(this.state)
-                                }}
-                                label={this.state.labels.global_add}
-                                color="primary"
-                            />
-                        </div>
                     </Col>
                 </Row>
                 <Row hidden={!this.canAdd()}>
@@ -680,9 +681,6 @@ class Dictionary extends Component{
                             }}
                             selectRow={(rowNo)=>{
                                 if(this.state.data.readOnly || this.props.readOnly){
-                                    return
-                                }
-                                if(this.state.data.lifeCycle){
                                     return
                                 }
                                 this.selectRow(rowNo)

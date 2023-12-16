@@ -26,8 +26,34 @@ class SearchControl extends Component{
         this.state={
             commonFilter:crit
         }
+        if(this.props.identifier == undefined){
+            this.state.identifier=Date.now().toString() //default
+        }else{
+            this.state.identifier=this.props.identifier //the callar will send messages
+        }
+        this.eventProcessor=this.eventProcessor.bind(this)
         this.searchText=this.searchText.bind(this)
         this.applyFilters=this.applyFilters.bind(this)
+    }
+    componentDidMount(){
+        window.addEventListener("message",this.eventProcessor)
+    }
+
+    componentWillUnmount(){
+        window.removeEventListener("message",this.eventProcessor)
+    }
+       /**
+     * Listen messages from other components
+     * @param {Window Event} event 
+     */
+    eventProcessor(event){
+        let data=event.data
+        if(data.to==this.state.identifier){
+            if(data.subject=='CleanUpSearchBox'){
+                this.state.commonFilter=''
+                this.setState(this.state)
+            }
+        }
     }
    /**
      * set all text filters in headers and run them
@@ -80,6 +106,7 @@ class SearchControl extends Component{
 export default SearchControl
 
 SearchControl.propTypes={
+    identifier:PropTypes.string,            //address to receie and return address to send messages. Default is timestamp
     label:PropTypes.string.isRequired,
     table:PropTypes.object.isRequired,
     loader:PropTypes.func.isRequired,

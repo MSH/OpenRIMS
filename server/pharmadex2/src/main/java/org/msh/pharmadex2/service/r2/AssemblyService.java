@@ -21,11 +21,14 @@ import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.r2.AssemblyRepo;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AssemblyDTO;
+import org.msh.pharmadex2.dto.FileDTO;
 import org.msh.pharmadex2.dto.LayoutCellDTO;
 import org.msh.pharmadex2.dto.LayoutRowDTO;
 import org.msh.pharmadex2.dto.ReportConfigDTO;
+import org.msh.pharmadex2.dto.ThingConfigurationDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
+import org.msh.pharmadex2.dto.enums.AssistantEnum;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.common.DtoService;
 import org.slf4j.Logger;
@@ -35,6 +38,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 /**
  * This class is responsible for entity assembly issues such are dictionaries bound, root concept URLs, etc 
  * @author alexk
@@ -42,7 +48,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class AssemblyService {
-	
+
 	public static final String CONCURRENTURL = "concurrenturl";
 
 	public static final String HIDECHECKLIST_FLD = "hidechecklist";
@@ -59,7 +65,7 @@ public class AssemblyService {
 	private static final String OBJECT_SITE_CLASSIFIERS = "object.site.classifiers";
 	private static final Logger logger = LoggerFactory.getLogger(AssemblyService.class);
 	public static final String SYSTEM_IMPORT_LEGACY_DATA = "system.import.legacy.data";
-	
+
 	public static final String SYSTEM_CHANGEPASS_ADMIN="system.changepassadmin";
 	public static final String CHANGEPASS_NEWPASS = "changepass";
 	public static final String CHANGEPASS_NEWPASS_REPEAT = "changepass_repeat";
@@ -73,7 +79,9 @@ public class AssemblyService {
 	public static final String SYSTEM_IMPORT_DATA_CONFIGURATION="system.import.data.configuration";
 	//electronic form for data workflows import
 	public static final String SYSTEM_IMPORT_DATA_WORKFLOW="system.import.data.workflow";
-	
+
+	public static final String SYSTEM_IMPORT_LOCALES="system.import.locales";
+
 	@Autowired
 	private ClosureService closureServ;
 	@Autowired
@@ -92,6 +100,39 @@ public class AssemblyService {
 	private AccessControlService accessServ;
 
 	/**
+	 * Create a list of assemblyDTO from stored list of  AssemblyDTO for class clazz
+	 * @param dataConfigStored
+	 * @param clazz
+	 * @param ret
+	 * @return
+	 */
+	private List<AssemblyDTO> auxFromDataConfigStored(List<AssemblyDTO> dataConfigStored, String clazz,
+			List<AssemblyDTO> ret) {
+		for(AssemblyDTO dto : dataConfigStored) {
+			if(dto.getClazz().equalsIgnoreCase(clazz)) {
+				ret.add(dto);
+			}
+		}
+		return ret;
+	}
+	/**
+	 * Create a list of assemblyDTO from assembly entities for class clazz
+	 * @param assms
+	 * @param clazz
+	 * @param ret
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	public List<AssemblyDTO> auxFromAssembly(List<Assembly> assms, String clazz, List<AssemblyDTO> ret) throws ObjectNotFoundException {
+		for(Assembly assm : assms) {
+			if(assm.getClazz().equalsIgnoreCase(clazz)) {
+				ret.add(dtoServ.assemblyDto(assm));
+			}
+		}
+		return ret;
+	}
+
+	/**
 	 * Auxiliary literals for a user (MOCK!!!)
 	 * @return
 	 */
@@ -107,10 +148,11 @@ public class AssemblyService {
 	 * Load headings defined
 	 * @param url
 	 * @param assms 
+	 * @param dataConfigStored 
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	public List<AssemblyDTO> auxHeadings(String url, List<Assembly> assms) throws ObjectNotFoundException {
+	public List<AssemblyDTO> auxHeadings(String url, List<Assembly> assms, List<AssemblyDTO> dataConfigStored) throws ObjectNotFoundException {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
 		if(url.toUpperCase().startsWith(ACTIVITY_CONFIGURATION.toUpperCase())) {
 			AssemblyDTO doc1 = new AssemblyDTO(); 
@@ -144,16 +186,24 @@ public class AssemblyService {
 				}
 			}
 		}
+		if(ret.isEmpty()) {
+			if(dataConfigStored.isEmpty()) {
+				ret = auxFromAssembly(assms, "heading", ret);
+			}else {
+				ret=auxFromDataConfigStored(dataConfigStored, "heading", ret);
+			}
+		}
 		return ret;
 	}
 	/**
 	 * Create auxiliary strings, unlike literals strings are without language separation
 	 * @param url
 	 * @param assemblies 
+	 * @param dataConfigStored 
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	public List<AssemblyDTO> auxStrings(String url, List<Assembly> assemblies) throws ObjectNotFoundException {
+	public List<AssemblyDTO> auxStrings(String url, List<Assembly> assemblies, List<AssemblyDTO> dataConfigStored) throws ObjectNotFoundException {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
 		if(url.equalsIgnoreCase(SYSTEM_IMPORT_DATA_CONFIGURATION)) {
 			AssemblyDTO fld = new AssemblyDTO();
@@ -219,13 +269,12 @@ public class AssemblyService {
 				ret.add(fld);
 			}
 		}
-		
-		if(ret.size()==0) {
-			//List<Assembly> assms = loadDataConfiguration(url);
-			for(Assembly assm : assemblies) {
-				if(assm.getClazz().equalsIgnoreCase("strings")) {
-					ret.add(dtoServ.assemblyDto(assm));
-				}
+		// stored or uploaded from the database
+		if(ret.isEmpty()) {
+			if(dataConfigStored.isEmpty()) {
+				ret = auxFromAssembly(assemblies, "strings", ret);
+			}else {
+				ret=auxFromDataConfigStored(dataConfigStored,"strings", ret);
 			}
 		}
 		return ret;
@@ -234,33 +283,22 @@ public class AssemblyService {
 	/**
 	 * Create empty auxiliary literals for the url given
 	 * @param url url given
+	 * @param dataConfigStored 
 	 * @param activityName 
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public List<AssemblyDTO> auxLiterals(String url) throws ObjectNotFoundException {
-		List<Assembly> assms = loadDataConfiguration(url);
-		List<AssemblyDTO> ret = auxLiterals(url, assms);
-		return ret;
-	}
-	/**
-	 * Create empty auxiliary literals for the url given
-	 * @param url url given
-	 * @param activityName 
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	@Transactional
-	public List<AssemblyDTO> auxLiterals(String url, List<Assembly> assms) throws ObjectNotFoundException {
+	public List<AssemblyDTO> auxLiterals(String url, List<Assembly> assms, List<AssemblyDTO> dataConfigStored) throws ObjectNotFoundException {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
 		if(url.toUpperCase().startsWith("DICTIONARY.")) {
 			{
 				AssemblyDTO fld = new AssemblyDTO();
 				fld.setRequired(false);
-				fld.setReadOnly(false);
+				fld.setReadOnly(true);
 				fld.setTextArea(false);
 				fld.setPropertyName("URL");
+				fld.setAssistant(AssistantEnum.URL_ANY);
 				ret.add(fld);	
 			}
 		}
@@ -295,13 +333,17 @@ public class AssemblyService {
 			{
 				AssemblyDTO fld = new AssemblyDTO();
 				fld.setRequired(true);
+				fld.setReadOnly(true);
 				fld.setPropertyName("applicationurl");
+				fld.setAssistant(AssistantEnum.URL_APPLICATION_ALL);
 				ret.add(fld);
 			}
 			{
 				AssemblyDTO fld = new AssemblyDTO();
 				fld.setRequired(false);
+				fld.setReadOnly(true);
 				fld.setPropertyName("dataurl");
+				fld.setAssistant(AssistantEnum.URL_DATA_ANY);
 				ret.add(fld);
 			}
 		}
@@ -310,7 +352,9 @@ public class AssemblyService {
 			{
 				AssemblyDTO fld = new AssemblyDTO();
 				fld.setRequired(true);
+				fld.setReadOnly(true);
 				fld.setPropertyName("applicationurl");
+				fld.setAssistant(AssistantEnum.URL_APPLICATION_ALL);
 				ret.add(fld);
 			}
 		}
@@ -326,20 +370,25 @@ public class AssemblyService {
 			{
 				AssemblyDTO fld = new AssemblyDTO();
 				fld.setRequired(true);
+				fld.setReadOnly(true);
 				fld.setPropertyName("applicationurl");
+				fld.setAssistant(AssistantEnum.URL_APPLICATION_ALL);
 				ret.add(fld);
 			}
 			{
 				AssemblyDTO fld = new AssemblyDTO();
 				fld.setRequired(true);
+				fld.setReadOnly(true);
 				fld.setPropertyName("dataurl");
+				fld.setAssistant(AssistantEnum.URL_DATA_ANY);
 				ret.add(fld);
 			}
 			{
 				AssemblyDTO fld = new AssemblyDTO();
-				fld.setRequired(false);
-				fld.setReadOnly(false);
+				fld.setRequired(true);
+				fld.setReadOnly(true);
 				fld.setTextArea(false);
+				fld.setAssistant(AssistantEnum.URL_DICTIONARY_ALL);
 				fld.setPropertyName("checklisturl");
 				ret.add(fld);	
 			}
@@ -387,7 +436,7 @@ public class AssemblyService {
 			fld.setPropertyName(DATAIMPORT_RESULT);
 			fld.setReadOnly(true);
 			ret.add(fld);
-			
+
 			fld = new AssemblyDTO();
 			fld.setPropertyName(DATAIMPORT_SYSTEM_RESULT);
 			fld.setReadOnly(true);
@@ -399,7 +448,7 @@ public class AssemblyService {
 			fld.setReadOnly(false);
 			fld.setMult(false);
 			ret.add(fld);
-			
+
 			fld = new AssemblyDTO();
 			fld.setPropertyName(CHANGEPASS_NEWPASS_REPEAT);
 			fld.setReadOnly(false);
@@ -412,30 +461,31 @@ public class AssemblyService {
 			fld.setPropertyName(DATAIMPORT_RESULT);
 			fld.setReadOnly(true);
 			ret.add(fld);
-			
+
 			fld = new AssemblyDTO();
 			fld.setPropertyName(DATAIMPORT_SYSTEM_RESULT);
 			fld.setReadOnly(true);
 			ret.add(fld);
 		}
-		
+
 		if(url.equalsIgnoreCase(SYSTEM_IMPORT_ATCCODES) || url.equalsIgnoreCase(SYSTEM_IMPORT_ATCCODES_RELOAD)) {
 			AssemblyDTO fld = new AssemblyDTO();
 			fld.setPropertyName(DATAIMPORT_RESULT);
 			fld.setReadOnly(true);
 			ret.add(fld);
-			
+
 			fld = new AssemblyDTO();
 			fld.setPropertyName(DATAIMPORT_SYSTEM_RESULT);
 			fld.setReadOnly(true);
 			ret.add(fld);
 		}
-		//*********************************** read from configuration ***************************************************
-		if(ret.size()==0) {
-			for(Assembly assm : assms) {
-				if(assm.getClazz().equalsIgnoreCase("literals")) {
-					ret.add(dtoServ.assemblyDto(assm));
-				}
+
+		// stored or uploaded from the database
+		if(ret.isEmpty()) {
+			if(dataConfigStored.isEmpty()) {
+				ret = auxFromAssembly(assms, "literals", ret);
+			}else {
+				ret=auxFromDataConfigStored(dataConfigStored,"literals", ret);
 			}
 		}
 		return ret;
@@ -461,11 +511,12 @@ public class AssemblyService {
 	/**
 	 * Addresses to include
 	 * @param assemblies 
+	 * @param dataConfigStored 
 	 * @param objectUrl
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	public List<AssemblyDTO> auxAddresses(String url, List<Assembly> assemblies) throws ObjectNotFoundException {
+	public List<AssemblyDTO> auxAddresses(String url, List<Assembly> assemblies, List<AssemblyDTO> dataConfigStored) throws ObjectNotFoundException {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
 		// irka
 		if(url.equalsIgnoreCase(SYSTEM_IMPORT_ADMINUNITS)){ 
@@ -474,13 +525,11 @@ public class AssemblyService {
 			addr.setUrl("address.tests"); 
 			ret.add(addr); 
 		}
-		
-		if(ret.size()==0) {
-			//List<Assembly> assms = loadDataConfiguration(url);
-			for(Assembly assm : assemblies) {
-				if(assm.getClazz().equalsIgnoreCase("addresses")) {
-					ret.add(dtoServ.assemblyDto(assm));
-				}
+		if(ret.isEmpty()) {
+			if(dataConfigStored.isEmpty()) {
+				ret = auxFromAssembly(assemblies, "addresses", ret);
+			}else {
+				ret=auxFromDataConfigStored(dataConfigStored, "addresses", ret);
 			}
 		}
 		return ret;
@@ -490,19 +539,20 @@ public class AssemblyService {
 	 * Dates for screen forms
 	 * @param url
 	 * @param assemblies 
+	 * @param dataConfigStored 
 	 * @param activity
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	public List<AssemblyDTO> auxDates(String url, List<Assembly> assemblies) throws ObjectNotFoundException {
+	public List<AssemblyDTO> auxDates(String url, List<Assembly> assemblies, List<AssemblyDTO> dataConfigStored) throws ObjectNotFoundException {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
-		//permanent system's settings
-		if(ret.size()==0) {
-			//List<Assembly> assms = loadDataConfiguration(url);
-			for(Assembly assm : assemblies) {
-				if(assm.getClazz().equalsIgnoreCase("dates")) {
-					ret.add(dtoServ.assemblyDto(assm));
-				}
+		//... possible hardcoded
+		if(ret.isEmpty()) {
+			// stored or uploaded from the database
+			if(dataConfigStored.isEmpty()) {
+				ret = auxFromAssembly(assemblies, "dates", ret);
+			}else {
+				ret=auxFromDataConfigStored(dataConfigStored,"dates", ret);
 			}
 		}
 		return ret;
@@ -511,10 +561,11 @@ public class AssemblyService {
 	 * Decimal number fields
 	 * @param url
 	 * @param assemblies 
+	 * @param dataConfigStored 
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	public List<AssemblyDTO> auxNumbers(String url, List<Assembly> assemblies) throws ObjectNotFoundException {
+	public List<AssemblyDTO> auxNumbers(String url, List<Assembly> assemblies, List<AssemblyDTO> dataConfigStored) throws ObjectNotFoundException {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
 		if(url.equalsIgnoreCase(SystemService.DICTIONARY_GUEST_APPLICATIONS)) {
 			{
@@ -535,18 +586,24 @@ public class AssemblyService {
 			ret.add(fld);	
 		}
 		if(ret.size()==0) {
-			//List<Assembly> assms = loadDataConfiguration(url);
-			for(Assembly assm : assemblies) {
-				if(assm.getClazz().equalsIgnoreCase("numbers")) {
-					ret.add(dtoServ.assemblyDto(assm));
-				}
+			// stored or uploaded from the database
+			if(dataConfigStored.isEmpty()) {
+				ret = auxFromAssembly(assemblies, "numbers", ret);
+			}else {
+				ret=auxFromDataConfigStored(dataConfigStored,"numbers", ret);
 			}
 		}
 		return ret;
 	}
 
-
-	public List<AssemblyDTO> auxLogicals(String url, List<Assembly> assemblies) throws ObjectNotFoundException {
+	/**
+	 * Logical fields
+	 * @param url
+	 * @param assemblies
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	public List<AssemblyDTO> auxLogicals(String url, List<Assembly> assemblies, List<AssemblyDTO> dataConfigStored) throws ObjectNotFoundException {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
 		if(url.equalsIgnoreCase(ACTIVITY_CONFIGURATION)) {
 			{
@@ -565,14 +622,11 @@ public class AssemblyService {
 				ret.add(assm);
 			}
 		}
-		//*********************************** read from configuration ***************************************************
-		if(ret.size()==0) {
-			//List<Assembly> assms = loadDataConfiguration(url);
-			for(Assembly assm : assemblies) {
-				if(assm.getClazz().equalsIgnoreCase("logical")) {
-					ret.add(dtoServ.assemblyDto(assm));
-				}
-			}
+		// stored or uploaded from the database
+		if(dataConfigStored.isEmpty()) {
+			ret = auxFromAssembly(assemblies, "logical", ret);
+		}else {
+			ret=auxFromDataConfigStored(dataConfigStored,"logical", ret);
 		}
 		return ret;
 	}
@@ -580,11 +634,12 @@ public class AssemblyService {
 	 * Files that should be uploaded/accessible for the activity of an application defined by the  url
 	 * @param url
 	 * @param assemblies 
+	 * @param dataConfigStored 
 	 * @return map with 
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public List<AssemblyDTO> auxDocuments(String url, List<Assembly> assemblies) throws ObjectNotFoundException{
+	public List<AssemblyDTO> auxDocuments(String url, List<Assembly> assemblies, List<AssemblyDTO> dataConfigStored) throws ObjectNotFoundException{
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
 		if(url.equalsIgnoreCase(SYSTEM_IMPORT_ADMINUNITS) 
 				|| url.equalsIgnoreCase(SYSTEM_IMPORT_ADMINUNITS_RELOAD)) {
@@ -644,12 +699,32 @@ public class AssemblyService {
 			assm.setDictUrl(SystemService.DICTIONARY_SYSTEM_IMPORT_DATA);
 			ret.add(assm);
 		}
-		if(ret.size()==0) {
-			//List<Assembly> assms = loadDataConfiguration(url);
-			for(Assembly assm : assemblies) {
-				if(assm.getClazz().equalsIgnoreCase("documents")) {
-					ret.add(dtoServ.assemblyDto(assm));
-				}
+		if(url.equalsIgnoreCase(SYSTEM_IMPORT_LOCALES)) {
+			AssemblyDTO assm = new AssemblyDTO();
+			assm.setPropertyName("files");
+			assm.setUrl("data.import.files");
+			assm.setDescription(messages.get("pleaseuploadimportdata"));
+			assm.setFileTypes(".xlsx");
+			assm.setRequired(false);
+			//assm.setMult(true);
+			assm.setDictUrl(SystemService.DICTIONARY_SYSTEM_LOCALES);
+			ret.add(assm);
+
+			AssemblyDTO assm1 = new AssemblyDTO();
+			assm1.setPropertyName("flags");
+			assm1.setUrl("data.import.flags");
+			assm1.setDescription(messages.get("pleaseuploadimportdata"));
+			assm1.setRequired(false);
+			assm1.setFileTypes(".svg");
+			assm1.setDictUrl(SystemService.DICTIONARY_SYSTEM_LOCALES);
+			ret.add(assm1);
+		}
+
+		if(ret.isEmpty()) {
+			if(dataConfigStored.isEmpty()) {
+				ret = auxFromAssembly(assemblies, "documents", ret);
+			}else {
+				ret=auxFromDataConfigStored(dataConfigStored, "documents", ret);
 			}
 		}
 		return ret;
@@ -658,18 +733,18 @@ public class AssemblyService {
 	 * File resources - references and templates
 	 * @param url
 	 * @param assemblies 
+	 * @param storedConfig 
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	public List<AssemblyDTO> auxResources(String url, List<Assembly> assemblies) throws ObjectNotFoundException {
+	public List<AssemblyDTO> auxResources(String url, List<Assembly> assemblies, List<AssemblyDTO> dataConfigStored) throws ObjectNotFoundException {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
-		//TODO system defined?
-		if(ret.size()==0) {
-			//List<Assembly> assms = loadDataConfiguration(url);
-			for(Assembly assm : assemblies) {
-				if(assm.getClazz().equalsIgnoreCase("resources")) {
-					ret.add(dtoServ.assemblyDto(assm));
-				}
+		//possible hardcoded
+		if(ret.isEmpty()) {
+			if(dataConfigStored.isEmpty()) {
+				ret = auxFromAssembly(assemblies, "resources", ret);
+			}else {
+				ret=auxFromDataConfigStored(dataConfigStored, "resources", ret);
 			}
 		}
 		return ret;
@@ -678,19 +753,19 @@ public class AssemblyService {
 	 * Additional things to fill out
 	 * @param url application URL
 	 * @param assemblies 
+	 * @param dataConfigStored 
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public List<AssemblyDTO> auxThings(String url, List<Assembly> assemblies) throws ObjectNotFoundException {
+	public List<AssemblyDTO> auxThings(String url, List<Assembly> assemblies, List<AssemblyDTO> dataConfigStored) throws ObjectNotFoundException {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
-
-		if(ret.size()==0) {
-			//List<Assembly> assms = loadDataConfiguration(url);
-			for(Assembly assm : assemblies) {
-				if(assm.getClazz().equalsIgnoreCase("things")) {
-					ret.add(dtoServ.assemblyDto(assm));
-				}
+		// possible hardcoded
+		if(ret.isEmpty()) {
+			if(dataConfigStored.isEmpty()) {
+				ret = auxFromAssembly(assemblies, "things", ret);
+			}else {
+				ret=auxFromDataConfigStored(dataConfigStored, "things", ret);
 			}
 		}
 		return ret;
@@ -839,7 +914,7 @@ public class AssemblyService {
 			row.getCells().add(cell1);
 			ret.add(row);
 		}
-		
+
 		if(url.equalsIgnoreCase(SYSTEM_CHANGEPASS_ADMIN)) {
 			//file uploader and r/o field for messages output
 			LayoutRowDTO row = new LayoutRowDTO();
@@ -847,7 +922,7 @@ public class AssemblyService {
 			cell.getVariables().add(CHANGEPASS_NEWPASS);
 			row.getCells().add(cell);
 			ret.add(row);
-			
+
 			row = new LayoutRowDTO();
 			cell = new LayoutCellDTO();
 			cell.getVariables().add(CHANGEPASS_NEWPASS_REPEAT);
@@ -895,6 +970,17 @@ public class AssemblyService {
 			row.getCells().add(cell1);
 			ret.add(row);
 		}
+		if(url.equals(SYSTEM_IMPORT_LOCALES)) {
+			LayoutRowDTO row = new LayoutRowDTO();
+			LayoutCellDTO cell1 = new LayoutCellDTO();
+			cell1.getVariables().add("templatedownload");
+			cell1.getVariables().add("locales");
+			cell1.getVariables().add("flags");
+			cell1.getVariables().add("files");
+			row.getCells().add(cell1);
+
+			ret.add(row);
+		}
 		/*************************************** LOAD FROM CONFIGURATION ******************************************************************/
 		if(ret.size()==0) {
 			List<Assembly> as = loadDataConfiguration(url);	//right sort order is assumed!
@@ -912,11 +998,12 @@ public class AssemblyService {
 	 * Get dictionaries by root URL
 	 * @param url
 	 * @param assemblies 
+	 * @param dataConfigStored 
 	 * @param init 
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	public List<AssemblyDTO> auxDictionaries(String url, List<Assembly> assemblies) throws ObjectNotFoundException {
+	public List<AssemblyDTO> auxDictionaries(String url, List<Assembly> assemblies, List<AssemblyDTO> dataConfigStored) throws ObjectNotFoundException {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
 
 		if(url.equalsIgnoreCase(ACTIVITY_CONFIGURATION)) {
@@ -949,12 +1036,20 @@ public class AssemblyService {
 				ret.add(assm);
 			}
 		}
-		if(ret.size()==0) {
-			//List<Assembly> assms = loadDataConfiguration(url);
-			for(Assembly assm : assemblies) {
-				if(assm.getClazz().equalsIgnoreCase("dictionaries")) {
-					ret.add(dtoServ.assemblyDto(assm));
-				}
+		if(url.equals(SYSTEM_IMPORT_LOCALES)) {
+			AssemblyDTO assm = new AssemblyDTO();
+			assm.setMult(false);
+			assm.setPropertyName("locales");
+			assm.setRequired(true);
+			assm.setUrl(SystemService.DICTIONARY_SYSTEM_LOCALES);
+			ret.add(assm);
+		}
+
+		if(ret.isEmpty()) {
+			if(dataConfigStored.isEmpty()) {
+				ret = auxFromAssembly(assemblies, "dictionaries", ret);
+			}else {
+				ret=auxFromDataConfigStored(dataConfigStored, "dictionaries", ret);
 			}
 		}
 		return ret;
@@ -964,18 +1059,18 @@ public class AssemblyService {
 	 * Auxiliarry persons definitions
 	 * @param url
 	 * @param assemblies 
+	 * @param dataConfigStored 
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	public List<AssemblyDTO> auxPersons(String url, List<Assembly> assemblies) throws ObjectNotFoundException {
+	public List<AssemblyDTO> auxPersons(String url, List<Assembly> assemblies, List<AssemblyDTO> dataConfigStored) throws ObjectNotFoundException {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
-		//TODO system persons, maybe
-		if(ret.size()==0) {
-			//List<Assembly> assms = loadDataConfiguration(url);
-			for(Assembly assm : assemblies) {
-				if(assm.getClazz().equalsIgnoreCase("persons")) {
-					ret.add(dtoServ.assemblyDto(assm));
-				}
+		//possible hardcoded definitions
+		if(ret.isEmpty()) {
+			if(dataConfigStored.isEmpty()) {
+				ret = auxFromAssembly(assemblies, "persons", ret);
+			}else {
+				ret=auxFromDataConfigStored(dataConfigStored, "persons", ret);
 			}
 		}
 		return ret;
@@ -1023,18 +1118,18 @@ public class AssemblyService {
 	 * Auxiliary schedulers
 	 * @param url
 	 * @param assemblies 
+	 * @param dataConfigStored 
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	public List<AssemblyDTO> auxSchedulers(String url, List<Assembly> assemblies) throws ObjectNotFoundException {
+	public List<AssemblyDTO> auxSchedulers(String url, List<Assembly> assemblies, List<AssemblyDTO> dataConfigStored) throws ObjectNotFoundException {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
-		//TODO hardcoded definitions
-		if(ret.size()==0) {
-			//List<Assembly> assms = loadDataConfiguration(url);
-			for(Assembly assm : assemblies) {
-				if(assm.getClazz().equalsIgnoreCase("schedulers")) {
-					ret.add(dtoServ.assemblyDto(assm));
-				}
+		//possible hardcoded definitions
+		if(ret.isEmpty()) {
+			if(dataConfigStored.isEmpty()) {
+				ret = auxFromAssembly(assemblies, "schedulers", ret);
+			}else {
+				ret=auxFromDataConfigStored(dataConfigStored, "schedulers", ret);
 			}
 		}
 		return ret;
@@ -1043,18 +1138,18 @@ public class AssemblyService {
 	 * Read registers definitions
 	 * @param url
 	 * @param assemblies 
+	 * @param dataConfigStored 
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
-	public List<AssemblyDTO> auxRegisters(String url, List<Assembly> assemblies) throws ObjectNotFoundException {
+	public List<AssemblyDTO> auxRegisters(String url, List<Assembly> assemblies, List<AssemblyDTO> dataConfigStored) throws ObjectNotFoundException {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
-		// TODO hardcoded definitions...
-		if(ret.size()==0) {
-			//List<Assembly> assms = loadDataConfiguration(url);
-			for(Assembly assm : assemblies) {
-				if(assm.getClazz().equalsIgnoreCase("registers")) {
-					ret.add(dtoServ.assemblyDto(assm));
-				}
+		// possible hardcoded definitions...
+		if(ret.isEmpty()) {
+			if(dataConfigStored.isEmpty()) {
+				ret = auxFromAssembly(assemblies, "registers", ret);
+			}else {
+				ret=auxFromDataConfigStored(dataConfigStored, "registers", ret);
 			}
 		}
 		return ret;
@@ -1083,26 +1178,25 @@ public class AssemblyService {
 	 * ATC codes
 	 * @param url
 	 * @param assemblies 
+	 * @param dataConfigStored 
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	public List<AssemblyDTO> auxAtc(String url, List<Assembly> assemblies) throws ObjectNotFoundException {
+	public List<AssemblyDTO> auxAtc(String url, List<Assembly> assemblies, List<AssemblyDTO> dataConfigStored) throws ObjectNotFoundException {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
-		
+
 		if(url.equalsIgnoreCase(SYSTEM_IMPORT_ATCCODES)){ 
 			AssemblyDTO addr = new AssemblyDTO(); 
 			addr.setPropertyName(DATAIMPORT_CODES);
 			addr.setDictUrl(SystemService.PRODUCTCLASSIFICATION_ATC_HUMAN); 
 			ret.add(addr); 
 		}
-		
-		// TODO hardcoded definitions...
-		if(ret.size()==0) {
-			//List<Assembly> assms = loadDataConfiguration(url);
-			for(Assembly assm : assemblies) {
-				if(assm.getClazz().equalsIgnoreCase("atc")) {
-					ret.add(dtoServ.assemblyDto(assm));
-				}
+
+		if(ret.isEmpty()) {
+			if(dataConfigStored.isEmpty()) {
+				ret = auxFromAssembly(assemblies, "atc", ret);
+			}else {
+				ret=auxFromDataConfigStored(dataConfigStored, "atc", ret);
 			}
 		}
 		return ret;
@@ -1111,117 +1205,127 @@ public class AssemblyService {
 	/**
 	 * legacy data references
 	 * @param assms
+	 * @param dataConfigStored 
 	 * @param exts 
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	public List<AssemblyDTO> auxLegacyData(String url, List<Assembly> assms) throws ObjectNotFoundException {
+	public List<AssemblyDTO> auxLegacyData(String url, List<Assembly> assms, List<AssemblyDTO> dataConfigStored) throws ObjectNotFoundException {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
-		// TODO hardcoded definitions...
-		if(ret.size()==0) {
-			for(Assembly assm : assms) {
-				if(assm.getClazz().equalsIgnoreCase("legacy")) {
-					ret.add(dtoServ.assemblyDto(assm));
-				}
+		//... possible hardcoded
+		if(ret.isEmpty()) {
+			if(dataConfigStored.isEmpty()) {
+				ret = auxFromAssembly(assms, "legacy", ret);
+			}else {
+				ret=auxFromDataConfigStored(dataConfigStored, "legacy", ret);
+			}
+		}
+		return ret;
+	}
+
+
+	/**
+	 * droplist data references
+	 * @param assms
+	 * @param dataConfigStored 
+	 * @param exts 
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	@Transactional
+	public List<AssemblyDTO> auxDropListData(String url, List<Assembly> assms, List<AssemblyDTO> dataConfigStored) throws ObjectNotFoundException {
+		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
+		// possible hardcoded definitions...
+		if(ret.isEmpty()) {
+			if(dataConfigStored.isEmpty()) {
+				ret = auxFromAssembly(assms, "droplist", ret);
+			}else {
+				ret=auxFromDataConfigStored(dataConfigStored, "droplist", ret);
 			}
 		}
 		return ret;
 	}
 
 	/**
-	 * droplist data references
-	 * @param assms
-	 * @param exts 
-	 * @return
-	 * @throws ObjectNotFoundException
-	 */
-	@Transactional
-	public List<AssemblyDTO> auxDropListData(String url, List<Assembly> assms) throws ObjectNotFoundException {
-		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
-		// TODO hardcoded definitions...
-		if(ret.size()==0) {
-			for(Assembly assm : assms) {
-				if(assm.getClazz().equalsIgnoreCase("droplist")) {
-					ret.add(dtoServ.assemblyDto(assm));
-				}
-			}
-		}
-		return ret;
-	}
-	
-	/**
 	 * Intervals data references
 	 * @param assms
+	 * @param storedConfig 
 	 * @param exts 
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	public List<AssemblyDTO> auxIntervals(String url, List<Assembly> assms) throws ObjectNotFoundException {
+	public List<AssemblyDTO> auxIntervals(String url, List<Assembly> assms, List<AssemblyDTO> dataConfigStored) throws ObjectNotFoundException {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
 		// TODO hardcoded definitions...
 		if(ret.size()==0) {
-			for(Assembly assm : assms) {
-				if(assm.getClazz().equalsIgnoreCase("intervals")) {
-					ret.add(dtoServ.assemblyDto(assm));
-				}
+			if(dataConfigStored.isEmpty()) {
+				ret = auxFromAssembly(assms, "intervals", ret);
+			}else {
+				ret=auxFromDataConfigStored(dataConfigStored, "intervals", ret);
 			}
 		}
 		return ret;
 	}
-	
+
 	/**
 	 * Dates intervals
 	 * !!!! attantion, temporary only for the first iteration!
 	 * @param data
+	 * @param dataConfigStored 
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public List<AssemblyDTO> auxIntervals(ThingDTO data, String clazzName) throws ObjectNotFoundException {
+	public List<AssemblyDTO> auxIntervals(ThingDTO data, String clazzName, List<AssemblyDTO> dataConfigStored) throws ObjectNotFoundException {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
-		List<String> exts = boilerServ.variablesExtensions(data);
-		jdbcRepo.assembly_variables(data.getUrl());
-		Headers heads= new Headers();
-		heads.getHeaders().add(TableHeader.instanceOf("ext", TableHeader.COLUMN_STRING));
-		heads.getHeaders().add(TableHeader.instanceOf("varname", TableHeader.COLUMN_STRING));
-		heads.getHeaders().add(TableHeader.instanceOf("Clazz", TableHeader.COLUMN_STRING));
-		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from assembly_variables", "", "", heads);
-		Map<String, Long> vars = new HashMap<String, Long>();	//varname, ID
-		Map<String,String> extended = new HashMap<String, String>();	//extension, varname
-		Map<String, Long> extVars = new HashMap<String, Long>();			//varname+extension, ID
-		//prepare maps
-		for(TableRow row : rows) {
-			String ext = row.getRow().get(0).getValue();
-			String varname = row.getRow().get(1).getValue();
-			String clazz = row.getRow().get(2).getValue();
-			if(clazz.equalsIgnoreCase(clazzName)) {
-				if(ext==null || ext.length()==0) {
-					vars.put(varname, row.getDbID());
-				}else {
-					varname=varname.replace(ext, "");
-					extended.put(ext, varname);
-					extVars.put(varname+ext, row.getDbID());
+		if(dataConfigStored.isEmpty()) {	//take from the database
+			List<String> exts = boilerServ.variablesExtensions(data);
+			jdbcRepo.assembly_variables(data.getUrl());
+			Headers heads= new Headers();
+			heads.getHeaders().add(TableHeader.instanceOf("ext", TableHeader.COLUMN_STRING));
+			heads.getHeaders().add(TableHeader.instanceOf("varname", TableHeader.COLUMN_STRING));
+			heads.getHeaders().add(TableHeader.instanceOf("Clazz", TableHeader.COLUMN_STRING));
+			List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from assembly_variables", "", "", heads);
+			Map<String, Long> vars = new HashMap<String, Long>();	//varname, ID
+			Map<String,String> extended = new HashMap<String, String>();	//extension, varname
+			Map<String, Long> extVars = new HashMap<String, Long>();			//varname+extension, ID
+			//prepare maps
+			for(TableRow row : rows) {
+				String ext = row.getRow().get(0).getValue();
+				String varname = row.getRow().get(1).getValue();
+				String clazz = row.getRow().get(2).getValue();
+				if(clazz.equalsIgnoreCase(clazzName)) {
+					if(ext==null || ext.length()==0) {
+						vars.put(varname, row.getDbID());
+					}else {
+						varname=varname.replace(ext, "");
+						extended.put(ext, varname);
+						extVars.put(varname+ext, row.getDbID());
+					}
 				}
 			}
+			//prepare DTOs
+			for(String varname : vars.keySet()) {
+				Assembly assm = calcAssembly(vars.get(varname), varname, extended, exts, extVars);
+				ret.add(dtoServ.assemblyDto(assm));
+			}
+		}else {		//take from the stored configuration
+			ret=auxFromDataConfigStored(dataConfigStored, "intervals", ret);
 		}
-		//prepare DTOs
-		for(String varname : vars.keySet()) {
-			Assembly assm = calcAssembly(vars.get(varname), varname, extended, exts, extVars);
-			ret.add(dtoServ.assemblyDto(assm));
-		}	
 		return ret;
 	}
-	
-	public List<AssemblyDTO> auxLinks(String url, List<Assembly> assemblies) throws ObjectNotFoundException {
+
+	public List<AssemblyDTO> auxLinks(String url, List<Assembly> assemblies, List<AssemblyDTO> dataConfigStored) throws ObjectNotFoundException {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
-		// TODO hardcoded definitions...
-		if(ret.size()==0) {
-			for(Assembly assm : assemblies) {
-				if(assm.getClazz().equalsIgnoreCase("links")) {
-					ret.add(dtoServ.assemblyDto(assm));
-				}
+		// possible hardcoded definitions...
+
+		if(ret.isEmpty()) {
+			if(dataConfigStored.isEmpty()) {
+				ret = auxFromAssembly(assemblies, "links", ret);
+			}else {
+				ret=auxFromDataConfigStored(dataConfigStored, "links", ret);
 			}
 		}
 		return ret;
@@ -1307,39 +1411,37 @@ public class AssemblyService {
 	/**
 	 * Get the current 
 	 * @param data 
-	 * @param dictNodeId
+	 * @param user 
+	 * @param storedConfig
 	 * @param varName
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public AssemblyDTO auxPathConfig(ThingDTO data, long dictNodeId, String varName) throws ObjectNotFoundException {
+	public AssemblyDTO auxPathConfig(ThingDTO data, UserDetailsDTO user, List<AssemblyDTO> storedConfig, String varName) throws ObjectNotFoundException {
 		AssemblyDTO ret = new AssemblyDTO();
-		if(dictNodeId>0) {
-			//configuration is in a dictionary @DEPRECATED!!!!
-			Concept dictNode = closureServ.loadConceptById(dictNodeId);
-			String urlStr=literalServ.readValue("URL", dictNode);
-			if(urlStr.length()>0) {
-				ret.setUrl(urlStr);
-			}else {
-				ret.addError(messages.get("emptyauxurl"));
+		//configuration is in a variable configuration
+		if(data.getParentId()==0) {
+			data.setParentId(data.getNodeId());
+		}
+		Concept parent = closureServ.loadConceptById(data.getParentId());
+		Thing parentThing = boilerServ.thingByNode(parent);
+		List<AssemblyDTO> assms = new ArrayList<AssemblyDTO>();
+		if(storedConfig.isEmpty()) {
+			List<Assembly> asmList = loadDataConfiguration(parentThing.getUrl(),user);
+			for(Assembly asm : asmList) {
+				assms.add(dtoServ.assemblyDto(asm));
 			}
 		}else {
-			//configuration is in a variable configuration
-			if(data.getParentId()==0) {
-				data.setParentId(data.getNodeId());
-			}
-			Concept parent = closureServ.loadConceptById(data.getParentId());
-			Thing parentThing = boilerServ.thingByNode(parent);
-			List<Assembly> assms = loadDataConfiguration(parentThing.getUrl());
-			for(Assembly assm : assms) {
-				if(assm.getPropertyName().getIdentifier().equalsIgnoreCase(varName)){
-					String urlStr=assm.getAuxDataUrl();
-					if(urlStr.length()>0) {
-						ret.setUrl(urlStr);
-					}else {
-						ret.addError(messages.get("emptyauxurl"));
-					}
+			assms.addAll(storedConfig);
+		}
+		for(AssemblyDTO assm : assms) {
+			if(assm.getPropertyName().equalsIgnoreCase(varName)){
+				String urlStr=assm.getAuxDataUrl();
+				if(urlStr.length()>0) {
+					ret.setUrl(urlStr);
+				}else {
+					ret.addError(messages.get("emptyauxurl"));
 				}
 			}
 		}
@@ -1511,7 +1613,7 @@ public class AssemblyService {
 		}
 		return ret;
 	}
-	
+
 	@Transactional
 	public List<Assembly> loadDataConfiguration(String url, String clazz) throws ObjectNotFoundException {
 		List<Assembly> ret = new ArrayList<Assembly>();
@@ -1544,7 +1646,7 @@ public class AssemblyService {
 		List<Concept> datas = literalServ.loadOnlyChilds(root);
 		return datas;
 	}
-	
+
 	@Transactional
 	public Concept loadDataConfigurationsAdmUnits() throws ObjectNotFoundException {
 		Concept concept = null;
@@ -1593,22 +1695,21 @@ public class AssemblyService {
 
 	public List<AssemblyDTO> auxByClazz(String url, String clazz) throws ObjectNotFoundException {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
-
 		List<Assembly> assemblies = loadDataConfiguration(url);
 		switch (clazz) {
-			case "legacy":{
-				ret = auxLegacyData(url, assemblies);
-				break;
-			}
-			case "dictionaries":{
-				ret = auxDictionaries(url, assemblies);
-				break;
-			}
+		case "legacy":{
+			ret = auxLegacyData(url, assemblies, new ArrayList<AssemblyDTO>());
+			break;
+		}
+		case "dictionaries":{
+			ret = auxDictionaries(url, assemblies, new ArrayList<AssemblyDTO>());
+			break;
+		}
 		}
 
 		return ret;
 	}
-	
+
 	public AssemblyDTO auxAssemblyDTOByClazz(List<AssemblyDTO> ret, String key) throws ObjectNotFoundException {
 		AssemblyDTO dto = null;
 		if(ret != null && ret.size() > 0) {
@@ -1656,6 +1757,7 @@ public class AssemblyService {
 		}
 		return ret;
 	}
+
 
 }
 

@@ -4,10 +4,9 @@ import PropTypes from 'prop-types'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
 import FieldInput from './form/FieldInput'
-import FieldGuarded from './form/FieldGuarded'
 import ButtonUni from './form/ButtonUni'
-import URLButtons from './form/URLButtons'
 import Pharmadex from './Pharmadex'
+import FieldDisplay from './form/FieldDisplay'
 
 /**
  * A component responsible for edit/display a root node
@@ -28,6 +27,7 @@ class RootNode extends Component{
                 save:'',
                 cancel:'',
                 global_suspend:'',
+                assist:'',
             },
             data:{}
         }
@@ -42,8 +42,12 @@ class RootNode extends Component{
      */
      eventProcessor(event){
         let data=event.data
+        if(data.subject=="URL_ASSIST_OK"){              //from URL assistance
+            this.state.data.url.value=event.data.data
+            this.setState(this.state)
+        }
         if(data.from != this.props.identifier && (data.to==data.to==this.props.identifier)){
-            if(data.subject=="askData"){
+            if(data.subject=="askData"){    //It seems as abandomed and unusable
                 Navigator.message(this.props.identifier,from, "onGetData", this.state.data)
             }
         }
@@ -79,9 +83,9 @@ class RootNode extends Component{
     buildButtons(){
         return (
             <Row>
-                <Col xs='12' sm='12' lg='4' xl='4'>
+                <Col xs='12' sm='12' lg='6' xl='8'>
                 </Col>
-                <Col xs='12' sm='12' lg='4' xl='4'>
+                <Col xs='12' sm='12' lg='3' xl='2'>
                     <ButtonUni
                         label={this.state.labels.save}
                         color='primary'
@@ -97,8 +101,9 @@ class RootNode extends Component{
                         }}
                     />
                 </Col>
-                <Col xs='12' sm='12' lg='4' xl='4'>
+                <Col xs='12' sm='12' lg='3' xl='2'>
                     <ButtonUni
+                        outline
                         label={this.state.labels.cancel}
                         color='secondary'
                         onClick={this.props.onCancel}
@@ -116,19 +121,7 @@ class RootNode extends Component{
         return(
             <Container fluid className={Pharmadex.settings.activeBorder}>
                 {this.buildButtons()}
-                <Row>
-                    <Col>
-                        <Row>
-                            <Col xs='12' sm='12' lg='8' xl='8'>
-                                <FieldGuarded mode='text' attribute='url' component={this}/>
-                            </Col>
-                            <Col xs='12' sm='12' lg='4' xl='4' className="align-self-center">
-                                <URLButtons assistant='dictionaries' />
-                            </Col>
-                        </Row>
-                    </Col>
-                </Row>
-                <Row>
+                <Row className='mt-4'>
                     <Col>   
                         <FieldInput mode='text' attribute='prefLabel' component={this}/>
                     </Col>
@@ -136,6 +129,15 @@ class RootNode extends Component{
                 <Row>
                     <Col>
                         <FieldInput mode='textarea' lines={4} attribute='description' component={this}/>
+                    </Col>
+                </Row>
+                <Row>
+                    <Col>
+                        <Row>
+                            <Col>
+                                <FieldDisplay mode='text' attribute='url' component={this}/>
+                            </Col>
+                        </Row>
                     </Col>
                 </Row>
                 <Row hidden={!this.state.data.gisvisible}>
@@ -148,7 +150,6 @@ class RootNode extends Component{
                         <FieldInput mode='text' attribute='zoom' component={this}/>
                     </Col>
                 </Row>
-                {this.buildButtons()}
                 <Row style={{height:'20px'}}></Row>
             </Container>
         )

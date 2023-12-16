@@ -65,6 +65,7 @@ import org.msh.pharmadex2.dto.RegisterDTO;
 import org.msh.pharmadex2.dto.ReportDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
 import org.msh.pharmadex2.dto.SchedulerDTO;
+import org.msh.pharmadex2.dto.ThingConfigurationDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.ThingValuesDTO;
 import org.msh.pharmadex2.dto.WorkflowParamDTO;
@@ -93,7 +94,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 
 /**
- * CRUD for any activity
+ * CRUD for electronic form
  * @author alexk
  *
  */
@@ -200,9 +201,13 @@ public class ThingService {
 	 */
 	@Transactional
 	public ThingDTO createContent(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
-		List<Assembly> assemblies =assemblyServ.loadDataConfiguration(data.getUrl(), user);
+		List<Assembly> assemblies = new ArrayList<Assembly>();
+		List<AssemblyDTO> storedConfig = loadDataConfigurationFromNode(data.getNodeId());
+		if(storedConfig.isEmpty()) {
+			assemblies =assemblyServ.loadDataConfiguration(data.getUrl(), user);
+		}
 		//literals
-		List<AssemblyDTO> headings = assemblyServ.auxHeadings(data.getUrl(),assemblies);
+		List<AssemblyDTO> headings = assemblyServ.auxHeadings(data.getUrl(),assemblies, storedConfig);
 		data.getHeading().clear();
 		for(AssemblyDTO head : headings) {
 			HeadingDTO dto = new HeadingDTO();
@@ -217,70 +222,70 @@ public class ThingService {
 		boolean thisApplicant=accessControlServ.isApplicant(user);
 
 		data.getStrings().clear();
-		List<AssemblyDTO> strings = assemblyServ.auxStrings(data.getUrl(),assemblies);
+		List<AssemblyDTO> strings = assemblyServ.auxStrings(data.getUrl(),assemblies,storedConfig);
 		/*if(accessControlServ.isApplicant(user) && strings.isHideFromApplicant()) {
 			continue;
 		}*/
 		data=dtoServ.createStrings(data,strings, thisApplicant);
 
-		List<AssemblyDTO> literals = assemblyServ.auxLiterals(data.getUrl(),assemblies);
+		List<AssemblyDTO> literals = assemblyServ.auxLiterals(data.getUrl(),assemblies,storedConfig);
 		data=dtoServ.createLiterals(data, literals, thisApplicant);
 		//dates
-		List<AssemblyDTO> dates=assemblyServ.auxDates(data.getUrl(),assemblies);
+		List<AssemblyDTO> dates=assemblyServ.auxDates(data.getUrl(),assemblies,storedConfig);
 		data=dtoServ.createDates(data, dates, thisApplicant);
 		//numbers
-		List<AssemblyDTO> numbers=assemblyServ.auxNumbers(data.getUrl(),assemblies);
+		List<AssemblyDTO> numbers=assemblyServ.auxNumbers(data.getUrl(),assemblies,storedConfig);
 		data=dtoServ.createNumbers(data,numbers);
 		//logical
-		List<AssemblyDTO> logicals=assemblyServ.auxLogicals(data.getUrl(),assemblies);
+		List<AssemblyDTO> logicals=assemblyServ.auxLogicals(data.getUrl(),assemblies,storedConfig);
 		data=dtoServ.createLogicals(data,logicals);
 		//logger.trace("}");
 		//dictionaries
-		List<AssemblyDTO> dictionaries = assemblyServ.auxDictionaries(data.getUrl(),assemblies);
+		List<AssemblyDTO> dictionaries = assemblyServ.auxDictionaries(data.getUrl(),assemblies,storedConfig);
 		//logger.trace("dictionaries{");
 		data=createDictonaries(data, dictionaries, user);
 		//logger.trace("}");
 		//addresses
-		List<AssemblyDTO> addresses = assemblyServ.auxAddresses(data.getUrl(),assemblies);
+		List<AssemblyDTO> addresses = assemblyServ.auxAddresses(data.getUrl(),assemblies,storedConfig);
 		//logger.trace("addresses{");
 		data=createAddresses(data, addresses);
 		//logger.trace("}");
 		//files
-		List<AssemblyDTO> documents = assemblyServ.auxDocuments(data.getUrl(),assemblies);
+		List<AssemblyDTO> documents = assemblyServ.auxDocuments(data.getUrl(),assemblies,storedConfig);
 		//logger.trace("documents{");
 		data=createDocuments(documents, data,user);
 		//logger.trace("}");
 		//resources
-		List<AssemblyDTO> resources = assemblyServ.auxResources(data.getUrl(),assemblies);
+		List<AssemblyDTO> resources = assemblyServ.auxResources(data.getUrl(),assemblies,storedConfig);
 		data=createResources(resources,data);
 		//things
-		List<AssemblyDTO> things = assemblyServ.auxThings(data.getUrl(),assemblies);
+		List<AssemblyDTO> things = assemblyServ.auxThings(data.getUrl(),assemblies,storedConfig);
 		data=createThings(things,user,data);
 		//persons
-		List<AssemblyDTO> persons =assemblyServ.auxPersons(data.getUrl(),assemblies);
+		List<AssemblyDTO> persons =assemblyServ.auxPersons(data.getUrl(),assemblies,storedConfig);
 		data=createPersons(persons, data);
 		//Schedulers
-		List<AssemblyDTO> schedulers = assemblyServ.auxSchedulers(data.getUrl(),assemblies);
+		List<AssemblyDTO> schedulers = assemblyServ.auxSchedulers(data.getUrl(),assemblies,storedConfig);
 		data=createSchedulers(schedulers, data);
 		//Registers
 		//logger.trace("registers{");
-		List<AssemblyDTO> registers = assemblyServ.auxRegisters(data.getUrl(),assemblies);
+		List<AssemblyDTO> registers = assemblyServ.auxRegisters(data.getUrl(),assemblies,storedConfig);
 		data=registerServ.createRegisters(registers,data);
 		//logger.trace("}");
 		//Amendments
 		//List<AssemblyDTO> amendments = assemblyServ.auxAmendments(data.getUrl());
 		//data=createAmendments(amendments,data,user);
 		//ATC codes
-		List<AssemblyDTO> atc = assemblyServ.auxAtc(data.getUrl(),assemblies);
+		List<AssemblyDTO> atc = assemblyServ.auxAtc(data.getUrl(),assemblies,storedConfig);
 		data=createAtc(atc,data);
 		//Legacy data
-		List<AssemblyDTO> legacy = assemblyServ.auxLegacyData(data.getUrl(), assemblies);
+		List<AssemblyDTO> legacy = assemblyServ.auxLegacyData(data.getUrl(), assemblies,storedConfig);
 		data=createLegacy(legacy, data);
 		//Intervals
-		List<AssemblyDTO> intervals = assemblyServ.auxIntervals(data,"intervals");
+		List<AssemblyDTO> intervals = assemblyServ.auxIntervals(data,"intervals",storedConfig);
 		data=createIntervals(intervals, data);
 		//links
-		List<AssemblyDTO> links = assemblyServ.auxLinks(data.getUrl(),assemblies);
+		List<AssemblyDTO> links = assemblyServ.auxLinks(data.getUrl(),assemblies,storedConfig);
 		data=linkServ.createLinks(links,data);
 		//layout
 		data=createLayout(data);
@@ -289,10 +294,10 @@ public class ThingService {
 		data.getMainLabels().putAll(assemblyServ.mainLabelsByUrl(data.getUrl()));
 		//logger.trace("END content");
 		//DropList data
-		List<AssemblyDTO> droplist = assemblyServ.auxDropListData(data.getUrl(), assemblies);
+		List<AssemblyDTO> droplist = assemblyServ.auxDropListData(data.getUrl(), assemblies,storedConfig);
 		data=dictServ.createDropList(data,droplist);
 
-		data=validServ.validateThingsIncluded(assemblies, data);
+		data=validServ.validateThingsIncluded(assemblies, storedConfig, data);
 		return data;
 	}
 	/**
@@ -568,6 +573,7 @@ public class ThingService {
 	 * Create addresses
 	 * @param data
 	 * @param addresses
+	 * @param storedConfig 
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
@@ -905,8 +911,9 @@ public class ThingService {
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public ThingDTO thingSaveUnderParent(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
-		data = validServ.thing(data,true);
+	public ThingDTO saveUnderParent(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		List<AssemblyDTO> storedDataConfig = loadDataConfigurationFromNode(data.getNodeId());
+		data = validServ.thing(data,storedDataConfig,true);
 		if(data.isValid() || !data.isStrict() && accessControlServ.writeAllowed(data, user)) {
 			data.setStrict(true);									//to ensure the next
 			Concept node = new Concept();
@@ -959,7 +966,8 @@ public class ThingService {
 	 */
 	@Transactional
 	public ThingDTO saveUnderOwner(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException, JsonProcessingException {
-		data = validServ.thing(data,true);
+		List<AssemblyDTO> storedDataConfig = loadDataConfigurationFromNode(data.getNodeId());
+		data = validServ.thing(data,storedDataConfig,true);
 		if(data.isValid() || !data.isStrict()) {
 			data.setStrict(true);									//to ensure the next
 			if(accessControlServ.writeAllowed(data, user)) {
@@ -970,6 +978,7 @@ public class ThingService {
 				}else {
 					node=closureServ.loadConceptById(data.getNodeId());
 				}
+				node=storeConfigurationToNode(data.getUrl(), node);
 				data.setNodeId(node.getID());
 				//thing
 				Thing thing = new Thing();
@@ -1013,8 +1022,8 @@ public class ThingService {
 					Concept email=closureServ.getParent(incl);
 					Concept root = closureServ.getParent(email);
 					List<Assembly> assemblies =assemblyServ.loadDataConfiguration(root.getIdentifier());
-					List<AssemblyDTO> things = assemblyServ.auxThings(root.getIdentifier(),assemblies);
-					List<AssemblyDTO> persons = assemblyServ.auxPersons(root.getIdentifier(),assemblies);
+					List<AssemblyDTO> things = assemblyServ.auxThings(root.getIdentifier(),assemblies,storedDataConfig);
+					List<AssemblyDTO> persons = assemblyServ.auxPersons(root.getIdentifier(),assemblies,storedDataConfig);
 					Thing inclThing = boilerServ.thingByNode(incl);
 					for(AssemblyDTO th :things) {
 						if(th.getPropertyName().equalsIgnoreCase(data.getVarName())) {
@@ -1064,6 +1073,26 @@ public class ThingService {
 		return data;
 	}
 	/**
+	 * Store the current configuration in the node in JSON format
+	 * @param url
+	 * @param node
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 * @throws JsonProcessingException 
+	 */
+	private Concept storeConfigurationToNode(String url, Concept node) throws ObjectNotFoundException, JsonProcessingException {
+		if(node.getLabel()==null) {
+			ThingConfigurationDTO dto = new ThingConfigurationDTO();
+			List<Assembly> assemblies = assemblyServ.loadDataConfiguration(url);
+			for(Assembly assm : assemblies) {
+				dto.getAssemblies().add(dtoServ.assemblyDto(assm));
+			}
+			dto.getLayout().addAll(assemblyServ.formLayout(url));
+			node.setLabel(objectMapper.writeValueAsString(dto));
+		}
+		return node;
+	}
+	/**
 	 * Store all components
 	 * @param data
 	 * @param user
@@ -1097,9 +1126,12 @@ public class ThingService {
 		return data;
 	}
 	private ThingDTO storeDropList(Thing thing, ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
-		/* полуить из конфигурации droplists*/
-		List<Assembly> assemblies =assemblyServ.loadDataConfiguration(data.getUrl());
-		List<AssemblyDTO> droplists = assemblyServ.auxDropListData(data.getUrl(), assemblies);
+		List<Assembly> assemblies = new ArrayList<Assembly>();
+		List<AssemblyDTO> storedConfig = loadDataConfigurationFromNode(data.getNodeId());
+		if(storedConfig.isEmpty()) {
+			assemblies =assemblyServ.loadDataConfiguration(data.getUrl());
+		}
+		List<AssemblyDTO> droplists = assemblyServ.auxDropListData(data.getUrl(), assemblies, storedConfig);
 		for(AssemblyDTO dl:droplists) {
 			String key=dl.getPropertyName();
 			FormFieldDTO<OptionDTO> fld =data.getDroplist().get(key);
@@ -1882,7 +1914,7 @@ public class ThingService {
 				data.setLogical(dtoServ.readAllLogical(data.getLogical(), node));
 
 				//compare with amended, if needed
-				data=amendServ.diffMark(data);
+				data=amendServ.diffMark(data, objectMapper);
 			}else {
 				logger.warn("loadThing. Read access dened for user "+user.getEmail(),logger);
 				return data;
@@ -2022,8 +2054,12 @@ public class ThingService {
 		if(path.size()==0) {
 			path.add(deepCloneThing(dto));	//will be included to path property of the dto
 		}
-		List<Assembly> assemblies =assemblyServ.loadDataConfiguration(dto.getUrl());
-		List<AssemblyDTO> things = assemblyServ.auxThings(dto.getUrl(),assemblies);
+		List<Assembly> assemblies= new ArrayList<Assembly>();
+		List<AssemblyDTO> storedConfig = loadDataConfigurationFromNode(dto.getNodeId());
+		if(storedConfig.isEmpty()) {
+			assemblies =assemblyServ.loadDataConfiguration(dto.getUrl());
+		}
+		List<AssemblyDTO> things = assemblyServ.auxThings(dto.getUrl(),assemblies, storedConfig);
 		dto = createThings(things, user, dto);
 		Set<String> keys = dto.getThings().keySet();	//variables names
 		int nextParIndex = path.size()-1;
@@ -2097,7 +2133,8 @@ public class ThingService {
 	 */
 	@Transactional
 	public FileDTO fileSave(FileDTO data, UserDetailsDTO user, byte[] fileBytes) throws ObjectNotFoundException {
-		data=validServ.file(data, fileBytes);
+		List<AssemblyDTO> storedAssms = loadDataConfigurationFromNode(data.getThingNodeId());
+		data=validServ.file(data, fileBytes, storedAssms);
 		if(data.isValid()) {
 			String email = user.getEmail();
 			if((data.getFileName().length()==0 || fileBytes.length>1) 
@@ -2285,43 +2322,25 @@ public class ThingService {
 	 */
 	@Transactional
 	private ThingDTO auxPathPerson(PersonDTO personDTO, UserDetailsDTO user, ThingDTO data) throws ObjectNotFoundException {
-		//load a thing
-		Concept node = closureServ.loadConceptById(data.getNodeId());
-		Thing thing = boilerServ.thingByNode(node);
-		//try to found selected items in the dictionary
-		List<Long> selected = new ArrayList<Long>();
-		for(ThingDict tdict : thing.getDictionaries()) {
-			//if(tdict.getUrl().equalsIgnoreCase(personDTO.getDictUrl())) {
-			selected.add(tdict.getConcept().getID());
-			//}
-		}
-		//load a core thing in auxiliary path
-		if(selected.size()<=1) {
-			long dictNodeId=0;
-			if(selected.size()==1) {
-				dictNodeId=selected.get(0);
-			}
-			//core ThingDTO
-			AssemblyDTO coreAssembly = assemblyServ.auxPathConfig(data, dictNodeId,data.getAuxPathVar());
-			if(coreAssembly.isValid()) {
-				ThingDTO coreDTO= ThingDTO.createIncluded(data, coreAssembly);
-				coreDTO.setParentId(data.getNodeId());
-				coreDTO.setNodeId(personDTO.getNodeId());
-				coreDTO.setTitle(messages.get(personDTO.getVarName()));
-				coreDTO.setHistoryId(data.getHistoryId());
-				coreDTO.setVarName(personDTO.getVarName());
-				//calculate path and place it to auxiliary path of the thing
-				List<ThingDTO> path = createPath(coreDTO, user, new ArrayList<ThingDTO>(),-1);
-				data.getAuxPath().clear();
-				data.getAuxPath().addAll(path);
-			}else {
-				data.addError(coreAssembly.getIdentifier());
-			}
-			return data;
+		//core ThingDTO
+		List<AssemblyDTO> storedConfig = loadDataConfigurationFromNode(personDTO.getNodeId());
+		//List<AssemblyDTO> storedConfig = new ArrayList<AssemblyDTO>();
+		AssemblyDTO coreAssembly = assemblyServ.auxPathConfig(data, user, storedConfig,data.getAuxPathVar());
+		if(coreAssembly.isValid()) {
+			ThingDTO coreDTO= ThingDTO.createIncluded(data, coreAssembly);
+			coreDTO.setParentId(data.getNodeId());
+			coreDTO.setNodeId(personDTO.getNodeId());
+			coreDTO.setTitle(messages.get(personDTO.getVarName()));
+			coreDTO.setHistoryId(data.getHistoryId());
+			coreDTO.setVarName(personDTO.getVarName());
+			//calculate path and place it to auxiliary path of the thing
+			List<ThingDTO> path = createPath(coreDTO, user, new ArrayList<ThingDTO>(),-1);
+			data.getAuxPath().clear();
+			data.getAuxPath().addAll(path);
 		}else {
-			throw new ObjectNotFoundException("auxPath. Wrong dictionary selection. Only one is allowed "
-					+ personDTO.getDictUrl()+"/"+selected.size());
+			data.addError(coreAssembly.getIdentifier());
 		}
+		return data;
 	}
 	/**
 	 * Aux data url
@@ -2510,7 +2529,8 @@ public class ThingService {
 	 * @throws ObjectNotFoundException 
 	 */
 	public ThingDTO help(ThingDTO data) throws ObjectNotFoundException {
-		data=validServ.thing(data,false);
+		List<AssemblyDTO> storedDataConfig = loadDataConfigurationFromNode(data.getNodeId());
+		data=validServ.thing(data,storedDataConfig,false);
 		return data;
 	}
 	/**
@@ -2637,7 +2657,7 @@ public class ThingService {
 	public boolean readAllowed(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		if(data.getNodeId()>0) {
 			Concept activityData = dataModuleByPage(data.getNodeId());
-			return readActivityDataAllowed(activityData, user);
+			return readActivityDataAllowed(activityData, user) || accessControlServ.readAllowed(activityData, user);
 		}
 		return true;
 	}
@@ -2691,6 +2711,46 @@ public class ThingService {
 			Concept ret = closureServ.loadConceptById(dataPageID);
 			return ret;
 		}
+	}
+	/**
+	 * Load data configuration stored along with the data
+	 * @param nodeId
+	 * @return empty list if the node does not contain configuration
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public List<AssemblyDTO> loadDataConfigurationFromNode(long nodeID) throws ObjectNotFoundException {
+		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
+		if(nodeID>0) {
+			Concept node = closureServ.loadConceptById(nodeID);
+			if(node.getLabel()!=null) {
+				try {
+					ThingConfigurationDTO dto = objectMapper.readValue(node.getLabel(), ThingConfigurationDTO.class);
+					ret.addAll(dto.getAssemblies());
+				} catch (JsonProcessingException e) {
+					//nothing to do
+				}
+			}
+		}
+		return ret;
+	}
+	/**
+	 * Is it existing thing configuration URL?
+	 * @param url
+	 * @return
+	 */
+	@Transactional
+	public boolean isThingUrl(String url) {
+		List<Concept> concList = closureServ.loadAllConceptsByIdentifier(url);
+		for(Concept conc : concList) {
+			Concept root = closureServ.getParent(conc);
+			if(root!=null) {
+				if(root.getIdentifier().equalsIgnoreCase(SystemService.DATA_COLLECTIONS_ROOT)) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 }
 

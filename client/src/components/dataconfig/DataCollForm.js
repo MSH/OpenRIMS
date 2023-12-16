@@ -7,7 +7,7 @@ import Navigator from '../utils/Navigator'
 import ButtonUni from '../form/ButtonUni'
 import ViewEdit from '../form/ViewEdit'
 import Pharmadex from '../Pharmadex'
-import FieldGuarded from '../form/FieldGuarded'
+import FieldDisplay from '../form/FieldDisplay'
 
 /**
  * Form to add/edit/display a definition of a data collection
@@ -136,7 +136,7 @@ class DataCollForm extends Component{
         return(
             <Container fluid className={Pharmadex.settings.activeBorder}>
                 {this.buttons()}
-                    <FieldGuarded mode="text" attribute="url" component={this} />
+                    <FieldDisplay mode="text" attribute="url" component={this} />
                 <Row>
                     <Col>
                         <ViewEdit mode='textarea' component={this} attribute='description' edit />

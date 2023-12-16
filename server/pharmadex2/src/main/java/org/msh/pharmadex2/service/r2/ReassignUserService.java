@@ -110,24 +110,10 @@ public class ReassignUserService {
 			detailTable("APPLICATION", data.getApplications());
 			detailTable("ACTIVITY", data.getActivities());
 			detailTable("ACTIVITY_DATA", data.getDataTable());
-			data = eventLog(data);
 		}
 		return data;
 	}
-	/**
-	 * Previous reassign actions
-	 * @param data
-	 * @return
-	 */
-	public ReassignUserDTO eventLog(ReassignUserDTO data) {
-		if(!data.getEventLog().hasHeaders()) {
-			data.getEventLog().getHeaders().getHeaders().clear();
-			data.getEventLog().getHeaders().getHeaders().addAll(logEvents.userReassignHeaders());
-		}
-		jdbcRepo.userReassignLog(data.getEventLog());
-		data.getEventLog().setSelectable(false);
-		return data;
-	}
+
 
 
 	/**

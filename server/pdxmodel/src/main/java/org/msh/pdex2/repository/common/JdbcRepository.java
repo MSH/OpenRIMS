@@ -1562,6 +1562,29 @@ public class JdbcRepository {
 		proc.execute(params);
 	}
 
+
+	
+	public void processesEnabled(String dictRoot, String email) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("processes_enabled");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("dicturl", dictRoot);
+		params.addValue("email", email);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+	}
+	/**
+	 * GEt URL's of dictionaries for URL assistant
+	 */
+	public void url_dictionaries() {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("url_dictionaries");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+		
+	}
+
 	/**
 	 * Extract user's reassign log data
 	 * @param table
@@ -1585,5 +1608,27 @@ public class JdbcRepository {
 		List<TableRow> rows = qtbGroupReport(sql, "", "", table.getHeaders());
 		TableQtb.tablePage(rows, table);
 	}
-	
+	/**
+	 * Extract language change log data
+	 * @param eventLog
+	 */
+	public void importLocalesLog(TableQtb eventLog) {
+		event_log("log.language.replace");
+		eventLog.getRows().clear();
+		String sql="select * from (\r\n" + 
+				"	select \r\n" + 
+				"		el.ID as 'ID',\r\n" + 
+				"		el.executor as 'executor',\r\n" + 
+				"		el.EventDate,\r\n" + 
+				"		JSON_UNQUOTE(el.JSONData->'$.oldLanguages') as 'oldLanguage',\r\n" + 
+				"		JSON_UNQUOTE(el.JSONData->'$.newLanguage') as 'newLanguage',\r\n" + 
+				"		JSON_UNQUOTE(el.JSONData->'$.totalMessages') as 'total',\r\n" + 
+				"		JSON_UNQUOTE(el.JSONData->'$.imported') as 'imported',\r\n" + 
+				"		JSON_UNQUOTE(el.JSONData->'$.updated') as 'updated'\r\n" + 
+				"	from event_log el\r\n" + 
+				"	) t";
+		List<TableRow> rows = qtbGroupReport(sql, "", "", eventLog.getHeaders());
+		TableQtb.tablePage(rows, eventLog);
+	}
+
 }

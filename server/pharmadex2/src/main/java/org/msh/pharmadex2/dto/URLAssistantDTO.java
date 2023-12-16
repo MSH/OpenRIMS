@@ -1,6 +1,7 @@
 package org.msh.pharmadex2.dto;
 
 import org.msh.pdex2.dto.table.TableQtb;
+import org.msh.pharmadex2.dto.enums.AssistantEnum;
 import org.msh.pharmadex2.dto.form.AllowValidation;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
 
@@ -11,8 +12,9 @@ import org.msh.pharmadex2.dto.form.FormFieldDTO;
  */
 public class URLAssistantDTO extends AllowValidation{
 	// assistant parameters
-	private String assistant="";
-	private boolean select=false;
+	private AssistantEnum assistant=AssistantEnum.NO;
+	private String oldValue="";
+	private String title="";
 	//assistant results
 	private TableQtb domain = new TableQtb();
 	private String selectedDomain = "";
@@ -21,17 +23,28 @@ public class URLAssistantDTO extends AllowValidation{
 	private TableQtb urls	= new TableQtb();
 	private String selectedUrl="";
 	private FormFieldDTO<String> url = FormFieldDTO.of("");
-	public String getAssistant() {
+	private DictionaryDTO previewDict = new DictionaryDTO();
+	private ThingDTO previewThing = new ThingDTO();
+	private String previewOther="";
+
+
+	public AssistantEnum getAssistant() {
 		return assistant;
 	}
-	public void setAssistant(String assistant) {
+	public void setAssistant(AssistantEnum assistant) {
 		this.assistant = assistant;
 	}
-	public boolean isSelect() {
-		return select;
+	public String getOldValue() {
+		return oldValue;
 	}
-	public void setSelect(boolean select) {
-		this.select = select;
+	public void setOldValue(String oldValue) {
+		this.oldValue = oldValue;
+	}
+	public String getTitle() {
+		return title;
+	}
+	public void setTitle(String title) {
+		this.title = title;
 	}
 	public TableQtb getDomain() {
 		return domain;
@@ -74,6 +87,24 @@ public class URLAssistantDTO extends AllowValidation{
 	}
 	public void setUrl(FormFieldDTO<String> url) {
 		this.url = url;
+	}
+	public DictionaryDTO getPreviewDict() {
+		return previewDict;
+	}
+	public void setPreviewDict(DictionaryDTO previewDict) {
+		this.previewDict = previewDict;
+	}
+	public ThingDTO getPreviewThing() {
+		return previewThing;
+	}
+	public void setPreviewThing(ThingDTO previewThing) {
+		this.previewThing = previewThing;
+	}
+	public String getPreviewOther() {
+		return previewOther;
+	}
+	public void setPreviewOther(String previewOther) {
+		this.previewOther = previewOther;
 	}
 	
 }
