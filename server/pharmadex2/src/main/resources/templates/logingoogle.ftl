@@ -209,7 +209,7 @@ span.psw {
 					<#if "Google"==key>
 						<div class="google-btn" onclick="addcookie(); window.location.href='${providers[key]}'">
 							<div class="google-icon-wrapper">
-							<img class="google-icon" src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg"/>
+							<img class="google-icon" src="/img/google.png"/>
 							</div>
 							<label class="btn-text">${Google}</label>
 						</div>

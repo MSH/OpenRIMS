@@ -119,24 +119,37 @@ class ExchangeConfiguration extends Component{
             this.state.showTable = false
             this.setState(this.state)
         }else{
-            if(this.state.data.currentPage == 1){
-                Fetchers.writeLocaly("mainserveraddress", this.state.data.serverurl.value)
-
-                this.state.dictData = {}
-                this.state.tableData = {}
-                this.state.thingData = {}
-                this.state.showTable = false
-            }
-            Fetchers.postJSON("/api/admin/exchange/loadnext", this.state.data, (query, result)=>{
-                this.state.data=result
-                if(this.state.data.valid){
-                    this.setState(this.state)
-                }else{
-                    this.state.data.currentPage--
-                    Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'danger'})
+            var cont = true
+            if(this.state.data.currentPage == 7){
+                if(this.state.data.showImpAll){
+                    cont = false
+                    this.state.data.currentPage = 6
+                    Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:"Import data", color:'danger'})
                     this.setState(this.state)
                 }
-            })
+            }
+
+            if(cont){
+                if(this.state.data.currentPage == 1){
+                    Fetchers.writeLocaly("mainserveraddress", this.state.data.serverurl.value)
+        
+                    this.state.dictData = {}
+                    this.state.tableData = {}
+                    this.state.thingData = {}
+                    this.state.showTable = false
+                }
+                Fetchers.postJSON("/api/admin/exchange/loadnext", this.state.data, (query, result)=>{
+                    this.state.data=result
+                    if(this.state.data.valid){
+                        this.setState(this.state)
+                    }else{
+                        this.state.data.currentPage--
+                        Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'danger'})
+                        this.setState(this.state)
+                    }
+                })
+            }
+            
         }
     }
 

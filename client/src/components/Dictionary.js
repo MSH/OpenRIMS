@@ -69,7 +69,7 @@ class Dictionary extends Component{
                 global_export_short:"",
                 upload_file:"",
                 headerImport:"",
-                saved:""
+                saved:"",
             }
         }
         this.createBreadCrumb=this.createBreadCrumb.bind(this)
@@ -392,7 +392,7 @@ class Dictionary extends Component{
     }
 
     loadForward(){
-        //if(!this.state.data.mult){
+        if(!this.state.data.singleLevel){
             let varName=this.state.data.varName//
             Fetchers.postJSON('/api/common/dictionary/load/next', this.state.data, (query,result)=>{
                 if(result.table.rows.length > 0 || !this.props.display){
@@ -409,7 +409,11 @@ class Dictionary extends Component{
                 this.state.sendMess=true
                 this.setState(this.state)
             })
-        //}
+        }else{
+            this.state.sendMess=true
+            this.setState(this.state)
+        }
+
     }
 
     exportClick(){
@@ -593,6 +597,7 @@ class Dictionary extends Component{
                     </Col>
                     <Col xs='12' sm='12' lg='4' xl='3'>
                         <ButtonUni
+                            outline
                             onClick={()=>{
                                 this.exportClick()
                             }}
@@ -602,6 +607,7 @@ class Dictionary extends Component{
                     </Col>
                     <Col xs='12' sm='12' lg='4' xl='3'>
                         <ButtonUni
+                            outline
                             onClick={()=>{
                                 this.loadImport()
                             }}
@@ -611,6 +617,7 @@ class Dictionary extends Component{
                     </Col>
                     <Col xs='12' sm='12' lg='4' xl='3'>
                         <ButtonUni
+                            outline
                             onClick={()=>{
                                 this.state.activeNode=0;
                                 this.state.edit=true

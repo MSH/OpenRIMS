@@ -24,4 +24,6 @@ public interface HistoryRepo extends CrudRepository<History, Long> {
 	List<History> findAllByApplDictIDAndGo(long dbID, Date date);
 	
 	List<History> findAllByApplDictAndApplicationDataAndGo(Concept applDict, Concept applicationData, Date date);
+
+	List<History> findAllByApplicationOrderByGoDesc(Concept application);
 }

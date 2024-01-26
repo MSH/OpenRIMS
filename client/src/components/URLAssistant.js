@@ -38,6 +38,7 @@ class URLAssistant extends Component{
                 url_assistance1:'',
                 url_assistance2:'',
                 global_cancel:'',
+                global_help:'',
                 form_ok:'',
                 URL_DICTIONARY_NEW:'',
                 URL_ANY:'',
@@ -144,7 +145,7 @@ class URLAssistant extends Component{
         return (
             <Row>
             <Col xs='12' sm='12' lg='6' xl='6'>
-                <FieldInput mode='text' attribute='url' component={this}/>
+                <FieldInput mode='textarea' attribute='url' component={this}/>
             </Col>
             <Col xs='12' sm='12' lg='2' xl='2'>
                 <ButtonUni
@@ -222,16 +223,15 @@ class URLAssistant extends Component{
             <Container fluid>
                 <Row className='mb-5 mt-2'>
                     <Col xs='12' sm='12' lg='10' xl='11'>
-                        <h4>{this.props.title}</h4>
+                        <h4>{this.state.labels.url_assistant}</h4>
                     </Col>
                     <Col xs='12' sm='12' lg='2' xl='1'>
                         <ButtonUni
-                            onClick={
-                                ()=>{
-                                    window.opener.focus()
-                                    window.close()
-                                }
-                            } label={this.state.labels.global_cancel} color="info" outline 
+                            label={this.state.labels.global_help}
+                            onClick={()=>{
+                                window.open('/api/admin/help/url/assistant','_blank').focus()
+                            }}
+                            color="info"
                         />
                     </Col>
                 </Row>

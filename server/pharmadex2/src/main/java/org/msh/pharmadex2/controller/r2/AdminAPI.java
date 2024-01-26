@@ -1,7 +1,10 @@
 package org.msh.pharmadex2.controller.r2;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.sql.SQLException;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -24,12 +27,12 @@ import org.msh.pharmadex2.dto.Dict2DTO;
 import org.msh.pharmadex2.dto.DictNodeDTO;
 import org.msh.pharmadex2.dto.DictionariesDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
-import org.msh.pharmadex2.dto.ExchangeConfigDTO;
-import org.msh.pharmadex2.dto.FileDTO;
 import org.msh.pharmadex2.dto.FormatsDTO;
 import org.msh.pharmadex2.dto.ImportLocalesDTO;
+import org.msh.pharmadex2.dto.ImportWorkflowDTO;
 import org.msh.pharmadex2.dto.MessageDTO;
 import org.msh.pharmadex2.dto.PublicOrgDTO;
+import org.msh.pharmadex2.dto.ReassignActivitiesDTO;
 import org.msh.pharmadex2.dto.ReassignUserDTO;
 import org.msh.pharmadex2.dto.ReportConfigDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
@@ -42,6 +45,7 @@ import org.msh.pharmadex2.dto.WorkflowDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.log.EventLogDTO;
 import org.msh.pharmadex2.exception.DataNotFoundException;
+import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.common.UserService;
 import org.msh.pharmadex2.service.common.ValidationService;
 import org.msh.pharmadex2.service.r2.ActuatorService;
@@ -59,10 +63,12 @@ import org.msh.pharmadex2.service.r2.ImportExportDataConfigService;
 import org.msh.pharmadex2.service.r2.ImportExportDictionaryService;
 import org.msh.pharmadex2.service.r2.ImportExportWorkflowService;
 import org.msh.pharmadex2.service.r2.ImportLocalesService;
+import org.msh.pharmadex2.service.r2.ImportWorkflowService;
 import org.msh.pharmadex2.service.r2.LoggerEventService;
 import org.msh.pharmadex2.service.r2.MailService;
 import org.msh.pharmadex2.service.r2.MetricService;
 import org.msh.pharmadex2.service.r2.PubOrgService;
+import org.msh.pharmadex2.service.r2.ReassignActivitiesService;
 import org.msh.pharmadex2.service.r2.ReassignUserService;
 import org.msh.pharmadex2.service.r2.ReassignUserServiceAsync;
 import org.msh.pharmadex2.service.r2.ReportService;
@@ -88,6 +94,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
@@ -162,7 +169,12 @@ public class AdminAPI {
 	private ImportLocalesService importLocalesServ;
 	@Autowired
 	private LoggerEventService logEventServ;
-
+	@Autowired
+	private BoilerService boiler;
+	@Autowired
+	private ImportWorkflowService importwfServ;
+	@Autowired
+	private ReassignActivitiesService reassignActivServ;
 	/**
 	 * Tiles for landing page
 	 * 
@@ -1159,7 +1171,24 @@ public class AdminAPI {
 	}
 
 	/**
-	 * Download or read DictionaryCreationMaintenance
+	 * URL assistance help
+	 * @return
+	 * @throws DataNotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value="/api/admin/help/url/assistant", method = RequestMethod.GET)
+	public ResponseEntity<Resource> helpUrlAssistant() throws DataNotFoundException, IOException {
+		ResponseEntity<Resource> res;
+		try {
+			res = resourceServ.adminHelpUrlAssistant();
+			return res;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+	
+	/**
+	 * Import a national language help
 	 * @return
 	 * @throws DataNotFoundException
 	 * @throws IOException
@@ -1169,6 +1198,23 @@ public class AdminAPI {
 		ResponseEntity<Resource> res;
 		try {
 			res = resourceServ.adminHelpImportMessages();
+			return res;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+	
+	/**
+	 * Import a national language help
+	 * @return
+	 * @throws DataNotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value="/api/admin/help/messages", method = RequestMethod.GET)
+	public ResponseEntity<Resource> helpMessages() throws DataNotFoundException, IOException {
+		ResponseEntity<Resource> res;
+		try {
+			res = resourceServ.adminHelpMessages();
 			return res;
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
@@ -1400,98 +1446,90 @@ public class AdminAPI {
 		}
 		return data;
 	}
+	
+	@PostMapping("/api/admin/importwf/load")
+	public ImportWorkflowDTO loadImportwf(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException{
+		try {
+			data = importwfServ.load(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
 
-	@PostMapping("/api/admin/exchange/load")
-	public ExchangeConfigDTO load(Authentication auth, @RequestBody ExchangeConfigDTO data){
+		return data;
+	}
+	
+	@PostMapping("/api/admin/importwf/reload")
+	public ImportWorkflowDTO reloadImportwf(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException{
+		try {
+			data = importwfServ.reload(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+
+		return data;
+	}
+
+	/**
+	 * 
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/importwf/connect")
+	public ImportWorkflowDTO connectMainServer(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException{
+		try {
+			data = importwfServ.connectMainServer(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+
+		return data;
+	}
+	
+	@PostMapping("/api/admin/importwf/runimport")
+	public ImportWorkflowDTO runimport(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException, ObjectNotFoundException{
+		data = importwfServ.runimport(data);
+
+		return data;
+	}
+	
+	/**
+	 * 
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 * @throws ObjectNotFoundException 
+	 */
+	@PostMapping("/api/admin/importwf/dictionaries")
+	public ImportWorkflowDTO importwfDictionaries(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException, ObjectNotFoundException{
+		data = importwfServ.dictionaries(data);
+
+		return data;
+	}
+	
+	@PostMapping("/api/admin/importwf/resources")
+	public ImportWorkflowDTO importwfResources(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException, ObjectNotFoundException{
+		data = importwfServ.resources(data);
+
+		return data;
+	}
+	
+	@PostMapping("/api/admin/importwf/dataconfigs")
+	public ImportWorkflowDTO dataConfigs(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException, ObjectNotFoundException{
+		data = importwfServ.dataConfigs(data);
+
+		return data;
+	}
+	
+	@PostMapping("/api/admin/importwf/wfconfigs")
+	public ImportWorkflowDTO wfConfigs(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException, ObjectNotFoundException, JsonProcessingException{
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-		data = exchangeServ.load(data);
-		return data;
-	}
-
-	/**
-	 * Import data configuration from the XLSX file uploaded
-	 * @param data
-	 * @return
-	 * @throws DataNotFoundException
-	 */
-	@PostMapping("/api/admin/exchange/ping")
-	public ExchangeConfigDTO connectMainServer(Authentication auth, @RequestBody ExchangeConfigDTO data) throws DataNotFoundException{
-		try {
-			data = exchangeServ.pingServer(data);
-		} catch (ObjectNotFoundException e) {
-			throw new DataNotFoundException(e);
-		}
+		data = importwfServ.wf(data, user);
 
 		return data;
 	}
 
-	@PostMapping("/api/admin/exchange/loadnext")
-	public ExchangeConfigDTO loadnext(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException {
-		data = exchangeServ.loadNext(data);
-		return data;
-	}
-	@PostMapping("/api/admin/exchange/dictionary/import")
-	public ExchangeConfigDTO importDictionary(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
-		data = exchangeServ.importDictionary(data);
-		return data;
-	}
-	@PostMapping("/api/admin/exchange/resource/import")
-	public ExchangeConfigDTO importResource(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
-		data = exchangeServ.importResource(data);
-		return data;
-	}
 
-	@PostMapping("/api/admin/exchange/dataconfig/import")
-	public ExchangeConfigDTO importDataConfig(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
-		data = exchangeServ.importDataConfig(data);
-		return data;
-	}
-
-	@PostMapping("/api/admin/exchange/workflows/importall")
-	public ExchangeConfigDTO importAllWorkflows(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
-		data = exchangeServ.importAllWorkflows(data);
-		return data;
-	}
-
-	@PostMapping("/api/admin/exchange/dictionary/load")
-	public DictionaryDTO loadDictionary(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException {
-		DictionaryDTO ret = exchangeServ.loadDictionary(data);
-		return ret;
-	}
-	/**
-	 * Prepare thing in accordance with the resource selected url and nodeId
-	 * 
-	 * @param data
-	 * @return
-	 * @throws DataNotFoundException
-	 */
-	@PostMapping("/api/admin/exchange/resource/load")
-	public ThingDTO loadResource(@RequestBody ExchangeConfigDTO data) throws DataNotFoundException {
-		try {
-			ThingDTO ret = exchangeServ.loadResource(data);
-			return ret;
-		} catch (ObjectNotFoundException e) {
-			throw new DataNotFoundException(e);
-		}
-	}
-
-	/**
-	 * Load structure and screen layout for a data collection given
-	 * 
-	 * @param data
-	 * @return
-	 * @throws DataNotFoundException
-	 */
-	@PostMapping("/api/admin/exchange/resconfig/load")
-	public TableQtb loadResConfig(@RequestBody ExchangeConfigDTO data) throws DataNotFoundException {
-		try {
-			TableQtb ret = exchangeServ.loadResConfig(data);
-			return ret;
-		} catch (ObjectNotFoundException e) {
-			throw new DataNotFoundException(e);
-		}
-
-	}
 	/**
 	 * load "dictionary.guest.applications"
 	 * 
@@ -1766,5 +1804,154 @@ public class AdminAPI {
 	public EventLogDTO importLocalesLog(Authentication auth, @RequestBody EventLogDTO data) throws DataNotFoundException {
 		data=logEventServ.importLocalesLog(data);
 		return data;
+	}
+	
+	/**
+	 * Download lost messages keys in xlsx format
+	 * @param data
+	 * @param response
+	 * @return
+	 * @throws DataNotFoundException 
+	 */
+	@PostMapping("/api/admin/messages/lost/download")
+	public ModelAndView messagesLostUpload(HttpServletResponse response) throws DataNotFoundException{
+		// get table
+		try {
+			TableQtb table=importLocalesServ.messagesLost();
+			//add table to model
+			Map<String, Object> model = new HashMap<String, Object>();
+			//Sheet Name
+			model.put(ExcelView.SHEETNAME, messages.get("lostmessages"));
+			//Title
+			model.put(ExcelView.TITLE, boiler.dateToString(new Date()));
+			//Headers List
+			model.put(ExcelView.HEADERS, table.getHeaders().getHeaders());
+			//Rows
+			model.put(ExcelView.ROWS, table.getRows());
+			response.setHeader( HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"lostmessages.xlsx\"");
+			response.setHeader("filename", "lostmessages.xlsx");       
+			return new ModelAndView(new ExcelView(), model);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+	/**
+	 * append lost messages provided in the xlsx file
+	 * @param auth
+	 * @param uri
+	 * @param jsonDto
+	 * @param file
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/messages/lost/append")
+	public AboutDTO messagesLostAppend(Authentication auth, UriComponentsBuilder uri, @RequestParam("dto") String jsonDto,
+			@RequestParam("file") MultipartFile file) throws DataNotFoundException {
+		AboutDTO data = new AboutDTO();
+		try {
+			data = objectMapper.readValue(jsonDto, AboutDTO.class);
+			InputStream inputStream = new ByteArrayInputStream(file.getBytes());
+			data=superVisServ.messagesLostAppend(inputStream,data);
+		} catch (IOException | ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
+	/**
+	 * Download or read resource creation guide
+	 * @return
+	 * @throws DataNotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value="/api/admin/help/report/config/manual", method = RequestMethod.GET)
+	public ResponseEntity<Resource> helpReportConfigManual() throws DataNotFoundException, IOException {
+		ResponseEntity<Resource> res;
+		try {
+			res = resourceServ.adminHelpReportConfigManual();
+			return res;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+
+/**
+	 * Search for an employee to reassign activities
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException 
+	 */
+	@PostMapping("/api/admin/reassign/employee/load")
+	public ReassignActivitiesDTO reassignEmployeeSearch( @RequestBody ReassignActivitiesDTO data) throws DataNotFoundException, ObjectNotFoundException {
+		 data=reassignActivServ.employeeLoad(data);
+			return data;
+		
+	}
+	/**
+	 * Validate and run employee reassignment
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException 
+	 */
+	@PostMapping("/api/admin/reassign/employee/run")
+	public ReassignActivitiesDTO reassignEmployeeRun(Authentication auth,@RequestBody ReassignActivitiesDTO data) throws DataNotFoundException {
+		try {
+			data=reassignActivServ.employeeReassign(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
+	/**
+	 * Check all rows in table vailableActivities 
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException 
+	 */
+	@PostMapping("/api/admin/reassign/employee/selectall")
+	public ReassignActivitiesDTO reassignEmployeeSelectAll(Authentication auth,@RequestBody ReassignActivitiesDTO data){
+			data=reassignActivServ.selectAll(data);
+		return data;
+	}
+	
+	/**
+	 * De-select all rows in table vailableActivities 
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException 
+	 */
+	@PostMapping("/api/admin/reassign/employee/deselectall")
+	public ReassignActivitiesDTO reassignEmployeeDeselectAll(Authentication auth,@RequestBody ReassignActivitiesDTO data){
+			data=reassignActivServ.deselectAll(data);
+		return data;
+	}
+	
+	/**
+	 * Show selected rows only in table vailableActivities 
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException 
+	 */
+	@PostMapping("/api/admin/reassign/employee/selectonly")
+	public ReassignActivitiesDTO reassignEmployeeSelectOnly(Authentication auth,@RequestBody ReassignActivitiesDTO data){
+			data=reassignActivServ.selectOnly(data);
+		return data;
+	}
+	/**
+	 * Download or read DictionaryCreationMaintenance
+	 * @return
+	 * @throws DataNotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value="/api/admin/help/reassign/activities", method = RequestMethod.GET)
+	public ResponseEntity<Resource> helpReassignEmployee() throws DataNotFoundException, IOException {
+		ResponseEntity<Resource> res;
+		try {
+			res = resourceServ.adminHelpReassignActivities();
+			return res;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
 	}
 }

@@ -218,12 +218,12 @@ class FieldDisplay extends Component{
         let text = this.prepareText()
         let assistCol=0
         if(data.assistant!='NO'){
-            assistCol=1
+            assistCol=2
         }
         if(text != 'undefined'){
             return(
             <Row>
-                <Col xs='12' sm='12' lg='12' xl='11'>
+                <Col xs='12' sm='12' lg={12-assistCol} xl={12-assistCol}>
                     <FormGroup>
                         {this.notEmptyLabel()}     
                         <Container fluid style={{fontSize:'0.8rem'}}>
@@ -232,7 +232,7 @@ class FieldDisplay extends Component{
                         </Container>
                     </FormGroup>
                 </Col>
-                <Col xs='12' sm='12' lg='12' xl={assistCol}>
+                <Col xs='12' sm='12' lg={assistCol} xl={assistCol}>
                     {this.assist(data[this.props.attribute].assistant, data[this.props.attribute].description)}
                 </Col>
             </Row>

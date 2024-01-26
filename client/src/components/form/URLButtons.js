@@ -54,13 +54,13 @@ class URLButtons extends Component{
             recipient:this.props.recipient,
             title:title
         }
-        let param = encodeURI(JSON.stringify(paramJSON))
+        let param = encodeURIComponent(JSON.stringify(paramJSON))
         return(
             <ButtonGroup>
                 <Button title={this.props.title}
                     onClick={()=>window.open('/admin#urlassistant/'+param,'_blank')}
                 >
-                    <i className="fa fa-question-circle" aria-hidden="true"></i>
+                    <i className="fa fa-sm fa-question-circle" aria-hidden="true"></i>
                 </Button>
             </ButtonGroup> 
         )

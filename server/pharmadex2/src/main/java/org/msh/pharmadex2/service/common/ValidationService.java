@@ -2252,14 +2252,14 @@ public class ValidationService {
 		}
 		return data;
 	}
-	/**
+	/**Outdated function, slows down work. DO NOT USE. 21.12.2023 IK
 	 * Validate all additional pages if ones
 	 * @param assemblies
 	 * @param storedConfig 
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException 
-	 */
+	
 	@Transactional
 	public ThingDTO validateThingsIncluded(List<Assembly> assemblies, List<AssemblyDTO> storedConfig, ThingDTO data) throws ObjectNotFoundException {
 		if(storedConfig.isEmpty()) {
@@ -2275,14 +2275,14 @@ public class ValidationService {
 			}
 		}
 		return data;
-	}
-	/**
+	} */
+	/** Outdated function, slows down work. DO NOT USE. 21.12.2023 IK
 	 * Validate an additional page definition
 	 * @param dto
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException 
-	 */
+	 
 	@Transactional
 	private ThingDTO validateThingIncluded(AssemblyDTO dto, ThingDTO data) throws ObjectNotFoundException {
 		data.clearErrors();
@@ -2310,6 +2310,7 @@ public class ValidationService {
 		}
 		return data;
 	}
+	*/
 	/**
 	 * Validate email address using regex
 	 * @param data

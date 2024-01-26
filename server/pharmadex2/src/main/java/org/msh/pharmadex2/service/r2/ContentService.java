@@ -116,11 +116,8 @@ public class ContentService {
 				}
 			}
 		}else{// иначе - грузим словарь заново
-			Concept root = closureServ.loadRoot(urlDict);
-			dict.setUrlId(root.getID());
 			dict.getPrevSelected().clear();
-			dict.setSystem(dictServ.checkSystem(root));//ika
-			dict = dictServ.createDictionaryFromRoot(dict, root);
+			dict = dictServ.createDictionary(dict);
 			data.setDictionary(dict);
 		}
 
@@ -132,16 +129,11 @@ public class ContentService {
 		if(data.getTiles().size() > 0) {
 			updateLayoutFree(data);
 			updateLayout(data);
-			
 			String urlDict = "dictionary.system.tiles";
 			DictionaryDTO dict = data.getDictionary();
 			dict.setUrl(urlDict);
-			
-			Concept root = closureServ.loadRoot(urlDict);
-			dict.setUrlId(root.getID());
 			dict.getPrevSelected().clear();
-			dict.setSystem(dictServ.checkSystem(root));//ika
-			dict = dictServ.createDictionaryFromRoot(dict, root);
+			dict = dictServ.createDictionary(dict);
 			data.setDictionary(dict);
 		}
 		return data;

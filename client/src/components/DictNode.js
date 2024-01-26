@@ -98,7 +98,7 @@ class DictNode extends Component{
             keys.forEach((key, index)=>{
                 if(literals[key].value != undefined){
                     let mode="text"
-                    if(key=="description" || key=="prefLabel"){
+                    if(key=="description" || key=="prefLabel" || literals[key].textArea){
                         mode="textarea"
                     }else{
                         mode="text"

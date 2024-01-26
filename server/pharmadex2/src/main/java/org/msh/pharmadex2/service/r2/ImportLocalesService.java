@@ -1,10 +1,14 @@
 package org.msh.pharmadex2.service.r2;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -13,8 +17,10 @@ import java.util.Set;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.msh.pdex2.dto.i18n.Language;
 import org.msh.pdex2.dto.i18n.Languages;
 import org.msh.pdex2.dto.table.Headers;
+import org.msh.pdex2.dto.table.TableCell;
 import org.msh.pdex2.dto.table.TableHeader;
 import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
@@ -39,6 +45,7 @@ import org.msh.pharmadex2.service.common.ValidationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -205,7 +212,7 @@ public class ImportLocalesService {
 		String ret= literalServ.readPrefLabel(item);
 		return ret;
 	}
-	
+
 	/**
 	 * Selected locale human friendly name
 	 * @param selectedLocaleDictId
@@ -409,5 +416,63 @@ public class ImportLocalesService {
 	public ImportLocalesDTO save(ImportLocalesDTO data, UserDetailsDTO user) throws JsonProcessingException, ObjectNotFoundException {
 		data.setThing(thingServ.saveUnderParent(data.getThing(), user));
 		return data;
+	}
+	/**
+	 * Create table contains lost messages
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public TableQtb messagesLost() throws ObjectNotFoundException {
+		TableQtb ret = new TableQtb();
+		ret.getHeaders().getHeaders().add(TableHeader.instanceOf("key", messages.get("key"), 30, TableHeader.COLUMN_STRING));
+		Languages langs = messages.getLanguages();
+		for(Language lang :langs.getLangs()) {
+			ret.getHeaders().getHeaders().add(TableHeader.instanceOf(lang.getLocaleAsString(), lang.getLocaleAsString(), 60, TableHeader.COLUMN_STRING));
+		}
+		Set<String> usedKeys = new LinkedHashSet<String>();
+		//read all used by software
+		InputStream inputStream = getClass().getClassLoader().getResourceAsStream("static/shablon/allmessages.out");
+		try (BufferedReader br
+				= new BufferedReader(new InputStreamReader(inputStream))) {
+			String line;
+			while ((line = br.readLine()) != null) {
+				usedKeys.add(line);
+			}
+		} catch (IOException e) {
+			throw new ObjectNotFoundException("messagesLost - file allmessages.out not found", logger);
+		}
+		//read all variables
+		String select ="SELECT distinct Identifier as 'key' \r\n" + 
+				"FROM assembly\r\n" + 
+				"join concept conc on conc.ID=conceptID\r\n" + 
+				"where conc.Active";
+		Headers headers = new Headers();
+		headers.getHeaders().add(TableHeader.instanceOf("key", TableHeader.COLUMN_STRING));
+		List<TableRow> vars = jdbcRepo.qtbGroupReport(select, "", "", headers);
+		for(TableRow row : vars) {
+			usedKeys.add(row.getRow().get(0).getValue().trim());
+		}
+		//exclude existing to get lost
+		List<String> lost = new ArrayList<String>();
+		for(String key : usedKeys) {
+			if(messages.get(key).equals(key)) {
+				lost.add(key);
+			}
+		}
+		//sorting
+		Collections.sort(lost);
+		//create table rows
+		long id=1;
+		for(String key : lost) {
+			TableRow row = TableRow.instanceOf(id);
+			row.getRow().add(TableCell.instanceOf("key", key));
+			for(Language lang :langs.getLangs()) {
+				row.getRow().add(TableCell.instanceOf(lang.getLocaleAsString(), ""));
+			}
+			ret.getRows().add(row);
+			id++;
+		}
+		return ret;
 	}
 }

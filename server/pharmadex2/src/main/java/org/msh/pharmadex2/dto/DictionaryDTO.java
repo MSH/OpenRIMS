@@ -17,6 +17,8 @@ import org.msh.pharmadex2.dto.form.OptionDTO;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties(ignoreUnknown=true)
 public class DictionaryDTO extends AllowValidation{
+	//recognized as single level
+	private boolean singleLevel=false;
 	//for amendments etc
 	private boolean changed;		
 	//url of the dictionary
@@ -55,6 +57,14 @@ public class DictionaryDTO extends AllowValidation{
 	public DictionaryDTO() {
 		super();
 		// TODO Auto-generated constructor stub
+	}
+
+	public boolean isSingleLevel() {
+		return singleLevel;
+	}
+
+	public void setSingleLevel(boolean singleLevel) {
+		this.singleLevel = singleLevel;
 	}
 
 	public List<TableRow> getAllrows() {

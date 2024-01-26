@@ -106,7 +106,9 @@ class DataVarForm extends Component{
         return(
                 <div>
                     <Row>
-                        <Col xs='12' sm='12' lg='4' xl='4'>
+                        <Col xs='12' sm='12' lg='3' xl='3'>
+                        </Col>
+                        <Col xs='12' sm='12' lg='3' xl='3'>
                             <ButtonUni
                                 label={this.state.labels.save}
                                 color='primary'
@@ -136,7 +138,7 @@ class DataVarForm extends Component{
                                 }}
                             />
                         </Col>
-                        <Col xs='12' sm='12' lg='4' xl='4' hidden={this.hiddenRestricted()}>
+                        <Col xs='12' sm='12' lg='3' xl='3' hidden={this.hiddenRestricted()}>
                             <ButtonUni
                                 disabled={this.state.data.varNodeId==0}
                                 label={this.state.labels.global_suspend}
@@ -155,7 +157,7 @@ class DataVarForm extends Component{
                                 }}
                             />
                         </Col>
-                        <Col xs='12' sm='12' lg='4' xl='4'>
+                        <Col xs='12' sm='12' lg='3' xl='3'>
                             <ButtonUni
                                     label={this.state.labels.cancel}
                                     color='info'
@@ -195,16 +197,16 @@ option(){
 }
 hiddenUrl(){
     if(this.props.restricted){
-        return(<Col xs='12' sm='12' lg='4' xl='6'>
-            <ViewEdit mode='text' attribute='url' component={this} edit/>
+        return(<Col xs='12' sm='12' lg='4' xl='6' className='ml-1'>
+            <ViewEdit mode='text' attribute='url' component={this} />
             </Col>)
     }else{
         if(this.state.data.varNodeId==0){
-            return(<Col xs='12' sm='12' lg='4' xl='6'>
-            <ViewEdit mode='text' attribute='url' component={this} edit/>
+            return(<Col xs='12' sm='12' lg='4' xl='6' className='ml-1'>
+            <ViewEdit mode='text' attribute='url' component={this} />
             </Col>)
         }else{
-            return(<Col xs='12' sm='12' lg='4' xl='6'>
+            return(<Col xs='12' sm='12' lg='4' xl='6' className='ml-1'>
             <ViewEdit mode='text' attribute='url' component={this} />
         </Col>)
         }
@@ -212,16 +214,16 @@ hiddenUrl(){
 }
 hiddenAuxUrl(){
     if(this.props.restricted){
-        return(<Col xs='12' sm='12' lg='6' xl='6'>
-        <ViewEdit mode='text' attribute='auxUrl' component={this} edit/>
+        return(<Col xs='12' sm='12' lg='6' xl='6' className='ml-1'>
+        <ViewEdit mode='text' attribute='auxUrl' component={this} />
     </Col>)
     }else{
         if(this.state.data.varNodeId==0){
-            return(<Col xs='12' sm='12' lg='6' xl='6'>
-            <ViewEdit mode='text' attribute='auxUrl' component={this} edit/>
+            return(<Col xs='12' sm='12' lg='6' xl='6' className='ml-1'>
+            <ViewEdit mode='text' attribute='auxUrl' component={this} />
         </Col>)
         }else{
-            return(<Col xs='12' sm='12' lg='6' xl='6'>
+            return(<Col xs='12' sm='12' lg='6' xl='6' className='ml-1'>
            <ViewEdit mode='text' attribute='auxUrl' component={this} />
        </Col>)
         }
@@ -314,9 +316,8 @@ hiddenRestricted(){
                 </Row>
                 <Row>
                     {this.hiddenUrl()}
-
-                    <Col xs='12' sm='12' lg='4' xl='6'>
-                        <ViewEdit mode='text' attribute='dictUrl' component={this} edit/>
+                    <Col xs='12' sm='12' lg='3' xl='5' className='ml-1'>
+                        <ViewEdit mode='text' attribute='dictUrl' component={this}/>
                     </Col>
                     
                 </Row>
@@ -324,14 +325,18 @@ hiddenRestricted(){
                 </Row>
                 <Row>
                     {this.hiddenAuxUrl()}
-                    <Col xs='12' sm='12' lg='2' xl='2'>
-                        <ViewEditOption attribute='readOnly' component={this} edit/>
-                    </Col>
-                    <Col xs='12' sm='12' lg='2' xl='2'>
-                        <ViewEditOption attribute='unique' component={this} edit/>
-                    </Col>
-                    <Col xs='12' sm='12' lg='2' xl='2'>
-                        <ViewEditOption attribute='prefLabel' component={this} edit/>
+                    <Col xs='12' sm='12' lg='5' xl='5'>
+                        <Row>
+                            <Col xs='12' sm='12' lg='4' xl='4'>
+                                <ViewEditOption attribute='readOnly' component={this} edit/>
+                            </Col>
+                            <Col xs='12' sm='12' lg='4' xl='4'>
+                                <ViewEditOption attribute='unique' component={this} edit/>
+                            </Col>
+                            <Col xs='12' sm='12' lg='4' xl='4'>
+                                <ViewEditOption attribute='prefLabel' component={this} edit/>
+                            </Col>
+                        </Row>
                     </Col>
                 </Row>
                 <Row>

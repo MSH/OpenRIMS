@@ -296,8 +296,8 @@ public class ThingService {
 		//DropList data
 		List<AssemblyDTO> droplist = assemblyServ.auxDropListData(data.getUrl(), assemblies,storedConfig);
 		data=dictServ.createDropList(data,droplist);
-
-		data=validServ.validateThingsIncluded(assemblies, storedConfig, data);
+		//Outdated function, slows down work. DO NOT USE. 21.12.2023 IK
+		//data=validServ.validateThingsIncluded(assemblies, storedConfig, data);
 		return data;
 	}
 	/**
@@ -1080,7 +1080,7 @@ public class ThingService {
 	 * @throws ObjectNotFoundException 
 	 * @throws JsonProcessingException 
 	 */
-	private Concept storeConfigurationToNode(String url, Concept node) throws ObjectNotFoundException, JsonProcessingException {
+	public Concept storeConfigurationToNode(String url, Concept node) throws ObjectNotFoundException, JsonProcessingException {
 		if(node.getLabel()==null) {
 			ThingConfigurationDTO dto = new ThingConfigurationDTO();
 			List<Assembly> assemblies = assemblyServ.loadDataConfiguration(url);

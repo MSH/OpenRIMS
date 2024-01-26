@@ -479,6 +479,15 @@ public class ResourceService {
 		return downloadFile("reassign.applicant.help","OpenRIMSReassignApplicant.pdf");
 	}
 	/**
+	 * Employee reassignment help
+	 * @return
+	 * @throws ObjectNotFoundException
+	 * @throws IOException
+	 */
+	public ResponseEntity<Resource> adminHelpReassignActivities() throws ObjectNotFoundException, IOException {
+		return downloadFile("reassign.activities.help","ReassignActivities.pdf");
+	}
+	/**
 	 * Help to import local language
 	 * @return
 	 * @throws IOException 
@@ -486,6 +495,16 @@ public class ResourceService {
 	 */
 	public ResponseEntity<Resource> adminHelpImportMessages() throws ObjectNotFoundException, IOException {
 		return downloadFile("system.import.locales.help","DefinitionLocalLanguage.pdf");
+	}
+	
+	/**
+	 * URL assistant help
+	 * @return
+	 * @throws IOException 
+	 * @throws ObjectNotFoundException 
+	 */
+	public ResponseEntity<Resource> adminHelpUrlAssistant() throws ObjectNotFoundException, IOException {
+		return downloadFile("system.url.assistant.help","URLAssistant.pdf");
 	}
 
 	/**
@@ -566,4 +585,24 @@ public class ResourceService {
 		}
 		return ret;
 	}
+	/**
+	 * Looker report configuration manual
+	 * @return
+	 * @throws IOException 
+	 * @throws ObjectNotFoundException 
+	 */
+	public ResponseEntity<Resource> adminHelpReportConfigManual() throws ObjectNotFoundException, IOException {
+		return downloadFile("visualization.google.looker","OpenRIMSDataVisualization.pdf");
+	}
+	/**
+	 * Messages configuration manual
+	 * @return
+	 * @throws IOException 
+	 * @throws ObjectNotFoundException 
+	 */
+	public ResponseEntity<Resource> adminHelpMessages() throws ObjectNotFoundException, IOException {
+		return downloadFile("messages.manual","UserExperienceLanguages.pdf");
+	}
+
+
 }

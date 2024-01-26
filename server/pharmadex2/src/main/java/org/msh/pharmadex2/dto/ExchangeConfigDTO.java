@@ -1,8 +1,10 @@
 package org.msh.pharmadex2.dto;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.msh.pdex2.dto.table.TableQtb;
@@ -29,7 +31,8 @@ public class ExchangeConfigDTO extends AllowValidation {
 	
 	private TableQtb existTable = new TableQtb();
 	private TableQtb notExistTable = new TableQtb();
-	private String urlSelect = "";
+	private Map<Long, String> proccURLs = new HashMap<Long, String>();
+	private String urlSelect = "";// url selected dictionary by show 
 	private Long nodeIdSelect = 0l;
 	private String urlByCopy = "";
 	private OptionDTO dictByCopy = new OptionDTO();
@@ -42,6 +45,10 @@ public class ExchangeConfigDTO extends AllowValidation {
 	private List<String> headers = new ArrayList<String>();
 	private Set<String> warnings = new HashSet<String>();
 	private boolean showImpAll = true;//true - show ImportAll
+	
+	/**by preview show proccess */
+	private ThingDTO previewThing = new ThingDTO();
+	private String previewURL = "";
 	
 	public String getRootProcess() {
 		return rootProcess;
@@ -117,8 +124,15 @@ public class ExchangeConfigDTO extends AllowValidation {
 	public void setUrlSelect(String urlSelect) {
 		this.urlSelect = urlSelect;
 	}
+	
 	public Long getNodeIdSelect() {
 		return nodeIdSelect;
+	}
+	public Map<Long, String> getProccURLs() {
+		return proccURLs;
+	}
+	public void setProccURLs(Map<Long, String> proccURLs) {
+		this.proccURLs = proccURLs;
 	}
 	public void setNodeIdSelect(Long nodeIdSelect) {
 		this.nodeIdSelect = nodeIdSelect;
@@ -172,6 +186,18 @@ public class ExchangeConfigDTO extends AllowValidation {
 	}
 	public void setHasProcess(boolean hasProcess) {
 		this.hasProcess = hasProcess;
+	}
+	public ThingDTO getPreviewThing() {
+		return previewThing;
+	}
+	public void setPreviewThing(ThingDTO previewThing) {
+		this.previewThing = previewThing;
+	}
+	public String getPreviewURL() {
+		return previewURL;
+	}
+	public void setPreviewURL(String previewURL) {
+		this.previewURL = previewURL;
 	}
 	
 }

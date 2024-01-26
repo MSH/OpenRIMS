@@ -21,7 +21,7 @@ import Inns from './Inns'
 import ReportConfigurator from './reports/ReportConfigurator'
 import Import_A from './Import_A'
 import Import_B from './Import_B'
-import ExchangeConfiguration from './ExchangeConfiguration'
+import ImportWorkflow from './ImportWorkflow'
 import ActuatorAdm from './ActuatorAdm'
 import ChangePassAdmin from './ChangePassAdmin'
 import Import_ATC from './Import_ATC'
@@ -29,7 +29,7 @@ import Fetchers from './utils/Fetchers'
 import Formats from './Formats'
 import ReassignUsers from './ReassignUsers'
 import Import_Messages from './Import_Messages'
-
+import ReassignActivities from './ReassignActivities'
 
 /**
  * Administrative functions for the supervisor
@@ -72,6 +72,7 @@ class Administrate extends Component{
                 manageauthorities:'',
                 reassignusers:'',
                 importLocales:'',
+                reassignactivities:'',
             },
             isOpen:false,
             menu:'',
@@ -116,7 +117,7 @@ class Administrate extends Component{
                     }
                 }
                 return <DataConfigurator nodeId={params.nodeId} vars={params.nodeId!=0}/>
-            case "reports":
+            case "reportconfigurator":
                 return <ReportConfigurator/>
             case "messages":
                 return <Messages/>
@@ -144,8 +145,8 @@ class Administrate extends Component{
                 return <Import_B/>
             case "import_atc":
                 return <Import_ATC/>
-            case "exchangeconfig":
-                return <ExchangeConfiguration/>
+            case "importwf":
+                return <ImportWorkflow/>
             case "import_messages":
                 return <Import_Messages/>
             case "actuator":
@@ -156,7 +157,8 @@ class Administrate extends Component{
                 return <Formats />
             case "reassignusers":
                 return <ReassignUsers />
-            
+            case "reassignactivities":
+                    return <ReassignActivities/>
             default:
                 return []
         }
@@ -201,6 +203,18 @@ class Administrate extends Component{
                                                     <div>
                                                         <i className="fas fa-xs fa-users mr-1"></i>
                                                         {this.state.labels.reassignusers}
+                                                    </div>
+                                                </NavLink>
+                                            </NavItem>
+                                        </DropdownItem>
+                                        <DropdownItem>
+                                            <NavItem>
+                                                <NavLink active={this.state.menu=='authorities' || 
+                                                                this.state.menu=='authority'}
+                                                        href="/admin#administrate/reassignactivities">
+                                                    <div>
+                                                        <i className="fas fa-xs fa-users mr-1"></i>
+                                                        {this.state.labels.reassignactivities}
                                                     </div>
                                                 </NavLink>
                                             </NavItem>
@@ -323,7 +337,7 @@ class Administrate extends Component{
                                             <DropdownItem>
                                                 <NavItem>
                                                     <NavLink active={this.state.menu=='reports' || this.state.menu=='reportconfig'}
-                                                        href="/admin#administrate/reports">
+                                                        href="/admin#administrate/reportconfigurator">
                                                         <div>
                                                             <i className="fas fa-xs fa-table mr-1"></i>
                                                             {this.state.labels.reports}
@@ -382,17 +396,17 @@ class Administrate extends Component{
                                                     </NavLink>
                                                 </NavItem>
                                             </DropdownItem>
-                                            <DropdownItem>
-                                                <NavItem active={this.state.menu=='exchangeconfig'}>
-                                                    <NavLink active={this.state.menu=='exchangeconfig'}
-                                                                href="/admin#administrate/exchangeconfig">
+                                            {/* <DropdownItem>
+                                                <NavItem active={this.state.menu=='importwf'}>
+                                                    <NavLink active={this.state.menu=='importwf'}
+                                                                href="/admin#administrate/importwf">
                                                     <div>
                                                         <i className="fas fa-file-import mr-1"></i>
                                                         {this.state.labels.exchangeconfig}
                                                     </div>
                                                     </NavLink>
                                                 </NavItem>
-                                            </DropdownItem>
+                                            </DropdownItem> */}
                                             <DropdownItem>
                                                 <NavItem active={this.state.menu=='import_messages'}>
                                                     <NavLink active={this.state.menu=='import_messages'}

@@ -12,6 +12,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties(ignoreUnknown=true)
 public class MessageDTO extends AllowValidation {
+	private long maxFileSize=new Long(0l); //in KBytes
 	private TableQtb table = new TableQtb();
 	private Long selected = new Long(-1);
 	private Map<String, Long> selectedIds = new LinkedHashMap<String, Long>();
@@ -21,7 +22,14 @@ public class MessageDTO extends AllowValidation {
 	@Validator(above=3,below=255)
 	private FormFieldDTO<String> res_key= FormFieldDTO.of("");
 	private Map<String, FormFieldDTO<String>> values = new LinkedHashMap<String, FormFieldDTO<String>>();	
+	
 
+	public long getMaxFileSize() {
+		return maxFileSize;
+	}
+	public void setMaxFileSize(long maxFileSize) {
+		this.maxFileSize = maxFileSize;
+	}
 	public TableQtb getTable() {
 		return table;
 	}

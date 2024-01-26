@@ -193,7 +193,7 @@ class ApplicationStart extends Component{
                                                 historyId:this.props.data.historyId,
                                             }
                                             let param = JSON.stringify(data)
-                                            var url = "/" + Navigator.tabSetName() + "#printprev" + "/" + encodeURI(param)
+                                            var url = "/" + Navigator.tabSetName() + "#printprev" + "/" + encodeURIComponent(param)
                                             let w = window.open(url, "_blank")
                                         }}>
                                     {this.state.labels.global_showPrint}

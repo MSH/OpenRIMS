@@ -28,7 +28,6 @@ import org.msh.pharmadex2.service.common.BoilerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -70,13 +69,18 @@ public class ExchangeConfigurationService {
 	private static Map<Integer, String> requestToMain = new HashMap<Integer, String>();
 	static {
 		requestToMain.put(1, "/api/public/exchange/processes/load");
-		requestToMain.put(100, "/api/public/exchange/processes/geturl");
+		//requestToMain.put(100, "/api/public/exchange/processes/geturl");
 		requestToMain.put(2, "/api/public/exchange/checklists/load");
 		requestToMain.put(3, "/api/public/exchange/dictionaries/load");
 		requestToMain.put(4, "/api/public/exchange/resources/load");
 		requestToMain.put(5, "/api/public/exchange/dataconfig/load");
 		requestToMain.put(6, "/api/public/exchange/workflows/load");
 		
+	}
+	private static Map<String, String> reqToMain = new HashMap<String, String>();
+	static {
+		reqToMain.put("processes", "/api/public/exchange/processes/load");
+		reqToMain.put("preview", "/api/public/exchange/process/preview");
 	}
 	private static String req_dictimport = "/api/public/exchange/dictionary/import";
 	private static String req_resimport = "/api/public/exchange/resource/import";
@@ -144,10 +148,10 @@ public class ExchangeConfigurationService {
 			clearTables(data);
 			int index = data.getCurrentPage();
 			try {
-				if(data.getCurrentPage() == 2 && data.getProcessId() > 0 && data.getItProcessID() > 0
-						&& data.isHasProcess()) {
+				/*if(data.getCurrentPage() == 2 && data.getProcessId() > 0 && data.getItProcessID() > 0
+						&& data.getUrlSelect() == null) {
 					index = 100;
-				}
+				}*/
 
 				if(data.getCurrentPage() == 7) {
 					return data;
@@ -172,7 +176,9 @@ public class ExchangeConfigurationService {
 				return data;
 			}
 
-			if(index == 2) {
+			if(index == 1) {
+				data = buildProccessesTables(data);
+			}else if(index == 2) {
 				data = buildCheckListTables(data);
 			}else if(index == 3) {
 				data = buildDictionariesTables(data);
@@ -182,9 +188,12 @@ public class ExchangeConfigurationService {
 				data = buildDataConfigsTables(data);
 			}else if(index == 6) {
 				data = buildWorkflowsTables(data);
-			}else if(index == 100){
+			}/*else if(index == 100){
 				data = validSelectProccess(data);
-			}
+				if(data.isValid()) {
+					data = loadNext(data);
+				}
+			}*/
 		}
 		return data;
 	}
@@ -196,6 +205,8 @@ public class ExchangeConfigurationService {
 			data.setValid(false);
 
 			if(data.getCurrentPage() == 2) {
+				//data = validSelectProccess(data);
+				//return data.isValid();
 				if(data.getProcessId() > 0 && data.getItProcessID() > 0) {
 					data.setIdentifier("");
 					data.setValid(true);
@@ -230,9 +241,62 @@ public class ExchangeConfigurationService {
 		if(data.getCurrentPage() > 2 && data.getCurrentPage() <= 5) {
 			data.setNotExistTable(new TableQtb());
 			data.setExistTable(new TableQtb());
-			data.setUrlSelect("");
+			//data.setUrlSelect(null);
 		}
 	}
+	
+	private ExchangeConfigDTO buildProccessesTables(ExchangeConfigDTO data) throws ObjectNotFoundException {
+		if(!isDevelop(data)) {
+			// varification all table items
+			TableQtb notExistTable = data.getNotExistTable();
+			List<TableRow> rows = new ArrayList<TableRow>();
+			for(TableRow row:notExistTable.getRows()) {
+				Long idMain = row.getDbID();
+				String urlProc = data.getProccURLs().get(idMain);
+				if(urlProc != null && urlProc.length() > 0) {
+					Concept curProc = systemService.findProccessByUrl(data.getUrlProcess(), urlProc);
+					if(curProc == null) {
+						rows.add(row);
+					}
+				}
+			}
+
+			notExistTable.getRows().clear();
+			notExistTable.getRows().addAll(rows);
+			data.setNotExistTable(notExistTable);
+
+			data.getNotExistTable().setSelectable(true);
+		}
+		return data;
+	}
+	
+	public ExchangeConfigDTO previewProcessLoad(ExchangeConfigDTO data) throws ObjectNotFoundException {
+		if(data.getItProcessID() > 0) {
+			try {
+				String url = data.getServerurl() + reqToMain.get("preview");
+				ResponseEntity<ExchangeConfigDTO> r = restTemplate.postForEntity(url, data, ExchangeConfigDTO.class);
+
+				if(r != null && r.getBody() != null && r.getStatusCode() == HttpStatus.OK) {
+					data = r.getBody();
+					data.setValid(true);
+					data.setIdentifier("");
+					
+				}
+			}
+			catch (RestClientException e) {
+				data.setValid(false);
+				data.setIdentifier(messages.get("errorloaddata"));
+				return data;
+			}
+		}else {
+			data.setIdentifier("Select value");
+			data.setValid(false);
+			return data;
+		}
+		return data;
+	}
+	
+	
 	/**
 	 * we check whether there are dictionaries from MainServer on the ClientServer, 
 	 * and build tables: existing dictionaries and non-existing ones
@@ -410,21 +474,62 @@ public class ExchangeConfigurationService {
 		return data;
 	}
 
+	
 	private ExchangeConfigDTO validSelectProccess(ExchangeConfigDTO data) throws ObjectNotFoundException {
+		if(data.getProcessId() > 0 && data.getItProcessID() > 0) {
+			String url = data.getProccURLs().get(data.getItProcessID());
+			if(url != null && url.length() > 0) {
+				Concept curProc = systemService.findProccessByUrl(data.getUrlProcess(), url);
+				if(curProc == null) {
+					data.setValid(true);
+					data.setIdentifier("");
+				}else {
+					data.setValid(false);
+					data.setIdentifier(messages.get("importProcespresent"));
+				}
+			}else if(url != null && url.length() == 0) {
+				data.setValid(false);
+				data.setIdentifier("Import proccess has EMPTY URL. Import is not possible");//messages.get("importProcespresent"));
+			}else {
+				data.setValid(false);
+				data.setIdentifier("Process URL ERROR!!!");
+			}
+		}
+		//data.setValid(true);
+		return data;
+	}
+	
+	/**
+	 * validate selected proccess url on main server
+	 * has on current server
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	/*private ExchangeConfigDTO validSelectProccess(ExchangeConfigDTO data) throws ObjectNotFoundException {
 		if(data.getUrlProcess().length() > 0 && data.getUrlSelect().length() > 0) {
+			// -1- select dictionary url and proccess url are not empty
 			Concept curProc = systemService.findProccessByUrl(data.getUrlProcess(), data.getUrlSelect());
-			if(curProc != null) {
+			if(curProc != null) {// find select proccess is Present on current server
 				data.setValid(false);
 				data.setIdentifier(messages.get("importProcespresent"));
 				return data;
-			}else {
-				data.setHasProcess(false);
-				data = loadNext(data);
+			}else { // select proccess is not present on current server - load next page
+				data.setValid(true);
+				data.setIdentifier("");
+				data.setUrlSelect(null);
+				//data = loadNext(data);
+				return data;
 			}
+		}else if(data.getUrlSelect().trim().isEmpty()) {
+			// -2- select proccess url is empty
+			data.setValid(false);
+			data.setIdentifier("Import proccess has EMPTY URL. Import is not possible");//messages.get("importProcespresent"));
+			return data;
 		}
 		
 		return data;
-	}
+	}*/
 
 	private TableRow createRow(Concept root, boolean isShort, boolean addURL) throws ObjectNotFoundException {
 		TableRow row = new TableRow();
@@ -841,15 +946,26 @@ public class ExchangeConfigurationService {
 						root = closureServ.loadRoot(rootUrl);
 
 						Map<String, String> values = new HashMap<String, String>();// one of the values is always filled
-						String curV = !rootDTO.getOriginalCode().isEmpty()?rootDTO.getOriginalCode():rootDTO.getCode();
-						String v = !rootDTO.getCode().isEmpty()?rootDTO.getCode():rootDTO.getOriginalCode();
+						String curV = "", v = "";
+						if(rootDTO.getOriginalCode() != null && rootDTO.getOriginalCode().length() > 0) {
+							curV = rootDTO.getOriginalCode();
+						}
+						if(rootDTO.getCode() != null && rootDTO.getCode().length() > 0) {
+							v = rootDTO.getCode();
+						}
 						values.put(curLang, curV);
 						values.put(lang, v);
 						root = literalServ.createUpdateLiteral(LiteralService.PREF_NAME, root, values);
 
 						values = new HashMap<String, String>();
-						curV = !rootDTO.getOriginalDescription().isEmpty()?rootDTO.getOriginalDescription():rootDTO.getDescription();
-						v = !rootDTO.getDescription().isEmpty()?rootDTO.getDescription():rootDTO.getOriginalDescription();
+						curV = "";
+						v = "";
+						if(rootDTO.getOriginalDescription() != null && rootDTO.getOriginalDescription().length() > 0) {
+							curV = rootDTO.getOriginalDescription();
+						}
+						if(rootDTO.getDescription() != null && rootDTO.getDescription().length() > 0) {
+							v = rootDTO.getDescription();
+						}
 						values.put(curLang, curV);
 						values.put(lang, v);
 						root = literalServ.createUpdateLiteral(LiteralService.DESCRIPTION, root, values);
@@ -877,8 +993,13 @@ public class ExchangeConfigurationService {
 						List<OptionDTO> literals = itemDictDTO.getOptions();
 						for(OptionDTO litDTO:literals) {
 							Map<String, String> values = new HashMap<String, String>();
-							String curV = !litDTO.getOriginalDescription().isEmpty()?litDTO.getOriginalDescription():litDTO.getDescription();
-							String v = !litDTO.getDescription().isEmpty()?litDTO.getDescription():litDTO.getOriginalDescription();
+							String curV = "", v = "";
+							if(litDTO.getOriginalDescription() != null && litDTO.getOriginalDescription().length() > 0) {
+								curV = litDTO.getOriginalDescription();
+							}
+							if(litDTO.getDescription() != null && litDTO.getDescription().length() > 0) {
+								v = litDTO.getDescription();
+							}
 							values.put(curLang, curV);
 							values.put(lang, v);
 							itemDict = literalServ.createUpdateLiteral(litDTO.getCode(), itemDict, values);
@@ -936,8 +1057,13 @@ public class ExchangeConfigurationService {
 									th.getDictionaries().add(td);
 								}else {// literals
 									Map<String, String> values = new HashMap<String, String>();
-									String curV = !litDTO.getOriginalDescription().isEmpty()?litDTO.getOriginalDescription():litDTO.getDescription();
-									String v = !litDTO.getDescription().isEmpty()?litDTO.getDescription():litDTO.getOriginalDescription();
+									String curV = "", v = "";
+									if(litDTO.getOriginalDescription() != null && litDTO.getOriginalDescription().length() > 0) {
+										curV = litDTO.getOriginalDescription();
+									}
+									if(litDTO.getDescription() != null && litDTO.getDescription().length() > 0) {
+										v = litDTO.getDescription();
+									}
 									values.put(curLang, curV);
 									values.put(lang, v);
 									firstAct = literalServ.createUpdateLiteral(litDTO.getCode(), firstAct, values);
@@ -984,8 +1110,13 @@ public class ExchangeConfigurationService {
 									th.getDictionaries().add(td);
 								}else {// literals
 									Map<String, String> values = new HashMap<String, String>();
-									String curV = !litDTO.getOriginalDescription().isEmpty()?litDTO.getOriginalDescription():litDTO.getDescription();
-									String v = !litDTO.getDescription().isEmpty()?litDTO.getDescription():litDTO.getOriginalDescription();
+									String curV = "", v = "";
+									if(litDTO.getOriginalDescription() != null && litDTO.getOriginalDescription().length() > 0) {
+										curV = litDTO.getOriginalDescription();
+									}
+									if(litDTO.getDescription() != null && litDTO.getDescription().length() > 0) {
+										v = litDTO.getDescription();
+									}
 									values.put(curLang, curV);
 									values.put(lang, v);
 									activity = literalServ.createUpdateLiteral(litDTO.getCode(), activity, values);

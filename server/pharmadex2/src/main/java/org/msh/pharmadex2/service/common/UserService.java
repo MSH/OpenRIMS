@@ -651,8 +651,7 @@ public class UserService implements UserDetailsService {
 		data.setNode(dictServ.createLiterals(auxLiterals, data.getNode()));
 		//prepare dictionaries
 		data.getApplDicts().clear();
-		List<String> dictUrls = systemServ.applicationLifeCycleUrls();
-		for(String url : dictUrls) {
+		for(String url : SystemService.APPLICATION_DICTIONARIES) {
 			DictionaryDTO dict = new DictionaryDTO();
 			dict.setUrl(url);
 			dict.setVarName(url);
@@ -1037,9 +1036,8 @@ public class UserService implements UserDetailsService {
 	 */
 	public List<Long> responsibilities(User u) {
 		List<Long> ret = new ArrayList<Long>();
-		List<String> dictUrls = systemServ.applicationLifeCycleUrls();
 		for(UserDict ud :u.getDictionaries()) {
-			if(dictUrls.contains(ud.getUrl())) {
+			if(SystemService.APPLICATION_DICTIONARIES.contains(ud.getUrl())) {
 				ret.add(ud.getConcept().getID());
 			}
 		}

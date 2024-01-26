@@ -14,7 +14,7 @@ import org.msh.pdex2.i18n.Messages;
 import org.msh.pharmadex2.dto.AboutDTO;
 import org.msh.pharmadex2.dto.AskForPass;
 import org.msh.pharmadex2.dto.ContentDTO;
-import org.msh.pharmadex2.dto.ExchangeConfigDTO;
+import org.msh.pharmadex2.dto.ImportWorkflowDTO;
 import org.msh.pharmadex2.dto.PublicPermitDTO;
 import org.msh.pharmadex2.dto.SystemImageDTO;
 import org.msh.pharmadex2.dto.UserFormDTO;
@@ -25,6 +25,7 @@ import org.msh.pharmadex2.service.common.UserService;
 import org.msh.pharmadex2.service.common.ValidationService;
 import org.msh.pharmadex2.service.r2.ContentService;
 import org.msh.pharmadex2.service.r2.ExchangeConfigMainService;
+import org.msh.pharmadex2.service.r2.ImportWorkflowMainService;
 import org.msh.pharmadex2.service.r2.ReportService;
 import org.msh.pharmadex2.service.r2.ResourceService;
 import org.slf4j.Logger;
@@ -71,6 +72,8 @@ public class PublicAPI{
 	ExchangeConfigMainService exchangeMainServ;
 	@Autowired
 	private ValidationService validService;
+	@Autowired
+	private ImportWorkflowMainService importWFMainServ;
 
 	@Value("${app.buildTime}")
 	private String buildTime;
@@ -349,68 +352,38 @@ public class PublicAPI{
 		}
 		return data;
 	}
-	
-	@PostMapping(value="/api/public/exchange/processes/load")
-	public ExchangeConfigDTO loadProcesses(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
-		data = exchangeMainServ.loadProcesses(data);
+
+	@PostMapping(value="/api/public/importwf/processes/load")
+	public ImportWorkflowDTO loadProcesses(Authentication auth, @RequestBody ImportWorkflowDTO data) throws ObjectNotFoundException{
+		data = importWFMainServ.loadProcesses(data);
 		return data;
 	}
 	
-	@PostMapping(value="/api/public/exchange/processes/geturl")
-	public ExchangeConfigDTO geturlProcesses(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
-		data = exchangeMainServ.getUrlProcesses(data);
+	@PostMapping("/api/public/importwf/dictionaries")
+	public ImportWorkflowDTO validateDictionaries(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException, InterruptedException, ObjectNotFoundException{
+		data = importWFMainServ.validateDictionaries(data);
+
 		return data;
 	}
 	
-	@PostMapping(value="/api/public/exchange/checklists/load")
-	public ExchangeConfigDTO loadChecklistDictionaries(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
-		data = exchangeMainServ.loadChecklistDictionaries(data);
+	@PostMapping("/api/public/importwf/resources")
+	public ImportWorkflowDTO validateResources(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException, InterruptedException, ObjectNotFoundException{
+		data = importWFMainServ.validateResources(data);
+
 		return data;
 	}
 	
-	@PostMapping(value="/api/public/exchange/dictionaries/load")
-	public ExchangeConfigDTO loadDictionaries(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
-		data = exchangeMainServ.loadDictionaries(data);
-		return data;
-	}
-	@PostMapping(value="/api/public/exchange/resources/load")
-	public ExchangeConfigDTO loadResources(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
-		data = exchangeMainServ.loadResources(data);
+	@PostMapping("/api/public/importwf/dataconfigs")
+	public ImportWorkflowDTO validateDataConfigs(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException, InterruptedException, ObjectNotFoundException{
+		data = importWFMainServ.validateDataConfigs(data);
+
 		return data;
 	}
 	
-	@PostMapping(value="/api/public/exchange/dataconfig/load")
-	public ExchangeConfigDTO loadDataConfigs(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
-		data = exchangeMainServ.loadDataConfigs(data);
-		return data;
-	}
-	
-	@PostMapping(value="/api/public/exchange/workflows/load")
-	public ExchangeConfigDTO loadWorkflows(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
-		data = exchangeMainServ.loadWorkflows(data);
-		return data;
-	}
-	
-	@PostMapping(value="/api/public/exchange/dictionary/import")
-	public ExchangeConfigDTO importDictionary(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
-		data = exchangeMainServ.importDictionary(data);
-		return data;
-	}
-	
-	@PostMapping(value="/api/public/exchange/resource/import")
-	public ExchangeConfigDTO importResource(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
-		data = exchangeMainServ.importResource(data);
-		return data;
-	}
-	
-	@PostMapping(value="/api/public/exchange/dataconfig/import")
-	public ExchangeConfigDTO importDataConfig(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
-		data = exchangeMainServ.importDataConfig(data);
-		return data;
-	}
-	@PostMapping(value="/api/public/exchange/workflows/importall")
-	public ExchangeConfigDTO importWorkflows(Authentication auth, @RequestBody ExchangeConfigDTO data) throws ObjectNotFoundException{
-		data = exchangeMainServ.importAllWorkflows(data);
+	@PostMapping("/api/public/importwf/wf")
+	public ImportWorkflowDTO validateWFConfigs(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException, InterruptedException, ObjectNotFoundException{
+		data = importWFMainServ.validateWF(data);
+
 		return data;
 	}
 }

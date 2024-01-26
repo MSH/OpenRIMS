@@ -1,5 +1,6 @@
 package org.msh.pharmadex2.dto;
 
+import org.msh.pharmadex2.dto.enums.AssistantEnum;
 import org.msh.pharmadex2.dto.form.AllowValidation;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.dto.form.OptionDTO;
@@ -27,9 +28,9 @@ public class DataVariableDTO extends AllowValidation {
 	//Help text
 	private FormFieldDTO<String> description=FormFieldDTO.of("");
 	//Auxiliary data
-	private FormFieldDTO<String> url = FormFieldDTO.of("");
-	private FormFieldDTO<String> dictUrl = FormFieldDTO.of("");
-	private FormFieldDTO<String> auxUrl = FormFieldDTO.of("");
+	private FormFieldDTO<String> url = FormFieldDTO.of("", true, false, AssistantEnum.URL_ANY);
+	private FormFieldDTO<String> dictUrl = FormFieldDTO.of("", true, false, AssistantEnum.URL_DICTIONARY_ALL);
+	private FormFieldDTO<String> auxUrl = FormFieldDTO.of("", true, false, AssistantEnum.URL_ANY);
 	private FormFieldDTO<String> fileTypes = FormFieldDTO.of("");
 	private FormFieldDTO<OptionDTO> readOnly = FormFieldDTO.of(new OptionDTO());
 	//Literal, Dictionary, Date, Number, Logical

@@ -1,5 +1,5 @@
 import React , {Component} from 'react'
-import {Container, Row, Col, Label, Alert} from 'reactstrap'
+import {Container, Row, Col, Label, Alert, Card,CardHeader,CardBody} from 'reactstrap'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
 import ButtonUni from './form/ButtonUni'
@@ -9,6 +9,8 @@ import Pharmadex from './Pharmadex'
 import FieldInput from './form/FieldInput'
 import Navigator from './utils/Navigator'
 import FieldGuarded from './form/FieldGuarded'
+import Downloader from './utils/Downloader'
+import FieldUpload from './form/FieldUpload'
 
 /**
  * All Messages
@@ -18,7 +20,10 @@ class Messages extends Component{
         super(props)
         this.state={
             showForm:false, 
-            data:{},
+            showLostForm:false,
+            data:{},//MessageDTO.java
+            lostMessagesFile:{},
+            fileError:'',
             labels:{
                 res_key:'',
                 res_value_pt:'',
@@ -30,6 +35,13 @@ class Messages extends Component{
                 global_add:"",
                 message:"",
                 reload:"",
+                global_help:"",
+                global_upload:"",
+                global_download:"",
+                getlost:"",
+                addlost:"",
+                upload_file:"",
+                error_filesize:'',
             }
         }
         this.load=this.load.bind(this)
@@ -78,12 +90,32 @@ class Messages extends Component{
             <Row>
                 <Col>
                     <Row>
-                            <Col xs='12' sm='12' lg='6' xl='6'>
+                            <Col xs='12' sm='12' lg='3' xl='6'>
                                 <SearchControlNew label={this.state.labels.search} table={this.state.data.table} loader={this.load}/>
                             </Col>
-                            <Col xs='12' sm='12' lg='4' xl='4'>
+                            <Col xs='12' sm='12' lg='3' xl='2'>
+                                <ButtonUni
+                                label={this.state.labels.getlost}
+                                onClick={()=>{
+                                    let dl = new Downloader()
+                                    dl.postDownload('/api/admin/messages/lost/download', {}, "lostmessages.xlsx")
+                                }}
+                                outline
+                                color="secondary"
+                                />
                             </Col>
-                            <Col xs='12' sm='12' lg='2' xl='2'>
+                            <Col xs='12' sm='12' lg='3' xl='2'>
+                                <ButtonUni
+                                label={this.state.labels.addlost}
+                                onClick={()=>{
+                                    this.state.showLostForm=true
+                                    this.setState(this.state)
+                                }}
+                                outline
+                                color="primary"
+                                />
+                            </Col>
+                            <Col xs='12' sm='12' lg='3' xl='2'>
                                 <ButtonUni
                                 label={this.state.labels.global_add}
                                 onClick={()=>{
@@ -91,6 +123,7 @@ class Messages extends Component{
                                     this.state.data.selected = 0;
                                     this.load()
                                 }}
+                                outline
                                 color="primary"
                                 />
                             </Col>
@@ -174,6 +207,10 @@ class Messages extends Component{
         return ret
     }
 
+    /**
+     * Form at the left column
+     * @returns message add/edit form or lost messages file upload form or empty
+     */
     buildForm(){
         if(this.state.showForm){
             return (
@@ -190,8 +227,73 @@ class Messages extends Component{
                     <Row style={{height:'20px'}}></Row>
                 </Container>
             )
-        }else
-            return []
+        }
+        if(this.state.showLostForm){
+            this.state.fileError=''
+            return (
+                <Card>
+                <CardHeader className="p-0 m-0">
+                    <b>{this.state.labels.addlost}</b>
+                </CardHeader>
+                <CardBody>
+                    <Row>
+                        <Col xs='12' sm='12' lg='12' xl='12'>
+                            <FieldUpload onChange={(file)=>{
+                                            this.state.lostMessagesFile=file
+                                            this.setState(this.state)
+                                        }}
+                                        accept='.xlsx'
+                                        prompt={this.state.labels.upload_file}
+                                        error={this.state.fileError}            
+                                />
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col xs='0' sm='0' lg='4' xl='4'>
+                        </Col>
+                        <Col xs='12' sm='12' lg='4' xl='4' className="d-flex justify-content-end">
+                                <ButtonUni
+                                    label={this.state.labels.global_save}
+                                    disabled={this.state.lostMessagesFile.size == undefined}
+                                    onClick={()=>{
+                                        if(this.state.lostMessagesFile != undefined && this.state.lostMessagesFile.size < this.state.data.maxFileSize){
+                                            let formData = new FormData()
+                                            formData.append('dto', JSON.stringify({valid:true,identifier:''}))  //AboutDTO only as small AllowValidation extension 
+                                            formData.append('file', this.state.lostMessagesFile);
+                                            Fetchers.postFormJson("/api/admin/messages/lost/append",formData,(api,result)=>{
+                                                if(result.valid){
+                                                    this.state.showLostForm=false
+                                                    this.load() //reload messages
+                                                }else{
+                                                    this.state.fileError=result.identifier
+                                                    this.setState(this.state)
+                                                }
+                                            })
+                                        }else{
+                                            this.state.fileError=this.state.labels.save_error_filesize
+                                        }
+                                    }}
+                                    color="success"
+                                />
+                        </Col>
+                        <Col xs='12' sm='12' lg='4' xl='4' className="d-flex justify-content-end">
+                                <ButtonUni
+                                    label={this.state.labels.global_cancel}
+                                    onClick={()=>{
+                                        this.state.showLostForm=false
+                                        this.state.lostMessagesFile = {}
+                                        this.setState(this.state)
+                                    }}
+                                    color="info"
+                                />
+                        </Col>
+                    </Row>
+                    </CardBody>
+            </Card>
+            )
+        }
+        // no form
+        return []
     }
 
     render(){
@@ -202,10 +304,28 @@ class Messages extends Component{
         return(
             <Container fluid>
                 <Row>
-                    <Col xs='12'sm='12' lg='8' xl='8' className="d-flex justify-content-center">
-                        <h6>{this.state.labels.messages}</h6>
+                    <Col xs='12'sm='12' lg='4' xl='8'>
+                        <h4>{this.state.labels.messages}</h4>
                     </Col>
-                    <Col xs='12'sm='12' lg='3' xl='3'>
+                    <Col xs='12'sm='12' lg='2' xl='1'>
+                        <ButtonUni 
+                            label={this.state.labels.global_help}
+                            onClick={()=>{
+                                window.open('/api/admin/help/messages','_blank').focus()
+                            }}
+                            color="info"
+                        />
+                    </Col>
+                    <Col xs='12'sm='12' lg='2' xl='1'>
+                        <ButtonUni 
+                            label={this.state.labels.global_upload}
+                            onClick={()=>{
+                                Navigator.navigate("administrate","import_messages")
+                            }}
+                            color="primary"
+                        />
+                    </Col>
+                    <Col xs='12'sm='12' lg='2' xl='1'>
                         <ButtonUni 
                             label={this.state.labels.reload}
                             onClick={()=>{
@@ -217,9 +337,10 @@ class Messages extends Component{
                             color="success"
                         />
                     </Col>
-                    <Col xs='12'sm='12' lg='1' xl='1'>
+                    <Col xs='12'sm='12' lg='2' xl='1'>
                         <ButtonUni
                             label={this.state.labels.global_cancel}
+                            outline
                             onClick={()=>{
                                 window.location="/"+Navigator.tabSetName()+"#"+Navigator.tabName()
                             }}

@@ -5,6 +5,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import javax.swing.plaf.TableHeaderUI;
+
 import org.msh.pdex2.dto.i18n.Language;
 import org.msh.pdex2.dto.i18n.Languages;
 import org.msh.pdex2.dto.table.Headers;
@@ -364,6 +366,8 @@ public class DictService {
 		data.getLiterals().putAll(literalServ.mandatoryLiterals());
 		List<Assembly> assms = assembServ.loadDataConfiguration(data.getUrl());
 		List<AssemblyDTO> auxLit = assembServ.auxLiterals(data.getUrl(),assms, new ArrayList<AssemblyDTO>());
+		List<AssemblyDTO> auxStr = assembServ.auxStrings(data.getUrl(),assms, new ArrayList<AssemblyDTO>());
+		auxLit.addAll(auxStr);
 		for(AssemblyDTO adto : auxLit) {
 			// 2023-11-15 data.getLiterals().put(adto.getPropertyName(),FormFieldDTO.of(""));
 			data.getLiterals().put(adto.getPropertyName(),FormFieldDTO.of("", adto.isReadOnly(), adto.isTextArea()
@@ -571,7 +575,7 @@ public class DictService {
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public DictionaryDTO createDictionaryFromSelected(List<Long> selected, DictionaryDTO ret) throws ObjectNotFoundException {
+	private DictionaryDTO createDictionaryFromSelected(List<Long> selected, DictionaryDTO ret) throws ObjectNotFoundException {
 		if(selected.size()>0) {
 			Concept any = closureServ.loadConceptById(selected.get(0));
 			ret.getPath().clear();
@@ -647,7 +651,7 @@ public class DictService {
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public DictionaryDTO createDictionaryFromPrevSelected(List<Long> selected, DictionaryDTO ret) throws ObjectNotFoundException {
+	private DictionaryDTO createDictionaryFromPrevSelected(List<Long> selected, DictionaryDTO ret) throws ObjectNotFoundException {
 		if(selected.size()>0) {
 			ret.getSelection().getValue().getOptions().clear();
 			for(Long id : selected) {
@@ -818,16 +822,9 @@ public class DictService {
 			Concept root = closureServ.loadConceptById(data.getSelectId());
 			dict.setUrlId(root.getID());
 			dict.setUrl(root.getIdentifier());
-
-			dict.setSystem(checkSystem(root));//ika
-			data.setSelect(createDictionaryFromRoot(dict, root));
+			data.setSelect(createDictionary(dict));
 			reloadTable = false;
 			dict=page(dict);
-			// 31102023 khomenska add LifeCycle marker to DictionaryDTO
-			List<String> applLifeCycleUrls = SystemService.applicationLifeCycleUrls();
-			if(applLifeCycleUrls.contains(dict.getUrl())) {
-				dict.getTable().setSelectable(false);
-			}
 		}else if(data.getSelectId() == 0 && data.isEditor()) {//create new fields dictionary
 			DictionaryDTO dict = new DictionaryDTO();
 			dict.setUrl("");
@@ -948,7 +945,39 @@ public class DictService {
 		}else {
 			data=createDictionaryFromRoot(data, root);
 		}
+		data=checkSingleLevel(data);
 		return data;
+	}
+	/**
+	 * Check the next level allowance. 
+	 * @param data
+	 * @return
+	 */
+	private DictionaryDTO checkSingleLevel(DictionaryDTO data) {
+		boolean single=false;
+		//single level should be process definition and some system dictionaries
+		single=SystemService.SINLE_LEVEL_DICTIONARIES.contains(data.getUrl().toLowerCase());
+		single=single || SystemService.APPLICATION_DICTIONARIES.contains(data.getUrl().toLowerCase());
+		//single level should be dictionaries that are backed "documents" components
+		single= single || backedDocumentsComponent(data.getUrl());
+		//result
+		data.setSingleLevel(single);
+		return data;
+	}
+	/**
+	 * Check does any "documents" component use this dictionary?
+	 * @param dictUrl
+	 * @return
+	 */
+	@Transactional
+	public boolean backedDocumentsComponent(String dictUrl) {
+		String select = "SELECT *\r\n" + 
+				"FROM assembly asm\r\n" + 
+				"where\r\n" + 
+				"asm.clazz='documents'\r\n" + 
+				"and dictUrl='"+dictUrl+"'";
+		List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "","" , new Headers());
+		return !rows.isEmpty();
 	}
 	/**
 	 * Fill out list of the current selections.

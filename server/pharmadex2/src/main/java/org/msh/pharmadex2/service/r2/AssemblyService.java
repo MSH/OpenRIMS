@@ -205,6 +205,7 @@ public class AssemblyService {
 	 */
 	public List<AssemblyDTO> auxStrings(String url, List<Assembly> assemblies, List<AssemblyDTO> dataConfigStored) throws ObjectNotFoundException {
 		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
+	
 		if(url.equalsIgnoreCase(SYSTEM_IMPORT_DATA_CONFIGURATION)) {
 			AssemblyDTO fld = new AssemblyDTO();
 			fld.setRequired(false);

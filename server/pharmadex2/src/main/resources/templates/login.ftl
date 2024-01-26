@@ -3,8 +3,7 @@
 <head>
 	 <Cache-Control: no-cache>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Open+Sans" />
-	<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:500" >
+	
 <style>
 body {font-family: Arial, Helvetica, sans-serif;}
 
@@ -285,7 +284,7 @@ span.psw {
 							<div class="google-btn" onclick="document.getElementById('username').removeAttribute('required');
 						  					window.location.href='${providers[key]}';">
 								<div class="google-icon-wrapper">
-								<img class="google-icon" src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg"/>
+									<img class="google-icon" src="/img/google.png"/>
 								</div>
 								<label class="btn-text">${Google}</label>
 							</div>

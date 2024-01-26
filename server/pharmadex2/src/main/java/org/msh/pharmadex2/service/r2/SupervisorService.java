@@ -1,10 +1,18 @@
 package org.msh.pharmadex2.service.r2;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
+import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.msh.pdex2.dto.table.Headers;
 import org.msh.pdex2.dto.table.TableHeader;
 import org.msh.pdex2.dto.table.TableQtb;
@@ -20,6 +28,7 @@ import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.i18n.ResourceBundleRepo;
 import org.msh.pdex2.repository.i18n.ResourceMessageRepo;
 import org.msh.pdex2.services.r2.ClosureService;
+import org.msh.pharmadex2.dto.AboutDTO;
 import org.msh.pharmadex2.dto.DataCollectionDTO;
 import org.msh.pharmadex2.dto.DataConfigDTO;
 import org.msh.pharmadex2.dto.DataPreviewDTO;
@@ -81,7 +90,6 @@ public class SupervisorService {
 	AssemblyService assemblyServ;
 	@Autowired
 	private JdbcRepository jdbcRepo;
-
 	@Autowired
 	ResourceMessageRepo resourceMessageRepo;
 	@Autowired
@@ -89,6 +97,8 @@ public class SupervisorService {
 
 	@Value("${variables.properties.edit}")
 	private boolean variablesPropertiesEdit;
+	@Value("${spring.servlet.multipart.max-file-size}" )
+	String maxFileSize;
 
 	/**
 	 * Create content for administrative tile, using existed supervisor features
@@ -537,7 +547,7 @@ public class SupervisorService {
 						data.setNodeId(resDef.getID());
 					}
 				}
-				
+
 				//create configuration data resource 29.08.2023 ik
 				root = closureServ.loadRoot(SystemService.DATA_COLLECTIONS_ROOT);
 				List<Concept> concepts=literalServ.loadOnlyChilds(root);
@@ -610,7 +620,7 @@ public class SupervisorService {
 				Concept lang = closureServ.saveToTree(root, localeStr.toUpperCase());
 				resDef = closureServ.saveToTree(lang, resDef);
 				data.setNodeId(resDef.getID());
-				
+
 				/* khomka 21082023 
 				 * error open new Resources
 				 * if present Thing - OK, if NO - setNodeId(0) - he is create
@@ -748,11 +758,8 @@ public class SupervisorService {
 				}
 			}
 			if(!urlDict.isEmpty()) {
-				Concept node = closureServ.loadConceptByIdentifier(urlDict);
-				dict.setUrlId(node.getID());
-				dict.setUrl(node.getIdentifier());
-				dict.setSystem(dictServ.checkSystem(node));//ika
-				dict=dictServ.createDictionaryFromRoot(dict, node);
+				dict.setUrl(urlDict);
+				dict=dictServ.createDictionary(dict);
 				return dict;
 			}else {
 				dict.addError(messages.get("errorConfigDataResource"));
@@ -837,6 +844,13 @@ public class SupervisorService {
 			}
 		}
 		loadMessagesTable(data);
+		// max file size for upload lost messages 
+		String s = "1";
+		if(maxFileSize.length() > 2) {
+			s = maxFileSize.substring(0, maxFileSize.length() - 2);
+		}
+		Long maxsize = new Long(s) * 1048576l;
+		data.setMaxFileSize(maxsize);
 		return data;
 	}
 
@@ -1043,6 +1057,109 @@ public class SupervisorService {
 		data.getPath().clear();
 		data = workflowConfiguration(data, user);
 		return data;
+	}
+	/**
+	 * Add lost messages to resource_messages from xlsx file
+	 * The structure of each row in this file
+	 * @param inputStream
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public AboutDTO messagesLostAppend(InputStream inputStream, AboutDTO data) throws ObjectNotFoundException {
+		XSSFWorkbook book;
+		try {
+			book = new XSSFWorkbook(inputStream);
+			XSSFSheet sheet = boilerServ.getSheetAt(book, 0);
+			//determine column-resourcebundleID
+			Map<Integer, ResourceBundle> bundles = messagesLostHeader(sheet.getRow(1));	//column number, bundle
+			// scan data rows and store results to resource_messages
+			int rowNo=2;
+			XSSFRow row = sheet.getRow(rowNo);
+			while(row != null) {
+				List<String> values = new ArrayList<String>();
+				for(Integer colNo : bundles.keySet()) {
+					String value=boilerServ.getStringCellValue(row, colNo);
+					if(value!=null && !value.isEmpty()) {
+						values.add(value);
+					}else {
+						// only full defined rows are allowed
+						values.clear();
+						break;
+					}
+				}
+				//store a row
+				String key=boilerServ.getStringCellValue(row, 0);
+				if(key!=null && values.size()==bundles.keySet().size()) {
+					for(Integer colNo :bundles.keySet()) {
+						messagesLostAddToBundle(key,values.get(colNo-1),bundles.get(colNo));
+					}
+				}
+				rowNo++;
+				row = sheet.getRow(rowNo);
+			}
+			//store bundles
+			for(Integer key : bundles.keySet()) {
+				ResourceBundle bundle = bundles.get(key);
+				resourceBundleRepo.save(bundle);
+			}
+			messages.getMessages().clear();
+			messages.loadLanguages();
+		} catch (IOException e) {
+			data.setIdentifier(messages.get("error_bmpFile"));
+		}
+		return data;
+	}
+	/**
+	 * Store a message for a key, bundle pair
+	 * @param key
+	 * @param value
+	 * @param bundle
+	 */
+	@Transactional
+	public void messagesLostAddToBundle(String key, String value, ResourceBundle bundle) {
+			ResourceMessage mess = new ResourceMessage();
+			mess.setMessage_key(key);
+			mess.setMessage_value(value);
+			resourceMessageRepo.save(mess);
+			bundle.getMessages().add(mess);
+	}
+
+	/**
+	 * decode bundles from headers
+	 * @param row
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public Map<Integer, ResourceBundle> messagesLostHeader(XSSFRow row) throws ObjectNotFoundException {
+		Map<Integer, ResourceBundle> ret = new HashMap<Integer, ResourceBundle>();
+		if(row!=null) {
+			//prepare bundles
+			Map<String, ResourceBundle> bundleLangs = new HashMap<String, ResourceBundle>();
+			List<ResourceBundle> bundles = resourceBundleRepo.findAllByOrderBySortOrder();
+			for(ResourceBundle bundle : bundles) {
+				bundleLangs.put(bundle.getLocale().toUpperCase(), bundle);
+			}
+			//get result
+			Long column=1l;
+			String localeName=boilerServ.getStringCellValue(row, column.intValue());
+			while(localeName != null) {
+				ResourceBundle bundle = bundleLangs.get(localeName.toUpperCase());
+				if(bundle!=null) {
+					ret.put(column.intValue(), bundle);
+				}else {
+					throw new ObjectNotFoundException("messagesLostBundles. Bundle for locale "+localeName.toUpperCase() 
+					+" not found",logger);
+				}
+				column++;
+				localeName=boilerServ.getStringCellValue(row, column.intValue());
+			}
+		}else {
+			throw new ObjectNotFoundException("messagesLostBundles. Headers not defined",logger);
+		}
+		return ret;
 	}
 
 }

@@ -89,9 +89,9 @@ class Navigator{
         hash=hash.replace(/^#/, '')
         let params = hash.split("/");
         if(Fetchers.isGoodArray(params) && params.length==3){
-            return decodeURI(params[2])
+            return decodeURIComponent(params[2])
         }else if(Fetchers.isGoodArray(params) && params.length==2){
-            return decodeURI(params[1])
+            return decodeURIComponent(params[1])
         }else{
             return ""
         }
@@ -111,7 +111,7 @@ class Navigator{
             if(typeof component == "string"){
                 hash=tab+"/"+component
                 if(typeof parameter == "string"){
-                    hash=hash+"/"+encodeURI(parameter)
+                    hash=hash+"/"+encodeURIComponent(parameter)
                 }
             }
             

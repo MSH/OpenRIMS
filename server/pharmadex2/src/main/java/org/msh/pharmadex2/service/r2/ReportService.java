@@ -356,7 +356,7 @@ public class ReportService {
 			data=reportGoogleTools(data, SystemService.DICTIONARY_REPORT_GOOGLETOOLS_APPL);
 		}
 		if(accessControl.isEmployee(user)) {
-		data=reportGoogleTools(data, SystemService.DICTIONARY_REPORT_GOOGLETOOLS_NMRA);
+			data=reportGoogleTools(data, SystemService.DICTIONARY_REPORT_GOOGLETOOLS_NMRA);
 		}
 		data = reportConfiguratuonTable(data);
 
@@ -365,20 +365,17 @@ public class ReportService {
 	}
 
 	public ReportConfigDTO reportGoogleTools(ReportConfigDTO data, String dictUrl) throws ObjectNotFoundException {
-			DictionaryDTO dict = new DictionaryDTO();
-			Concept root =closureServ.loadConceptByIdentifier(dictUrl);
-			dict.setUrlId(root.getID());
-			dict.setUrl(root.getIdentifier());
-			dict.setSystem(dictServ.checkSystem(root));//ika
-			if(dictUrl.equalsIgnoreCase(SystemService.DICTIONARY_REPORT_GOOGLETOOLS_NMRA)) {
-				data.setSelectNMRA(dictServ.createDictionaryFromRoot(dict, root));
-			}
-			if(dictUrl.equalsIgnoreCase(SystemService.DICTIONARY_REPORT_GOOGLETOOLS_APPL)) {
-			data.setSelectAPPL(dictServ.createDictionaryFromRoot(dict, root));
-			}
-			if(dictUrl.equalsIgnoreCase(SystemService.DICTIONARY_REPORT_GOOGLE_TOOLS)) {
-				data.setSelect(dictServ.createDictionaryFromRoot(dict, root));
-				}
+		DictionaryDTO dict = new DictionaryDTO();
+		dict.setUrl(dictUrl);
+		if(dictUrl.equalsIgnoreCase(SystemService.DICTIONARY_REPORT_GOOGLETOOLS_NMRA)) {
+			data.setSelectNMRA(dictServ.createDictionary(dict));
+		}
+		if(dictUrl.equalsIgnoreCase(SystemService.DICTIONARY_REPORT_GOOGLETOOLS_APPL)) {
+			data.setSelectAPPL(dictServ.createDictionary(dict));
+		}
+		if(dictUrl.equalsIgnoreCase(SystemService.DICTIONARY_REPORT_GOOGLE_TOOLS)) {
+			data.setSelect(dictServ.createDictionary(dict));
+		}
 		return data;
 	}
 
@@ -792,8 +789,8 @@ public class ReportService {
 				}else {
 					dt.setNodeId(0L);
 				}
-						dt.setTitle(title);
-						dt.setReadOnly(true);
+				dt.setTitle(title);
+				dt.setReadOnly(true);
 				data.getApplHistory().add(dt);
 			}
 		}else {
@@ -814,19 +811,16 @@ public class ReportService {
 		}
 		for(String rep:report) {
 			DictionaryDTO dict = new DictionaryDTO();
-			Concept root =closureServ.loadConceptByIdentifier(rep);
-			dict.setUrlId(root.getID());
-			dict.setUrl(root.getIdentifier());
+			dict.setUrl(rep);
 			if(rep.equalsIgnoreCase(SystemService.DICTIONARY_REPORT_GOOGLE_TOOLS)) {
-				data.setSelect(dictServ.createDictionaryFromRoot(dict, root));
+				data.setSelect(dictServ.createDictionary(dict));
 			}
 			if(rep.equalsIgnoreCase(SystemService.DICTIONARY_REPORT_GOOGLETOOLS_NMRA)) {
-			data.setSelectNMRA(dictServ.createDictionaryFromRoot(dict, root));
+				data.setSelectNMRA(dictServ.createDictionary(dict));
 			}
 			if(rep.equalsIgnoreCase(SystemService.DICTIONARY_REPORT_GOOGLETOOLS_APPL)) {
-				data.setSelectAPPL(dictServ.createDictionaryFromRoot(dict, root));
-				}
-			dict.setSystem(dictServ.checkSystem(root));//ika
+				data.setSelectAPPL(dictServ.createDictionary(dict));
+			}
 		}
 		return data;
 	}

@@ -112,7 +112,7 @@ class ResourcesUsage extends Component{
                                 historyId:this.state.data.historyId
                             }
                             let paramStr=JSON.stringify(data)
-                            let paramEnc = encodeURI(paramStr)
+                            let paramEnc = encodeURIComponent(paramStr)
                             //window.open('/api/'+Navigator.tabSetName() +'/resource/download/param='+paramEnc, "_blank")
                             let dl = new Downloader()
                             dl.postDownload('/api/'+Navigator.tabSetName() +'/resource/download/form', data, "file.bin")

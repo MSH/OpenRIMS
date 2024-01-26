@@ -29,6 +29,7 @@ class ReportConfigurator extends Component{
                 global_suspend:'',
                 global_save:'',
                 global_add:'',
+                global_help:'',
                 success:'',
                 global_renewExternal:'',
                 warningRemove:'',
@@ -154,12 +155,23 @@ class ReportConfigurator extends Component{
                 <Row>
                     <Col>
                         <Row>
-                            <Col xs='0' sm='0' lg='10' xl='10'>
+                            <Col xs='0' sm='0' lg='8' xl='10'>
                             </Col>
-                            <Col xs='12' sm='6' lg='2' xl='2'>
+                            <Col xs='12' sm='6' lg='2' xl='1'>
+                                <ButtonUni
+                                    label={this.state.labels.global_help}
+                                    color="info"
+                                    outline
+                                    onClick={()=>{
+                                        window.open('/api/admin/help/report/config/manual','_blank').focus()
+                                    }}
+                                />
+                            </Col>
+                            <Col xs='12' sm='6' lg='2' xl='1'>
                                 <ButtonUni
                                     label={this.state.labels.global_renewExternal}
                                     color="primary"
+                                    outline
                                     disabled = {!this.state.data.enabledrenewext}
                                     onClick={()=>{
                                         this.state.data.report.nodeId=0

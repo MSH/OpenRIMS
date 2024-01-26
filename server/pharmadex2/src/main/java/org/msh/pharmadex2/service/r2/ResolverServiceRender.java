@@ -846,9 +846,8 @@ public class ResolverServiceRender {
 		if(err!=null && err instanceof String) {
 			String errStr=(String) err;
 			errMess = errStr+", "+errMess;
-		}else {
-			ret.put(ERROR_TAG, errMess);
 		}
+		ret.put(ERROR_TAG, errMess);
 		return ret;
 	}
 
@@ -904,10 +903,10 @@ public class ResolverServiceRender {
 	public Map<String, Object> thing(String varName, Concept var, Map<String, List<AssemblyDTO>> assemblies,
 			Map<String, Object> value, boolean deepDive) throws ObjectNotFoundException {
 		if(var != null) {
-			if(value.get("from")==null) {
-				value.put("from",initTable(varName,"",value));
+			if(value.get("FORM")==null) {
+				value.put("FORM",initTable(varName,"",value));
 			}
-			TableQtb table = (TableQtb) value.get("from");
+			TableQtb table = (TableQtb) value.get("FORM");
 			value.put(FORM, table);
 			Thing thing = boilerServ.thingByNode(var);
 			for(ThingThing tt : thing.getThings()) {

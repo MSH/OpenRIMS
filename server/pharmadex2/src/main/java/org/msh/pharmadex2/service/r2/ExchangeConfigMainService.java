@@ -1,6 +1,7 @@
 package org.msh.pharmadex2.service.r2;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -25,12 +26,16 @@ import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.DataVariableDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.ExchangeConfigDTO;
+import org.msh.pharmadex2.dto.ThingDTO;
+import org.msh.pharmadex2.dto.URLAssistantDTO;
+import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -60,7 +65,13 @@ public class ExchangeConfigMainService {
 	private SupervisorService superService;
 	@Autowired
 	ThingRepo thingRepo;
+	@Autowired
+	private AssistanceService assistanceService;
+	@Autowired
+	private ThingService thingServ;
+	
 
+	private static final int minLenthURL = 5;
 
 	/**
 	 * on main server load processes dictionary
@@ -72,30 +83,197 @@ public class ExchangeConfigMainService {
 		DictionaryDTO leftDict = systemServ.stagesDictionary();
 		data.setExistTable(leftDict.getTable());
 		data.getExistTable().setSelectable(true);
+		
+		data.getProccURLs().clear();
+		
 		if(data.getProcessId() > 0 && data.getExistTable().getRows().size() > 0) {
 			for(TableRow r:data.getExistTable().getRows()) {
 				if(r.getDbID() == data.getProcessId()) {
 					r.setSelected(true);
+					Concept item = closureServ.loadConceptById(data.getProcessId());
+					data.setUrlProcess(item.getIdentifier());
 				}
 			}
 
 			Concept c = closureServ.loadConceptById(data.getProcessId());
 			if(c != null) {
+				//data.getNotExistTable().getHeaders().getHeaders().clear();
+				//data.getNotExistTable().getRows().clear();
+				
 				DictionaryDTO dto = systemServ.workflowDictionary(c.getIdentifier());
+				//data.getNotExistTable().getHeaders().getHeaders().addAll(dto.getTable().getHeaders().getHeaders());
 				data.setNotExistTable(dto.getTable());
-				data.getNotExistTable().setSelectable(true);
-
-				if(data.getItProcessID() > 0 && data.getNotExistTable().getRows().size() > 0) {
-					for(TableRow r:data.getNotExistTable().getRows()) {
-						if(r.getDbID() == data.getItProcessID()) {
-							r.setSelected(true);
+				
+				for(TableRow r:data.getNotExistTable().getRows()) {
+					Concept it = closureServ.loadConceptById(r.getDbID());
+					String url = literalServ.readValue(LiteralService.URL, it);
+					
+					r.getRow().get(0).setOriginalValue(url);
+				}
+				
+				
+				/*for(TableRow r:dto.getTable().getRows()) {// проверяем каждую запись словаря-каждый процесс
+					Concept itDict = closureServ.loadConceptById(r.getDbID());
+					// проверяем урлы (пустота и наличие по ним Concept)  в самой записи словаря
+					if(varifURLsConcept(itDict, data)) {
+						boolean valid = false;
+						// из записи словаря - урл на конфигурацию (от гуеста)
+						String url = literalServ.readValue(LiteralService.DATA_URL, itDict);
+						// запуск сторед проц на получение урлов
+						valid = varifURLsConfigs(url);
+						
+						if(valid) {
+							// получаем все активности по процесу (от nmra)
+							url = literalServ.readValue(LiteralService.APPLICATION_URL, itDict);
+							Concept firstActivity = closureServ.loadRoot("configuration." + url.toLowerCase());
+							List<Concept> activities = boilerServ.loadActivities(firstActivity);
+							if(activities != null && activities.size() > 1) {
+								for(Concept act:activities) {
+									String checkListURL = literalServ.readValue(LiteralService.CHECKLIST_URL, act);
+									if(checkListURL != null && checkListURL.length() > minLenthURL) {
+										// если checkListURL все ОК тогда проверяем конфигурацию
+										String dataConfURL = literalServ.readValue(LiteralService.DATA_URL, act);
+										if(dataConfURL != null && dataConfURL.length() > minLenthURL) {
+											// тут поле необязательное для заполнения в конфигурации
+											valid = varifURLsConfigs(dataConfURL);
+											if(!valid)
+												break;
+										}
+									}else {
+										valid = false;
+										break;
+									}
+								}
+							}
+							
+							if(valid) {
+								// добавляем в список
+								data.getNotExistTable().getRows().add(r);
+								if(data.getItProcessID() > 0 && r.getDbID() == data.getItProcessID()) {
+									r.setSelected(true);
+								}
+							}
 						}
 					}
-				}
+				}*/
+				System.out.println("END: " + (new Date()));
+				data.getNotExistTable().setSelectable(true);
 			}
 		}
 
 		return data;
+	}
+	
+	/**
+	 * проверяем указанніе урли
+	 * @param it
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	
+	private boolean varifURLsConcept(Concept it, ExchangeConfigDTO data) throws ObjectNotFoundException {
+		if(it != null) {
+			int i = 0;
+			String url = literalServ.readValue(LiteralService.URL, it);
+			if(url != null && url.length() > minLenthURL) {
+				data.getProccURLs().put(it.getID(), url);
+				i++;
+			}
+			url = literalServ.readValue(LiteralService.APPLICATION_URL, it);
+			if(url != null && url.length() > minLenthURL) {
+				i++;
+			}
+			url = literalServ.readValue(LiteralService.DATA_URL, it);
+			if(url != null && url.length() > minLenthURL) {
+				// проверяем есть ли указанный урл в дереве конфигураций
+				if(assistanceService.isDataConfigurationUrl(url)) {
+					i++;
+				}
+			}
+			url = literalServ.readValue(LiteralService.CHECKLIST_URL, it);
+			if(url != null && url.length() > minLenthURL) {
+				// проверяем есть ли в БД запись с идентификатором=указанному урлу
+				Concept c = closureServ.loadConceptByIdentifierActive(url);
+				if(c != null) {
+					i++;
+				}
+			}
+
+			return (i == 4);
+		}
+		return false;
+	}
+	
+	/**
+	 * существование урла проверяем до этого
+	 * @param root
+	 * @param urls
+	 * @throws ObjectNotFoundException
+	 */
+	private boolean varifURLsConfigs(String url) throws ObjectNotFoundException{
+		if(url != null && url.length() > minLenthURL) {
+			Concept root = closureServ.loadConceptByIdentifierActive(url);
+			if(root != null) {
+				jdbcRepo.assembly_variables(url);
+				Headers heads= new Headers();
+				heads.getHeaders().add(TableHeader.instanceOf("url", TableHeader.COLUMN_STRING));
+				heads.getHeaders().add(TableHeader.instanceOf("Clazz", TableHeader.COLUMN_STRING));
+				List<TableRow> rows = jdbcRepo.qtbGroupReport(getQuery(), "", "", heads);
+				
+				int count = 0;//кол-во всех урлов, которые будут проверяться 
+				int ind = 0;//кол-во урлов, которые успешно прошли проверку
+				for(TableRow row:rows) {
+					String urlString = row.getRow().get(0).getValue();
+					if(urlString.startsWith("dictionary.")) {
+						count++;
+						Concept c = closureServ.loadConceptByIdentifierActive(urlString);
+						if(c != null) {
+							ind++;
+						}
+					}else if(urlString.contains("/")){
+						String[] mas = urlString.split("/");
+						if(mas.length == 2) {
+							for(String s:mas) {
+								if(s.length() > 0) { 
+									// в запросе обьединялись урлы через "/", и может быть пусто - это не ошибка
+									count++;
+									boolean v = varifURLsConfigs(s);
+									if(v) {
+										ind++;
+									}
+								}
+							}
+						}
+					}else if(urlString.length() > 0){
+						count++;
+						boolean v = varifURLsConfigs(urlString);
+						if(v) {
+							ind++;
+						}
+					}
+				}
+				if(count == ind) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	private String getQuery() {
+		return "select " + 
+				"if(ass.Clazz like \"persons\", ass.AuxDataUrl, " + 
+				"if(ass.Clazz like \"things\", concat(ass.AuxDataUrl, '/', ass.Url), " + 
+				"if(ass.Clazz like \"resources\", ass.Url, " + 
+				"if(ass.Clazz like \"dictionaries\", ass.Url, " + 
+				"if(ass.Clazz like \"droplist\", ass.Url, " + 
+				"if(ass.Clazz like \"documents\", ass.DictUrl, " + 
+				"if(ass.Clazz like \"links\", ass.DictUrl, " + 
+				"null))))))) as 'url', " + 
+				"ass.Clazz " + 
+				"from assembly_variables as ass " + 
+				"where " + 
+				"ass.Clazz in (\"persons\", \"things\", \"resources\", \"dictionaries\", \"droplist\", \"documents\", \"links\")";
 	}
 	
 	/**
@@ -108,7 +286,7 @@ public class ExchangeConfigMainService {
 		if(data.getProcessId() > 0 && data.getItProcessID() > 0) {
 			Concept item = closureServ.loadConceptById(data.getItProcessID());
 			String url = literalServ.readValue(LiteralService.URL, item);
-			data.setUrlSelect(url);
+			//data.setUrlSelect(url);
 			
 			item = closureServ.loadConceptById(data.getProcessId());
 			data.setUrlProcess(item.getIdentifier());
@@ -123,14 +301,14 @@ public class ExchangeConfigMainService {
 	 * and add field value "Checklist Dictionary URL" from item dictionary
 	 */
 	public ExchangeConfigDTO loadChecklistDictionaries(ExchangeConfigDTO data) throws ObjectNotFoundException {
-		if(data.getItProcessID() > 0) {
+		if(data.getProcessId() > 0) {
 			TableQtb table = new TableQtb();
 			table.setHeaders(createHeaders(table.getHeaders(), false));
 
 			Set<Concept> list = new HashSet<Concept>();
 			Concept dictNode = closureServ.loadConceptById(data.getItProcessID());
 			String url = literalServ.readValue(LiteralService.APPLICATION_URL, dictNode);
-			if (url.length() > 5) {
+			if (url.length() > minLenthURL) {
 				String checklisturl = literalServ.readValue(LiteralService.CHECKLIST_URL, dictNode);
 				if(checklisturl != null && checklisturl.length() > 0) {
 					Concept c = closureServ.loadRoot(checklisturl);
@@ -161,7 +339,6 @@ public class ExchangeConfigMainService {
 						"workflowConfiguration. Configuration url is wrong defined. It is " + url, logger);
 			}
 		}
-
 		return data;
 	}
 
@@ -176,7 +353,7 @@ public class ExchangeConfigMainService {
 			// dictionaries from activity configurations
 			Concept dictNode = closureServ.loadConceptById(data.getItProcessID());
 			String url = literalServ.readValue(LiteralService.APPLICATION_URL, dictNode);
-			if (url.length() > 5) {
+			if (url.length() > minLenthURL) {
 				Set<Concept> list = new HashSet<Concept>();
 
 				String dataurl = literalServ.readValue(LiteralService.DATA_URL, dictNode);
@@ -219,33 +396,44 @@ public class ExchangeConfigMainService {
 			if(assemblies != null && assemblies.size() > 0) {
 				for(Assembly ass:assemblies) {
 					if(ass.getClazz().equals("persons")) {
-						String u = ass.getAuxDataUrl();// this is the URL already here
-						Concept c = closureServ.loadConceptByIdentifier(u);
-						loadAssByDictionaries(c, list);
+						String u = ass.getUrl();
+						if(u != null && u.length() > 0) {
+							Concept c = closureServ.loadConceptByIdentifier(u);
+							loadAssByDictionaries(c, list);
+						}
 					}else if(ass.getClazz().equals("resources")){
 						String u = ass.getUrl();
-						Concept c = closureServ.loadConceptByIdentifier(u);
-						if(c != null && c.getLabel() != null && c.getLabel().length() > 0) {
-							c = closureServ.loadConceptByIdentifierActive(c.getLabel());
-							loadAssByDictionaries(c, list);
+						if(u != null && u.length() > 0) {
+							Concept c = closureServ.loadConceptByIdentifier(u);
+							if(c != null && c.getLabel() != null && c.getLabel().length() > 0) {
+								c = closureServ.loadConceptByIdentifierActive(c.getLabel());
+								loadAssByDictionaries(c, list);
+							}
 						}
 					}else if(ass.getClazz().equals("things")) {
 						String u = ass.getUrl();
-						Concept c = closureServ.loadConceptByIdentifier(u);
-						loadAssByDictionaries(c, list);
-						
-						u = ass.getAuxDataUrl();
-						c = closureServ.loadConceptByIdentifierActive(u);
-						loadAssByDictionaries(c, list);
-					}else if(ass.getClazz().equals("dictionaries") || ass.getClazz().equals("documents")
-							 || ass.getClazz().equals("links")) {
+						if(u != null && u.length() > 0) {
+							Concept c = closureServ.loadConceptByIdentifier(u);
+							loadAssByDictionaries(c, list);
+							
+							u = ass.getAuxDataUrl();
+							if(u != null && u.length() > 0) {
+								c = closureServ.loadConceptByIdentifierActive(u);
+								loadAssByDictionaries(c, list);
+							}
+						}
+					}else if(ass.getClazz().equals("documents") || ass.getClazz().equals("links")) {
 						String u = ass.getDictUrl();
-						Concept c = closureServ.loadConceptByIdentifier(u);
-						if(c != null) list.add(c);
-					}else if(ass.getClazz().equals("droplist")) {
+						if(u != null && u.length() > 0) {
+							Concept c = closureServ.loadConceptByIdentifier(u);
+							if(c != null) list.add(c);
+						}
+					}else if(ass.getClazz().equals("dictionaries") || ass.getClazz().equals("droplist")) {
 						String u = ass.getUrl();
-						Concept c = closureServ.loadConceptByIdentifier(u);
-						if(c != null) list.add(c);
+						if(u != null && u.length() > 0) {
+							Concept c = closureServ.loadConceptByIdentifier(u);
+							if(c != null) list.add(c);
+						}
 					}
 				}
 			}
@@ -312,7 +500,7 @@ public class ExchangeConfigMainService {
 		if(assemblies != null && assemblies.size() > 0) {
 			for(Assembly ass:assemblies) {
 				if(ass.getClazz().equals("persons")) {
-					String u = ass.getAuxDataUrl();// this is the URL already here
+					String u = ass.getUrl();// this is the URL already here
 					Concept c = closureServ.loadConceptByIdentifier(u);
 					if(c != null) {
 						configs.add(c);
@@ -360,7 +548,7 @@ public class ExchangeConfigMainService {
 			// take the resources entry and the configuration for it
 			Concept dictNode = closureServ.loadConceptById(data.getItProcessID());
 			String url = literalServ.readValue(LiteralService.APPLICATION_URL, dictNode);
-			if (url.length() > 5) {
+			if (url.length() > minLenthURL) {
 				//Map<Concept, Concept> mapRes = new HashMap<Concept, Concept>();
 				Map<String, String> mapRes = new HashMap<String, String>();
 				Set<String> urlsRes = new HashSet<String>();
@@ -422,7 +610,7 @@ public class ExchangeConfigMainService {
 			// take the resources entry and the configuration for it
 			Concept dictNode = closureServ.loadConceptById(data.getItProcessID());
 			String url = literalServ.readValue(LiteralService.APPLICATION_URL, dictNode);
-			if (url.length() > 5) {
+			if (url.length() > minLenthURL) {
 				Set<Concept> list = new HashSet<Concept>();
 				String dataurl = literalServ.readValue(LiteralService.DATA_URL, dictNode);
 				if(dataurl != null && dataurl.length() > 0) {
@@ -470,7 +658,7 @@ public class ExchangeConfigMainService {
 			
 			Concept dictNode = closureServ.loadConceptById(data.getItProcessID());
 			String url = literalServ.readValue(LiteralService.APPLICATION_URL, dictNode);
-			if (url.length() > 5) {
+			if (url.length() > minLenthURL) {
 				Concept root = closureServ.getParent(dictNode);
 				data.setRootProcess(root.getIdentifier());
 				data.setUrlProcess(literalServ.readValue(LiteralService.URL, dictNode));
@@ -735,7 +923,7 @@ public class ExchangeConfigMainService {
 			
 			Concept dictNode = closureServ.loadConceptById(data.getItProcessID());
 			String url = literalServ.readValue(LiteralService.APPLICATION_URL, dictNode);
-			if (url.length() > 5) {
+			if (url.length() > minLenthURL) {
 				//1 dictionary process
 				Concept root = closureServ.getParent(dictNode);
 				data.setRootProcess(root.getIdentifier());
@@ -976,4 +1164,24 @@ public class ExchangeConfigMainService {
 	}
 
 
+	@Transactional
+	public ExchangeConfigDTO previewProcess(ExchangeConfigDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
+		//clear all previews
+		data.setPreviewThing(new ThingDTO());
+		if(data.getItProcessID() > 0) {
+			String url = "";
+			for(TableRow r:data.getNotExistTable().getRows()) {
+				if(r.getSelected()) {
+					url = (String) r.getRow().get(0).getOriginalValue();
+					break;
+				}
+			}
+			if(url != "") {
+				data.setPreviewURL(url);
+				data.getPreviewThing().setUrl(url);
+				data.setPreviewThing(thingServ.createThing(data.getPreviewThing(), user));
+			}
+		}
+		return data;
+	}
 }

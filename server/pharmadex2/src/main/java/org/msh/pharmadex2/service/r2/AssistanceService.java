@@ -1,5 +1,8 @@
 package org.msh.pharmadex2.service.r2;
 
+import java.net.MalformedURLException;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -771,7 +774,7 @@ public class AssistanceService {
 					break;
 				case URL_DATA_NEW:
 				case URL_RESOURCE_NEW:
-					if(isNewURL(url)) {
+					if(!isNewURL(url)) {
 						data.getUrl().invalidate(messages.get("url_exists"));
 					}
 					if(isForbiddenDataUrl(url)) {
@@ -822,7 +825,7 @@ public class AssistanceService {
 	 * @param url
 	 * @return
 	 */
-	private boolean isDataConfigurationUrl(String url) {
+	public boolean isDataConfigurationUrl(String url) {
 		if(url != null) {
 			List<Concept> confList = closureServ.loadAllConceptsByIdentifier(url);
 			for(Concept conf : confList) {
@@ -869,8 +872,24 @@ public class AssistanceService {
 		String URL_REGEX =
 				"[A-Za-z0-9_]+((\\.)?[A-Za-z0-9_]+)*";
 		Pattern URL_PATTERN = Pattern.compile(URL_REGEX);
-		Matcher urlMatcher = URL_PATTERN.matcher(url);
-		return urlMatcher.matches();
+		String value=url;
+		if(url.startsWith("http")) {
+			String[] parts=url.split("://");
+			if(parts.length==2) {
+				value=parts[1];
+			}
+			 try {
+			        new URL(url).toURI();
+			        return true;
+			    } catch (MalformedURLException e) {
+			        return false;
+			    } catch (URISyntaxException e) {
+			        return false;
+			    }
+		}else {
+			Matcher urlMatcher = URL_PATTERN.matcher(value);
+			return urlMatcher.matches();
+		}
 	}
 	/**
 	 * Is this url new in the database?

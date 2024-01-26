@@ -1463,7 +1463,7 @@ public class JdbcRepository {
 	 * @param execEmail executor to which todo assigned for
 	 * @param present select todo records before this date plus 2 days, false - in the future
 	 */
-	public void todo(String execEmail, boolean present) {
+	public void todo(String execEmail, Boolean present) {
 		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
 		proc.withProcedureName("todo");
 		MapSqlParameterSource params = new MapSqlParameterSource();
@@ -1585,6 +1585,34 @@ public class JdbcRepository {
 		
 	}
 
+	public void processes_finalization(String dictRoot) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("processes_finalization");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("dicturl", dictRoot);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+	}
+	
+	public void importWF_main(long procID, int type) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("importwf_main");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("dictid", procID);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		params.addValue("k", type);
+		proc.execute(params);
+	}
+	
+	public void importWF_activities(long procID) {
+		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
+		proc.withProcedureName("importwf_activities");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("dictid", procID);
+		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
+		proc.execute(params);
+	}
+	
 	/**
 	 * Extract user's reassign log data
 	 * @param table

@@ -3,6 +3,7 @@ package org.msh.pharmadex2.service.r2;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -67,9 +68,9 @@ public class SystemService {
 	public static final String FINAL_ACCEPT = "ACCEPT";
 	public static final String FINAL_COMPANY="COMPANY";
 	public static final String FINAL_NO = "NO";
-	public static final String DICTIONARY_SYSTEM_FINALIZATION = "dictionary.system.finalization";
-
+	
 	private static final Logger logger = LoggerFactory.getLogger(SystemService.class);
+	public static final String DICTIONARY_SYSTEM_FINALIZATION = "dictionary.system.finalization";
 	public static final String DICTIONARY_GUEST_DEREGISTRATION = "dictionary.guest.deregistration";
 	public static final String DICTIONARY_GUEST_AMENDMENTS = "dictionary.guest.amendments";
 	public static final String DICTIONARY_GUEST_APPLICATIONS = "dictionary.guest.applications";
@@ -87,6 +88,24 @@ public class SystemService {
 	public static final String DICTIONARY_REPORT_GOOGLETOOLS_NMRA="dictionary.report.googletools.nmra";
 	public static final String DICTIONARY_REPORT_GOOGLETOOLS_APPL="dictionary.report.googletools.appl";
 	public static final Integer DEFAULT_ZOOM = 7;
+	public static List<String> APPLICATION_DICTIONARIES = Arrays.asList(
+			DICTIONARY_GUEST_DEREGISTRATION,
+			DICTIONARY_GUEST_AMENDMENTS,
+			DICTIONARY_GUEST_APPLICATIONS,
+			DICTIONARY_GUEST_INSPECTIONS,
+			DICTIONARY_SHUTDOWN_APPLICATIONS,
+			DICTIONARY_HOST_APPLICATIONS,
+			DICTIONARY_INSPECTIONS
+			);
+	public static List<String> SINLE_LEVEL_DICTIONARIES = Arrays.asList(
+			DICTIONARY_SYSTEM_FINALIZATION,
+			DICTIONARY_SYSTEM_LIFECYCLE,
+			DICTIONARY_SYSTEM_SUBMIT,
+			DICTIONARY_SYSTEM_ROLES,
+			DICTIONARY_REPORT_GOOGLE_TOOLS,
+			DICTIONARY_REPORT_GOOGLETOOLS_NMRA,
+			DICTIONARY_REPORT_GOOGLETOOLS_APPL
+			);
 
 	public static final String PRODUCTCLASSIFICATION_ATC_HUMAN = "who.atc.human";
 	
@@ -319,7 +338,7 @@ public class SystemService {
 		List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", "", table.getHeaders());
 		
 		String style = "text";
-		String styleEnabled = "text-danger";
+		String styleEnabled = "font-weight-light font-italic";
 		for(TableRow row : rows) {
 			int active = row.getCellByKey("active").getIntValue();
 			if(active == 0) {
@@ -745,6 +764,7 @@ public class SystemService {
 			String aurl = literalServ.readValue(LiteralService.URL, conc);
 			if (aurl.equalsIgnoreCase(processUrl) && conc.getActive()) {
 				conDict = conc;
+				break;
 			}
 		}
 		return conDict;
@@ -915,27 +935,10 @@ public class SystemService {
 	 * 
 	 * @throws ObjectNotFoundException
 	 */
-	private void checkLifeCycleDicts() throws ObjectNotFoundException {
-		List<String> appl = applicationLifeCycleUrls();
-		for (String url : appl) {
+	private void checkLifeCycleDicts() throws ObjectNotFoundException { 
+		for (String url : APPLICATION_DICTIONARIES) {
 			dictServ.checkDictionary(url);
 		}
-	}
-
-	/**
-	 * List URLs of all lifecycle applications
-	 * 
-	 * @return
-	 */
-	public static List<String> applicationLifeCycleUrls() {
-		List<String> ret = new ArrayList<String>();
-		ret.add(DICTIONARY_GUEST_APPLICATIONS);
-		ret.add(DICTIONARY_HOST_APPLICATIONS);
-		ret.add(DICTIONARY_GUEST_AMENDMENTS);
-		ret.add(DICTIONARY_GUEST_DEREGISTRATION);
-		ret.add(DICTIONARY_SHUTDOWN_APPLICATIONS);
-		ret.add(DICTIONARY_GUEST_INSPECTIONS);
-		return ret;
 	}
 
 	/**

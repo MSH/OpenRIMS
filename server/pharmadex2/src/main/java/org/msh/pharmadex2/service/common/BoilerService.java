@@ -1245,7 +1245,7 @@ public class BoilerService {
 	 * Get cell value as a string. No exceptions
 	 * @param row
 	 * @param col
-	 * @return
+	 * @return null if not found
 	 */
 	public String getStringCellValue(XSSFRow row, int col) {
 		XSSFCell cell;

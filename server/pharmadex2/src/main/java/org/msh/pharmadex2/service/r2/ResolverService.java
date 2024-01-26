@@ -2,8 +2,6 @@ package org.msh.pharmadex2.service.r2;
 
 import java.time.LocalDate;
 import java.time.Period;
-import java.time.format.DateTimeFormatter;
-import java.time.format.FormatStyle;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -13,7 +11,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 
 import org.msh.pdex2.dto.table.TableCell;
 import org.msh.pdex2.dto.table.TableQtb;
@@ -31,6 +28,7 @@ import org.msh.pdex2.model.r2.ThingLink;
 import org.msh.pdex2.model.r2.ThingRegister;
 import org.msh.pdex2.model.r2.ThingScheduler;
 import org.msh.pdex2.model.r2.ThingThing;
+import org.msh.pdex2.repository.r2.HistoryRepo;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AddressValuesDTO;
 import org.msh.pharmadex2.dto.AssemblyDTO;
@@ -47,7 +45,6 @@ import org.msh.pharmadex2.service.common.BoilerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -72,7 +69,9 @@ public class ResolverService {
 	@Autowired
 	private ResolverServiceRender renderServ;
 	@Autowired
-	Messages messages;
+	private Messages messages;
+	@Autowired
+	private HistoryRepo historyRepo;
 
 	/**
 	 * Resolve model to values map for using in DocxView
@@ -105,7 +104,8 @@ public class ResolverService {
 					errors = resolveError(value, errors);
 				}else {
 					if(!key.equalsIgnoreCase(ResolverServiceRender.ERROR_TAG)) {
-						model=renderServ.error("resolveModel. Wrong expression "+key, key, model);
+						//model=renderServ.error("resolveModel. Wrong expression "+key, key, model);
+						errors=renderServ.error("resolveModel. Wrong expression "+key, key, errors);
 					}
 				}
 			}else {
@@ -301,25 +301,21 @@ public class ResolverService {
 				if(urls.get(0).equalsIgnoreCase("process")) {
 					if(urls.size()>2) {
 						History his = boilerServ.historyById(fres.getHistoryId());
-						List<History> applHis = boilerServ.historyAllByApplication(his.getApplication());
+						List<History> applHis = historyRepo.findAllByApplicationOrderByGoDesc(his.getApplication());
 						String activityUrl=urls.get(1);
-						LocalDate goDate = LocalDate.now().minusYears(100);
 						//select activityData for the most recent resolved activity with the activityUrl given
 						for(History h : applHis) {
 							if(h.getActivityData() != null && h.getGo() != null) {
-								if(boilerServ.localDateFromDate(h.getGo()).isAfter(goDate)) {
-									goDate=boilerServ.localDateFromDate(h.getGo());
-									Concept executor = closureServ.getParent(h.getActivity());
-									Concept actRoot=closureServ.getParent(executor);
-									if(actRoot.getIdentifier().equalsIgnoreCase("activity."+activityUrl)) {
-										//imitate resolving from the main page
-										List<String> newPath=new ArrayList<String>();
-										newPath.add("");
-										newPath.add(urls.get(2));
-										//
-										ret = plainVariable(ret, newPath , h.getActivityData(),assemblies, hasTable);
-										return ret;
-									}
+								Concept executor = closureServ.getParent(h.getActivity());
+								Concept actRoot=closureServ.getParent(executor);
+								if(actRoot.getIdentifier().equalsIgnoreCase("activity."+activityUrl)) {
+									//imitate resolving from the main page
+									List<String> newPath=new ArrayList<String>();
+									newPath.add("");
+									newPath.add(urls.get(2));
+									//
+									ret = plainVariable(ret, newPath , h.getActivityData(),assemblies, hasTable);
+									return ret;
 								}
 							}
 						}
@@ -508,6 +504,7 @@ public class ResolverService {
 		value.clear();
 		//init configurations
 		Thing varThing = boilerServ.thingByNode(var);
+		//List<AssemblyDTO> storedConfig = loadDataConfigurationFromNode(varThing.getConcept().getID());
 		//logger.trace("assemblies "+ varThing.getUrl());
 		List<AssemblyDTO> strings = assembly(varThing.getUrl(), "strings", assemblies);
 		//List<AssemblyDTO> literals = assemblyServ.auxLiterals(varThing.getUrl());
