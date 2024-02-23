@@ -19,7 +19,6 @@ import org.msh.pdex2.model.r2.UserDict;
 import org.msh.pdex2.repository.common.UserRepo;
 import org.msh.pdex2.repository.dwh.ReportPageRepo;
 import org.msh.pdex2.repository.dwh.ReportSessionRepo;
-import org.msh.pdex2.repository.r2.HistoryRepo;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
@@ -268,7 +267,9 @@ public class AccessControlService {
 	 * @return
 	 */
 	public boolean isApplicant(UserDetailsDTO user) {
-		return user.getAllRoles().size()==0;
+		boolean ret= user.getAllRoles().size()==0
+				|| user.getAllRoles().size()==1 && user.getAllRoles().get(0).getAuthority().equalsIgnoreCase("ROLE_GUEST");
+		return ret;
 	}
 	/**
 	 * Person data read allowed to person owner and any NMRA employee
@@ -316,21 +317,25 @@ public class AccessControlService {
 	 */
 	@Transactional
 	public boolean isTerritoryUser(UserDetailsDTO user) throws ObjectNotFoundException {
-		User u = boilerServ.findByEmail(user.getEmail());
-		if(u!= null) {
-			if(u.getConcept() != null) {
-				if(u.getConcept().getActive()) {
-					if(u.getOrganization() != null) {
-						PublicOrganization porg=boilerServ.findPubOrgByConcept(u.getOrganization());
-						if(porg.getAdminUnits().size()>0) {
-							return true;
-						}else {
-							return false;
+		Optional<User> usero = userRepo.findByEmail(user.getEmail());
+		if(usero.isPresent()) {
+			User u = usero.get();
+			if(u!= null) {
+				if(u.getConcept() != null) {
+					if(u.getConcept().getActive()) {
+						if(u.getOrganization() != null) {
+							PublicOrganization porg=boilerServ.findPubOrgByConcept(u.getOrganization());
+							if(porg.getAdminUnits().size()>0) {
+								return true;
+							}else {
+								return false;
+							}
 						}
 					}
 				}
 			}
 		}
+		
 		return false;
 	}
 

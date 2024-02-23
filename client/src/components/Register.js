@@ -96,19 +96,20 @@ class Register extends Component{
         }
         let edit = !(this.state.data.readOnly || this.props.readOnly)
         if(edit){
+            let show=this.state.data.reg_number.value==''
             return(
                 <Container fluid>
                     <Row>
                         <Col>
-                            <ViewEditDate attribute='registration_date' component={this} edit={edit} />
+                            <ViewEditDate attribute='registration_date' component={this} edit={show} />
                         </Col>
                     </Row>
                     <Row>
                         <Col xs='12' sm='12' lg='6'xl='6'>
-                            <ViewEdit mode='text' attribute='reg_number' component={this} edit={edit}/>
+                            <ViewEdit mode='text' attribute='reg_number' component={this} />
                         </Col>
                         {/* ik proba button*/}
-                        <Col xs='12' sm='12' lg='3' xl='3'> 
+                        <Col xs='12' sm='12' lg='3' xl='3' hidden={!show}> 
                         <ButtonUni
                                 label={this.state.labels.get_number}
                                 color='success'
@@ -131,19 +132,23 @@ class Register extends Component{
                 </Container>
             )
         }else{
-            return(
-                <Row>
-                    <Col xs='12' sm='12' lg='4' xl='4'>
-                        <ViewEditDate attribute='registration_date' component={this} edit={edit} nolabel/>
-                    </Col>
-                    <Col xs='12' sm='12' lg='4' xl='4'>
-                        <ViewEdit mode='text' attribute='reg_number' component={this} edit={edit} nolabel/>
-                    </Col>
-                    <Col xs='12' sm='12' lg='4' xl='4' hidden={!this.state.data.expirable}>
-                        <ViewEditDate attribute='expiry_date' component={this} edit={edit} nolabel/>
-                    </Col>
-                </Row>
-            )
+            if(this.state.data.reg_number.value==''){
+                return[]
+            }else{
+                return(
+                    <Row>
+                        <Col xs='12' sm='12' lg='4' xl='4'>
+                            <ViewEditDate attribute='registration_date' component={this} edit={edit} nolabel/>
+                        </Col>
+                        <Col xs='12' sm='12' lg='4' xl='4'>
+                            <ViewEdit mode='text' attribute='reg_number' component={this} edit={edit} nolabel/>
+                        </Col>
+                        <Col xs='12' sm='12' lg='4' xl='4' hidden={!this.state.data.expirable}>
+                            <ViewEditDate attribute='expiry_date' component={this} edit={edit} nolabel/>
+                        </Col>
+                    </Row>
+                )
+            }
         }
     }
 }

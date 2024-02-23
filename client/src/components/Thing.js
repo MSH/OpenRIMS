@@ -327,7 +327,7 @@ class Thing extends Component{
                 }
             })
         }
-        this.setState(this.state.data)
+        this.setState(this.state)
     }
 
     componentDidUpdate(){
@@ -374,7 +374,8 @@ class Thing extends Component{
      */
     postLoaded(){
         let err_mess=this.state.data.identifier
-        this.state.data.identifier=this.state.identifier
+        //this.state.data.identifier=this.state.identifier
+        this.state.data.uxIdentifier=this.state.identifier
         Navigator.message(this.state.identifier, "*","refreshData",this.state.data);
         Locales.createLabels(this, "strings")
         Locales.createLabels(this, "literals")

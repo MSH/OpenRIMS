@@ -166,7 +166,7 @@ class ThingsManager extends Component{
                     this.state.register=data.data
                 }
                 if(data.subject=="thingLoaded" && !data.data.readOnly){
-                    this.state.thingIdentifier=data.data.identifier
+                    this.state.thingIdentifier=data.data.uxIdentifier
                     if(this.state.data.auxPath.length>0){
                         this.state.data.auxPath[this.state.data.auxPathIndex]=data.data
                     }else{

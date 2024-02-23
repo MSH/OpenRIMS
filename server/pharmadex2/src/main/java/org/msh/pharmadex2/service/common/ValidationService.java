@@ -674,7 +674,7 @@ public class ValidationService {
 				createdAt=boilerServ.localDateFromDate(reg.getCreatedAt());
 			}
 			String regNum = dto.getReg_number().getValue();
-			//register date should fit an interval
+			//register date should fit an interval ?????? I would remove it!!! IK 01022024
 			LocalDate maxDate = createdAt;
 			LocalDate minDate = createdAt.minusMonths(1);
 			String errorMess = messages.get("valuerangeerror")+" " + minDate +", " + maxDate;
@@ -700,14 +700,17 @@ public class ValidationService {
 						}
 					}
 				}else {
-					suggest(dto.getReg_number(), 3, 255, strict);
+					//suggest(dto.getReg_number(), 3, 255, strict);
+					dto.getReg_number().invalidate(messages.get("pressButtonAssignNumber") + " "+ar.getDescription());
 				}
 			}
 			//expiration date should fit an interval if defined
 			if(ar.isMult()) {
+				createdAt = LocalDate.now();
 				maxDate = createdAt.plusMonths(ar.getMax().intValue());
 				minDate = createdAt.plusMonths(1);
-				errorMess = messages.get("valuerangeerror")+" " + regDate.plusMonths(2) +", " + maxDate;
+				//errorMess = messages.get("valuerangeerror")+" " + regDate.plusMonths(2) +", " + maxDate;
+				errorMess = messages.get("valuerangeerror")+" " + createdAt +", " + maxDate;
 				if(expDate.isBefore(minDate) || expDate.isAfter(maxDate)) {
 					dto.getExpiry_date().invalidate(errorMess+" "+ar.getDescription());
 					dto.setStrict(strict);
@@ -1504,17 +1507,30 @@ public class ValidationService {
 	public DataVariableDTO variableName(DataVariableDTO data, boolean strict) throws ObjectNotFoundException {
 		FormFieldDTO<String> vn= data.getVarName();
 		vn.clearValidation();
+		variableNameField(data, strict, vn);
+		return data;
+	}
+	/**
+	 * Validate FormFieldDTO with the variable name
+	 * @param data
+	 * @param strict
+	 * @param vn
+	 * @return
+	 */
+	public AllowValidation variableNameField(AllowValidation data, boolean strict, FormFieldDTO<String> vn) {
 		if(vn.getValue().length()<3 || vn.getValue().length()>100) {
 			suggest(vn,3,100,strict);
 			return data;
 		}
 		if(!patternMatchFull(vn.getValue().trim())) {
-			//TODO relaxed temporarily
-			//data.setValid(false);
-			data.setValid(data.getVarNodeId()!=0 && data.isValid());
-			//TODO relaxed temporarily
+			data.setValid(false);
+			//data.setValid(data.getVarNodeId()!=0 && data.isValid());
+			// relaxed temporarily
 			if(strict && !data.isValid()) {
 				data.setIdentifier(messages.get("error")+ "! "+vn.getValue());
+				vn.setError(true);
+				vn.setStrict(true);
+				vn.setSuggest(messages.get("errorVariableName"));
 			}else {
 				data.setIdentifier(messages.get("warning")+ "! "+vn.getValue());
 			}

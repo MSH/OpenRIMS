@@ -41,7 +41,7 @@ class ProjectMarker extends Component{
             this.state.data.loc = this.props.loc
             this.state.data.title = this.props.title
             this.state.data.isDefault = this.props.isDefault
-            this.setState(this.state.data)
+            this.setState(this.state)
         }
     }
 

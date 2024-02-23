@@ -9,9 +9,11 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.msh.pdex2.exception.ObjectNotFoundException;
+import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.dwh.ReportSession;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.dwh.ReportSessionRepo;
+import org.msh.pharmadex2.dto.AsyncInformDTO;
 import org.msh.pharmadex2.dto.ReportConfigDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.slf4j.Logger;
@@ -34,33 +36,23 @@ public class DWHService {
 	private ReportSessionRepo sessionRepo;
 	@Autowired
 	private BoilerService boilerServ;
+	@Autowired
+	private Messages messages;
 
-	private static AtomicBoolean uploadFlag = new AtomicBoolean(true);
-	
-	
-	public static AtomicBoolean getUploadFlag() {
-		return uploadFlag;
-	}
-
-	public static void setUploadFlag(AtomicBoolean uploadFlag) {
-		DWHService.uploadFlag = uploadFlag;
-	}
 
 	/**
-	 * Upload DWH data
-	 * @throws SQLException 
+	 * DWH data worker
+	 * @throws SQLException
 	 */
-	@Async
-	public void upload() throws SQLException {
-		if(uploadFlag.get()) {
+	@Transactional
+	public void uploadWorker() {
+		try {
 			logger.info("DWHService.upload() start");
-			uploadFlag.set(false);
 			long newSessionID = sessionOpen();
 			if(newSessionID>0) {
 				try {
 					jdbcRepo.dwh_update(newSessionID);
 				} catch (ObjectNotFoundException e) {
-					uploadFlag.set(true);
 					sessionRepo.deleteById(newSessionID);
 					logger.info("DWHService.upload() failed "+ e.getMessage());
 					return;
@@ -69,16 +61,12 @@ public class DWHService {
 			}else {
 				logger.error("can't start upload");
 			}
-			uploadFlag.set(true);
 			logger.info("DWHService.upload() end");
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
-		return ;
 	}
-	
-	public boolean enablesBtn() {
-		return uploadFlag.get();
-	}
-	
+
 	/**
 	 * Close the current session and perform the housekeeping
 	 * The two session should be left - previous marked as inactive and the current, marked as active
@@ -179,6 +167,26 @@ public class DWHService {
 			sessionRepo.deleteAll(toRemove);
 		}
 		return ret;
+	}
+	/**
+	 * Calculate progress of DWH Import for the progress bar
+	 * Indeed, it is impossible to calculate the real progress, thus we decide that the 
+	 * duration of the process is 120 sec
+	 * @param data
+	 * @return
+	 */
+	public AsyncInformDTO calcProgress(AsyncInformDTO data) {
+		Float total= new Float(120);
+		Float imported= new Float(data.getDuration());
+		Float percentF = ((imported)/total)*100;
+		if(data.isCompleted()) {
+			data.setComplPercent(100);
+		}else {
+			data.setComplPercent(percentF.intValue());
+		}
+		data.setProgressMessage(data.getComplPercent() + " %");
+		data.setElapsedMessage(messages.get("elapsed") + " " + data.getDuration() + " "+messages.get("logoff.soon.2"));
+		return data;
 	}
 
 }

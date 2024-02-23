@@ -10,7 +10,7 @@ import org.msh.pharmadex2.dto.form.AllowValidation;
  */
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
 public class ReassignUserDTO extends AllowValidation {
-	private boolean showProgress=false;				//show the reassign progress form, instead the data input form 
+	private String execName="";			//NRA executor name
 	private TableQtb applicants = new TableQtb();
 	private FormFieldDTO<String> reassignTo = FormFieldDTO.of("");
 	private TableQtb applications = new TableQtb();
@@ -18,11 +18,12 @@ public class ReassignUserDTO extends AllowValidation {
 	private TableQtb activities = new TableQtb();
 	private TableQtb eventLog = new TableQtb();
 	
-	public boolean isShowProgress() {
-		return showProgress;
+
+	public String getExecName() {
+		return execName;
 	}
-	public void setShowProgress(boolean showProgress) {
-		this.showProgress = showProgress;
+	public void setExecName(String execName) {
+		this.execName = execName;
 	}
 	public TableQtb getApplicants() {
 		return applicants;

@@ -41,6 +41,7 @@ class Resources extends Component{
                 warningRemove:'',
                 global_help:'',
                 items:'',
+                elassistance:'',
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -327,9 +328,9 @@ class Resources extends Component{
         }
         return(
             <Container fluid>
-                <Row>
-                    <Col xs='12' sm='12' lg='3' xl='6'/>
-                    <Col xs='12' sm='12' lg='4' xl='2'>
+                <Row className='mb-5'>
+                    <Col xs='12' sm='12' lg='3' xl='4'/>
+                    <Col xs='12' sm='12' lg='3' xl='2'>
                         <ButtonUni
                             label={this.state.labels.global_help}
                             onClick={()=>{
@@ -338,16 +339,26 @@ class Resources extends Component{
                             color="info"
                         />
                     </Col>
-                    <Col xs='12' sm='12' lg='4' xl='2'>
+                    {/* <Col xs='12' sm='12' lg='3' xl='2'>
+                        <ButtonUni
+                            label={this.state.labels.elassistance}
+                            onClick={()=>{
+                                window.open('/admin#elassistance/','_blank')
+                            }}
+                            color="secondary"
+                        />
+                    </Col> */}
+                    <Col xs='12' sm='12' lg='3' xl='2'>
                         <ButtonUni
                             label={this.state.labels.global_elreference}
+                            outline
                             onClick={()=>{
                                 window.open('/api/admin/elreference','_blank').focus()
                             }}
                             color="info"
                         />
                     </Col>
-                    <Col xs='12' sm='12' lg='2' xl='2'>
+                    <Col xs='12' sm='12' lg='3' xl='2'>
                         <div hidden={!this.state.thing}>
                             <ButtonUni
                                 label={this.state.labels.save}

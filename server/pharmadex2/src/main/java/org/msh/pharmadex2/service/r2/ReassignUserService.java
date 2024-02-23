@@ -1,5 +1,6 @@
 package org.msh.pharmadex2.service.r2;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -12,15 +13,23 @@ import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
+import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.repository.common.JdbcRepository;
+import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AsyncInformDTO;
 import org.msh.pharmadex2.dto.ReassignUserDTO;
 import org.msh.pharmadex2.dto.form.AllowValidation;
 import org.msh.pharmadex2.service.common.ValidationService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Reassign GMail for an applicant or tasks for NRA employees
@@ -30,7 +39,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class ReassignUserService {
-
+	public static final String ASYNC_INFORM = "asyncInform";
+	private static final Logger logger = LoggerFactory.getLogger(ReassignUserService.class);
 	private static final String IDENTIFIER = "Identifier";
 	@Autowired
 	private Messages messages;
@@ -39,10 +49,11 @@ public class ReassignUserService {
 	@Autowired
 	private ValidationService validation;
 	@Autowired
-	private ReassignUserServiceAsync async;
-	@Autowired
 	private LoggerEventService logEvents;
-
+	@Autowired
+	private ObjectMapper objectMapper;
+	@Autowired
+	private ClosureService closureServ;
 
 	/**
 	 * Load a list of known applicant Gmails that are suit search criteria
@@ -55,30 +66,22 @@ public class ReassignUserService {
 	public ReassignUserDTO applicantSearch(ReassignUserDTO data) throws ObjectNotFoundException {
 		data.getReassignTo().clearValidation();
 		data.clearErrors();
-		data.setShowProgress(false);
-		if(!async.isApplicantReassignRunning()){
-			data.setShowProgress(false);
-			async.clearData();
-			if(data.getApplicants().getHeaders().getHeaders().isEmpty()) {
-				data.getApplicants().setHeaders(headersApplicants(data.getApplicants().getHeaders()));
-			}
-			String selected=selectedRowField(data.getApplicants(), IDENTIFIER);
-			String searchCond = data.getApplicants().getHeaders().getHeaders().get(0).getGeneralCondition();
-			List<TableRow> rows = new ArrayList<TableRow>();
-			if(searchCond.length()>=3) {
-				rows = jdbcRepo.qtbGroupReport("select * from applicant_emails", "", "", data.getApplicants().getHeaders());
-			}
-			for(TableRow row : rows) {
-				TableCell cell = row.getCellByKey(IDENTIFIER);
-				if(cell!=null) {
-					row.setSelected(cell.getValue().equalsIgnoreCase(selected));
-				}
-			}
-			TableQtb.tablePage(rows,data.getApplicants());
-		}else {
-			data.setShowProgress(true);
+		if(data.getApplicants().getHeaders().getHeaders().isEmpty()) {
+			data.getApplicants().setHeaders(headersApplicants(data.getApplicants().getHeaders()));
 		}
-
+		String selected=selectedRowField(data.getApplicants(), IDENTIFIER);
+		String searchCond = data.getApplicants().getHeaders().getHeaders().get(0).getGeneralCondition();
+		List<TableRow> rows = new ArrayList<TableRow>();
+		if(searchCond.length()>=3) {
+			rows = jdbcRepo.qtbGroupReport("select * from applicant_emails", "", "", data.getApplicants().getHeaders());
+		}
+		for(TableRow row : rows) {
+			TableCell cell = row.getCellByKey(IDENTIFIER);
+			if(cell!=null) {
+				row.setSelected(cell.getValue().equalsIgnoreCase(selected));
+			}
+		}
+		TableQtb.tablePage(rows,data.getApplicants());
 		return data;
 	}
 	/**
@@ -175,28 +178,6 @@ public class ReassignUserService {
 		}
 		return ret;
 	}
-	/**
-	 * Reassign an applicant
-	 * @param data
-	 * @param emailExecutor 
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	public ReassignUserDTO applicantReassign(ReassignUserDTO data, String emailExecutor) throws ObjectNotFoundException {
-		data.getReassignTo().clearValidation();
-		data.clearErrors();
-		async.clearData();
-		String emailFrom=selectedRowField(data.getApplicants(), IDENTIFIER);
-		String emailTo=data.getReassignTo().getValue();
-		data=validateEmails(emailFrom, emailTo, data);
-		if(data.isValid()) {
-			Map<String, List<Long>> toReassign = toReassign(emailFrom);
-			async.applicantReassignRunAsync(emailFrom, emailTo, toReassign, emailExecutor);
-			data.setShowProgress(true);
-		}
-		return data;
-	}
-
 
 	/**
 	 * Extract all IDs of concepts to reassign inside data trees
@@ -237,14 +218,14 @@ public class ReassignUserService {
 
 	/**
 	 * Validate emails to reassign
-	 * @param emailFrom
-	 * @param emailTo
 	 * @param data
 	 * @return  isValid in the DTO
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public ReassignUserDTO validateEmails(String emailFrom, String emailTo, ReassignUserDTO data) throws ObjectNotFoundException {
+	public ReassignUserDTO validateEmails(ReassignUserDTO data) throws ObjectNotFoundException {
+		String emailFrom=selectedRowField(data.getApplicants(), IDENTIFIER);
+		String emailTo=data.getReassignTo().getValue();
 		//email reassign from should be valid
 		if (!validation.eMail(emailFrom)) {
 			data.addError(messages.get("valid_email")+" "+emailFrom);
@@ -293,14 +274,104 @@ public class ReassignUserService {
 				,"Identifier='"+email+"'", headersApplicants(new Headers()));
 		return !rows.isEmpty();
 	}
+
 	/**
-	 * Get user's log
+	 * Really reassign the applicant
+	 * @param data
+	 * @throws JsonProcessingException 
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public void reassignApplicantWorker(ReassignUserDTO data) throws JsonProcessingException, ObjectNotFoundException {
+		logger.trace(messages.get("reassignusers")+"<<<");
+		String emailFrom=selectedRowField(data.getApplicants(), IDENTIFIER);
+		String emailTo=data.getReassignTo().getValue();
+		Map<String, List<Long>> toReassign =toReassign(emailFrom);
+		int total=0;
+		for(String key : toReassign.keySet()) {
+			total=total+toReassign.get(key).size();
+		}
+		AsyncInformDTO info= initProgressData(emailFrom, emailTo, total);
+		try {
+			for(String key :toReassign.keySet()) {
+				Concept root = closureServ.loadRoot(key);
+				Concept emailToC=closureServ.saveToTree(root, emailTo);
+				for(Long id : toReassign.get(key)) {
+					if(!info.isCancelled()) {
+						Concept conc=closureServ.loadConceptById(id);
+						jdbcRepo.moveSubTree(conc, emailToC);
+						info.setCompl(info.getCompl()+1);
+						Float percentF = (info.getCompl() * 100.0f) / info.getComplOf();
+						int perc=percentF.intValue();
+						if(perc>100) perc=100;
+						info.setComplPercent(perc);
+						info.setProgressMessage(progressMessage(info));
+						AsyncService.writeAsyncContext(ASYNC_INFORM, objectMapper.writeValueAsString(info));
+					}else {
+						break;
+					}
+				}
+			}
+		} catch (Exception e) {
+			info.addError(e.getMessage());
+		}
+		if(info.isCancelled()) {
+			info.setCompleted(false);
+		}else {
+			info.setCompleted(true);
+		}
+		AsyncService.writeAsyncContext(ASYNC_INFORM, objectMapper.writeValueAsString(info));
+		try {
+			String mess = info.getProgressMessage();
+			if(!info.isValid()) {
+				mess=info.getIdentifier();
+			}
+			logEvents.applicantReassignEvent(data.getExecName(), emailFrom, emailTo
+					,info.getCompl(), info.getComplOf(), mess);
+		} catch (ObjectNotFoundException e) {
+			logger.error("applicantReassignRunAsync "+e.getMessage());
+		}
+		logger.trace(messages.get("reassignusers")+">>>");
+	}	
+	/**
+	 * Create a progress message
+	 * @param info
 	 * @return
 	 */
-	public TableQtb usersLog(TableQtb data) {
-		
-		return data;
+	private String progressMessage(AsyncInformDTO info) {
+		return messages.get("reassigned") + " "+ info.getCompl() + "/"+info.getComplOf() +" ("+info.getComplPercent()+"%)";
 	}
-
+	/**
+	 * Initialize progress data object and, then, store it into Async context
+	 * @param emailFrom
+	 * @param emailTo
+	 * @param size
+	 * @return
+	 * @throws JsonProcessingException 
+	 */
+	private AsyncInformDTO initProgressData(String emailFrom, String emailTo, int size) throws JsonProcessingException {
+		AsyncInformDTO ret = new AsyncInformDTO();
+		ret.setProcessName(AsyncService.PROCESS_REASSIGN_APPLICANT);
+		ret.setTitle(messages.get("reassignusers")+ " " + emailFrom+"->"+emailTo);
+		ret.setStartedAt(LocalDateTime.now());
+		ret.setComplOf(size);
+		ret.setCompleted(false);
+		AsyncService.writeAsyncContext(ASYNC_INFORM, objectMapper.writeValueAsString(ret));
+		return ret;
+	}
+	/**
+	 * Get async inform
+	 * @return real or new created AsyncInformDTO
+	 * @throws JsonProcessingException 
+	 * @throws JsonMappingException 
+	 */
+	public AsyncInformDTO asyncInform() throws JsonMappingException, JsonProcessingException {
+		AsyncInformDTO ret = new AsyncInformDTO();
+		String ai = AsyncService.readAsyncContext(ASYNC_INFORM);
+		if(!ai.isEmpty()) {
+			ret = objectMapper.readValue(ai, AsyncInformDTO.class);
+		}
+		return ret;
+	}
 
 }

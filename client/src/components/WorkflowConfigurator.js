@@ -88,7 +88,7 @@ class WorkflowConfigurator extends Component{
                 if(data.subject=="thingLoaded"){
                     if(this.state.data.selected==0){
                         this.state.data.path[0]=data.data
-                        this.state.thingIdentifier=data.data.identifier
+                        this.state.thingIdentifier=data.data.uxIdentifier
                         SpinnerMain.hide()
                     }
                 }

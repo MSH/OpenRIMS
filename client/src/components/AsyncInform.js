@@ -11,11 +11,16 @@ import Navigator from './utils/Navigator'
 /**
  * ~~~
  * Progress informator for Async process
- * loadAPI :PropTypes.string.isRequired,   //load execution progress
- * cancelAPI:PropTypes.string.isRequired,  //cancel execution
+ *   events:
+ *      OnAsyncProcessCompleted                //Async process has been completed
+ *   properties:
+ *   recipient:PropTypes.string.isRequired,   //The recipient of messages
+ *   loadAPI :PropTypes.string.isRequired,   //e.g., '/api/reassign/appicant/progress'
+ *   cancelAPI:PropTypes.string,             //e.g., '/api/reassign/applicant/cancel'
  * ~~~
  * @example
- * <AsyncInform loadAPI='/api/admin/reassign/appicant/progress/load' cancelAPI='/api/admin/reassign/appicant/progress/cancel' />
+ * <AsyncInform recipient={this.state.identifier} loadAPI='/api/admin/reassign/appicant/progress/load' 
+ *                              cancelAPI='/api/admin/reassign/appicant/progress/cancel' />
  */
 class AsyncInform extends Component{
     constructor(props){
@@ -80,13 +85,13 @@ class AsyncInform extends Component{
                     <Col xs='12' sm='12' lg='10' xl='11'>
                         <h4>{this.state.data.title}</h4>
                     </Col>
-                    <Col xs='12' sm='12' lg='2' xl='1'>
+                    <Col xs='12' sm='12' lg='2' xl='1' hidden={!this.hideStopButton()}>
                         <ButtonUni 
                             onClick={()=>{
                                 if(this.timeoutID != undefined){
                                     clearTimeout(this.timeoutID)
                                 }
-                                Navigator.navigate("administrate")
+                                Navigator.message(this.state.identifier, this.props.recipient, "OnAsyncProcessCompleted",this.state.data)
                             }}
                             label={this.state.labels.global_close}
                             color="info"
@@ -101,7 +106,7 @@ class AsyncInform extends Component{
                             {this.state.data.progressMessage}
                         </Progress>
                     </Col>
-                    <Col xs='12' sm='12' lg='2' xl='1' hidden={this.hideStopButton()}>
+                    <Col xs='12' sm='12' lg='2' xl='1' hidden={this.hideStopButton() || this.props.cancelAPI==undefined}>
                     <ButtonUni 
                             onClick={()=>{
                                 Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.stopping, color:'info'})
@@ -116,7 +121,11 @@ class AsyncInform extends Component{
                         />
                     </Col>
                 </Row>
-
+                <Row>
+                    <Col>
+                        <small>{this.state.data.elapsedMessage}</small>
+                    </Col>
+                </Row>
             </Container>
         )
     }
@@ -125,6 +134,7 @@ class AsyncInform extends Component{
 }
 export default AsyncInform
 AsyncInform.propTypes={
+    recipient:PropTypes.string.isRequired,   //The recipient of messages
     loadAPI :PropTypes.string.isRequired,   //e.g., '/api/reassign/appicant/progress'
-    cancelAPI:PropTypes.string.isRequired,  //e.g., '/api/reassign/applicant/cancel'
+    cancelAPI:PropTypes.string,             //e.g., '/api/reassign/applicant/cancel'
 }

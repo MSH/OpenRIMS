@@ -17,7 +17,6 @@ import org.msh.pdex2.i18n.Messages;
 import org.msh.pharmadex2.service.common.ContextServices;
 import org.msh.pharmadex2.service.r2.SystemService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationListener;
@@ -26,6 +25,7 @@ import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.LocaleResolver;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -41,6 +41,8 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 @EnableAsync
 public class Pharmadex2Application implements WebMvcConfigurer  {
 
+	public static final String DATA_IMPORT = "DataImport-";
+	
 	public static void main(String[] args) {
 		SpringApplication.run(Pharmadex2Application.class, args);
 	}
@@ -49,9 +51,6 @@ public class Pharmadex2Application implements WebMvcConfigurer  {
 	SystemService systemService;
 	@Autowired
 	Messages messages;
-	@Value( "${spring.web.locale:en_US}" )
-	String defaultLocaleName;
-
 	 /**
 	  * Cleans up the context, initialize i18n messages, and, try to set default passwords for users that have not the  password yet
 	  * @return
@@ -118,11 +117,12 @@ public class Pharmadex2Application implements WebMvcConfigurer  {
 	 */
 	@Bean
 	public LocaleResolver localeResolver() {
+		Locale def = messages.setDefaultLocaleToLCH();
 		CookieLocaleResolver clr = new CookieLocaleResolver();
-	    clr.setDefaultLocale(new Locale(defaultLocaleName));
+	    clr.setDefaultLocale(def);
 	    clr.setCookieName("lang");
         clr.setCookieMaxAge(365*24*60*60); //year
-	    return clr;
+        return clr;
 	}
 	
 	@Bean
@@ -144,4 +144,19 @@ public class Pharmadex2Application implements WebMvcConfigurer  {
 		ret.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 		return ret;
 	}
+	
+	/**
+	 * Thread pool for data imports
+	 * @return
+	 */
+	@Bean(name = "taskExecutorDataImport")
+	 public ThreadPoolTaskExecutor taskExecutorDataImport() {
+	  ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+	  executor.setCorePoolSize(1);
+	  executor.setMaxPoolSize(1);
+	  executor.setQueueCapacity(0);
+	  executor.setThreadNamePrefix(DATA_IMPORT);
+	  executor.initialize();
+	  return executor;
+	 }
 }

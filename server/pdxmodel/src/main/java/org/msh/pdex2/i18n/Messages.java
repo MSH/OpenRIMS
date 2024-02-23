@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-
 import org.msh.pdex2.dto.i18n.Language;
 import org.msh.pdex2.dto.i18n.Languages;
 import org.msh.pdex2.model.i18n.ResourceBundle;
@@ -137,10 +136,15 @@ public class Messages {
 			}
 			if(currentBundle != null) {
 				getLanguages().getLangs().add(0, resourceBundleToLanguage(currentBundle));
-			}else {
-				currentBundle=bundles.get(0);
-				Locale curLocale = new Locale(currentBundle.getLocale());
-				LocaleContextHolder.setLocale(curLocale);
+			}else { // set defaultLocaleName 
+				/*Optional<ResourceBundle> opt = bundleRepo.findByLocale(defaultLocaleName);
+				if(opt.isPresent())
+					currentBundle = opt.get();
+				else
+					currentBundle = bundles.get(0);
+				String[] cb = currentBundle.getLocale().split("_");
+				Locale curLocale = new Locale(cb[0], cb[1]); //new Locale(currentBundle.getLocale());
+				LocaleContextHolder.setLocale(curLocale);*/
 			}
 		}else {
 			logger.error("Can't find any language bundle");
@@ -192,7 +196,7 @@ public class Messages {
 	 * @return parsed or default locale
 	 */
 	public static Locale parseLocaleString(String locStr){
-		Locale ret = Locale.US;
+		Locale ret = new Locale("en", "US");
 		if(locStr != null) {
 			String[] lo = locStr.split("-");
 			if(lo.length == 2){
@@ -307,4 +311,27 @@ public class Messages {
 		return def;
 	}
 
+	/**
+	 * varif Locale in LocaleContextHolder
+	 * if not bundls locale -> set default en_US
+	 */
+	public void verifLocaleInLCH() {
+		boolean change = true;
+		String browserLang = LocaleContextHolder.getLocale().getLanguage().toUpperCase();
+		for(String l:getMessages().keySet()) {
+			if(l.startsWith(browserLang)) {
+				change = false;
+				break;
+			}
+		}
+		if(change) {
+			setDefaultLocaleToLCH();
+		}
+	}
+	
+	public Locale setDefaultLocaleToLCH() {
+		Locale def = parseLocaleString(null);
+		LocaleContextHolder.setLocale(def);
+		return def;
+	}
 }

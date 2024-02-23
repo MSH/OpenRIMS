@@ -92,7 +92,7 @@ public class ImportWorkflowService {
 	//private static String req_activitiesconfigs = "/api/public/importwf/activitiesconfigs";
 
 	public ImportWorkflowDTO load(ImportWorkflowDTO data) throws ObjectNotFoundException {
-		data.getServerurl().setValue(data.getIdentifier());
+		//data.getServerurl().setValue(data.getIdentifier());
 		data.setConnect(false);
 		data.getServerurl().setStrict(false);
 		data.setIdentifier("");
@@ -174,7 +174,7 @@ public class ImportWorkflowService {
 		// проверим наличие переданных процесов на текущем сервере
 		List<TableRow> rows = data.getWfTable().getRows();
 		List<TableRow> newRows = new ArrayList<TableRow>();
-		//TODO расскоментировать
+
 		for(TableRow r:rows) {
 			String url = (String)r.getRow().get(0).getOriginalValue();
 			Concept curProc = systemService.findProccessByUrl(data.getProcessURL(), url);
@@ -184,6 +184,7 @@ public class ImportWorkflowService {
 		}
 		data.getWfTable().getRows().clear();
 		data.getWfTable().getRows().addAll(newRows);
+		data.setIdentifier("");
 		return data;
 	}
 
@@ -208,9 +209,6 @@ public class ImportWorkflowService {
 		TableRow rowWFConfig = createRow("WorkFlow");
 		data.getStatusTable().getRows().add(rowWFConfig);
 
-		//TableRow rowActConfig = createRow("Activities Configurations");
-		//data.getStatusTable().getRows().add(rowActConfig);
-
 		data.getStatusTable().setSelectable(false);
 
 		data.getStatusTable().getRows().get(0).getCellByKey(NAME_COL_VALIDATION).setValue(STATUS_RECEIVING);
@@ -219,7 +217,6 @@ public class ImportWorkflowService {
 
 	private TableRow createRow(String name) {
 		TableRow row = new TableRow();
-		//row.setDbID(1l);
 		TableCell cell = new TableCell();
 		cell.setKey("prefLbl");
 		cell.setValue(name);
@@ -240,31 +237,34 @@ public class ImportWorkflowService {
 
 	public ImportWorkflowDTO dictionaries(ImportWorkflowDTO data) throws ObjectNotFoundException {
 		// validate and import dictionaries 
+		logger.trace("ImportWF: dictionaries requested");
 		data = requestToMainServer(data, req_dictionaries);
 
 		if(data.isValid()) {
 			// создаем на локальном словарu
 			data = createDictionariesOnLocal(data);
 		}else {
-			data.getStatusTable().getRows().get(0).getCellByKey(NAME_COL_VALIDATION).setValue(data.getIdentifier());
-			data.getStatusTable().getRows().get(0).getCellByKey(NAME_COL_IMPORT).setValue(STATUS_ERROR);
+			data.getStatusTable().getRows().get(0).getCellByKey(NAME_COL_VALIDATION).setValue(STATUS_ERROR);
+			data.getStatusTable().getRows().get(0).getCellByKey(NAME_COL_IMPORT).setValue(data.getIdentifier());
 		}
 		return data;
 	}
 
 	public ImportWorkflowDTO resources(ImportWorkflowDTO data) throws ObjectNotFoundException {
+		logger.trace("ImportWF: resources requested");
 		data = requestToMainServer(data, req_resources);
 		if(data.isValid()) {
 			// создаем на локальном ресурсы
 			data = createResourcesOnLocal(data);
 		}else {
-			data.getStatusTable().getRows().get(1).getCellByKey(NAME_COL_VALIDATION).setValue(data.getIdentifier());
-			data.getStatusTable().getRows().get(1).getCellByKey(NAME_COL_IMPORT).setValue(STATUS_ERROR);
+			data.getStatusTable().getRows().get(1).getCellByKey(NAME_COL_VALIDATION).setValue(STATUS_ERROR);
+			data.getStatusTable().getRows().get(1).getCellByKey(NAME_COL_IMPORT).setValue(data.getIdentifier());
 		}
 		return data;
 	}
 
 	public ImportWorkflowDTO dataConfigs(ImportWorkflowDTO data) {
+		logger.trace("ImportWF: dataConfigs requested");
 		data = requestToMainServer(data, req_dataconfigs);
 		if(data.isValid()) {
 			// создаем на локальном ресурсы
@@ -274,20 +274,21 @@ public class ImportWorkflowService {
 				e.printStackTrace();
 			}
 		}else {
-			data.getStatusTable().getRows().get(2).getCellByKey(NAME_COL_VALIDATION).setValue(data.getIdentifier());
-			data.getStatusTable().getRows().get(2).getCellByKey(NAME_COL_IMPORT).setValue(STATUS_ERROR);
+			data.getStatusTable().getRows().get(2).getCellByKey(NAME_COL_VALIDATION).setValue(STATUS_ERROR);
+			data.getStatusTable().getRows().get(2).getCellByKey(NAME_COL_IMPORT).setValue(data.getIdentifier());
 		}
 		return data;
 	}
 
 	public ImportWorkflowDTO wf(ImportWorkflowDTO data, UserDetailsDTO user) throws ObjectNotFoundException, JsonProcessingException {
+		logger.trace("ImportWF: wf&activities requested");
 		data = requestToMainServer(data, req_wf);
 		if(data.isValid()) {
 			// создаем на локальном 
 			data = createWFOnLocal(data, user);
 		}else {
 			data.getStatusTable().getRows().get(3).getCellByKey(NAME_COL_VALIDATION).setValue(data.getIdentifier());
-			data.getStatusTable().getRows().get(3).getCellByKey(NAME_COL_IMPORT).setValue(STATUS_ERROR);
+			data.getStatusTable().getRows().get(3).getCellByKey(NAME_COL_IMPORT).setValue(data.getIdentifier());
 		}
 		return data;
 	}
@@ -295,25 +296,28 @@ public class ImportWorkflowService {
 	@Transactional
 	private ImportWorkflowDTO createDictionariesOnLocal(ImportWorkflowDTO data) throws ObjectNotFoundException {
 		int countSkipt = 0;
-
+		int count = 0;
 		Map<String, Map<Long, List<DictNodeDTO>>> map = data.getDictsImport();
-		for(String url:map.keySet()) {
-			Concept root = closureServ.loadConceptByIdentifierActive(url);
-			if(root != null && root.getID() > 0) {
-				countSkipt++;
-			}else {// create
-				Map<Long, List<DictNodeDTO>> dict = map.get(url);
-				buildDict(url, dict, root);
+		if(map != null && map.keySet() != null) {
+			logger.trace("ImportWF: dictionaries received-" + data.getDictsImport().keySet().size());
+			for(String url:map.keySet()) {
+				Concept root = closureServ.loadConceptByIdentifierActive(url);
+				if(root != null && root.getID() > 0) {
+					countSkipt++;
+				}else {// create
+					Map<Long, List<DictNodeDTO>> dict = map.get(url);
+					buildDict(url, dict, root);
+					count++;
+				}
 			}
-		}
-		if(countSkipt == map.keySet().size()) {
-			data.getStatusTable().getRows().get(0).getCellByKey(NAME_COL_VALIDATION).setValue(STATUS_RECEIVED);
-			data.getStatusTable().getRows().get(0).getCellByKey(NAME_COL_IMPORT).setValue(STATUS_SKIPT);
-			data.getStatusTable().getRows().get(1).getCellByKey(NAME_COL_VALIDATION).setValue(STATUS_RECEIVING);
 		}else {
-			data.getStatusTable().getRows().get(0).getCellByKey(NAME_COL_VALIDATION).setValue(STATUS_RECEIVED);
-			data.getStatusTable().getRows().get(0).getCellByKey(NAME_COL_IMPORT).setValue(STATUS_RECEIVED);	
+			logger.trace("ImportWF: dictionaries received-NULL");
 		}
+		
+		logger.trace("ImportWF: dictionaries created-" + count);
+		logger.trace("ImportWF: dictionaries skipt-" + countSkipt);
+
+		data = printResult(data, 0, countSkipt, count, data.getDictsImport().keySet().size());
 
 		cleanImportLists(data);
 		return data;
@@ -335,9 +339,9 @@ public class ImportWorkflowService {
 	}
 	
 	@Transactional
-	private void buildDict(String url, Map<Long, List<DictNodeDTO>> dict, Concept root) throws ObjectNotFoundException {
-		if(dict != null) {
-			List<DictNodeDTO> dictlist = dict.get(0l);
+	public void buildDict(String url, Map<Long, List<DictNodeDTO>> listdict, Concept root) throws ObjectNotFoundException {
+		if(listdict != null) {
+			List<DictNodeDTO> dictlist = listdict.get(0l);
 			DictNodeDTO rootDict = dictlist.get(0);
 			Long nextParId = rootDict.getNodeId();
 
@@ -350,7 +354,7 @@ public class ImportWorkflowService {
 			root.setActive(true);
 			root = closureServ.saveToTree(null, root);
 
-			recursionCreateDictionary(dict, nextParId, root.getID());
+			recursionCreateDictionary(listdict, nextParId, root.getID());
 		}else {// create empty dict
 			root = closureServ.loadRoot(url);
 			root = literalServ.prefAndDescription(url, "", root);
@@ -359,30 +363,44 @@ public class ImportWorkflowService {
 		}
 	}
 
+	/**
+	 * создание всех данных для ресурсов начинаем со словаря, потом все DataVariableDTO,
+	 * потом конфигурация, а потом уже запись ресурса
+	 * 
+	 * Если есть запись ресурса и запись конфигурации(русть и пустой) - считаем что ОК
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
 	@Transactional
-	public ImportWorkflowDTO createResourcesOnLocal(ImportWorkflowDTO data) {
+	public ImportWorkflowDTO createResourcesOnLocal(ImportWorkflowDTO data) throws ObjectNotFoundException{
 		int countSkipt = 0;
+		int count = 0;
 		Map<String, ResourceDTO> resources = data.getResImport();
+		String curImportURL = "";
 		try {
-			for(String url:resources.keySet()) {
-				Concept root = closureServ.loadConceptByIdentifierActive(url);
-				if(root != null && root.getID() > 0 && resServ.isResourceUrl(url)) {
-					// такой урл уже есть и он для ресурса
-					countSkipt++;
-				}else {// create
+			// сразу создадим конфигурацию и ее assembly
+			Concept dataConf = closureServ.loadRoot(SystemService.DATA_COLLECTIONS_ROOT);
+			if(resources != null && resources.keySet().size() > 0) {
+				logger.trace("ImportWF: resources received-" + resources.keySet().size());
+				for(String url:resources.keySet()) {
+					curImportURL = url;
+					Concept root = closureServ.loadConceptByIdentifierActive(url);
+					
 					DataCollectionDTO config = data.getConfigImport().get(url);
-
-					// сразу создадим конфигурацию и ее assembly
-					Concept dataConf = closureServ.loadRoot(SystemService.DATA_COLLECTIONS_ROOT);
-
 					List<Concept> concepts = literalServ.loadOnlyChilds(dataConf);
 					Concept ret = new Concept();
 					for(Concept c:concepts) {
-						if(c.getIdentifier().equalsIgnoreCase(config.getUrl().getValue())) {
+						if(c.getIdentifier().equalsIgnoreCase(config.getUrl().getValue()) &&
+								c.getActive()) {
 							ret = c;
 						}
 					}
-					if(ret.getID() == 0 ) { // create
+					
+					if(root != null && root.getID() > 0 && resServ.isResourceUrl(url)
+							&& ret != null && ret.getID() > 0) {
+						countSkipt++;
+					}else {
 						config.setNodeId(0l);
 						config = superService.dataCollectionDefinitionSave(config);
 						if(config.isValid()) {
@@ -390,83 +408,75 @@ public class ImportWorkflowService {
 							for(DataVariableDTO dv:list) {
 								dv.setVarNodeId(0);
 								dv.setNodeId(config.getNodeId());
-								dv = superService.dataCollectionVariableSave(dv);
-
-								// теперь создаем словарь для этого ресурса
-								if(dv.isValid() && dv.getClazz().getValue().equals("documents")) {
-									String dictURL = dv.getDictUrl().getValue();
-									Concept dictRoot = closureServ.loadRoot(dictURL);
-									if(dictRoot == null) {
-										Map<Long, List<DictNodeDTO>> dict = data.getDictsImport().get(dictURL);
-										buildDict(url, dict, root);
+								dv = superService.dataCollectionVariableSave(dv, false);
+								
+								if(dv.isValid() || !dv.isStrict()) {
+									// теперь создаем словарь для этого ресурса
+									if(dv.getClazz().getValue().getCode().equals("documents")) {
+										String dictURL = dv.getDictUrl().getValue();
+										Concept dictRoot = closureServ.loadConceptByIdentifierActive(dictURL);
+										if(dictRoot == null) {
+											Map<Long, List<DictNodeDTO>> dict = data.getDictsImport().get(dictURL);
+											buildDict(dictURL, dict, dictRoot);
+										}
 									}
 								}
 							}
+							// теперь создаем запись сомого ресурса
+							ResourceDTO resDTO = resources.get(url);
+							resDTO = superService.resourceDefinitionSave(resDTO);
+							if(resDTO.isValid()) {
+								count++;
+							}else {
+								data.setValid(false);
+								data.setIdentifier("Error in resources URL: " + url + ". " + resDTO.getIdentifier());
+	
+								break;
+							}
 						}else {
 							data.setValid(false);
-							data.setIdentifier(config.getIdentifier());
-
+							data.setIdentifier("Error in config resources URL: " + url + ". " + config.getIdentifier());
+	
 							break;
 						}
-					}// иначе, считаем что она есть и все ок
-
-					// теперь создаем запись сомого ресурса
-					ResourceDTO resDTO = resources.get(url);
-					resDTO = superService.resourceDefinitionSave(resDTO);
-					if(!resDTO.isValid()) {
-						data.setValid(false);
-						data.setIdentifier(resDTO.getIdentifier());
-
-						break;
 					}
+					
 				}
+			}else {
+				logger.trace("ImportWF: resources received-NULL");
 			}
 		} catch (ObjectNotFoundException e) {
 			data.setValid(false);
-			data.setIdentifier("Bad configuration resources!Error in log!");
+			data.setIdentifier("Error in resources URL: " + curImportURL);
 			e.printStackTrace();
 		}
-		if(data.isValid()) {
-			if(countSkipt == resources.keySet().size()) {
-				data.getStatusTable().getRows().get(1).getCellByKey(NAME_COL_VALIDATION).setValue(STATUS_RECEIVED);
-				data.getStatusTable().getRows().get(1).getCellByKey(NAME_COL_IMPORT).setValue(STATUS_SKIPT);	
-			}else {
-				data.getStatusTable().getRows().get(1).getCellByKey(NAME_COL_VALIDATION).setValue(STATUS_RECEIVED);
-				data.getStatusTable().getRows().get(1).getCellByKey(NAME_COL_IMPORT).setValue(STATUS_RECEIVED);	
-			}
-			data.getStatusTable().getRows().get(2).getCellByKey(NAME_COL_VALIDATION).setValue(STATUS_RECEIVING);
-		}else {
-			data.getStatusTable().getRows().get(1).getCellByKey(NAME_COL_VALIDATION).setValue(data.getIdentifier());
-			data.getStatusTable().getRows().get(1).getCellByKey(NAME_COL_IMPORT).setValue(STATUS_ERROR);
-		}
-
+		logger.trace("ImportWF: resources created-" + count);
+		logger.trace("ImportWF: resources skipt-" + countSkipt);
+		
+		data = printResult(data, 1, countSkipt, count, resources.keySet().size());
+		
 		cleanImportLists(data);
 		return data;
 	}
 
 	@Transactional
-	private ImportWorkflowDTO createDataConfigsOnLocal(ImportWorkflowDTO data) throws ObjectNotFoundException {
+	public ImportWorkflowDTO createDataConfigsOnLocal(ImportWorkflowDTO data) throws ObjectNotFoundException {
 		int countSkipt = 0;
+		int count = 0;
 		Map<String, DataCollectionDTO> configs = data.getConfigImport();
+		if(configs != null && configs.keySet().size() > 0) {
+			logger.trace("ImportWF: DataConfigs received-" + configs.keySet().size());
+			Concept dataConf = closureServ.loadRoot(SystemService.DATA_COLLECTIONS_ROOT);
+			
+			for(String url:configs.keySet()) {
+				Concept root = closureServ.findConceptInBranchByIdentifier(dataConf, url);
+				
+				if(root != null && root.getID() > 0 && assistServ.isDataConfigurationUrl(url)) {
+					// такой урл уже есть
+					countSkipt++;
+				}else {// create
+					DataCollectionDTO config = data.getConfigImport().get(url);
 
-		for(String url:configs.keySet()) {
-			Concept root = closureServ.loadConceptByIdentifierActive(url);
-			if(root != null && root.getID() > 0 && assistServ.isDataConfigurationUrl(url)) {
-				// такой урл уже есть
-				countSkipt++;
-			}else {// create
-				DataCollectionDTO config = data.getConfigImport().get(url);
-
-				// сразу создадим конфигурацию и ее assembly
-				Concept dataConf = closureServ.loadRoot(SystemService.DATA_COLLECTIONS_ROOT);
-				List<Concept> concepts = literalServ.loadOnlyChilds(dataConf);
-				Concept ret = new Concept();
-				for(Concept c:concepts) {
-					if(c.getIdentifier().equalsIgnoreCase(config.getUrl().getValue())) {
-						ret = c;
-					}
-				}
-				if(ret.getID() == 0 ) { // create
 					config.setNodeId(0);
 					config = superService.dataCollectionDefinitionSave(config);
 					if(config.isValid()) {
@@ -474,32 +484,24 @@ public class ImportWorkflowService {
 						for(DataVariableDTO dv:list) {
 							dv.setVarNodeId(0);
 							dv.setNodeId(config.getNodeId());
-							dv = superService.dataCollectionVariableSave(dv);
-
-							// все словари создали ранее
+							dv = superService.dataCollectionVariableSave(dv, false);
 						}
+						count++;
 					}else {
 						data.setValid(false);
 						data.setIdentifier(config.getIdentifier());
 
 						break;
 					}
-				}// иначе, считаем что она есть и все ок
+				}
 			}
-		}
-		if(data.isValid()) {
-			if(countSkipt == configs.keySet().size()) {
-				data.getStatusTable().getRows().get(2).getCellByKey(NAME_COL_VALIDATION).setValue(STATUS_RECEIVED);
-				data.getStatusTable().getRows().get(2).getCellByKey(NAME_COL_IMPORT).setValue(STATUS_SKIPT);	
-			}else {
-				data.getStatusTable().getRows().get(2).getCellByKey(NAME_COL_VALIDATION).setValue(STATUS_RECEIVED);
-				data.getStatusTable().getRows().get(2).getCellByKey(NAME_COL_IMPORT).setValue(STATUS_RECEIVED);	
-			}
-			data.getStatusTable().getRows().get(3).getCellByKey(NAME_COL_VALIDATION).setValue(STATUS_RECEIVING);
 		}else {
-			data.getStatusTable().getRows().get(2).getCellByKey(NAME_COL_VALIDATION).setValue(data.getIdentifier());
-			data.getStatusTable().getRows().get(2).getCellByKey(NAME_COL_IMPORT).setValue(STATUS_ERROR);
+			logger.trace("ImportWF: DataConfigs received-NULL");
 		}
+		logger.trace("ImportWF: DataConfigs created-" + count);
+		logger.trace("ImportWF: DataConfigs skipt-" + countSkipt);
+		
+		data = printResult(data, 2, countSkipt, count, configs.keySet().size());
 
 		cleanImportLists(data);
 		return data;
@@ -510,11 +512,14 @@ public class ImportWorkflowService {
 	 * @throws JsonProcessingException */
 	@Transactional
 	public ImportWorkflowDTO createWFOnLocal(ImportWorkflowDTO data, UserDetailsDTO user) throws ObjectNotFoundException, JsonProcessingException {
-		// ищем, может такой процес уже есть
-		Concept root = systemServ.findProccessByUrl(data.getProcessURL(), data.getWfURL());
-		if(root == null) {// create
+		data.setValid(false);
+		DictNodeDTO dict = data.getDict();
+		int countSkipt = 0;
+		int count = 0;
+		if(dict != null) {
+			logger.trace("ImportWF: WF received-1");
+			//  в начале была проверка на существующие процесы - такого на локале нет
 			Concept procRoot = null;
-
 			List<Concept> ret = new ArrayList<Concept>();
 			ret = conceptRepo.findAllByIdentifier(data.getProcessURL());
 			if(ret != null && ret.size() > 0) {
@@ -528,53 +533,46 @@ public class ImportWorkflowService {
 					}
 				}
 			}
-
-			if(procRoot == null) {
-				data.setValid(false);
-				data.getStatusTable().getRows().get(3).getCellByKey(NAME_COL_VALIDATION).setValue("Not find procces dictionary");
-				data.getStatusTable().getRows().get(3).getCellByKey(NAME_COL_IMPORT).setValue(STATUS_ERROR);
-				return data;
-			}
-			String applURL = null;
-			root = new Concept();
-			root.setIdentifier((new Date()).toString());
-			root = closureServ.saveToTree(procRoot, root);
-			root.setIdentifier(root.getID() + "");
-			root = closureServ.save(root);
-
-			DictNodeDTO dict = data.getDict();
-			for(String lit:dict.getLiterals().keySet()){
-				if(lit.equals(LiteralService.URL)) {
-					literalServ.createUpdateLiteral(lit, dict.getLiterals().get(lit).getValue(), root);
-				}else {
-					literalServ.createUpdateLiteral(lit, dict.getLiterals().get(lit).getValue(), root);	
-				}
+			
+			if(procRoot != null) {
+				String applURL = null;
+				Concept root = new Concept();
+				root.setIdentifier((new Date()).toString());
+				root = closureServ.saveToTree(procRoot, root);
+				root.setIdentifier(root.getID() + "");
+				root = closureServ.save(root);
+				count++;
 				
-				if(lit.equals(LiteralService.APPLICATION_URL)) {
-					applURL = dict.getLiterals().get(lit).getValue();
+				for(String lit:dict.getLiterals().keySet()){
+					if(lit.equals(LiteralService.URL)) {
+						literalServ.createUpdateLiteral(lit, dict.getLiterals().get(lit).getValue(), root);
+					}else {
+						literalServ.createUpdateLiteral(lit, dict.getLiterals().get(lit).getValue(), root);	
+					}
+					
+					if(lit.equals(LiteralService.APPLICATION_URL)) {
+						applURL = dict.getLiterals().get(lit).getValue();
+					}
+				}
+				logger.trace("ImportWF: WF created-1");
+				
+				if(applURL != null) {
+					// если по такому урлу уже есть конфигурация - пропускаем 
+					Concept confConcept = closureServ.loadConceptByIdentifierActive("configuration." + applURL);
+					if(confConcept == null){
+						data = createActivitiesConfigsOnLocal(data, applURL, count, user);
+						logger.trace("ImportWF: Activities skipt-" + countSkipt);
+					}else {
+						logger.trace("ImportWF: Activities skipt");
+						data.setValid(true);
+					}
 				}
 			}
-
-			if(applURL != null) {
-				// если по такому урлу уже есть конфигурация - пропускаем следующий шаг
-				Concept confConcept = closureServ.loadConceptByIdentifierActive("configuration." + applURL);
-				if(confConcept != null) {
-					data.setValid(false);
-					data.getStatusTable().getRows().get(3).getCellByKey(NAME_COL_VALIDATION).setValue(STATUS_RECEIVED);
-					data.getStatusTable().getRows().get(3).getCellByKey(NAME_COL_IMPORT).setValue(STATUS_SKIPT);
-				}else {
-					data = createActivitiesConfigsOnLocal(data, user);
-				}
-			}
-		}else {// skipt
-			data.getStatusTable().getRows().get(3).getCellByKey(NAME_COL_VALIDATION).setValue(STATUS_RECEIVED);
-			data.getStatusTable().getRows().get(3).getCellByKey(NAME_COL_IMPORT).setValue(STATUS_SKIPT);
+		}else {
+			logger.trace("ImportWF: WF received-NULL");
 		}
 
-		if(data.isValid()) {
-			data.getStatusTable().getRows().get(3).getCellByKey(NAME_COL_VALIDATION).setValue(STATUS_RECEIVED);
-			data.getStatusTable().getRows().get(3).getCellByKey(NAME_COL_IMPORT).setValue(STATUS_RECEIVED);
-		}
+		data = printResult(data, 3, countSkipt, count, countSkipt+count);
 
 		cleanImportLists(data);
 		return data;
@@ -584,103 +582,115 @@ public class ImportWorkflowService {
 	 * раз мы сюда пришли - то на локале нет конфигурации выбранного процеса 
 	 * @throws JsonProcessingException */
 	@Transactional
-	private ImportWorkflowDTO createActivitiesConfigsOnLocal(ImportWorkflowDTO data, UserDetailsDTO user) throws ObjectNotFoundException, JsonProcessingException {
-		data.setValid(false);
+	private ImportWorkflowDTO createActivitiesConfigsOnLocal(ImportWorkflowDTO data, String applURL, int count, UserDetailsDTO user) throws ObjectNotFoundException, JsonProcessingException {
 		List<ThingDTO> path = data.getPathImport();
 		if(path != null && path.size() > 0) {
-			// запись словаря должна уже быть создана - ищем ее
-			Concept dictNode = systemServ.findProccessByUrl(data.getProcessURL(), data.getWfURL());
-			if(dictNode != null) {
-				String applurl = literalServ.readValue(LiteralService.APPLICATION_URL, dictNode);
-				if (applurl.length() > 5) {
-					Concept firstActivity = closureServ.loadRoot("configuration." + applurl.toLowerCase());
+			logger.trace("ImportWF: Activities received-" + path.size());
+			Concept firstActivity = closureServ.loadRoot("configuration." + applURL);
 
-					//firstThing = thingServ.saveUnderOwner(firstThing, user);
-
-					// 1 step - all valid
-					int count = 0;
-					for(ThingDTO dto:path) {
-						dto.setNodeId(0l);
-						dto.setParentId(0l);
-						// нужно заменить выбранные значения в словарях
-						//dto.getDictionaries().get("").get
-						for(String key:dto.getDictionaries().keySet()) {
-							DictionaryDTO d = dto.getDictionaries().get(key);
-							Concept dc = closureServ.loadConceptByIdentifierActive(d.getUrl());
-							if(dc != null) {// dictionary is present
-								String selkey = "";
-								for(TableRow r:d.getTable().getRows()) {
-									if(r.getSelected()) {
-										selkey = String.valueOf(r.getRow().get(1).getOriginalValue());
-										break;
-									}
-								}
-								if(!selkey.isEmpty()) {
-									Concept newIt = closureServ.loadConceptByIdentifierActive(selkey);
-									if(newIt != null) {
-										dto.getDictionaries().get(key).getPrevSelected().clear();
-										dto.getDictionaries().get(key).getPrevSelected().add(newIt.getID());
-									}
-								}
-							}
-						}
-						dto = validServ.thing(dto, new ArrayList<AssemblyDTO>(), false);
-						if(dto.isValid()) {
-							count++;
-						}
-					}
-					// 2 step - all valid - create all
-					if(count == path.size()) {
-						ThingDTO firstThing = path.get(0);
-						firstThing.setParentId(0);
-						firstThing.setNodeId(firstActivity.getID());
-						thingServ.storeConfigurationToNode(firstThing.getUrl(), firstActivity);
-						Thing thing = new Thing();
-						thing = boilerServ.thingByNode(firstActivity, thing);
-						thing.setConcept(firstActivity);
-						thing.setUrl(firstThing.getUrl());
-						firstThing = thingServ.storeDataUnderThing(firstThing, user, firstActivity, thing);
-						thing = thingRepo.save(thing);
-
-						for(int i = 1; i < path.size(); i++) {
-							ThingDTO dto = path.get(i);
-
-							Concept node = new Concept();
-							node = closureServ.save(node);
-							node.setIdentifier(node.getID()+"");
-							node = closureServ.saveToTree(firstActivity, node);
-
-							dto.setParentId(firstActivity.getID());
-							dto.setNodeId(node.getID());
-
-							thing = new Thing();
-							thing = boilerServ.thingByNode(node, thing);
-							thing.setConcept(node);
-							thing.setUrl(dto.getUrl());
-
-							//store data under the node and thing
-							dto = thingServ.storeDataUnderThing(dto, user, node, thing);
-							//store a thing
-							thing = boilerServ.saveThing(thing);
-						}
-						data.setValid(true);
-					}
+			int c = 0;
+			// 1 step - all valid
+			for(ThingDTO dto:path) {
+				// нужно заменить выбранные значения в словарях
+				dto = replaceValueInDictionaries(data, dto);
+				dto.setNodeId(0l);
+				dto.setParentId(0l);
+				dto = validServ.thing(dto, new ArrayList<AssemblyDTO>(), false);
+				if(dto.isValid()) {
+					c++;
 				}
 			}
-		}
+			// 2 step - all valid - create all
+			if(c == path.size()) {
+				ThingDTO firstThing = path.get(0);
+				firstThing.setParentId(0);
+				firstThing.setNodeId(firstActivity.getID());
+				thingServ.storeConfigurationToNode(firstThing.getUrl(), firstActivity);
+				Thing thing = new Thing();
+				thing = boilerServ.thingByNode(firstActivity, thing);
+				thing.setConcept(firstActivity);
+				thing.setUrl(firstThing.getUrl());
+				firstThing = thingServ.storeDataUnderThing(firstThing, user, firstActivity, thing);
+				thing = thingRepo.save(thing);
+				count++;
+				
+				for(int i = 1; i < path.size(); i++) {
+					ThingDTO dto = path.get(i);
 
-		if(data.isValid()) {
-			data.getStatusTable().getRows().get(3).getCellByKey(NAME_COL_VALIDATION).setValue(STATUS_RECEIVED);
-			data.getStatusTable().getRows().get(3).getCellByKey(NAME_COL_IMPORT).setValue(STATUS_RECEIVED);	
-		}else{
-			data.getStatusTable().getRows().get(3).getCellByKey(NAME_COL_VALIDATION).setValue(data.getIdentifier());
-			data.getStatusTable().getRows().get(3).getCellByKey(NAME_COL_IMPORT).setValue(STATUS_ERROR);
-		}
+					Concept node = new Concept();
+					node = closureServ.save(node);
+					node.setIdentifier(node.getID()+"");
+					node = closureServ.saveToTree(firstActivity, node);
 
-		cleanImportLists(data);
+					dto.setParentId(firstActivity.getID());
+					dto.setNodeId(node.getID());
+
+					thing = new Thing();
+					thing = boilerServ.thingByNode(node, thing);
+					thing.setConcept(node);
+					thing.setUrl(dto.getUrl());
+
+					//store data under the node and thing
+					dto = thingServ.storeDataUnderThing(dto, user, node, thing);
+					//store a thing
+					thing = boilerServ.saveThing(thing);
+					count++;
+				}
+				data.setValid(true);
+			}
+		}
+		logger.trace("ImportWF: Activities created-" + count);
 		return data;
 	}
 
+	/**проверим есть ли словари исполнителей и финализации в БД 
+	если нет - создадим
+	так же заменим в активностях выбранные значения на значения из текущей БД*/
+	private ThingDTO replaceValueInDictionaries(ImportWorkflowDTO data, ThingDTO dto) {
+		try {
+			Map<String, Map<Long, List<DictNodeDTO>>> dicts = data.getDictsImport();
+			for(String urldict:dicts.keySet()) {
+				Concept root = closureServ.loadConceptByIdentifierActive(urldict);
+				if(root == null) {
+					Map<Long, List<DictNodeDTO>> dict = dicts.get(urldict);
+					buildDict(urldict, dict, root);
+				}
+			}
+			
+			if(dto != null) {
+				Concept execConcept = null;
+				Concept finalConcept = null;
+				
+				List<String> vals = data.getPathImportDict().get(dto.getNodeId());
+				if(vals != null && vals.get(0) != null)
+					execConcept = closureServ.loadConceptByIdentifierActive(vals.get(0));
+				if(vals != null && vals.get(1) != null)
+					finalConcept = closureServ.loadConceptByIdentifierActive(vals.get(1));
+				
+				DictionaryDTO dictExec = dto.getDictionaries().get(AssemblyService.ACTIVITY_EXECUTIVES);
+				dictExec.getPrevSelected().clear();
+				if(dictExec != null && execConcept != null) {
+					dictExec.getPrevSelected().add(execConcept.getID());
+				}
+			
+				DictionaryDTO dictFinal = dto.getDictionaries().get(AssemblyService.ACTIVITY_CONFIG_FINALIZE);
+				dictFinal.getPrevSelected().clear();
+				if(dictFinal != null) {
+					if(finalConcept == null) {// если из главного пришло не понятное значение, для всех активити ставим НО, для последнего Ацепт
+						Concept finDict = closureServ.loadConceptByIdentifier(SystemService.DICTIONARY_SYSTEM_FINALIZATION);
+						finalConcept = closureServ.findConceptInBranchByIdentifier(finDict, SystemService.FINAL_ACCEPT);
+					}
+					
+					if(finalConcept != null)
+						dictFinal.getPrevSelected().add(finalConcept.getID());
+				}
+			}
+		} catch (ObjectNotFoundException e) {
+			e.printStackTrace();
+		}
+		return dto;
+	}
+	
 	private ImportWorkflowDTO requestToMainServer(ImportWorkflowDTO data, String req) {
 		try {
 			String url = data.getServerurl() + req;
@@ -688,8 +698,8 @@ public class ImportWorkflowService {
 
 			if(r != null && r.getBody() != null && r.getStatusCode() == HttpStatus.OK) {
 				data = r.getBody();
-				data.setValid(true);
-				data.setIdentifier("");
+				//data.setValid(true);
+				//data.setIdentifier("");
 			}
 		}
 		catch (RestClientException e) {
@@ -707,6 +717,7 @@ public class ImportWorkflowService {
 		data.getConfigImport().clear();
 		data.getResImport().clear();
 		data.getPathImport().clear();
+		data.getPathImportDict().clear();
 	}
 
 	private Headers createHeadersStatus(Headers ret) {
@@ -736,5 +747,37 @@ public class ImportWorkflowService {
 				0));
 		ret= boilerServ.translateHeaders(ret);
 		return ret;
+	}
+	
+	private ImportWorkflowDTO printResult(ImportWorkflowDTO data, int numRow, int avail, int receiv, int tot) {
+		String str = "Available " + avail + "; received new " + receiv + "; total " + tot;
+		String s = "Dictionaries ";
+		switch (numRow) {
+		case 0:
+			s = "Dictionaries ";
+			break;
+		case 1:
+			s = "Resources ";
+			break;
+		case 2:
+			s = "Data Configurations ";
+			break;
+		case 3:
+			s = "WorkFlow ";
+			break;
+		}
+		
+		if(data.isValid()) {
+			s += " Success. " + str;
+			data.getStatusTable().getRows().get(numRow).getCellByKey(NAME_COL_VALIDATION).setValue(STATUS_RECEIVED);
+			if(numRow < 3)
+				data.getStatusTable().getRows().get(numRow + 1).getCellByKey(NAME_COL_VALIDATION).setValue(STATUS_RECEIVING);
+		}else {
+			s += " Error!. " + str + ". " + data.getIdentifier();
+			data.getStatusTable().getRows().get(numRow).getCellByKey(NAME_COL_VALIDATION).setValue(STATUS_ERROR);
+		}
+		data.getStatusTable().getRows().get(numRow).getCellByKey(NAME_COL_IMPORT).setValue(s);
+		data.setIdentifier(s);
+		return data;
 	}
 }

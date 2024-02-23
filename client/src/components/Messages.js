@@ -58,7 +58,7 @@ class Messages extends Component{
     load(){
         Fetchers.postJSONNoSpinner("/api/admin/messages/load", this.state.data, (query,responce)=>{
             this.state.data=responce
-            this.setState(this.state.data)
+            this.setState(this.state)
             
         })
     }

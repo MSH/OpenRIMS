@@ -603,6 +603,15 @@ public class ResourceService {
 	public ResponseEntity<Resource> adminHelpMessages() throws ObjectNotFoundException, IOException {
 		return downloadFile("messages.manual","UserExperienceLanguages.pdf");
 	}
+	/**
+	 * Help import ATC codes
+	 * @return
+	 * @throws ObjectNotFoundException
+	 * @throws IOException
+	 */
+	public ResponseEntity<Resource> adminHelpImportATC() throws ObjectNotFoundException, IOException {
+		return downloadFile("atc.import","ATCImport.pdf");
+	}
 
 
 }

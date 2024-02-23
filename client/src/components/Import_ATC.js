@@ -19,6 +19,7 @@ class Import_ATC extends Component{
             labels:{
                 global_cancel:'',
                 global_save:'',
+                global_help:'',
                 continue:'',
                 reload:"",
                 startImport :""
@@ -93,6 +94,12 @@ class Import_ATC extends Component{
         return(
             <div className="mb-1 d-flex justify-content-end">
                 <Button size="sm"
+                className="mr-1" color="info"
+                onClick={()=>{
+                    window.open('/api/admin/help/import/atc','_blank').focus()
+                }}
+                >{this.state.labels.global_help}</Button>{' '}
+                <Button size="sm"
                 className="mr-1" color="success"
                 hidden={this.state.data.readOnly}
                 onClick={()=>{
@@ -111,6 +118,7 @@ class Import_ATC extends Component{
 
                 <Button size="sm"
                 className="mr-1" color="info"
+                outline
                 onClick={()=>{
                     window.location="/"+Navigator.tabSetName()+"#"+Navigator.tabName()
                 }}

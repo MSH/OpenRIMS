@@ -98,7 +98,7 @@ class Interval extends Component{
         if(this.props.data.reload){
             delete this.props.data.reload
             this.state.data=this.props.data
-            this.setState(this.state.data)
+            this.setState(this.state)
         }
     }
 

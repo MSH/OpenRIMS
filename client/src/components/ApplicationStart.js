@@ -358,7 +358,7 @@ ApplicationStart.propTypes={
             url:PropTypes.string.isRequired,            //url of an application, i.e. application.guest
             applDictNodeId:PropTypes.number,            //id of dictionary node that describes an application
             historyId:PropTypes.number.isRequired,      //id of the histry record to determine activity and data. Zero means new or unknown yet
-            dataId:PropTypes.number.isRequired,         //id of application data
+            dataId:PropTypes.number,         //id of application data
             modiUnitId:PropTypes.number,                //id of data unit selected to modify
             prefLabel:PropTypes.string,                 //preflabel by default, if needed
         }

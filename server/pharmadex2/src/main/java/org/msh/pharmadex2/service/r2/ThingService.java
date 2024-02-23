@@ -1536,9 +1536,9 @@ public class ThingService {
 					regNode=closureServ.loadConceptById(regDto.getNodeID());
 					reg=boilerServ.registerByConcept(regNode);
 				}
-				if(regDto.empty()) {//create new
-					regDto = registerServ.askNewNumber(regDto);
-				}
+				//if(regDto.empty()) {//create new (deprecated 01022024 ik)
+					//regDto = registerServ.askNewNumber(regDto);
+				//}
 				Concept root = closureServ.loadRoot(regDto.getUrl());
 				Concept owner = closureServ.saveToTree(root, user.getEmail());
 				regNode = closureServ.save(regNode);

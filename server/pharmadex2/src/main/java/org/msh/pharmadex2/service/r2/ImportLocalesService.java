@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -13,6 +14,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -39,6 +42,7 @@ import org.msh.pharmadex2.dto.FileDTO;
 import org.msh.pharmadex2.dto.ImportLocalesDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
+import org.msh.pharmadex2.dto.enums.AssistantEnum;
 import org.msh.pharmadex2.dto.log.ImportLanguageDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.common.ValidationService;
@@ -419,6 +423,11 @@ public class ImportLocalesService {
 	}
 	/**
 	 * Create table contains lost messages
+	 * <ul>
+	 * <li>First, all message keys from static/shablon/allmessages.out prepared by the external tool
+	 * <li>Second, all names of variables
+	 * <li>Third, all enums from DTO pack (Add them manually!!!!)
+	 * </ul> 
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
@@ -453,6 +462,14 @@ public class ImportLocalesService {
 		for(TableRow row : vars) {
 			usedKeys.add(row.getRow().get(0).getValue().trim());
 		}
+		//Enums from DTO pack
+		List<String> enumNames = Stream.of(AssistantEnum.values())
+                .map(Enum::name)
+                .collect(Collectors.toList());
+		for(String name : enumNames) {
+			usedKeys.add(name);
+		}
+		
 		//exclude existing to get lost
 		List<String> lost = new ArrayList<String>();
 		for(String key : usedKeys) {

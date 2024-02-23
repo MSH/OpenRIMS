@@ -59,8 +59,9 @@ class URLButtons extends Component{
             <ButtonGroup>
                 <Button title={this.props.title}
                     onClick={()=>window.open('/admin#urlassistant/'+param,'_blank')}
+                    color='primary'
                 >
-                    <i className="fa fa-sm fa-question-circle" aria-hidden="true"></i>
+                    <i className="far fa-edit" aria-hidden="true"></i>
                 </Button>
             </ButtonGroup> 
         )

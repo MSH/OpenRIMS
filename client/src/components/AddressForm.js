@@ -99,7 +99,7 @@ class AddressForm extends Component{
             if(data.subject=='onSelectionChange'){
                 this.state.data.dictionary = data.data
                 this.state.data.marker  = {}
-                this.setState(this.state.data)
+                this.setState(this.state)
                 Navigator.message(this.state.identifier,this.props.recipient, 'onSelectionChange', this.state.data)
             }
         }
@@ -120,7 +120,7 @@ class AddressForm extends Component{
            delete this.props.data.reload
            this.state.data=this.props.data
            this.state.data.dictionary.reload=true
-           this.setState(this.state.data)
+           this.setState(this.state)
        }
     }
     

@@ -3,6 +3,7 @@ package org.msh.pharmadex2;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.msh.pdex2.i18n.Messages;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.auth.UserRoleDto;
 import org.msh.pharmadex2.service.common.UserService;
@@ -46,6 +47,8 @@ public class WebSecurity {
 	UserService userService;
 	@Autowired
 	PasswordEncoder encoder;
+	@Autowired
+	Messages messages;
 	
 	public static final String PDX2_URL_COOKIE = "PDX2_SENDURL";
 
@@ -70,8 +73,6 @@ public class WebSecurity {
 			.csrf().disable()
 			.authorizeRequests()
 			.antMatchers("/form/login").permitAll()
-			.antMatchers("/company/login").permitAll()
-			.antMatchers("/oauth_login").permitAll()
 			.antMatchers("/").permitAll()
 			//.antMatchers("/graphql").permitAll()
 			//.antMatchers("/graphql").permitAll()
@@ -82,8 +83,6 @@ public class WebSecurity {
 			.antMatchers("/api/public/**").permitAll()
 			.antMatchers("/landing").permitAll()
 			.antMatchers("/api/landing/report/**").permitAll()
-			.antMatchers("/form/login").permitAll()
-			.antMatchers("/oauth_login").permitAll()
 			.antMatchers("/api/common/**").permitAll()
 			.antMatchers("/api/guest/**").hasAuthority("ROLE_GUEST")
 			.antMatchers("/guest/**").hasAuthority("ROLE_GUEST")
@@ -112,11 +111,11 @@ public class WebSecurity {
 			.formLogin()
 			.loginPage("/form/login")
 			.failureUrl("/form/login")
+			.successHandler(new GoogleAuthenticationSuccessHandler())
 			.and()
 			.logout()
 			.logoutSuccessHandler(new PdxLogoutSuccessHandler())
 			.deleteCookies("PDX2_SESSION","remember-me", PDX2_URL_COOKIE)
-			//.logoutSuccessUrl("/")
 			.and()
 			.rememberMe().key("арозаупаланалапуазора")
 			.and()			
@@ -141,6 +140,7 @@ public class WebSecurity {
 			.and()
 			.csrf().disable()
 			.authorizeRequests()
+			.antMatchers("/form/login").permitAll()
 			.antMatchers("/").permitAll()
 			//.antMatchers("/graphql").permitAll()
 			//.antMatchers("/graphql").permitAll()
@@ -151,9 +151,6 @@ public class WebSecurity {
 			.antMatchers("/api/public/**").permitAll()
 			.antMatchers("/landing").permitAll()
 			.antMatchers("/api/landing/report/**").permitAll()
-			.antMatchers("/form/login").permitAll()
-			.antMatchers("/company/login").permitAll()
-			.antMatchers("/oauth_login").permitAll()
 			.antMatchers("/api/common/**").permitAll()
 			.antMatchers("/api/guest/**").hasAuthority("ROLE_GUEST")
 			.antMatchers("/guest/**").hasAuthority("ROLE_GUEST")
@@ -180,7 +177,7 @@ public class WebSecurity {
 			.anyRequest().denyAll()
 			.and()
 			.oauth2Login()
-				.loginPage("/oauth_login")
+				.loginPage("/form/login")
 				.successHandler(new GoogleAuthenticationSuccessHandler())
 			.and()
 			.logout()
@@ -205,10 +202,13 @@ public class WebSecurity {
 		return (userRequest) -> {
 			OidcUser oidcUser = delegate.loadUser(userRequest);
 			Set<GrantedAuthority> mappedAuthorities = new HashSet<>();
-			UserDetailsDTO userDetails = userService.loadByEmail(oidcUser.getEmail());
-			if (userDetails != null) {
+			
+			messages.verifLocaleInLCH();
+			
+			UserDetailsDTO userDetails = userService.loadUserByEmail(oidcUser.getEmail(), true);
+			if (userDetails != null) {// user is present in tbl User
 				if(userDetails.isLocked()) {
-					return oidcUser;						//disable locked users. It works for unknown reason!
+					return oidcUser;//disable locked users. It works for unknown reason!
 				}
 				mappedAuthorities.addAll(userDetails.getGranted());
 			}else {
@@ -217,6 +217,7 @@ public class WebSecurity {
 				urd.setAuthority("ROLE_GUEST");
 				mappedAuthorities.add(urd);
 			}
+
 			OidcUser oidcUser1 = new DefaultOidcUser(mappedAuthorities, oidcUser.getIdToken(), oidcUser.getUserInfo());
 			return oidcUser1;
 		};
@@ -239,5 +240,4 @@ public class WebSecurity {
 	public UserDetailsService userDetailsService() {
 		return userService;
 	}
-
 }

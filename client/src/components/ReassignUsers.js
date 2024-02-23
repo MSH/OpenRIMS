@@ -11,6 +11,7 @@ import TableSearch from './utils/TableSearch'
 import Navigator from './utils/Navigator'
 import AsyncInform from './AsyncInform'
 import ReassignUsersLog from './ReassignUsersLog'
+import Alerts from './utils/Alerts'
 
 /**
  * Reassign a email for an applicant user
@@ -21,10 +22,11 @@ class ReassignUsers extends Component{
         this.state={
             identifier:Date.now().toString(),
             data:{},            //ReassignUserDTO.java
+            showProcess:false,  //show process bar instead a form
             selectApplicantOnly:true,   //allow only "Select an applicant"
             expandDetails:false,        //expand "details" section
             expandIcon:"fas fa-caret-right",    
-            
+            reassignFrom:'',
             labels:{
                 reassign_email_applicant:'',
                 global_cancel:'',
@@ -47,6 +49,7 @@ class ReassignUsers extends Component{
         this.loadDetails=this.loadDetails.bind(this)
         this.selectApplicantOnly=this.selectApplicantOnly.bind(this)
         this.placeInputForm=this.placeInputForm.bind(this)
+        this.reassign=this.reassign.bind(this)
     }
 
     /**
@@ -55,12 +58,31 @@ class ReassignUsers extends Component{
      */
         eventProcessor(event){
             let data=event.data
+            if(data.to== this.state.identifier && data.subject=='OnAsyncProcessCompleted'){
+                this.state.showProgress=false
+                this.state.data={}
+                this.searchApplicant()
+            }
            
         }
 
     componentDidMount(){
         window.addEventListener("message",this.eventProcessor)
-        this.searchApplicant()
+        Fetchers.postJSON("/api/admin/data/import/progress",{},(query,result)=>{
+            if(result.completed){               //it means that the any data import process is not running
+                this.state.showProgress=false
+                this.searchApplicant()
+            }else{
+                this.state.showProgress=result.processName=="reassignApplicant";
+                if(this.state.showProgress){
+                    this.setState(this.state)
+                }else{
+                    this.searchApplicant()         //another process is running
+                }
+            }
+        })
+
+       
     }
 
     componentWillUnmount(){
@@ -115,6 +137,21 @@ class ReassignUsers extends Component{
         })
     }
     /**
+     * Reassign users
+     */
+    reassign(){
+        Fetchers.postJSON("/api/admin/reassign/applicant/run", this.state.data, (query,result)=>{
+            this.state.data=result
+            if(!this.state.data.valid){
+                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'danger'})
+            }else{
+                this.state.showProgress=true
+            }
+            this.setState(this.state)
+        })
+    }
+
+    /**
      * place data input form
      * Also possibe execution progress form
      */
@@ -151,13 +188,14 @@ class ReassignUsers extends Component{
                             label={this.state.labels.route_action}
                             color='primary'
                             onClick={()=>{
-                                Fetchers.postJSON("/api/admin/reassign/applicant/run", this.state.data, (query,result)=>{
-                                    this.state.data=result
-                                    if(!this.state.data.valid){
-                                        Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'danger'})
-                                    }
-                                    this.setState(this.state)
-                                })
+                                Alerts.warning(this.state.labels.reassign_email_applicant + 
+                                                        " " +this.state.reassignFrom + " -> "+ this.state.data.reassignTo.value,
+                                    ()=>{   //yes
+                                        this.reassign()
+                                    },
+                                    ()=>{   //no
+                                        //nothing to do    
+                                    })
                             }}
                         />
                     </Col>
@@ -189,6 +227,11 @@ class ReassignUsers extends Component{
                                             rows.forEach((element,index) => {
                                                 if(index==rowno){
                                                     element.selected=!element.selected
+                                                    if(element.selected){
+                                                        this.state.reassignFrom=element.row[0].value
+                                                    }else{
+                                                        this.state.reassignFrom=''
+                                                    }
                                                 }else{
                                                     element.selected=false
                                                 }
@@ -260,21 +303,22 @@ class ReassignUsers extends Component{
         Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.starting, color:'info'})
         return(
             <AsyncInform 
-                loadAPI='/api/admin/reassign/appicant/progress/load' 
-                cancelAPI='/api/admin/reassign/appicant/progress/cancel'
+                recipient={this.state.identifier}
+                loadAPI='/api/admin/reassign/appicant/progress/load'
             />
         )
     }
 
     render(){
+        if(this.state.showProgress){
+            return(this.placeProgressForm())
+        }
+
         if(this.state.data.applicants == undefined || this.state.labels.locale == undefined){
             return Pharmadex.wait()
         }
-        if(this.state.data.showProgress){
-            return(this.placeProgressForm())
-        }else{
-            return(this.placeInputForm())
-        }
+
+        return(this.placeInputForm())
  
     }
 

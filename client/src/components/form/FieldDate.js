@@ -15,6 +15,7 @@ class FieldDate extends Component{
 
     constructor(props){
         super(props)
+        this.identifier=Math.floor(Math.random() * 10000)
         this.isValid=this.isValid.bind(this)
         this.isStrict=this.isStrict.bind(this)
         this.data=this.data.bind(this)
@@ -58,7 +59,7 @@ class FieldDate extends Component{
                 <Label for={key}>
                     {component.state.labels[key]}
                 </Label>
-                <CalendarPicker bsSize="sm" id={key} locale={component.state.labels.locale.replace("_","-")}
+                <CalendarPicker bsSize="sm" id={this.identifier+''} locale={component.state.labels.locale.replace("_","-")}
                 valid={this.isValid()}
                 strict={this.isStrict()}
                 suggest={data[key].suggest}

@@ -55,7 +55,7 @@ public class AtcInnExcService {
 		if(table.getHeaders().getHeaders().size()==0) {
 			table.setHeaders(createAtcHeaders(table.getHeaders(), data.isReadOnly()));
 		}
-		if(thingDto.getNodeId()>0 && !ImportATCcodesService.getUploadFlag().get()) {
+		if(thingDto.getNodeId()>0) {// && !ImportATCcodesService.getUploadFlag().get()) {
 			jdbcRepo.atc_selected(thingDto.getNodeId());
 			List<TableRow> rows=jdbcRepo.qtbGroupReport("select * from atc_selected", "","", table.getHeaders());
 			TableQtb.tablePage(rows, table);
@@ -79,7 +79,7 @@ public class AtcInnExcService {
 		if(data.getSelectedtable().getHeaders().getHeaders().size()==0) {
 			data.getSelectedtable().setHeaders(createAtcHeaders(data.getSelectedtable().getHeaders(), data.isReadOnly()));
 		}
-		if(!ImportATCcodesService.getUploadFlag().get()) {
+		if(true ) {//!ImportATCcodesService.getUploadFlag().get()) {
 			jdbcRepo.atc_codes(data.getDictUrl());
 			String select = "SELECT * from atc_codes";
 			List<TableRow> rows= jdbcRepo.qtbGroupReport(select, "", "", table.getHeaders());

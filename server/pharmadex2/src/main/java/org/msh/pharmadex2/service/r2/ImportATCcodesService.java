@@ -48,7 +48,6 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 public class ImportATCcodesService {
 
 	private static final Logger logger = LoggerFactory.getLogger(ImportATCcodesService.class);
-	private static AtomicBoolean uploadFlag = new AtomicBoolean(false);		//avoid usage of components while import is in process
 	private static AtomicInteger counter = new AtomicInteger(0);					//how many imported
 	private static AtomicInteger total = new AtomicInteger(0);						//how many to import
 
@@ -84,13 +83,6 @@ public class ImportATCcodesService {
 	private static int COLUMN_NOTE=5;
 
 
-	public static AtomicBoolean getUploadFlag() {
-		return uploadFlag;
-	}
-	public static void setUploadFlag(AtomicBoolean uploadFlag) {
-		ImportATCcodesService.uploadFlag = uploadFlag;
-	}
-
 	public static AtomicInteger getCounter() {
 		return counter;
 	}
@@ -124,70 +116,21 @@ public class ImportATCcodesService {
 		}else {
 			data=thingServ.loadThing(data, user);
 		}
-		data.setReadOnly(getUploadFlag().get());
 		return data;
 	}
 
 	/**
-	 * Really run import asynchronous
-	 * @param data
-	 * @param user
-	 */
-	@Async
-	public void importRunAsync(ThingDTO data, UserDetailsDTO user) {
-		ImportATCcodesService.setUploadFlag(new AtomicBoolean(true));
-		try {
-			setUploadFlag(new AtomicBoolean(true));
-			importRun(data,user);
-			setUploadFlag(new AtomicBoolean(false));
-		} catch (ObjectNotFoundException | IOException e) {
-			setUploadFlag(new AtomicBoolean(false));
-			e.printStackTrace();
-			try {
-				writeProtocol(data, user,e.getMessage());
-			} catch (ObjectNotFoundException | JsonProcessingException e1) {
-				e1.printStackTrace();
-			}
-		}
-		finally {
-			setUploadFlag(new AtomicBoolean(false));
-		}
-	}
-
-	/**
-	 * Write a protocol data
-	 * @param data
-	 * @param user
-	 * @param message
-	 * @throws ObjectNotFoundException 
-	 * @throws JsonProcessingException 
-	 */
-	@Transactional
-	private void writeProtocol(ThingDTO data, UserDetailsDTO user, String message) throws ObjectNotFoundException, JsonProcessingException {
-		data=importLoad(data, user);
-		String mess = 
-				DateTimeFormatter.ISO_DATE_TIME.format(LocalDateTime.now())
-				+" "
-				+message 
-				+ " "
-				+getCounter().get()
-				+"/"+getTotal().get();
-		data.getLiterals().get(AssemblyService.DATAIMPORT_RESULT).setValue(mess);
-		data=thingServ.saveUnderParent(data, user);
-		logger.trace(mess);
-	}
-	/**
-	 * Run import
+	 * Really run ATC import
 	 * @param data
 	 * @param user
 	 * @throws ObjectNotFoundException
 	 * @throws IOException
 	 */
-	public void importRun(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException, IOException{
+	@Transactional
+	public void importRunWorker(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException, IOException{
 		data=thingServ.saveUnderParent(data, user);
 		setTotal(new AtomicInteger(0));
 		setCounter(new AtomicInteger(0));
-		writeProtocol(data, user, messages.get("btn_startimport"));
 		XSSFSheet sheet = loadSheet(data);
 		if(sheet != null){
 			Concept rootMain = deactiveCodes();
@@ -196,11 +139,8 @@ public class ImportATCcodesService {
 				createFileError(data, user,sheet);
 			}
 		}else {
-			writeProtocol(data, user,messages.get("error"));
-			return;
+			//TODO error message to AsyncSErvice#context
 		}
-		writeProtocol(data, user, messages.get("completedby"));
-		ImportATCcodesService.setUploadFlag(new AtomicBoolean(false));
 	}
 
 	/**
@@ -232,13 +172,12 @@ public class ImportATCcodesService {
 				break;
 			}
 		}
-		writeProtocol(data, user, messages.get("btn_startimport"));
 		if(firstRow<sh.getLastRowNum()) {
 			//import
 			for (int i = firstRow; i <= sh.getLastRowNum(); i++) {
 				setCounter(new AtomicInteger(i));
 				if(i>99 && i % 100 == 0) {
-					writeProtocol(data, user, messages.get("btn_startimport"));
+					//TODO message 
 				}
 				XSSFRow row = sh.getRow(i);
 				String atcCode = cellAsString(row, COLUMN_CODE);

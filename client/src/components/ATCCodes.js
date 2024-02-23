@@ -134,7 +134,7 @@ class ATCCodes extends Component{
         }
         
         Navigator.message(this.state.identifier, this.props.recipient, "onSelectionChange",this.state.data)
-        this.setState(this.state.data)
+        this.setState(this.state)
     }
 
     deselectRow(rowNumber){
@@ -149,7 +149,7 @@ class ATCCodes extends Component{
             }
         });
         Navigator.message(this.state.identifier, this.props.recipient, "onSelectionChange",this.state.data)
-        this.setState(this.state.data)
+        this.setState(this.state)
     }
     /**
      * Read only or not read only

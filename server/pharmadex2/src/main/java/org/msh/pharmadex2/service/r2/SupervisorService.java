@@ -436,20 +436,21 @@ public class SupervisorService {
 
 	/**
 	 * Verify and save a definition of variable
-	 * 
+	 * 30012024 khomka
+	 * в импорте нужен strict=false
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	public DataVariableDTO dataCollectionVariableSave(DataVariableDTO data) throws ObjectNotFoundException {
+	public DataVariableDTO dataCollectionVariableSave(DataVariableDTO data, boolean strict) throws ObjectNotFoundException {
 		if (data.getNodeId() > 0) {
-			data.setStrict(true);
+			data.setStrict(strict);
 			if (data.getClazz().getValue().getCode().equalsIgnoreCase("things")) {
 				data.getRow().setValue(100l);
 				data.getCol().setValue(100l);
 			}
-			data = validServ.variable(data, true, false);
+			data = validServ.variable(data, strict, false);
 			if(data.isValid() || !data.isStrict()) {
 				// save a node
 				Concept node = new Concept();
@@ -464,7 +465,7 @@ public class SupervisorService {
 				node = closureServ.saveToTree(root, node);
 				node = literalServ.prefAndDescription(data.getDescription().getValue(),
 						data.getDescription().getValue(), node);
-				// save a table record
+				// save a table record так (node, false) и было до 30012024
 				Assembly assm = boilerServ.assemblyByVariable(node, false);
 				assm = entityServ.assembly(data, node, assm);
 				assm = boilerServ.assemblySave(assm);
@@ -474,7 +475,7 @@ public class SupervisorService {
 			throw new ObjectNotFoundException("dataCollectionVariableSave. Data collection node id is ZERO", logger);
 		}
 	}
-
+	
 	/**
 	 * Preview a thing created from data definition
 	 * 
@@ -513,6 +514,7 @@ public class SupervisorService {
 		return data;
 	}
 
+	
 	/**
 	 * Save a definition of the resource
 	 * 
@@ -569,7 +571,7 @@ public class SupervisorService {
 					dataConfig.getRequired().getValue().setCode("Yes");
 					dataConfig.setUrl(data.getConfigUrl());
 					dataConfig.getDictUrl().setValue("dictionary."+data.getUrl());
-					dataCollectionVariableSave(dataConfig);
+					dataCollectionVariableSave(dataConfig, true);
 				}else {
 					if(!ret.getActive()) {
 						ret.setActive(true);
@@ -587,6 +589,7 @@ public class SupervisorService {
 							}
 							if(doc.size()==0 || doc.size()>1 || doc.size()+hea.size()!=datas.size()) {
 								data.addError(messages.get("errorConfigDataResource"));
+								logger.error(messages.get("errorConfigDataResource"));
 							}
 						}//
 					}else {
@@ -598,7 +601,7 @@ public class SupervisorService {
 						dataConfig.getRequired().getValue().setCode("Yes");
 						dataConfig.setUrl(data.getConfigUrl());
 						dataConfig.getDictUrl().setValue("dictionary."+data.getUrl());
-						dataCollectionVariableSave(dataConfig);
+						dataCollectionVariableSave(dataConfig, true);
 					}
 				}
 				//create dictionary resource 29/0/2023
@@ -974,7 +977,7 @@ public class SupervisorService {
 		for (DataVariableDTO dv : variables) {
 			dv.setNodeId(data.getNodeId());
 			dv.setVarNodeId(0);
-			dv = dataCollectionVariableSave(dv);
+			dv = dataCollectionVariableSave(dv, true);
 		}
 
 		return data;

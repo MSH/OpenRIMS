@@ -52,6 +52,7 @@ import org.msh.pharmadex2.service.r2.ActuatorService;
 import org.msh.pharmadex2.service.r2.ApplicationService;
 import org.msh.pharmadex2.service.r2.AssemblyService;
 import org.msh.pharmadex2.service.r2.AssistanceService;
+import org.msh.pharmadex2.service.r2.AsyncService;
 import org.msh.pharmadex2.service.r2.ContentService;
 import org.msh.pharmadex2.service.r2.DWHService;
 import org.msh.pharmadex2.service.r2.DictService;
@@ -70,7 +71,6 @@ import org.msh.pharmadex2.service.r2.MetricService;
 import org.msh.pharmadex2.service.r2.PubOrgService;
 import org.msh.pharmadex2.service.r2.ReassignActivitiesService;
 import org.msh.pharmadex2.service.r2.ReassignUserService;
-import org.msh.pharmadex2.service.r2.ReassignUserServiceAsync;
 import org.msh.pharmadex2.service.r2.ReportService;
 import org.msh.pharmadex2.service.r2.ResolverService;
 import org.msh.pharmadex2.service.r2.ResourceService;
@@ -162,8 +162,6 @@ public class AdminAPI {
 	@Autowired
 	ReassignUserService reassignService;
 	@Autowired
-	ReassignUserServiceAsync reassignServiceAsync;
-	@Autowired
 	private AssistanceService assistServ;
 	@Autowired
 	private ImportLocalesService importLocalesServ;
@@ -175,6 +173,8 @@ public class AdminAPI {
 	private ImportWorkflowService importwfServ;
 	@Autowired
 	private ReassignActivitiesService reassignActivServ;
+	@Autowired
+	private AsyncService asyncService;
 	/**
 	 * Tiles for landing page
 	 * 
@@ -695,7 +695,7 @@ public class AdminAPI {
 	@PostMapping("/api/admin/data/configuration/variable/save")
 	public DataVariableDTO dataCollectionVariableSave(@RequestBody DataVariableDTO data) throws DataNotFoundException {
 		try {
-			data = superVisServ.dataCollectionVariableSave(data);
+			data = superVisServ.dataCollectionVariableSave(data, true);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -889,8 +889,9 @@ public class AdminAPI {
 
 	@PostMapping("/api/admin/report/configuration/load")
 	public ReportConfigDTO reportConfigurationLoad(Authentication auth,@RequestBody ReportConfigDTO data) throws DataNotFoundException {
-		try {UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-		data = reportServ.reportConfigurationLoad(user, data);
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		try {
+			data = reportServ.reportConfigurationLoad(user, data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -917,6 +918,45 @@ public class AdminAPI {
 				}*/
 
 	/**
+	 * To avoid concurrent data import
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException 
+	 */
+	@PostMapping("/api/admin/data/import/check")
+	public ThingDTO dataImportCheck(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
+		if(asyncService.hasDataImportThread()) {
+			data.addError(messages.get("errorconcurrentdataimport"));
+		}else {
+			try {
+				data.clearErrors();
+			} catch (ObjectNotFoundException e) {
+				throw new DataNotFoundException(e);
+			}
+		}
+		return data;
+	}
+
+	/**
+	 * To avoid concurrent data import
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException 
+	 */
+	@PostMapping("/api/admin/data/import/progress")
+	public AsyncInformDTO dataImportProgress(Authentication auth, @RequestBody AsyncInformDTO data) throws DataNotFoundException {
+		try {
+			data=asyncService.dataImportProgress(data);
+		} catch (JsonProcessingException e) {
+			e.printStackTrace();
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+
+	/**
 	 * Load import admin units feature
 	 * 
 	 * @param data
@@ -937,7 +977,14 @@ public class AdminAPI {
 	@PostMapping("/api/admin/importa/verif")
 	public ThingDTO importAVerif(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
 		try {
-			data = importAdmUnitsService.importAdminunitsVerify(data);// importAService.importAdminunitsVerify(data);
+			data.clearErrors();
+			AsyncInformDTO asyncDTO = new AsyncInformDTO();
+			asyncDTO = asyncService.dataImportProgress(asyncDTO);
+			if(asyncDTO.isCompleted()){
+				data=importAdmUnitsService.importAdminunitsVerify(data);
+			}else {	
+				data.addError(messages.get("anotherprocessisrunning"));
+			}
 		} catch (ObjectNotFoundException | IOException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -945,16 +992,19 @@ public class AdminAPI {
 	}
 
 	@PostMapping("/api/admin/importa/run")
-	public ThingDTO importARun(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
+	public ThingDTO importAdminUnitsRun(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 		try {
-			// importAService.importAdminunitsRun(data);
-			importAdmUnitsService.importAdminunitsRun(data, user);
-			data = thingServ.loadThing(data, user);
-			return data;
-		} catch (ObjectNotFoundException | IOException e) {
+			data.clearErrors();
+		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
+		if(!AsyncService.hasDataImportThread()) {
+			asyncService.importAdminunitsRun(data, user);
+		}else {
+			data=(ThingDTO) asyncService.concurrentError(data);
+		}
+		return data;
 	}
 
 	@PostMapping("/api/admin/import/adminunits/reload")
@@ -964,6 +1014,17 @@ public class AdminAPI {
 		try {
 			data = importAdmUnitsService.importAdminunitsReload(data, user);// importAService.importAdminunitsReload(data,user);
 		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+
+	@PostMapping("/api/admin/import/adminunits/progress")
+	public AsyncInformDTO importAdminUnitsProgress(@RequestBody AsyncInformDTO data) throws DataNotFoundException {
+		try {
+			data=asyncService.dataImportProgress(data);
+		} catch (JsonProcessingException e) {
+			e.printStackTrace();
 			throw new DataNotFoundException(e);
 		}
 		return data;
@@ -986,6 +1047,8 @@ public class AdminAPI {
 		}
 		return data;
 	}
+
+
 
 	@PostMapping("/api/admin/import/legacydata/verif")
 	public ThingDTO importLegacyDataVerif(Authentication auth, @RequestBody ThingDTO data)
@@ -1032,12 +1095,38 @@ public class AdminAPI {
 		metricServ.collectMetricTTR();
 		return data;
 	}
-
+	/**
+	 * DWH Update
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
 	@PostMapping("/api/admin/report/renewexternal")
 	public ReportConfigDTO reportsRenewExternal(Authentication auth, @RequestBody ReportConfigDTO data)
-			throws DataNotFoundException, SQLException {
-		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-		dwhServ.upload();
+			throws DataNotFoundException {
+		try {
+			data.clearErrors();
+			if(!AsyncService.hasDataImportThread()) {
+				asyncService.dwhUploadRun();
+			}else {
+				data=(ReportConfigDTO) asyncService.concurrentError(data);
+			}
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+
+	@PostMapping("/api/admin/dwh/update/progress")
+	public AsyncInformDTO reportsRenewExternal(@RequestBody AsyncInformDTO data)
+			throws DataNotFoundException {
+		try {
+			data=asyncService.dataImportProgress(data);
+		} catch (JsonProcessingException e) {
+			e.printStackTrace();
+			throw new DataNotFoundException(e);
+		}
 		return data;
 	}
 
@@ -1098,7 +1187,11 @@ public class AdminAPI {
 	@PostMapping("/api/admin/import/atccodes/run")
 	public ThingDTO importATCcodesRun(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-		importATCcodesService.importRunAsync(data, user);
+		if(!AsyncService.hasDataImportThread()) {
+			asyncService.importRunAsync(data, user);
+		}else {
+			data.addError(messages.get("errorprocessisrunning"));
+		}
 		return data;
 	}
 
@@ -1187,6 +1280,18 @@ public class AdminAPI {
 		}
 	}
 	
+	@RequestMapping(value="/api/admin/help/import/atc", method = RequestMethod.GET)
+	public ResponseEntity<Resource> helpImportATC() throws DataNotFoundException, IOException {
+		ResponseEntity<Resource> res;
+		try {
+			res = resourceServ.adminHelpImportATC();
+			return res;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+	
+
 	/**
 	 * Import a national language help
 	 * @return
@@ -1203,7 +1308,7 @@ public class AdminAPI {
 			throw new DataNotFoundException(e);
 		}
 	}
-	
+
 	/**
 	 * Import a national language help
 	 * @return
@@ -1446,7 +1551,7 @@ public class AdminAPI {
 		}
 		return data;
 	}
-	
+
 	@PostMapping("/api/admin/importwf/load")
 	public ImportWorkflowDTO loadImportwf(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException{
 		try {
@@ -1457,7 +1562,7 @@ public class AdminAPI {
 
 		return data;
 	}
-	
+
 	@PostMapping("/api/admin/importwf/reload")
 	public ImportWorkflowDTO reloadImportwf(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException{
 		try {
@@ -1485,14 +1590,14 @@ public class AdminAPI {
 
 		return data;
 	}
-	
+
 	@PostMapping("/api/admin/importwf/runimport")
 	public ImportWorkflowDTO runimport(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException, ObjectNotFoundException{
 		data = importwfServ.runimport(data);
 
 		return data;
 	}
-	
+
 	/**
 	 * 
 	 * @param data
@@ -1506,21 +1611,21 @@ public class AdminAPI {
 
 		return data;
 	}
-	
+
 	@PostMapping("/api/admin/importwf/resources")
 	public ImportWorkflowDTO importwfResources(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException, ObjectNotFoundException{
 		data = importwfServ.resources(data);
 
 		return data;
 	}
-	
+
 	@PostMapping("/api/admin/importwf/dataconfigs")
 	public ImportWorkflowDTO dataConfigs(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException, ObjectNotFoundException{
 		data = importwfServ.dataConfigs(data);
 
 		return data;
 	}
-	
+
 	@PostMapping("/api/admin/importwf/wfconfigs")
 	public ImportWorkflowDTO wfConfigs(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException, ObjectNotFoundException, JsonProcessingException{
 		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
@@ -1688,7 +1793,16 @@ public class AdminAPI {
 	public ReassignUserDTO reassignApplicantRun(Authentication auth,@RequestBody ReassignUserDTO data) throws DataNotFoundException {
 		try {
 			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-			data=reassignService.applicantReassign(data, user.getEmail());
+			data.clearErrors();
+			if(!AsyncService.hasDataImportThread()) {
+				data= reassignService.validateEmails(data);
+				if(data.isValid()) {
+					data.setExecName(user.getName() + " ("+user.getEmail()+")");
+					asyncService.reassignApplicantRun(data);
+				}
+			}else {
+				data=(ReassignUserDTO) asyncService.concurrentError(data);
+			}
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -1698,20 +1812,16 @@ public class AdminAPI {
 	 * Load applicant reassigning progress data
 	 * @param data
 	 * @return
+	 * @throws DataNotFoundException 
 	 */
 	@PostMapping("/api/admin/reassign/appicant/progress/load")
-	public AsyncInformDTO reassignApplicantProgressLoad(@RequestBody AsyncInformDTO data) {
-		data=reassignServiceAsync.applicantProgressLoad(data);
-		return data;
-	}
-	/**
-	 * Stop reassign applicant
-	 * @param data
-	 * @return
-	 */
-	@PostMapping("/api/admin/reassign/appicant/progress/cancel")
-	public AsyncInformDTO reassignApplicantProgressCancel(@RequestBody AsyncInformDTO data) {
-		data=reassignServiceAsync.applicantProgressCancel();
+	public AsyncInformDTO reassignApplicantProgressLoad(@RequestBody AsyncInformDTO data) throws DataNotFoundException {
+		try {
+			data=asyncService.dataImportProgress(data);
+		} catch (JsonProcessingException e) {
+			e.printStackTrace();
+			throw new DataNotFoundException(e);
+		}
 		return data;
 	}
 
@@ -1805,7 +1915,7 @@ public class AdminAPI {
 		data=logEventServ.importLocalesLog(data);
 		return data;
 	}
-	
+
 	/**
 	 * Download lost messages keys in xlsx format
 	 * @param data
@@ -1857,7 +1967,7 @@ public class AdminAPI {
 		}
 		return data;
 	}
-	
+
 	/**
 	 * Download or read resource creation guide
 	 * @return
@@ -1875,7 +1985,7 @@ public class AdminAPI {
 		}
 	}
 
-/**
+	/**
 	 * Search for an employee to reassign activities
 	 * @param data
 	 * @return
@@ -1883,9 +1993,9 @@ public class AdminAPI {
 	 */
 	@PostMapping("/api/admin/reassign/employee/load")
 	public ReassignActivitiesDTO reassignEmployeeSearch( @RequestBody ReassignActivitiesDTO data) throws DataNotFoundException, ObjectNotFoundException {
-		 data=reassignActivServ.employeeLoad(data);
-			return data;
-		
+		data=reassignActivServ.employeeLoad(data);
+		return data;
+
 	}
 	/**
 	 * Validate and run employee reassignment
@@ -1902,7 +2012,7 @@ public class AdminAPI {
 		}
 		return data;
 	}
-	
+
 	/**
 	 * Check all rows in table vailableActivities 
 	 * @param data
@@ -1911,10 +2021,10 @@ public class AdminAPI {
 	 */
 	@PostMapping("/api/admin/reassign/employee/selectall")
 	public ReassignActivitiesDTO reassignEmployeeSelectAll(Authentication auth,@RequestBody ReassignActivitiesDTO data){
-			data=reassignActivServ.selectAll(data);
+		data=reassignActivServ.selectAll(data);
 		return data;
 	}
-	
+
 	/**
 	 * De-select all rows in table vailableActivities 
 	 * @param data
@@ -1923,10 +2033,10 @@ public class AdminAPI {
 	 */
 	@PostMapping("/api/admin/reassign/employee/deselectall")
 	public ReassignActivitiesDTO reassignEmployeeDeselectAll(Authentication auth,@RequestBody ReassignActivitiesDTO data){
-			data=reassignActivServ.deselectAll(data);
+		data=reassignActivServ.deselectAll(data);
 		return data;
 	}
-	
+
 	/**
 	 * Show selected rows only in table vailableActivities 
 	 * @param data
@@ -1935,7 +2045,7 @@ public class AdminAPI {
 	 */
 	@PostMapping("/api/admin/reassign/employee/selectonly")
 	public ReassignActivitiesDTO reassignEmployeeSelectOnly(Authentication auth,@RequestBody ReassignActivitiesDTO data){
-			data=reassignActivServ.selectOnly(data);
+		data=reassignActivServ.selectOnly(data);
 		return data;
 	}
 	/**

@@ -648,7 +648,7 @@ public class AssemblyService {
 			assm.setPropertyName(DATAIMPORT_DATA);
 			assm.setUrl("data.import");
 			assm.setDescription(messages.get("pleaseuploadimportdata"));
-			assm.setRequired(true);
+			assm.setRequired(false);
 			assm.setFileTypes(".xlsx");
 			assm.setDictUrl(SystemService.DICTIONARY_SYSTEM_IMPORT_DATA);
 			ret.add(assm);
@@ -695,7 +695,7 @@ public class AssemblyService {
 			assm.setPropertyName("import_electronic_form");
 			assm.setUrl("data.import");
 			assm.setDescription(messages.get("pleaseuploadimportdata"));
-			assm.setRequired(true);
+			assm.setRequired(false);
 			assm.setFileTypes(".xlsx");
 			assm.setDictUrl(SystemService.DICTIONARY_SYSTEM_IMPORT_DATA);
 			ret.add(assm);

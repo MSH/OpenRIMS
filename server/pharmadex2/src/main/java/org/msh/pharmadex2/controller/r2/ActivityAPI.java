@@ -958,10 +958,11 @@ public class ActivityAPI{
 		return data;
 	}
 	/**
+	 * @throws ObjectNotFoundException 
 	 * 
 	 */
 	@PostMapping({ "/api/*/register/number/new" })
-	public RegisterDTO registerNumberNew(Authentication auth, UriComponentsBuilder uri, @RequestBody RegisterDTO data) throws DataNotFoundException {
+	public RegisterDTO registerNumberNew(Authentication auth, UriComponentsBuilder uri, @RequestBody RegisterDTO data) throws DataNotFoundException, ObjectNotFoundException {
 		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
 		accServ.allowAuthenticated(auth, uri);
 		//data.getReg_number().setValue("1234");

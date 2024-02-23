@@ -8,7 +8,6 @@ import java.util.Map;
 import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pharmadex2.dto.form.AllowValidation;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
-import org.msh.pharmadex2.dto.form.OptionDTO;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -36,14 +35,15 @@ public class ImportWorkflowDTO extends AllowValidation{
 	
 	/**  */
 	private boolean selectedOnly = false;
-	/** dictionary URL-data dictionary */
-	//private Map<String, OptionDTO> dataImport = new HashMap<String, OptionDTO>();
 	/** configuration URL-data dictionary */
 	private Map<String, List<DataVariableDTO>> varsImport = new HashMap<String, List<DataVariableDTO>>();
 	private Map<String, DataCollectionDTO> configImport = new HashMap<String, DataCollectionDTO>();
 	private Map<String, ResourceDTO> resImport = new HashMap<String, ResourceDTO>();
 	private List<ThingDTO> pathImport = new ArrayList<ThingDTO>();
+	/** nodeID ThingDTO - list selected values in dictionaries Execitors, finalization */
+	private Map<Long, List<String>> pathImportDict = new HashMap<Long, List<String>>();
 	
+	/** dictionary URL-data dictionary */
 	private Map<String, Map<Long, List<DictNodeDTO>>> dictsImport = new HashMap<String, Map<Long, List<DictNodeDTO>>>();
 	private DictNodeDTO dict = new DictNodeDTO();
 	
@@ -135,14 +135,6 @@ public class ImportWorkflowDTO extends AllowValidation{
 		this.processURL = processURL;
 	}
 
-	/*public Map<String, OptionDTO> getDataImport() {
-		return dataImport;
-	}
-
-	public void setDataImport(Map<String, OptionDTO> dataImport) {
-		this.dataImport = dataImport;
-	}*/
-
 	public Map<String, List<DataVariableDTO>> getVarsImport() {
 		return varsImport;
 	}
@@ -190,7 +182,14 @@ public class ImportWorkflowDTO extends AllowValidation{
 	public void setDict(DictNodeDTO dict) {
 		this.dict = dict;
 	}
-	
+
+	public Map<Long, List<String>> getPathImportDict() {
+		return pathImportDict;
+	}
+
+	public void setPathImportDict(Map<Long, List<String>> pathImportDict) {
+		this.pathImportDict = pathImportDict;
+	}
 	
 }
 

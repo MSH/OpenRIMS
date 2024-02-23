@@ -22,6 +22,7 @@ class UserNotAuthMenu extends Component{
         this.state={
             labels:{
                 imguest:"",
+                clicktologin:"",
                 quickstart:"",
                 login:"",
                 logincompany:'',
@@ -45,13 +46,7 @@ class UserNotAuthMenu extends Component{
         <Collapse isOpen={this.state.isOpen} navbar>
           <Nav className="me-auto" navbar>
             <NavItem>
-              <NavLink href="/login">{this.state.labels.quickstart}</NavLink>
-            </NavItem>
-            <NavItem>
-              <NavLink href="/form/login?view=company">{this.state.labels.logincompany}</NavLink>
-            </NavItem>
-            <NavItem>
-              <NavLink href="/form/login?view=nmra">{this.state.labels.login}</NavLink>
+              <NavLink href="/form/login">{this.state.labels.clicktologin}</NavLink>
             </NavItem>
             <NavItem>
               <NavLink onClick={()=>{Fetchers.logout()}}><span style={{cursor:'pointer'}}>{this.state.labels.logout}</span></NavLink>

@@ -360,28 +360,28 @@ public class PublicAPI{
 	}
 	
 	@PostMapping("/api/public/importwf/dictionaries")
-	public ImportWorkflowDTO validateDictionaries(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException, InterruptedException, ObjectNotFoundException{
+	public ImportWorkflowDTO validateDictionaries(Authentication auth, @RequestBody ImportWorkflowDTO data){
 		data = importWFMainServ.validateDictionaries(data);
 
 		return data;
 	}
 	
 	@PostMapping("/api/public/importwf/resources")
-	public ImportWorkflowDTO validateResources(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException, InterruptedException, ObjectNotFoundException{
+	public ImportWorkflowDTO validateResources(Authentication auth, @RequestBody ImportWorkflowDTO data){
 		data = importWFMainServ.validateResources(data);
 
 		return data;
 	}
 	
 	@PostMapping("/api/public/importwf/dataconfigs")
-	public ImportWorkflowDTO validateDataConfigs(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException, InterruptedException, ObjectNotFoundException{
+	public ImportWorkflowDTO validateDataConfigs(Authentication auth, @RequestBody ImportWorkflowDTO data) {
 		data = importWFMainServ.validateDataConfigs(data);
 
 		return data;
 	}
 	
 	@PostMapping("/api/public/importwf/wf")
-	public ImportWorkflowDTO validateWFConfigs(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException, InterruptedException, ObjectNotFoundException{
+	public ImportWorkflowDTO validateWFConfigs(Authentication auth, @RequestBody ImportWorkflowDTO data) {
 		data = importWFMainServ.validateWF(data);
 
 		return data;

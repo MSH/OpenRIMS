@@ -359,8 +359,6 @@ public class ReportService {
 			data=reportGoogleTools(data, SystemService.DICTIONARY_REPORT_GOOGLETOOLS_NMRA);
 		}
 		data = reportConfiguratuonTable(data);
-
-		data.setEnabledrenewext(dwhServ.enablesBtn());
 		return data;
 	}
 

@@ -26,6 +26,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class ThingDTO extends AllowValidation {
 	//Help document, if one
 	private long helpDocumentID = 0l;
+	//UX identifier
+	private String uxIdentifier="";
 	//Application's data
 	private String applicationUrl="";		//URL of the application, required
 	private long applDictNodeId=0;			//Id of an application's dictionary node
@@ -91,6 +93,14 @@ public class ThingDTO extends AllowValidation {
 	}
 	public void setHelpDocumentID(long helpDocumentID) {
 		this.helpDocumentID = helpDocumentID;
+	}
+	
+	
+	public String getUxIdentifier() {
+		return uxIdentifier;
+	}
+	public void setUxIdentifier(String uxIdentifier) {
+		this.uxIdentifier = uxIdentifier;
 	}
 	public String getApplicationUrl() {
 		return applicationUrl;

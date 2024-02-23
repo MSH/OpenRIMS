@@ -25,8 +25,8 @@ public class Dwhclassifiers implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22227818A83E427EE05C6E")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22227818A83E427EE05C6E", strategy="native")	
+	@GeneratedValue(generator="VAC22227718DA768E99D02BFC")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227718DA768E99D02BFC", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	

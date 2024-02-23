@@ -129,7 +129,7 @@ class FieldInput extends Component{
             data.justloaded=false
             return(
                 <Row>
-                    <Col xs='12' sm='12' lg='12' xl='11'>
+                    <Col xs='12' sm='12' lg='12' xl={12-assistCol}>
                         <FormGroup>
                             <Label for={key}>
                                 {lbl}

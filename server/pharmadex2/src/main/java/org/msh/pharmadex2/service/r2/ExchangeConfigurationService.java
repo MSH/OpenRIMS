@@ -805,7 +805,7 @@ public class ExchangeConfigurationService {
 							dto.setNodeId(node.getID());
 							dto.setVarNodeId(0);
 							dto.setStrict(true);
-							dto = superService.dataCollectionVariableSave(dto);
+							dto = superService.dataCollectionVariableSave(dto, false);
 						}
 					}catch(ObjectNotFoundException e) {
 						data.setValid(false);
@@ -884,7 +884,7 @@ public class ExchangeConfigurationService {
 							dto.setNodeId(node.getID());
 							dto.setVarNodeId(0);
 							dto.setStrict(true);
-							dto = superService.dataCollectionVariableSave(dto);
+							dto = superService.dataCollectionVariableSave(dto, false);
 						}
 					}catch(ObjectNotFoundException e) {
 						data.setValid(false);

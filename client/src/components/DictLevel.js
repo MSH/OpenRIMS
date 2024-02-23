@@ -80,7 +80,7 @@ class DictLevel extends Component{
                 })
                 Fetchers.writeLocaly("dictlevel_search" + this.props.keycomp, "");
             }
-            this.setState(this.state.data)
+            this.setState(this.state)
         })
     }
     /**

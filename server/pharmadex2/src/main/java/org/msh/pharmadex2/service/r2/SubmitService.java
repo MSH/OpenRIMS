@@ -878,37 +878,41 @@ public class SubmitService {
 	@Transactional			// may become public in the future
 	private boolean checkPagesDefined(Concept data) throws ObjectNotFoundException {
 		boolean ret = true;
-		//check persons on the first page
-		if(!checkPagesPersonDefined(data)) {
-			return false;
-		}
-		// get thing
-		Thing thing = new Thing();
-		thing=boilerServ.thingByNode(data, thing);
-		if(thing.getID()>0) {
-			// get all pages
-			Map<String,Concept> pages =new LinkedHashMap<String, Concept>();
-			for(ThingThing tt : thing.getThings()) {
-				pages.put(tt.getUrl().toUpperCase(),tt.getConcept());
+		if(data.getActive()) {
+			//check persons on the first page
+			if(!checkPagesPersonDefined(data)) {
+				return false;
 			}
-			// get data configuration URL
-			Concept owner = closureServ.getParent(data);
-			if(owner != null) {
-				Concept root=closureServ.getParent(owner);
-				if(root != null) {
-					List<Assembly> assms =assmServ.loadDataConfiguration(root.getIdentifier());
-					for(Assembly assm :assms) {
-						if(assm.getClazz().equalsIgnoreCase("things")) {
-							String url = assm.getUrl();
-							Concept page = pages.get(url.toUpperCase());
-							if(page==null) {
-								return false;
-							}else {
-								if(!checkPagesPersonDefined(page)) {
+			// get thing
+			Thing thing = new Thing();
+			thing=boilerServ.thingByNode(data, thing);
+			if(thing.getID()>0) {
+				// get all pages
+				Map<String,Concept> pages =new LinkedHashMap<String, Concept>();
+				for(ThingThing tt : thing.getThings()) {
+					pages.put(tt.getUrl().toUpperCase(),tt.getConcept());
+				}
+				// get data configuration URL
+				Concept owner = closureServ.getParent(data);
+				if(owner != null) {
+					Concept root=closureServ.getParent(owner);
+					if(root != null) {
+						List<Assembly> assms =assmServ.loadDataConfiguration(root.getIdentifier());
+						for(Assembly assm :assms) {
+							if(assm.getClazz().equalsIgnoreCase("things")) {
+								String url = assm.getUrl();
+								Concept page = pages.get(url.toUpperCase());
+								if(page==null) {
 									return false;
+								}else {
+									if(!checkPagesPersonDefined(page)) {
+										return false;
+									}
 								}
 							}
 						}
+					}else {
+						ret=false;
 					}
 				}else {
 					ret=false;
@@ -916,8 +920,6 @@ public class SubmitService {
 			}else {
 				ret=false;
 			}
-		}else {
-			ret=false;
 		}
 		return ret;
 	}
@@ -1209,8 +1211,8 @@ public class SubmitService {
 			String attnote = literalServ.readValue("attnote", curHis.getActConfig());
 			// https://pharmadex.irka.in.ua/public#publicpermitdata/%7B%22permitDataID%22:89984%7D
 			String link=data.getServerUrl()+"/public#publicpermitdata/%7B%22permitDataID%22:"
-			+curHis.getApplicationData().getID()
-			+"%7D";
+					+curHis.getApplicationData().getID()
+					+"%7D";
 			String res = mailService.createAttentionMail(applicantEmail, applName, curActivity, nextActivity, attnote,link);
 			String notes = data.getNotes().getValue();
 			if(notes != null || !notes.isEmpty()) {
@@ -1222,7 +1224,7 @@ public class SubmitService {
 			data.getNotes().setTextArea(true);
 		}
 	}
-	
+
 	// 02102023 khomenska
 	private void sendEmailAttentionByCompanyUser(UserDetailsDTO user, History curHis, ActivitySubmitDTO data)
 			throws ObjectNotFoundException {
@@ -1244,9 +1246,9 @@ public class SubmitService {
 			String attnote = literalServ.readValue("attnote", curHis.getActConfig());
 			// https://pharmadex.irka.in.ua/public#publicpermitdata/%7B%22permitDataID%22:89984%7D
 			String link=data.getServerUrl()+"/public#publicpermitdata/%7B%22permitDataID%22:"
-			+curHis.getApplicationData().getID()
-			+"%7D";
-			
+					+curHis.getApplicationData().getID()
+					+"%7D";
+
 			ThingDTO thDTO = new ThingDTO();
 			thDTO.setNodeId(curHis.getApplicationData().getID());
 			thDTO = thingServ.loadThing(thDTO, user);
@@ -1322,25 +1324,27 @@ public class SubmitService {
 			// create activities, the first will contain the reference to the data of the reassigned one
 			boolean moveData=true;
 			for (Long execId : executors) {
-				Concept userConc = closureServ.loadConceptById(execId);
-				History newHis=appServ.activityCreate(null, actConfig, curHis, userConc.getIdentifier(), data.getNotes().getValue());
-				if(newHis !=null) {		//not reassign to the same executor
-					//the first activity will inherit the data if one
-					if(moveData && curHis.getActivityData()!=null) {
-						newHis.setActivityData(curHis.getActivityData());
-						moveData=false;
-					}
-					//previous notes may be added too
-					if(curHis.getPrevNotes()!=null) {
-						String prevNotes=curHis.getPrevNotes();
-						if(newHis.getPrevNotes()!=null) {
-							prevNotes=prevNotes+"/ "+newHis.getPrevNotes();
+				if(execId > 0) {
+					Concept userConc = closureServ.loadConceptById(execId);
+					History newHis=appServ.activityCreate(null, actConfig, curHis, userConc.getIdentifier(), data.getNotes().getValue());
+					if(newHis !=null) {		//not reassign to the same executor
+						//the first activity will inherit the data if one
+						if(moveData && curHis.getActivityData()!=null) {
+							newHis.setActivityData(curHis.getActivityData());
+							moveData=false;
 						}
-						newHis.setPrevNotes(prevNotes);
+						//previous notes may be added too
+						if(curHis.getPrevNotes()!=null) {
+							String prevNotes=curHis.getPrevNotes();
+							if(newHis.getPrevNotes()!=null) {
+								prevNotes=prevNotes+"/ "+newHis.getPrevNotes();
+							}
+							newHis.setPrevNotes(prevNotes);
+						}
+						newHis= boilerServ.saveHistory(newHis);
+						//closeActivity(curHis, true); 24032023 ika
+						appServ.stopOneActivity(curHis, true);
 					}
-					newHis= boilerServ.saveHistory(newHis);
-					//closeActivity(curHis, true); 24032023 ika
-					appServ.stopOneActivity(curHis, true);
 				}
 			}
 		}
@@ -1637,8 +1641,10 @@ public class SubmitService {
 		if (data.isValid()) {
 			data = systemServ.validSchedulers(data);
 			if(data.isValid()) {
-				cancelActivities(curHis);
 				data = runScheduledGuestHost(curHis, data);
+				if(data.isValid()){
+					cancelActivities(curHis);
+				}
 			}
 		}
 		return data;

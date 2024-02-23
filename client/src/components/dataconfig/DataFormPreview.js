@@ -44,8 +44,12 @@ class DataFormPreview extends Component{
 
     loadData(){
         Fetchers.postJSONNoSpinner("/api/admin/data/collection/definition/preview", this.state.data, (query,result)=>{
-            this.state.data=result
-            this.setState(this.state)
+            if(result.valid){
+                this.state.data=result
+                this.setState(this.state)
+            }else{
+                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'error'})
+            }
         })
     }
 

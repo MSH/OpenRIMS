@@ -30,8 +30,8 @@ public class ReportDataModules implements Serializable {
 	
 	@Column(name="ID", nullable=false)	
 	@Id	
-	@GeneratedValue(generator="VAC22227818A83E427ED05C6D")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22227818A83E427ED05C6D", strategy="native")	
+	@GeneratedValue(generator="VAC22227718DA768E99C02BFB")	
+	@org.hibernate.annotations.GenericGenerator(name="VAC22227718DA768E99C02BFB", strategy="native")	
 	private long ID;
 	
 	@OneToOne(targetEntity=org.msh.pdex2.model.dwh.ReportSession.class)	

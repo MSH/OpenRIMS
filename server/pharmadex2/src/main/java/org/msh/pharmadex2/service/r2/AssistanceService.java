@@ -64,6 +64,7 @@ public class AssistanceService {
 	@Transactional
 	public URLAssistantDTO assistanceMain(URLAssistantDTO data) throws ObjectNotFoundException {
 		if(data.getAssistant() != AssistantEnum.NO) {
+			data.setTitle(messages.get(data.getAssistant().toString()));
 			data=domainTable(data);
 			data=subDomainTable(data);
 			data=urlTable(data);

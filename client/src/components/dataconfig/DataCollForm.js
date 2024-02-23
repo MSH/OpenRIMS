@@ -119,7 +119,7 @@ class DataCollForm extends Component{
                                         Navigator.message(this.state.identifier, this.props.recipient,"formCollCancel",{})
                                     }else{
                                         this.state.data=result
-                                        this.setState(this.state.data)
+                                        this.setState(this.state)
                                     }
                                 })
                                 

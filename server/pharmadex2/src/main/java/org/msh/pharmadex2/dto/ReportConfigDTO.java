@@ -30,20 +30,13 @@ public class ReportConfigDTO extends AllowValidation{
 	private TableQtb table=new TableQtb();
 	private TableQtb tablergt=new TableQtb();
 	private ThingDTO report=new ThingDTO();
+	//dictionaries
+	private DictionaryDTO select = null;
+	private DictionaryDTO selectNMRA=null;
+	private DictionaryDTO selectAPPL=null;
 	//screen logic related
 	private boolean form=false;
-	
-	private boolean enabledrenewext = true;
-		private DictionaryDTO select = null;
-		private DictionaryDTO selectNMRA=null;
-		private DictionaryDTO selectAPPL=null;
-	
-	public boolean isEnabledrenewext() {
-		return enabledrenewext;
-	}
-	public void setEnabledrenewext(boolean enabledrenewext) {
-		this.enabledrenewext = enabledrenewext;
-	}
+		
 	public long getNodeId() {
 		return nodeId;
 	}

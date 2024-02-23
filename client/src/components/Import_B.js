@@ -99,7 +99,7 @@ class Import_B extends Component{
     reload(){
         Fetchers.postJSON("/api/admin/import/legacydata/reload", this.state.data, (query,result)=>{
             this.state.data=result
-            this.setState(this.state.data)
+            this.setState(this.state)
             Navigator.message(this.state.identifier, "*", "thingReload", this.state.data)
         })
     }

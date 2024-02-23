@@ -1,8 +1,6 @@
 package org.msh.pharmadex2.controller.common;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
 import javax.servlet.http.Cookie;
@@ -28,7 +26,6 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.RedirectView;
@@ -65,54 +62,25 @@ public class WebApp {
 	 * @return
 	 */
 	@GetMapping({"/form/login"})
-	public ModelAndView login(@RequestParam(name="view") Optional<String> viewParo, 
-			@CookieValue(name = "login_view") Optional<String> viewCooko,
-			@CookieValue(name = "username") Optional<String> useremailo
-			){
-		//determine form view - Company User or NMRA user
-		String view="nmra";
-		if(viewParo.isPresent()) {
-			view=viewParo.get();
-		}else {
-			if(viewCooko.isPresent()) {
-				view=viewCooko.get();
-			}
-		}
+	public ModelAndView login(@CookieValue(name = "username") Optional<String> emailcookie){
 		HttpSession session = request.getSession(false);
 		if (session != null) {
 			session.invalidate();
 		}
 		SecurityContextHolder.clearContext();
 		ModelAndView ret = new ModelAndView("login");
-		//which view will be in use?
-		ret.addObject("view", view);
-		//common fields
-		String useremail="";
-		ret.addObject("application", messages.get("system_name"));
-		ret.addObject("get_password", messages.get("get_by_email"));
-		if(view.equalsIgnoreCase("nmra")) {
-			ret.addObject("username", messages.get("login"));
-			ret.addObject("usernamePlease", messages.get("loginmessage"));
-			ret.addObject("password", messages.get("password"));
-			ret.addObject("login", messages.get("login"));
+		ret.addObject("emailplaceholder", messages.get("valid_email"));
+		if(emailcookie.isPresent()) {
+			ret.addObject("useremail", emailcookie.get());
 		}else {
-			ret.addObject("username", messages.get("email"));
-			ret.addObject("usernamePlease", messages.get("valid_email"));
-			ret.addObject("password", messages.get("temp_password"));
-			ret.addObject("login", messages.get("logincompany"));
-			if(useremailo.isPresent()) {
-				useremail=useremailo.get();
-			}
-			ret.addObject("useremail", messages.get("logincompany"));
+			ret.addObject("useremail", "");
 		}
-		ret.addObject("useremail",useremail);
-		ret.addObject("passwordPlease", messages.get("please_password"));
-		ret.addObject("passwordForgot", messages.get("lostPassword"));
-		ret.addObject("continue", messages.get("continue"));
-		ret.addObject("remember", messages.get("remember_me"));
-		//OATH2 
-		ret.addObject("oath2",messages.get("oath2"));
-		ret.addObject("Google", messages.get("Google"));
+		ret.addObject("get_password", messages.get("sendPasswordByEmail"));
+		ret.addObject("pswdplaceholder", messages.get("please_password"));
+		ret.addObject("login", messages.get("clicktologin"));
+		ret.addObject("lblor", "><");
+		ret.addObject("google", messages.get("Google"));
+
 		Iterable<ClientRegistration> clientRegistrations = null;
 		ResolvableType type = ResolvableType.forInstance(clientRegistrationRepository)
 				.as(Iterable.class);
@@ -120,47 +88,9 @@ public class WebApp {
 				ClientRegistration.class.isAssignableFrom(type.resolveGenerics()[0])) {
 			clientRegistrations = (Iterable<ClientRegistration>) clientRegistrationRepository;
 		}
-		Map<String,String> providers = new HashMap<String, String>();
-		clientRegistrations.forEach(registration -> 
-		providers.put(registration.getClientName(), 
-				"/"+authorizationRequestBaseUri + "/" + registration.getRegistrationId()));
-		ret.addObject("providers",providers);
-		//languages
-		Map<String,String> languages = messages.getLanguagesMap(LocaleContextHolder.getLocale().toString());
-		ret.addObject("languages", languages);
-		return ret;
-	}
+		String googlelink = "/"+authorizationRequestBaseUri + "/" + clientRegistrations.iterator().next().getRegistrationId();
+		ret.addObject("googlelink", googlelink);
 
-
-
-	@GetMapping({"/oauth_login"})
-	public ModelAndView logingoogle(){
-		HttpSession session = request.getSession(false);
-		if (session != null) {
-			session.invalidate();
-		}
-		SecurityContextHolder.clearContext();
-		ModelAndView ret = new ModelAndView("logingoogle");
-		//common fields
-		ret.addObject("application", messages.get("system_name"));
-		//OATH2 
-		ret.addObject("oath2",messages.get("oath2"));
-		ret.addObject("Google", messages.get("Google"));
-		Iterable<ClientRegistration> clientRegistrations = null;
-		ResolvableType type = ResolvableType.forInstance(clientRegistrationRepository)
-				.as(Iterable.class);
-		if (type != ResolvableType.NONE && 
-				ClientRegistration.class.isAssignableFrom(type.resolveGenerics()[0])) {
-			clientRegistrations = (Iterable<ClientRegistration>) clientRegistrationRepository;
-		}
-		Map<String,String> providers = new HashMap<String, String>();
-		clientRegistrations.forEach(registration -> 
-		providers.put(registration.getClientName(), 
-				"/"+authorizationRequestBaseUri + "/" + registration.getRegistrationId()));
-		ret.addObject("providers",providers);
-		//languages
-		Map<String,String> languages = messages.getLanguagesMap(LocaleContextHolder.getLocale().toString());
-		ret.addObject("languages", languages);
 		return ret;
 	}
 
@@ -175,6 +105,7 @@ public class WebApp {
 			HttpServletResponse response) throws JsonProcessingException {
 		Context context = contextServ.loadContext(contextId);
 		response.addCookie(createContextCookie(Long.toString(context.getID())));
+		
 		if(auth == null) {
 			return new RedirectView("landing",true);
 		}else {
@@ -213,7 +144,7 @@ public class WebApp {
 			}
 		}
 	}
-
+	
 	@GetMapping({"/landing","/admin","/moderator","/guest","/screener","/inspector","/accountant","/reviewer", "/secretary", "/public"})
 	public ModelAndView landing() {
 		return createWithBundles("application");

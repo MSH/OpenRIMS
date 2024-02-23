@@ -215,7 +215,7 @@ span.psw {
 						</div>
 					<#else>
 						<Button type="button" 
-								onclick="window.location.href='${providers[key]}';">
+								onclick="window.location.href='${providers[key]};">
 					  		${key}
 						</Button>
 					</#if>

@@ -102,7 +102,7 @@ class ThingsPublisher extends Component{
                     }
                 })
             }
-            this.setState(this.state.fullcollapse);
+            this.setState(this.state);
         }
     }
 

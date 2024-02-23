@@ -396,7 +396,7 @@ class Administrate extends Component{
                                                     </NavLink>
                                                 </NavItem>
                                             </DropdownItem>
-                                            {/* <DropdownItem>
+                                            <DropdownItem>
                                                 <NavItem active={this.state.menu=='importwf'}>
                                                     <NavLink active={this.state.menu=='importwf'}
                                                                 href="/admin#administrate/importwf">
@@ -406,7 +406,7 @@ class Administrate extends Component{
                                                     </div>
                                                     </NavLink>
                                                 </NavItem>
-                                            </DropdownItem> */}
+                                            </DropdownItem>
                                             <DropdownItem>
                                                 <NavItem active={this.state.menu=='import_messages'}>
                                                     <NavLink active={this.state.menu=='import_messages'}

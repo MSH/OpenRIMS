@@ -39,7 +39,7 @@ class Dictionaries extends Component{
     load(){
         Fetchers.postJSONNoSpinner("/api/admin/dictionary/all", this.state.data, (query,responce)=>{
             this.state.data=responce
-            this.setState(this.state.data)
+            this.setState(this.state)
             Locales.resolveLabels(this)
         })
     }

@@ -124,7 +124,7 @@ class ApplicationFiles extends Component{
         if(this.props.data.reload){
             delete this.props.data.reload
             this.state.data=this.props.data
-            this.setState(this.state.data)
+            this.setState(this.state)
         }
         if(this.props.data.thingNodeId!=this.state.data.thingNodeId){
             this.state.data=this.props.data

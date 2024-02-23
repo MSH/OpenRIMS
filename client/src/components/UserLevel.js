@@ -59,7 +59,7 @@ class UserLevel extends Component{
         Fetchers.postJSON(api, this.state.data, (query, result)=>{
             this.state.data=result
             Fetchers.writeLocaly("userlevel_search" + this.props.keycomp, "");
-            this.setState(this.state.data)
+            this.setState(this.state)
         })
     }
     createBreadCrumb(){

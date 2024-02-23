@@ -13,9 +13,11 @@ import Thing from './Thing'
 
 /**
  * Provides assistance to construct or select URL
- *
- * assistant:PropTypes.oneOf(['dictionaries','data','workflow','activity', 'resource']).isRequired,    //for which assistant will be needed
- * select:PropTypes.bool   //false construct the URL, true, select the existing
+ * ~~~
+ *  assistant:PropTypes.string.isRequired,    //for which assistant will be needed
+    recipient:PropTypes.string.isRequired,  //for messages
+    value:PropTypes.string,                   //previous value
+ * ~~~
  * 
  */
 class URLAssistant extends Component{
@@ -26,22 +28,15 @@ class URLAssistant extends Component{
             data:{
                 assistant:this.props.assistant,
                 oldValue:this.props.value,
-                title:this.props.title
             },            //URLAssistantDTO.java
             labels:{
-                url_assistant:'',
-                dictionaries:'',
-                domain:'',
-                subdomain:'',
-                urls:'',
-                search:'',
-                url_assistance1:'',
-                url_assistance2:'',
+                url:'',
+                assist:'',
+                next:'',
+                existing:'',
                 global_cancel:'',
                 global_help:'',
                 form_ok:'',
-                URL_DICTIONARY_NEW:'',
-                URL_ANY:'',
                 preview:'',
             }
         }
@@ -52,6 +47,7 @@ class URLAssistant extends Component{
         this.urlInput=this.urlInput.bind(this)
         this.urlPreview=this.urlPreview.bind(this)
         this.clearPreview=this.clearPreview.bind(this)
+        this.header=this.header.bind(this)
     }
 
     /**
@@ -143,55 +139,26 @@ class URLAssistant extends Component{
      */
     urlInput(){
         return (
-            <Row>
-            <Col xs='12' sm='12' lg='6' xl='6'>
-                <FieldInput mode='textarea' attribute='url' component={this}/>
-            </Col>
-            <Col xs='12' sm='12' lg='2' xl='2'>
-                <ButtonUni
-                    onClick={
-                        ()=>{
-                            Fetchers.postJSON("/api/admin/url/assist/validate",this.state.data,(query,result)=>{
-                                this.state.data=result
-                                if(this.state.data.valid){
-                                    let value=this.state.data.url.value
-                                    Navigator.message(this.state.identifier,this.props.recipient
-                                        ,this.props.assistant, value, window.opener)
-                                    window.close()
-                                }else{
-                                    Navigator.message('*', '*', 'show.alert.pharmadex.2', 
-                                        {mess:this.state.data.identifier, color:'danger'})
-                                    this.setState(this.state)
+            <Container fluid className={Pharmadex.settings.activeBorder}>
+                <Row>
+                    <Col xs='12' sm='12' lg='9' xl='10'>
+                        <FieldInput mode='textarea' attribute='url' component={this}/>
+                    </Col>
+                    <Col xs='12' sm='12' lg='3' xl='2' className="d-flex align-items-end mb-3">
+                        <ButtonUni
+                            onClick={
+                                ()=>{
+                                    this.clearPreview()
+                                    Fetchers.postJSON("/api/admin/url/assist/preview", this.state.data, (query,result)=>{
+                                        this.state.data=result
+                                        this.setState(this.state)
+                                    })
                                 }
-                            })
-                        }
-                    } label={this.state.labels.form_ok} color="primary"
-                />
-            </Col>
-            <Col xs='12' sm='12' lg='2' xl='2'>
-                <ButtonUni
-                    onClick={
-                        ()=>{
-                            this.clearPreview()
-                            Fetchers.postJSON("/api/admin/url/assist/preview", this.state.data, (query,result)=>{
-                                this.state.data=result
-                                this.setState(this.state)
-                            })
-                        }
-                    } label={this.state.labels.preview} color="success"
-                />
-            </Col>
-            <Col xs='12' sm='12' lg='2' xl='2'>
-                <ButtonUni
-                    onClick={
-                        ()=>{
-                            window.opener.focus()
-                            window.close()
-                        }
-                    } label={this.state.labels.global_cancel} color="info" outline 
-                />
-            </Col>
-        </Row>
+                            } label={this.state.labels.preview} color="success"
+                        />
+                    </Col>
+                </Row>
+            </Container>
         )
     }
     /**
@@ -209,95 +176,134 @@ class URLAssistant extends Component{
         }
         if(this.state.data.previewThing.url.trim().length>0){
             return(
-                <Thing data={this.state.data.previewThing} identifier={this.state.identifier}/>
+                <Thing data={this.state.data.previewThing} narrow identifier={this.state.identifier}/>
             )
         }
         return(<h4>{this.state.data.previewOther}</h4>)
     }
-   
+    /**
+     * Title and buttons
+     */
+    header(){
+        return(
+            <Row>          
+            <Col xs='12' sm='12' lg='6' xl='9'>
+                <h4>{this.state.data.title}</h4>
+            </Col>
+            <Col xs='12' sm='12' lg='2' xl='1'>
+                <ButtonUni
+                onClick={
+                    ()=>{
+                        Fetchers.postJSON("/api/admin/url/assist/validate",this.state.data,(query,result)=>{
+                            this.state.data=result
+                            if(this.state.data.valid){
+                                let value=this.state.data.url.value
+                                Navigator.message(this.state.identifier,this.props.recipient
+                                    ,this.props.assistant, value, window.opener)
+                                window.close()
+                            }else{
+                                Navigator.message('*', '*', 'show.alert.pharmadex.2', 
+                                    {mess:this.state.data.identifier, color:'danger'})
+                                this.setState(this.state)
+                            }
+                        })
+                    }
+                } label={this.state.labels.form_ok} color="primary"
+                />
+            </Col>
+            <Col xs='12' sm='12' lg='2' xl='1'>
+                <ButtonUni
+                    label={this.state.labels.global_help}
+                    onClick={()=>{
+                        window.open('/api/admin/help/url/assistant','_blank').focus()
+                    }}
+                    color="info"
+                />
+            </Col>
+            <Col xs='12' sm='12' lg='2' xl='1'>
+                <ButtonUni
+                    label={this.state.labels.global_cancel}
+                    color="info"
+                    outline
+                    onClick={
+                        ()=>{
+                            window.opener.focus()
+                            window.close()
+                        }
+                    } 
+                />
+            </Col>
+        </Row>
+        )
+    }
+
     render(){
         if(this.state.data.domain==undefined || this.state.labels.locale==undefined){
             return Pharmadex.wait()
         }
         return(
             <Container fluid>
-                <Row className='mb-5 mt-2'>
-                    <Col xs='12' sm='12' lg='10' xl='11'>
-                        <h4>{this.state.labels.url_assistant}</h4>
-                    </Col>
-                    <Col xs='12' sm='12' lg='2' xl='1'>
-                        <ButtonUni
-                            label={this.state.labels.global_help}
-                            onClick={()=>{
-                                window.open('/api/admin/help/url/assistant','_blank').focus()
-                            }}
-                            color="info"
-                        />
-                    </Col>
-                </Row>
+                {this.header()}
                 <Row>
-                    <Col>
-                        <h5>{this.state.labels.url_assistance1}</h5>
-                    </Col>
-                </Row>
-                <Row>
-                    <Col xs='12' sm='12' lg='3' xl='3'>
-                        <TableSearch
-                             identifier={this.state.identifier+'domain'}
-                             title={this.state.labels.domain}
-                             label={this.state.labels.search}
-                             tableData={this.state.data.domain}
-                             loader={this.loader}
-                             selectRow={(row)=>{
-                             this.selectDomain(this.state.data.domain.rows[row].row[0].value)
-                             }}
-                        />
-                        
-                    </Col>
-                    <Col xs='12' sm='12' lg='3' xl='3' hidden={this.state.data.selectedDomain.length==0}>
-                        <TableSearch
-                            identifier={this.state.identifier+'subdomain'}
-                             title={this.state.labels.subdomain}
-                             label={this.state.labels.search}
-                             tableData={this.state.data.subDomain}
-                             loader={this.loader}
-                             selectRow={(row)=>{
-                                this.selectSubDomain(this.state.data.subDomain.rows[row].row[0].value)
-                             }}
-                        />
-                    </Col>
-                    <Col xs='12' sm='12' lg='3' xl='6' hidden={this.state.data.selectedSubDomain.length==0}>
-                        <TableSearch
-                            identifier={this.state.identifier+'urls'}
-                             title={this.state.labels.urls}
-                             label={this.state.labels.search}
-                             tableData={this.state.data.urls}
-                             loader={this.loader}
-                             selectRow={(row)=>{
-                                this.selectURL(this.state.data.urls.rows[row].row[0].value)
-                             }}
-                        />
-                    </Col>
-                </Row>
-                <Row>
-                    <Col>
-                        <Row className='mb-3'>
+                    <Col xs='12' sm='12' lg='6' xl='6'>
+                        <Row>
                             <Col>
-                                <h5>{this.state.labels.url_assistance2 }</h5>
+                                {this.urlInput()}
                             </Col>
                         </Row>
                         <Row>
-                            <Col xs='12' sm='12' lg='6' xl='6'>
-                               {this.urlInput()}
-                            </Col>
-                            <Col xs='12' sm='12' lg='6' xl='6'>
+                            <Col>
                                 <Container fluid className={Pharmadex.settings.activeBorder}>
                                     {this.urlPreview()}
                                 </Container>
                             </Col>
                         </Row>
                     </Col>
-                </Row>       
+                    <Col xs='12' sm='12' lg='6' xl='6'>
+                        <Row>
+                            <Col>
+                                <TableSearch
+                                    identifier={this.state.identifier+'domain'}
+                                    title={this.state.labels.assist}
+                                    label={this.state.labels.search}
+                                    tableData={this.state.data.domain}
+                                    loader={this.loader}
+                                    selectRow={(row)=>{
+                                    this.selectDomain(this.state.data.domain.rows[row].row[0].value)
+                                    }}
+                                />
+                            </Col>
+                        </Row>
+                        <Row hidden={this.state.data.selectedDomain.length==0}>
+                            <Col>
+                                <TableSearch
+                                    identifier={this.state.identifier+'subdomain'}
+                                    title={this.state.labels.next}
+                                    label={this.state.labels.search}
+                                    tableData={this.state.data.subDomain}
+                                    loader={this.loader}
+                                    selectRow={(row)=>{
+                                        this.selectSubDomain(this.state.data.subDomain.rows[row].row[0].value)
+                                    }}
+                                />
+                            </Col>
+                        </Row>
+                        <Row hidden={this.state.data.selectedSubDomain.length==0}>
+                            <Col>
+                                <TableSearch
+                                    identifier={this.state.identifier+'urls'}
+                                    title={this.state.labels.existing}
+                                    label={this.state.labels.search}
+                                    tableData={this.state.data.urls}
+                                    loader={this.loader}
+                                    selectRow={(row)=>{
+                                        this.selectURL(this.state.data.urls.rows[row].row[0].value)
+                                    }}
+                                />
+                            </Col>
+                        </Row>
+                    </Col>
+                </Row>   
             </Container>
         )
     }
@@ -309,6 +315,4 @@ URLAssistant.propTypes={
     assistant:PropTypes.string.isRequired,    //for which assistant will be needed
     recipient:PropTypes.string.isRequired,  //for messages
     value:PropTypes.string,                   //previous value
-    title:PropTypes.string,   //title of the window
-   
 }

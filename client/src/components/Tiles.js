@@ -244,7 +244,7 @@ class Tiles extends Component{
         Fetchers.postJSON("/api/admin/tiles", this.state.data, (query,responce)=>{
             this.state.data=responce
             delete this.state.data.tiles.justloaded
-            this.setState(this.state.data)
+            this.setState(this.state)
             Locales.resolveLabels(this)
         })
     }

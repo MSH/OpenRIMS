@@ -251,71 +251,7 @@ class ActivityManager extends Component{
             </Row>
         )
     }
-    /**
-     * Display an application
-    
-    application(){
-        let ret = []
-        if(Fetchers.isGoodArray(this.state.data.application)){
-            this.state.data.application.forEach((thing, index)=>{
-                //thing.readOnly=true
-                ret.push(
-                    <h4 className='btn-link' key={index+1000} style={{cursor:"pointer"}} 
-                        onClick={()=>{this.toggle(index)}}>{thing.title}</h4>
-                )
-                ret.push(
-                    <Collapse key={index+500} isOpen={this.state.fullcollapse[index].collapse} >
-                        {this.thingComp(index, thing)}
-                    </Collapse>
-                )
-            })
-        }
-        return ret
-    } */
 
-     /**
-     * добавляем на экран нужный thing 
-     
-    thingComp(index, thing){
-        let flag = false
-        if(Fetchers.isGoodArray(this.state.fullcollapse)){
-            this.state.fullcollapse.forEach((el, i)=>{
-                if(index == el.ind && el.collapse){
-                    flag = true
-                }
-            })
-        }
-        if(flag){
-            return (
-                <Thing key={index}
-                            data={thing}
-                            recipient={this.state.identifier}
-                            readOnly={true}
-                            narrow
-                            reload
-                            />
-            )
-        }else{
-            return []
-        }
-    }
- */
-    /**
-     * Ставим отметку какой именно thing нужно открыть
-    
-    toggle(ind) {
-        if(this.state.data != undefined && this.state.data.application != undefined){
-            if(Fetchers.isGoodArray(this.state.fullcollapse)){
-                this.state.fullcollapse.forEach((el, i)=>{
-                    if(ind == el.ind){
-                        el.collapse = !el.collapse
-                    }
-                })
-            }
-            this.setState(this.state.fullcollapse);
-        }
-    }
- */
     componentDidMount(){
         window.addEventListener("message",this.eventProcessor)
         this.loadData()

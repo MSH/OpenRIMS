@@ -34,7 +34,9 @@ private RedirectStrategy redirectStrategy = new DefaultRedirectStrategy();
 			for(Cookie ck:request.getCookies()) {
 				if(ck.getName().equals(WebSecurity.PDX2_URL_COOKIE)) {
 					appurl = URLDecoder.decode(ck.getValue(), "UTF-8");
-					break;
+					if(!appurl.isEmpty()) {
+						break;
+					}
 				}
 			}
 		}

@@ -20,7 +20,7 @@ class ImportWorkflow extends Component{
         this.state={
             identifier:Date.now().toString(),
             data:{
-                identifier:""
+                serverurl:{value:""}
             },
             runclick:false,
             labels:{
@@ -50,7 +50,8 @@ class ImportWorkflow extends Component{
         window.addEventListener("message",this.eventProcessor)
         Locales.resolveLabels(this)
         this.comparator = new FieldsComparator(this)
-        this.state.data.identifier = Fetchers.readLocaly("mainserveraddress", "")
+       // this.state.data.identifier = Fetchers.readLocaly("mainserveraddress", "")
+        this.state.data.serverurl.value = Fetchers.readLocaly("mainserveraddress", "")
         this.loadProccesses(true)
     }
 
@@ -88,7 +89,7 @@ class ImportWorkflow extends Component{
         }else{
             Fetchers.postJSON("/api/admin/importwf/reload", this.state.data, (query, result)=>{
                 this.state.data=result
-                this.state.runclick = false
+                //this.state.runclick = false
                 this.setState(this.state)
             })
         }
@@ -104,22 +105,29 @@ class ImportWorkflow extends Component{
                 this.setState(this.state)
 
                 if(this.state.data.valid){
+                    Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'success'})
+
                     Fetchers.postJSON("/api/admin/importwf/resources", this.state.data, (query, result)=>{
                         this.state.data = result
                         this.setState(this.state)
 
                         if(this.state.data.valid){
+                            Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'success'})
+                            
                             Fetchers.postJSON("/api/admin/importwf/dataconfigs", this.state.data, (query, result)=>{
                                 this.state.data = result
                                 this.setState(this.state)
 
                                 if(this.state.data.valid){
+                                    Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'success'})
+                            
                                     Fetchers.postJSON("/api/admin/importwf/wfconfigs", this.state.data, (query, result)=>{
                                         this.state.data = result
                                         this.setState(this.state)
 
                                         if(this.state.data.valid){
                                             // reload
+                                            Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:"Import Success!", color:'success'})
                                             this.loadProccesses(false)
                                         }else{
                                             Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'danger'})
@@ -147,7 +155,7 @@ class ImportWorkflow extends Component{
                 return Pharmadex.wait()
             }
             ret.push(
-                <Row>
+                <Row key='iw0'>
                     <Col xs='12' sm='12' lg='6' xl='6'>
                         <Label>{this.state.labels.processes}</Label>
                     </Col>
@@ -194,7 +202,7 @@ class ImportWorkflow extends Component{
                 </Row>
             )
             ret.push(
-                <Row>
+                <Row key='iw1'>
                     <Col xs='12' sm='12' lg='6' xl='6'>
                         <CollectorTable
                             tableData={this.state.data.procTable}
@@ -257,14 +265,14 @@ class ImportWorkflow extends Component{
             )
             if(this.state.runclick){
                 ret.push(
-                    <Row>
+                    <Row key='iw3'>
                         <Col xs='12' sm='12' lg='12' xl='12'>
                             <Label>{this.state.labels.statusimport}</Label>
                         </Col>
                     </Row>
                 )
                 ret.push(
-                    <Row>
+                    <Row key='iw4'>
                         <Col xs='12' sm='12' lg='12' xl='12'>
                             <CollectorTable
                                 tableData={this.state.data.statusTable}
@@ -301,33 +309,7 @@ class ImportWorkflow extends Component{
                             {this.state.labels.exchangeconfig}
                         </h4>
                     </Col>
-                    <Col xs='12' sm='12' lg='1' xl='1'>
-                        <h6>
-                            {this.state.labels.serverurl}
-                        </h6>
-                    </Col>
-                    <Col xs='12' sm='12' lg='4' xl='4'>
-                        <Input bsSize='sm' type='text' lang={this.state.labels.locale.replace("_","-")} step="1" 
-                            rows={1} value={this.state.data.serverurl.value}
-                                onChange={(e)=>{
-                                    this.state.data.serverurl.value=e.target.value
-                                    this.setState(this.state)
-                                }}
-                                valid={this.state.data.connect && this.state.data.valid}
-                                invalid={!(this.state.data.connect && this.state.data.valid)}
-                                disabled={this.state.data.connect}/>
-                    </Col>
-                    <Col xs='12' sm='12' lg='1' xl='1' >
-                        <ButtonUni 
-                                label={this.state.labels.btn_connect}
-                                onClick={()=>{
-                                    this.connect()
-                                }} 
-                                color={"info"}
-                                disabled={this.state.data.connect}
-                        />
-                    </Col>
-                    <Col xs='12' sm='12' lg='1' xl='1' ></Col>
+                    <Col xs='12' sm='12' lg='7' xl='7' ></Col>
                     <Col key='1top' xs='6' sm='6' lg='1' xl='1'>
                         <ButtonUni
                             label={this.state.labels.global_help}
@@ -347,6 +329,35 @@ class ImportWorkflow extends Component{
                             color="info"
                         />
                     </Col>
+                </Row>
+                <Row style={{alignItems:'center'}}>
+                    <Col xs='12' sm='12' lg='2' xl='2'>
+                        <h6>
+                            {this.state.labels.serverurl}
+                        </h6>
+                    </Col>
+                    <Col xs='12' sm='12' lg='4' xl='4'>
+                        <Input bsSize='sm' type='text' lang={this.state.labels.locale.replace("_","-")} step="1" 
+                            rows={1} value={this.state.data.serverurl.value}
+                                onChange={(e)=>{
+                                    this.state.data.serverurl.value=e.target.value
+                                    this.setState(this.state)
+                                }}
+                                valid={this.state.data.connect && this.state.data.valid}
+                                invalid={!(this.state.data.connect && this.state.data.valid)}
+                                disabled={this.state.data.connect}/>
+                    </Col>
+                    <Col xs='12' sm='12' lg='2' xl='2' >
+                        <ButtonUni 
+                                label={this.state.labels.btn_connect}
+                                onClick={()=>{
+                                    this.connect()
+                                }} 
+                                color={"info"}
+                                disabled={this.state.data.connect}
+                        />
+                    </Col>
+                    <Col xs='12' sm='12' lg='4' xl='4' ></Col>
                 </Row>
                 <Row style={{paddingTop:'30px'}}>
                     <Col>

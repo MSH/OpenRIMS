@@ -1339,22 +1339,6 @@ public class BoilerService {
 		thingLinkRepo.delete(tl);
 	}
 	/**
-	 * Find user model by eMail
-	 * Unlike the most of such methods, doesn't rise an exception if user not found.
-	 * A typical applicant user hasn't an account in the user table
-	 * @param eMail
-	 * @return null, if user not found
-	 */
-	@Transactional
-	public User findByEmail(String email) {
-		Optional<User> usero = userRepo.findByEmail(email);
-		if (usero.isPresent()) {
-			return usero.get();
-		}else {
-			return null;
-		}
-	}
-	/**
 	 * Find an organization by the concept
 	 * @param concept
 	 * @return

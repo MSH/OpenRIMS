@@ -35,7 +35,7 @@ class UserAuthMenu extends Component{
     componentDidMount(){
         Fetchers.postJSONNoSpinner("/api/public/userdata/form", this.state.data,(query,result)=>{
           this.state.data=result
-          this.setState(this.state.data)
+          this.setState(this.state)
           Locales.createLabels(this)
           Locales.resolveLabels(this)
           this.comparator = new FieldsComparator(this)

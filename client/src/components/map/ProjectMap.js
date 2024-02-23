@@ -35,7 +35,7 @@ class ProjectMap extends Component{
         let data=event.data
         if(data.subject == 'updatemap'){
             this.state.data = data.data
-            this.setState(this.state.data)
+            this.setState(this.state)
         }
     }
 

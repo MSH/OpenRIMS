@@ -15,6 +15,7 @@ import Spinner from './utils/Spinner'
 import SpinnerMain from './utils/SpinnerMain'
 import PublicPermitData from './PublicPermitData'
 import URLAssistant from './URLAssistant'
+import ELAssistance from './ELAssistance'
 
 /**
  * Uniform content component
@@ -85,7 +86,7 @@ class Content extends Component{
         Fetchers.postJSON(api, this.state.data, (query,result)=>{
             this.state.data=result
             delete this.state.data.tiles.justloaded
-            this.setState(this.state.data)
+            this.setState(this.state)
             Locales.resolveLabels(this)
         })
     }
@@ -141,6 +142,8 @@ class Content extends Component{
                 let parStr = Navigator.parameterValue()
                 let params=JSON.parse(parStr)
                 return <URLAssistant assistant={params.assistant} value={params.value} recipient={params.recipient} title={params.title} />
+            case "elassistance":
+                return <ELAssistance />
             default:
                 return this.paintRows()
         }

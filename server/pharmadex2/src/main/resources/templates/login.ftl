@@ -1,90 +1,75 @@
 <!DOCTYPE html>
 <html>
 <head>
-	 <Cache-Control: no-cache>
+	<Cache-Control: no-cache>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	
 <style>
-body {font-family: Arial, Helvetica, sans-serif;}
+	body {font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen,Ubuntu,Cantarell,"Fira Sans","Droid Sans","Helvetica Neue",sans-serif;}
 
 /* Full-width input fields */
-input[type=text], input[type=password] {
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active{
+    -webkit-box-shadow: 0 0 0 30px white inset !important;
+}
+input[type=text], input[type=password]{
   width: 100%;
-  padding: 12px 20px;
-  margin: 8px 0;
+  padding: 5px 20px;
+  margin: 15px 0;
   display: inline-block;
-  border: 1px solid #ccc;
+  border-top: 0;
+  border-left: 0;
+  border-right:0;
+  border-bottom: 1px solid #696969;
   box-sizing: border-box;
+  background-color: #F2F2F2;
+  outline: none;
 }
 
-/* Set a style for all buttons */
-button {
-  width: 100%;
-  height: 42px;
+.btnlogin {
   background-color: #4285f4;
-  color: #fff;
-  cursor: pointer;
-  padding: 14px 20px;
-  margin: 8px 0;
-  border-radius: 2px;
+  color: white;
+  padding: 5px 20px;
+  margin: 15px 0;
   border: none;
+  cursor: pointer;
+  width: 50%;
+  float:right;
+  border-radius: 5px;
   box-shadow: 0 3px 4px 0 rgba(0,0,0,.25);
+  display:block;
 }
+
 
 button:hover {
   opacity: 0.8;
 }
+.button {
+		width: 100%;
+		padding: 5px 0;
+		margin: 15px 0;
+		border: none;
+		color: #0066FF;
+		font-size: 15px;
+		font-weight: 500;
+		background-color: none;
+		cursor:pointer;
+		float:right;
+		box-shadow: 0 3px 4px 0 rgba(0,0,0,.25);
+  		display:block;
+		:hover {
+			box-shadow: 0 -1px 0 rgba(0, 0, 0, .04), 0 2px 4px rgba(0, 0, 0, .25);
+		}
+	}
 
-ul {
-    display: block;
-    list-style-type: disc;
-    margin-block-start: 1em;
-    margin-block-end: 1em;
-    margin-inline-start: 0px;
-    margin-inline-end: 0px;
-    padding-inline-start: 0px;
-}
-
-/* Extra styles for the cancel button */
-.cancelbtn {
-  width: auto;
-  padding: 10px 18px;
-  background-color: #f44336;
-}
-
-/* Center the image and position the close button */
-.imgcontainer {
-  text-align: center;
-  margin: 24px 0 12px 0;
-  position: relative;
-}
-
-img.avatar {
-  width: 40%;
-  border-radius: 50%;
-}
-
-.container {
-  display : flex;
-}
-.first_flex{
-	 flex: 2;
-	 padding: 10px;
-}
-
-.languages{
-	display: flex;
-  	flex-flow: row-reverse wrap;
-}
-  
-.language{
-  	width:40px;
-  	padding:5px
-}
-
-span.psw {
-  float: right;
-  padding-top: 16px;
+/* Modal Content/Box */
+.modal-content {
+  background-color: #FFFFFF;
+  margin: 5% auto 15% auto; /* 5% from the top, 15% from the bottom and centered */
+  border: 1px solid #DBDBDB;
+  border-radius: 5px;
+  width: 35%; /* Could be more or less, depending on screen size */
 }
 
 /* The Modal (background) */
@@ -97,19 +82,39 @@ span.psw {
   width: 100%; /* Full width */
   height: 100%; /* Full height */
   overflow: auto; /* Enable scroll if needed */
-  background-color: rgb(0,0,0); /* Fallback color */
-  background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
-  padding-top: 60px;
+  background-color: rgba(255,255,255,0.4);
 }
 
-/* Modal Content/Box */
-.modal-content {
-  background-color: #fefefe;
-  margin: 5% auto 15% auto; /* 5% from the top, 15% from the bottom and centered */
-  border: 1px solid #888;
-  width: 30%; /* Could be more or less, depending on screen size */
+/* Center the image and position the close button */
+.imgcontainer {
+  text-align: center;
+  margin: 24px 0 12px 0;
+  position: relative;
 }
 
+img.logo {
+}
+
+img.google{
+	width:20px;
+	margin-right: 10px;
+}
+
+img.envelopeBlue{
+	width:23px;
+	margin-right: 10px;
+}
+.container {
+  padding: 10px 30px 60px 30px;
+  margin: 0 40px 10px 40px;
+  background-color:#F2F2F2; 
+  display:block
+}
+
+span.psw {
+  float: right;
+  padding-top: 16px;
+}
 
 /* Add Zoom Animation */
 .animate {
@@ -127,208 +132,198 @@ span.psw {
   to {transform: scale(1)}
 }
 
-/* Change styles on extra small screens */
-@media screen and (max-width: 300px) {
+
+.googlebtn {
+		width: 100%;
+		padding: 12px 16px 12px 42px;
+		border: none;
+		border-radius: 3px;
+		box-shadow: 0 -1px 0 rgba(0, 0, 0, .04), 0 1px 1px rgba(0, 0, 0, .25);
+		  
+		color: #0066FF;
+		font-size: 15px;
+		font-weight: 500;
+		font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen,Ubuntu,Cantarell,"Fira Sans","Droid Sans","Helvetica Neue",sans-serif;
+		background-color: #D9E1F2;
+		align-items: center;
+		cursor:pointer;
+		
+		&:hover {
+			box-shadow: 0 -1px 0 rgba(0, 0, 0, .04), 0 2px 4px rgba(0, 0, 0, .25);
+		}
+	}
+.lineor {
+	margin: 10px 70px 10px 70px;
+	display: flex;
+}
+
+	.line {
+		top: 0.45em;
+		height: 1px;
+		flex-shrink: 1;
+		position: relative;
+		flex-grow: 1;
+		background-color: #696969;
+	}
+	
+	.or {
+		padding-top: 0;
+		margin-top: 0;
+		margin-bottom: 0;
+		border-bottom-width: 0;
+		padding-bottom: 0;
+		text-transform: uppercase;
+		margin-right: 18px;
+		border-left-width: 0;
+		padding-left: 0;
+		flex-direction: column;
+		border-right-width: 0;
+		box-sizing: border-box;
+		border-top-width: 0;
+		display: flex;
+		padding-right: 0;
+		flex-shrink: 0;
+		margin-left: 18px;
+		font-weight: 600;
+		color: #737373;
+		align-items: stretch;
+		font-size: .8125rem;
+		position: relative;
+		line-height: 1.1538;
+		flex-grow: 0;
+		vertical-align: baseline;
+	}
+.success{
+	color:#696969;
+}
+.failure{
+	color:red;
+}
+
+.messbox{
+	padding:15px 0;
+	height:75px;
+}
+
+/* Change styles for span and cancel button on extra small screens */
+@media screen and (max-width: 500px) {
   span.psw {
      display: block;
      float: none;
   }
-  .modal-content {
-  	width: 80%; /* Could be more or less, depending on screen size */
-  }
-}
-
-.google-btn {
-  width: 100%;
-  height: 42px;
-  background-color: #4285f4;;
-  cursor: pointer;
-  cursor:hand;
-  border-radius: 2px;
-  box-shadow: 0 3px 4px 0 rgba(0,0,0,.25);
-  }
-.google-icon-wrapper {
-    position: absolute;
-    margin-top: 1px;
-    margin-left: 1px;
-    width: 40px;
-    height: 40px;
-    border-radius: 2px;
-    background-color: #fff;
-  }
-.google-icon {
-    position: absolute;
-    margin-top: 11px;
-    margin-left: 11px;
-    width: 18px;
-    height: 18px;
- }
   
- .btn-text {
-    float: right;
-    margin: 11px 11px 0 0;
-    color: #fff;
-    font-size: 14px;
-    letter-spacing: 0.2px;
-    font-family: "Roboto";
-  }
-  &:hover {
-    box-shadow: 0 0 6px #4285f4;;
-  }
-  &:active {
-    background: #1669F2;
-  }
-.success{
-	color:green
-}
-.failure{
-	color:red
-}
-@keyframes blink {
-  50% {
-    opacity: 0.0;
-  }
-}
-.blink {
-	color:blue;
-	font-weight: bold;
-	font-size: 2em;
-  animation: blink 1s step-start 0s infinite;
+  .modal-content {
+	  background-color: #FFFFFF;
+	  margin: 5% auto 15% auto; /* 5% from the top, 15% from the bottom and centered */
+	  border: 1px solid #DBDBDB;
+	  border-radius: 5px;
+	  width: 80%; /* Could be more or less, depending on screen size */
+	}
 }
 </style>
 </head>
 <body>
-
-  <script>
-  <#-- Store user name to a cookie -->
-  window.onsubmit=function(){
-  	document.cookie="username="+document.getElementById('username').value+";max-age=8640"
-  }
-   window.onload= function(){
-   		<#-- store vew parameter to cookie login_vew to distinct company user and nmra user login -->
-   		let params = new URLSearchParams(document.location.search);
-		let name = params.get("view");
-		if(name){
-			document.cookie = "login_view="+name+";max-age=8640"
+	<script>
+		window.onsubmit = function(){
+			addcookie('username');
 		}
-   		 let body = document.body, html = document.documentElement;
-        let height = Math.max(body.scrollHeight, body.offsetHeight,
-            html.clientHeight, html.scrollHeight, html.offsetHeight);
-        parent.postMessage({"FrameHeight": height},"*")
-   		setTimeout(function()
-   				{
-   					document.getElementById("password").value=''
-   				}, 500);
-   		}
-   		<#-- ask for a temporary password -->
-   		const fetcher= function(){
-   			let data={
-   				email:document.getElementById('username').value,
-            	tp:''
-   			}
-   			 document.getElementById("message").innerHTML="<span class='blink'>${continue}</span>"
-			fetch('/api/public/temporary/password' , {
-					credentials: 'include',
-					method: 'POST',          
-		            headers: {
-		                'Accept': 'application/json',
-		                'Content-Type': 'application/json'              
-		            },           
-				body:JSON.stringify(data)
-				})      
-	          .then((response)=>{            
-		            if (response.ok) { 
-		                let resp = response.json()
-		                return(resp);              
-		            }else{
-						 document.getElementById("message").innerHTML="<span class='failure' >Unrecognized system error"+ error+"</span>"
-		            }
-	          })
-	          .then((resp)=>{
-	          			let clazz='success'
-	          			if(!resp.valid){
-	          				clazz='failure'
-	          			}
-	          			 document.getElementById("message").innerHTML="<span class="+clazz+">"+resp.identifier+"</span>"
-						}								
-	          )
-	          .catch((error)=>{
-	              document.getElementById("message").innerHTML="<span class='failure'>bad responce.identifier "+ error+"</span>"
-	            } ) 
+		window.onload = function(){
+			setTimeout(function()
+					{
+						document.getElementById("password").value=''
+					}, 500);
 		}
+		
+		const createpincode = function(){
+			let data={
+				email:document.getElementById('username').value,
+				tp:''
+			}
+				
+				fetch('/api/public/temporary/password' , {
+						credentials: 'include',
+						method: 'POST',          
+						headers: {
+							'Accept': 'application/json',
+							'Content-Type': 'application/json'              
+						},           
+					body:JSON.stringify(data)
+					})      
+				  .then((response)=>{            
+						if (response.ok) { 
+							let resp = response.json()
+							return(resp);              
+						}else{
+							document.getElementById("message").innerHTML="<span class='failure' >Unrecognized system error"+ error+"</span>"
+						}
+				  })
+				  .then((resp)=>{
+							let clazz='success'
+							if(!resp.valid){
+								clazz='failure'
+							}
+							 document.getElementById("message").innerHTML="<span class="+clazz+">"+resp.identifier+"</span>"
+							}								
+				  )
+				  .catch((error)=>{
+							document.getElementById("message").innerHTML="<span class='failure'>bad responce.identifier "+ error+"</span>"
+				} ) 
+			}
+		
    </script>  
+	<script type="text/javascript">
+    	function addcookie(cookiename){
+			if(cookiename == 'username'){
+				document.cookie = cookiename + "=" + document.getElementById('username').value + ";max-age=8640";
+			}else{
+				var h = window.location.hash;
+				document.cookie = cookiename + "=" + encodeURIComponent(h);
+			}
+		}
+    </script>
 
-<div id="id01" >
-  <form id="form" class="modal-content animate" action="login" method="POST">
-     <div class="container">
-	     <div class="first_flex">
-	     	<h2>${application}</h2>
-		 	<div class="languages">
-			 	<#list languages?keys as key>
-			 	   <div class="language">
-			 	   		<a href="?lang=${key}">
-						  	<img src="/api/public/flag?localeStr=${key}" width="30"/>
-						  </a>
-					</div> 
-				</#list>
-			</div>
-		 </div>
-	 </div>
-    <div class="container">
-		<div class="first_flex"">
-		<#if "nmra"== view>
-			<label><b>${oath2}</b></label>
-			<ul>
-					<#list providers?keys as key>
-						<#if "Google"==key>
-							<div class="google-btn" onclick="document.getElementById('username').removeAttribute('required');
-						  					window.location.href='${providers[key]}';">
-								<div class="google-icon-wrapper">
-									<img class="google-icon" src="/img/google.png"/>
-								</div>
-								<label class="btn-text">${Google}</label>
-							</div>
-						<#else>
-							<Button type="button" 
-									onclick="document.getElementById('username').removeAttribute('required');
-						  					window.location.href='${providers[key]}';">
-						  		${key}
-							</Button>
-						</#if>
-					</#list>
-				</ul>
-				<div style="font-size: 0.5em">
-			</#if>
-			<#if "company"==view>
-				<div style="font-size :1em">
-			</#if>
-			<label for="uname"><b>${username}</b></label>
-			<input type="text" id="username" placeholder="${usernamePlease}" name="username" required value=${useremail}>
-					
-			<label for="psw"><b>${password}</b></label>
-			<div>
-				<#if "nmra"!= view>
-				<Button type="button"
-				onClick="fetcher()">
-						 ${get_password}
-				</Button>
-				</#if>
-				<input type="password" placeholder="${passwordPlease}" name="password" id="password">
-			</div>
-			<button type="submit">${login}</button>
-			<label>
-				<input type="checkbox" checked="checked" name="remember-me"> ${remember}
-			</label>
-			<br/> <br/><br/>    
-			 <div id="message">
-			</div>
-			</div>
-			
-		</div>
+<div id="id01" class="modal">
+  <form class="modal-content animate" action="login" method="post">
+	<div class="imgcontainer">
+	  <img src="/img/LogoOpenRIMS.svg" class="logo" />
+    </div>
+	<div style="margin: 20px 40px 0 40px;" >
+		<Button type="button" class="googlebtn"
+				onclick="window.location.href = '${googlelink}'">
+        	<img src="/img/google.svg" class="google"/>
+            ${google}
+         </Button>   
+    </div>
+	<div class="lineor">
+		<div class="line"></div>
+		<div class="or">${lblor}</div>
+		<div class="line"></div>
+	</div>
+	<div class="container">
+		<input type="text" id="username"  placeholder="${emailplaceholder}" name="username" required value=${useremail}>
+
+		<input type="password" id="password" class="inputfld" placeholder="${pswdplaceholder}" name="password" >
+        
+		<Button type="submit" class="button">
+			<img src="/img/lock.svg" class="envelopeBlue" />
+			${login}
+		</Button>
+	<br/>
+		<Button type="button" class="button" onClick="createpincode()" >
+			<img src="/img/email2.svg" class="google" />
+			${get_password}
+		</Button>
+        <br/>
+        <div id="message" class="messbox"/>
+		<br/>
     </div>
   </form>
-
 </div>
 
+<script>
+			var h = window.location.hash;
+    		window.document.cookie = "PDX2_SENDURL=" + encodeURIComponent(h)+";path=/"
+	 </script>
 </body>
+
 </html>

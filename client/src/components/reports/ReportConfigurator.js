@@ -8,6 +8,7 @@ import CollectorTable from '../utils/CollectorTable'
 import Pharmadex from '../Pharmadex'
 import Thing from '../Thing'
 import Dictionary from '../Dictionary'
+import AsyncInform from '../AsyncInform'
 
 /**
  * Report configurator
@@ -18,6 +19,7 @@ class ReportConfigurator extends Component{
         super(props)
         this.state={
             identifier:Date.now().toString(),
+            progress:false,             //show DWHImport progress bar or Report Configurator
             thingid:'*',
             data:{                      //ReportConfigDTO.java
                 form:false
@@ -34,8 +36,9 @@ class ReportConfigurator extends Component{
                 global_renewExternal:'',
                 warningRemove:'',
                 pub_reports:"",
-            nmra_reports:"",
-            appl_reports:""
+                nmra_reports:"",
+                appl_reports:"",
+                starting:"",
             },
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -58,6 +61,10 @@ class ReportConfigurator extends Component{
                 this.state.data.report=data.data
                 this.load()
             }
+            if(data.subject=='OnAsyncProcessCompleted'){
+                this.state.progress=false
+                this.load()
+            }
         }
         
     }
@@ -65,7 +72,19 @@ class ReportConfigurator extends Component{
     componentDidMount(){
         window.addEventListener("message",this.eventProcessor)
         Locales.resolveLabels(this)
-        this.load()
+        Fetchers.postJSON("/api/admin/data/import/progress",{},(query,result)=>{
+            if(result.completed){               //it means that the any data import process is not running
+                this.state.progress=false
+                this.load()
+            }else{
+                this.state.progress=result.processName=="processDwhUpdate";
+                if(this.state.progress){
+                    this.setState(this.state)
+                }else{
+                    this.load()         //another process is running
+                }
+            }
+        })
     }
 
     componentWillUnmount(){
@@ -83,7 +102,14 @@ class ReportConfigurator extends Component{
      */
     renewExternal(){
         Fetchers.postJSON("/api/admin/report/renewexternal", this.state.data, (query, result)=>{
-
+            this.state.data=result;
+            if(!this.state.data.valid){
+                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.data.identifier, color:'warning'})
+            }else{
+                this.state.progress=true
+                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.starting, color:'success'})
+            }
+            this.setState(this.state)
         })
     }
 
@@ -171,12 +197,9 @@ class ReportConfigurator extends Component{
                                 <ButtonUni
                                     label={this.state.labels.global_renewExternal}
                                     color="primary"
-                                    outline
-                                    disabled = {!this.state.data.enabledrenewext}
                                     onClick={()=>{
                                         this.state.data.report.nodeId=0
                                         this.state.data.form=false
-                                        this.state.data.enabledrenewext=false
                                         this.setState(this.state)
                                         this.renewExternal()
                                     }}
@@ -228,7 +251,12 @@ class ReportConfigurator extends Component{
     }
     
     render(){
-        if(this.state.labels.locale==undefined || this.state.data.table==undefined){
+        if(this.state.progress){    //progress bar?
+            return(
+                <AsyncInform recipient={this.state.identifier} loadAPI='/api/admin/dwh/update/progress' />
+            )
+        }
+        if(this.state.labels.locale==undefined || this.state.data.table==undefined){ //is form ready?
             return []
         }
         return(

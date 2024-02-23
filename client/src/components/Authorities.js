@@ -68,7 +68,7 @@ class Authorities extends Component{
         Locales.resolveLabels(this)
         let restoredIds = Fetchers.readLocaly("authorities", this.state.parentIds)
         this.state.parentIds=restoredIds
-        this.setState(this.state.parentIds)
+        this.setState(this.state)
     }
 
     componentWillUnmount(){

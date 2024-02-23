@@ -102,7 +102,7 @@ class Inns extends Component{
             this.state.data.dos_unit.value = ""
         }
         
-        this.setState(this.state.data)
+        this.setState(this.state)
     }
 
     deselectRow(rowNumber){
@@ -117,7 +117,7 @@ class Inns extends Component{
             }
         });
         Navigator.message(this.state.identifier, this.props.recipient, "onInnChange",this.state.data)
-        this.setState(this.state.data)
+        this.setState(this.state)
     }
 
     render(){

@@ -111,11 +111,11 @@ class CalendarPicker extends Component{
                 </Col>
                 <Col xs='3' sm='3' lg='3' xl='3' className='p-0'>
                     <ButtonGroup>
-                        <Button size='sm' id={this.props.id+'button'} outline
+                        <Button size='sm' id={'button'+this.props.id} outline
                             onClick={this.togglePopover}> 
                                 <i className="fa fa-calendar" style={{fontSize:'16px'}}/>
                         </Button>
-                        <Button size='sm' id={this.props.id+'button'} outline
+                        <Button size='sm' id={'button1'+this.props.id} outline
                             onClick={()=>this.props.onChange(null)}> 
                                 <i className="fa fa-eraser" style={{fontSize:'16px'}}/>
                         </Button>
@@ -125,7 +125,7 @@ class CalendarPicker extends Component{
             </Row>
             <Popover
                 isOpen={this.state.popoverOpened}
-                target={this.props.id+'button'} 
+                target={'button'+this.props.id} 
                 toggle={this.togglePopover}
                 trigger="legacy">
                     <PopoverBody style={{fontSize:"0.7rem"}}>
