@@ -15,6 +15,9 @@ Directories:
   * pharmadex2 - web project. This project built on Spring Boot Maven. Created by Spring Boot Initializer 
 * database - databse structure. The real database exceeds GitHub restrictions. Please contact digital@msh.org.
 * date-convertor - utility project to conert Nepali dates.
+* jalali-calendar-master - Afgan calendar
+* Releases - release notes for regular releases
+* Patches -  release notes for emergency releases
 
 For more information, contact digital@msh.org
 
