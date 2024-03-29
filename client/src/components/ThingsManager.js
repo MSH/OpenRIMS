@@ -149,6 +149,9 @@ class ThingsManager extends Component{
                 if(data.subject=="saveAllGuest"){
                     Navigator.message(this.state.identifier,"*", "saveAllGuest",{})
                 }
+                if(data.subject=="saveRelax"){
+                    Navigator.message(this.state.identifier,"*", "saveRelax",{})
+                }
                 if(data.subject=="submit"){
                     Navigator.message(this.state.identifier,"*","submit",{})
                 }

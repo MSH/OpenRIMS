@@ -13,15 +13,14 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
-import org.apache.commons.lang3.ThreadUtils;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.msh.pdex2.dto.table.TableQtb;
+import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.r2.Concept;
@@ -41,7 +40,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -156,6 +154,7 @@ public class ImportAdmUnitsService {
 			data.setValid(true);
 			data.setUrl(AssemblyService.SYSTEM_IMPORT_ADMINUNITS);
 		}
+		data = compareRows(data);
 		return data;
 	}
 	
@@ -171,11 +170,41 @@ public class ImportAdmUnitsService {
 		data.clearErrors();
 		if(data.getNodeId() > 0) {
 			if(!AsyncService.hasDataImportThread()) {
-				data=thingServ.loadThing(data, user);
+				data = thingServ.loadThing(data, user);
+				data = compareRows(data);
 				data.setValid(true);
 			}else {
 				data.addError(messages.get("importdatainprogress"));
 			}
+		}
+		return data;
+	}
+	
+	/**
+	 * sort rows DATAIMPORT table
+	 * first row - file by import
+	 * second row - file error
+	 * @return
+	 */
+	private ThingDTO compareRows(ThingDTO data){
+		try {
+			Long dictNodeId = loadDictConcept(false).getID();
+			
+			if(data.getDocuments().get(AssemblyService.DATAIMPORT_DATA) != null) {
+				TableQtb t = data.getDocuments().get(AssemblyService.DATAIMPORT_DATA).getTable();
+				List<TableRow> rows = t.getRows();
+				List<TableRow> rowsNew = new ArrayList<TableRow>();
+				if(rows.get(0).getDbID() == dictNodeId) {
+					rowsNew.add(0, rows.get(0));
+					rowsNew.add(1, rows.get(1));
+				}else if(rows.get(1).getDbID() == dictNodeId) {
+					rowsNew.add(0, rows.get(1));
+					rowsNew.add(1, rows.get(0));
+				}
+				data.getDocuments().get(AssemblyService.DATAIMPORT_DATA).getTable().setRows(rowsNew);
+			}
+		} catch (ObjectNotFoundException e) {
+			e.printStackTrace();
 		}
 		return data;
 	}
@@ -206,6 +235,8 @@ public class ImportAdmUnitsService {
 			InputStream inputStream = new ByteArrayInputStream(fr.getFile());
 			book = new XSSFWorkbook(inputStream);
 			if(book != null){
+				LegacyDataErrorsDTO errors= new LegacyDataErrorsDTO(book);
+				
 				countSheets = book.getNumberOfSheets();
 				boolean verCountryNum = true;
 				boolean verCou = false;
@@ -217,13 +248,15 @@ public class ImportAdmUnitsService {
 				if(sh.getSheetName().trim().toLowerCase().equals(SHEET_NAME_COUNTRY)) {
 					XSSFRow r1 = sh.getRow(0);
 					verCou = verySheetCountry(r1);
-
+					
 					for(int i = 1; i < countSheets; i++) {//sh
 						sh = book.getSheetAt(i);
-						XSSFRow r2 = sh.getRow(0);
-						verPro = verySheetProvince(r2);
-						if(!verPro) {
-							pr += " " + sh.getSheetName();
+						if(!errors.isErrorOrNullSheet(sh)) {
+							XSSFRow r2 = sh.getRow(0);
+							verPro = verySheetProvince(r2);
+							if(!verPro) {
+								pr += " " + sh.getSheetName();
+							}
 						}
 					}
 				}else {
@@ -505,8 +538,18 @@ public class ImportAdmUnitsService {
 			writeSystemProtocol("START");
 			Concept rootCountry = archiveDictionary();
 			if(book != null){
-				LegacyDataErrorsDTO errors= new LegacyDataErrorsDTO(book);
 				AsyncService.writeAsyncContext(AsyncService.PROGRESS_SHEETS, book.getNumberOfSheets()+"");
+				
+				//remove old fileErrors
+				FileDTO dto = data.getDocuments().get(AssemblyService.DATAIMPORT_DATA);
+				Long dictNodeErrId = loadDictConcept(true).getID();
+				if(dictNodeErrId > 0 && dto.getLinked().get(dictNodeErrId) != null && dto.getLinked().get(dictNodeErrId) > 0) {
+					Concept errNode = closureServ.loadConceptById(dto.getLinked().get(dictNodeErrId));
+					thingServ.fileRemove(errNode.getID(), user);
+				}
+				
+				LegacyDataErrorsDTO errors= new LegacyDataErrorsDTO(book);
+				
 				//TODO надo обязательно считать первым лист SHEET_NAME_COUNTRY
 				int sheetIndex = 0;
 				XSSFSheet sheet = boilerServ.getSheetAt(book, sheetIndex);
@@ -551,7 +594,7 @@ public class ImportAdmUnitsService {
 					fos.flush();
 					fos.close();
 
-					FileDTO dto = data.getDocuments().get(AssemblyService.DATAIMPORT_DATA);
+					//FileDTO dto = data.getDocuments().get(AssemblyService.DATAIMPORT_DATA);
 					FileDTO fdto = new FileDTO();
 					fdto.setThingNodeId(dto.getThingNodeId());
 					fdto.setThingUrl(dto.getThingUrl());
@@ -1094,6 +1137,9 @@ public class ImportAdmUnitsService {
 	public AsyncInformDTO calcProgress(AsyncInformDTO data) {
 		//names
 		data.setTitle(messages.get("processImportAdminUnits"));
+		int min = 10;
+		data.setComplPercent(min);
+		
 		// percents
 		String totalS=AsyncService.readAsyncContext(AsyncService.PROGRESS_SHEETS);
 		String importedS=AsyncService.readAsyncContext(AsyncService.PROGRESS_SHEETS_IMPORTED);
@@ -1102,11 +1148,16 @@ public class ImportAdmUnitsService {
 			Float total= new Float(totalS);
 			Float imported= new Float(importedS);
 			Float percentF = ((imported)/total)*100;
-			data.setComplPercent(percentF.intValue());
-			data.setProgressMessage(importedS+" "+messages.get("of")+" "+totalS +"-"+currentSheet);
+			if(percentF > min)
+				data.setComplPercent(percentF.intValue());
+			if(total.intValue() > 0 && imported.intValue() >= 0) {
+				data.setProgressMessage(importedS+" "+messages.get("of")+" "+totalS +"-"+currentSheet);
+			}else {
+				data.setProgressMessage(messages.get("starting"));
+			}
 			data.setCompleted(totalS.equals(importedS));
 		}else {
-			data.setComplPercent(0);
+			data.setComplPercent(min);
 			data.setProgressMessage(messages.get("starting"));
 			data.setCompleted(false);
 		}

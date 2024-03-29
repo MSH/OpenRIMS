@@ -469,8 +469,7 @@ class ActivityManager extends Component{
                         <Button size="sm"
                          className="mr-1" color="info"
                          onClick={()=>{
-                            //window.location="/"+Navigator.tabSetName()+"#"+Navigator.tabName()
-                            history.back()
+                            Navigator.navigate("admin")
                          }}
                         >{this.state.labels.global_cancel}</Button>{' '}
 

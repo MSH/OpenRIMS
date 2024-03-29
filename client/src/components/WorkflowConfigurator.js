@@ -58,7 +58,7 @@ class WorkflowConfigurator extends Component{
                     this.state.data.path[this.state.data.selected].repaint=true
                     this.setState(this.state)
                 }else{
-                    window.location="/"+Navigator.tabSetName()+"#"+Navigator.tabName()+"/workflows"
+                    window.location="/"+Navigator.tabSetName()+"#"+Navigator.tabName()+"/processes"
                 }
             }else{
                 this.state.data.selected++
@@ -138,7 +138,7 @@ loader(){
             <BreadcrumbItem className="d-inline"  key='workflows'>
                 <div className="btn btn-link p-0 border-0"
                     onClick={()=>{
-                        window.location="/"+Navigator.tabSetName()+"#"+Navigator.tabName()+"/workflows"
+                        window.location="/"+Navigator.tabSetName()+"#"+Navigator.tabName()+"/processes"
                     }}
                 >
                      <h6 className="d-inline">{this.state.labels.workflows}</h6>
@@ -247,7 +247,7 @@ loader(){
                         <ButtonUni
                             label={this.state.labels.global_cancel}
                             onClick={()=>{
-                                window.location="/"+Navigator.tabSetName()+"#"+Navigator.tabName()+"/workflows"
+                                window.location="/"+Navigator.tabSetName()+"#"+Navigator.tabName()+"/processes"
                             }}
                             color="secondary"
                         />

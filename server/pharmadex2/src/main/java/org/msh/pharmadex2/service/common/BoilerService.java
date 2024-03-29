@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.ArrayList;
@@ -80,6 +81,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.github.binodnme.dateconverter.converter.DateConverter;
 import com.github.binodnme.dateconverter.utils.DateBS;
+import com.github.eloyzone.jalalicalendar.DateConverterPers;
+import com.github.eloyzone.jalalicalendar.JalaliDate;
+import com.github.eloyzone.jalalicalendar.JalaliDateFormatter;
 
 /**
  * Common utilities
@@ -699,6 +703,37 @@ public class BoilerService {
 		return ret;
 	}
 	/**
+	 * Convert the local date to Persian/Afghan (jalali calendar) date string
+	 * @param dt
+	 * @param full convert digit to persian repr
+	 * @return
+	 */
+	public String localDateToJalali(LocalDate date, boolean full) {
+		String ret="";
+		DateConverterPers dateConverter = new DateConverterPers();
+		JalaliDate jalaliDate = dateConverter.gregorianToJalali(date.getYear(), date.getMonth(), date.getDayOfMonth());
+		String year=jalaliDate.getYear()+"";
+		String month=jalaliDate.getMonthPersian().getValue()+"";
+		String day=jalaliDate.getDay()+"";
+			if(month.length()==1) {
+				month="0"+month;
+			}
+			if(day.length()==1) {
+				day="0"+day;
+			}
+			day=day.substring(0,2);
+			
+			StringBuilder sb = new StringBuilder();
+			String str = year+"-"+month+"-"+day;
+			str=str.trim();
+			ret=str;
+			if(full) {
+				//convert to persian chars
+				ret=jalaliDate.format(new JalaliDateFormatter("yyyy/mm/dd", JalaliDateFormatter.FORMAT_IN_PERSIAN));
+			}
+		return ret;
+	}
+	/**
 	 * Convert formatted number to Nepali characters
 	 * @param str
 	 * @return
@@ -737,7 +772,45 @@ public class BoilerService {
 		ret  = sb.toString();
 		return ret;
 	}
-
+	/**
+	 * Convert formatted number to Jalali characters
+	 * @param str
+	 * @return
+	 */
+	
+	public String numberToJalali(String str) {
+		char[] resultChars = str.toCharArray();
+		for (int i = 0; i < resultChars.length; i++)
+        {
+            resultChars[i] = replaceWithPersian(resultChars[i]);
+        }
+        str = String.valueOf(resultChars);
+		return str;
+	}
+	 private char replaceWithPersian(char resultChar)
+	    {
+	        if (resultChar == '0')
+	            return '\u0660';
+	        if (resultChar == '1')
+	            return '\u0661';
+	        if (resultChar == '2')
+	            return '\u0662';
+	        if (resultChar == '3')
+	            return '\u0663';
+	        if (resultChar == '4')
+	            return '\u0664';
+	        if (resultChar == '5')
+	            return '\u0665';
+	        if (resultChar == '6')
+	            return '\u0666';
+	        if (resultChar == '7')
+	            return '\u0667';
+	        if (resultChar == '8')
+	            return '\u0668';
+	        if (resultChar == '9')
+	            return '\u0669';
+	        return resultChar;
+	    }
 	/**
 	 * GEt a histroy record by activity data
 	 * @param conc
@@ -918,6 +991,38 @@ public class BoilerService {
 		}
 		return years;
 	}
+	
+	/**
+	 * Full Jalali years from ld to the current
+	 * @param ld
+	 * @return
+	 */
+	public int fullYearsJalali(LocalDate ld) {
+		int years=0;
+		LocalDate date=LocalDate.now();
+		DateConverterPers dateConverter = new DateConverterPers();
+		JalaliDate jDateNow = dateConverter.gregorianToJalali(date.getYear(), date.getMonth(), date.getDayOfMonth());
+		JalaliDate jDateLD = dateConverter.gregorianToJalali(ld.getYear(), ld.getMonth(), ld.getDayOfMonth());
+		int monthsNow = jDateNow.getYear()*12+jDateLD.getMonthPersian().getValue();
+		int monthsLd = jDateLD.getYear()*12+jDateLD.getMonthPersian().getValue();
+		int monthDif=monthsNow-monthsLd;	//months between
+		years=monthDif/12; //full years between
+		int rem =monthDif % 12;	//additional months
+		if(rem==0) {						//the same month
+			if(years>0) {
+				if(jDateNow.getDay()<=jDateLD.getDay()) {	//not full year, compare to the date in the past
+					years--;
+				}
+			}
+			if(years<0) {
+				if(jDateNow.getDay()>jDateLD.getDay()) {	//not full year compare to the date in the future
+					years++;
+				}
+			}
+		}
+		return years;
+	}
+	
 	/**
 	 * Load ThingThing by it's concept. Mainly to determine variable name or root node itself
 	 * @param dataNode
@@ -1487,6 +1592,15 @@ public class BoilerService {
 			throw new ObjectNotFoundException("assemblyByThingNodeAndVarName. not found for thingNode "+thingNode.getID(),logger);
 		}
 	}
-
-
+	/**
+	 * Convert local date to ISO date
+	 * @param localDate
+	 * @return
+	 */
+	public String isoDate(LocalDate localDate) {
+		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+		String formattedDate = localDate.atStartOfDay().atOffset(ZoneOffset.UTC).format(formatter);
+        return formattedDate;
+	}
+	
 }

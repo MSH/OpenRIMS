@@ -539,9 +539,13 @@ public class ResolverServiceRender {
 		value.put("from",from);					//to locale string!!!!
 		value.put("fromBS", boilerServ.localDateToNepali(from, false));
 		value.put("fromBS1",boilerServ.localDateToNepali(from, true));
+		value.put("fromJ", boilerServ.localDateToJalali(from, false));
+		value.put("fromJ1",boilerServ.localDateToJalali(from, true));
 		value.put("to", to);
 		value.put("toBS", boilerServ.localDateToNepali(to, false));
 		value.put("toBS1",boilerServ.localDateToNepali(to, true));
+		value.put("toJ", boilerServ.localDateToJalali(to, false));
+		value.put("toJ1",boilerServ.localDateToJalali(to, true));
 		// check nepali
 		String nepali=(String) value.get("fromBS");
 		String nepali1=(String) value.get("toBS");
@@ -587,6 +591,8 @@ public class ResolverServiceRender {
 		value.put("today", LocalDate.now());
 		value.put("todayBS", boilerServ.localDateToNepali(LocalDate.now(),false));
 		value.put("todayBS1", boilerServ.localDateToNepali(LocalDate.now(),true));
+		value.put("todayJ", boilerServ.localDateToJalali(LocalDate.now(),false));
+		value.put("todayJ1", boilerServ.localDateToJalali(LocalDate.now(),true));
 		value.put("author", user.getName());
 		// check nepali
 		String nepali=(String) value.get("todayBS");

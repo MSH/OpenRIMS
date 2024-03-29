@@ -65,6 +65,11 @@ public class TableHeader {
 	 * Column with localized original value and contains link
 	 */
 	public static final int COLUMN_I18LINK=10;
+	
+	/**
+	 * Column true/false
+	 */
+	public static final int COLUMN_TRUE_FALSE=11;
 
 	/**
 	 * Sort is off

@@ -967,9 +967,9 @@ public class ThingService {
 	@Transactional
 	public ThingDTO saveUnderOwner(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException, JsonProcessingException {
 		List<AssemblyDTO> storedDataConfig = loadDataConfigurationFromNode(data.getNodeId());
-		data = validServ.thing(data,storedDataConfig,true);
+		data = validServ.thing(data,storedDataConfig,data.isStrict());
 		if(data.isValid() || !data.isStrict()) {
-			data.setStrict(true);									//to ensure the next
+											//to ensure the next
 			if(accessControlServ.writeAllowed(data, user)) {
 				data = checkUrlChange(data);
 				Concept node = new Concept();
@@ -978,7 +978,6 @@ public class ThingService {
 				}else {
 					node=closureServ.loadConceptById(data.getNodeId());
 				}
-				node=storeConfigurationToNode(data.getUrl(), node);
 				data.setNodeId(node.getID());
 				//thing
 				Thing thing = new Thing();
@@ -1080,7 +1079,8 @@ public class ThingService {
 	 * @throws ObjectNotFoundException 
 	 * @throws JsonProcessingException 
 	 */
-	public Concept storeConfigurationToNode(String url, Concept node) throws ObjectNotFoundException, JsonProcessingException {
+	@Transactional
+	public Concept storeConfigurationToNode(String url, Concept node) throws ObjectNotFoundException {
 		if(node.getLabel()==null) {
 			ThingConfigurationDTO dto = new ThingConfigurationDTO();
 			List<Assembly> assemblies = assemblyServ.loadDataConfiguration(url);
@@ -1088,10 +1088,28 @@ public class ThingService {
 				dto.getAssemblies().add(dtoServ.assemblyDto(assm));
 			}
 			dto.getLayout().addAll(assemblyServ.formLayout(url));
-			node.setLabel(objectMapper.writeValueAsString(dto));
+			try {
+				node.setLabel(objectMapper.writeValueAsString(dto));
+			} catch (JsonProcessingException e) {
+				throw new ObjectNotFoundException(e);
+			}
 		}
 		return node;
 	}
+	
+	/**
+	 * Save pages along with the configurations
+	 * pages are assumed as persistent!
+	 * @param pages
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public void saveConfigurations(List<Concept> pages) throws ObjectNotFoundException {
+		for(Concept page :pages) {
+			page=storeConfigurationToNode(boilerServ.url(page), page);
+		}
+	}
+	
 	/**
 	 * Store all components
 	 * @param data
@@ -1416,6 +1434,7 @@ public class ThingService {
 	 */
 	@Transactional
 	public ThingDTO createApplication(ThingDTO data, String email, Concept applicationData) throws ObjectNotFoundException, JsonProcessingException {
+		
 		//create an application.
 		Concept application = createNode(data.getApplicationUrl(), email);
 		///do we need a special checklist for an applicant?
@@ -2221,6 +2240,17 @@ public class ThingService {
 			}
 		}
 		return data;
+	}
+	
+	@Transactional
+	public void fileRemove(Long nodeID, UserDetailsDTO user) throws ObjectNotFoundException {
+		Concept node = closureServ.loadConceptById(nodeID);
+		if(node.getID() > 0) {
+			ThingDoc tdoc = boilerServ.loadThingDocByFileNode(node);
+			if(tdoc != null && tdoc.getID() > 0)
+				thingDocRepo.deleteById(tdoc.getID());
+			
+		}
 	}
 
 	/**

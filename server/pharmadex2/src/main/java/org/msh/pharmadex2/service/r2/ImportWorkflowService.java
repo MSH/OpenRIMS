@@ -17,6 +17,7 @@ import org.msh.pdex2.repository.r2.ConceptRepo;
 import org.msh.pdex2.repository.r2.ThingRepo;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AssemblyDTO;
+import org.msh.pharmadex2.dto.AsyncInformDTO;
 import org.msh.pharmadex2.dto.DataCollectionDTO;
 import org.msh.pharmadex2.dto.DataVariableDTO;
 import org.msh.pharmadex2.dto.DictNodeDTO;
@@ -30,7 +31,6 @@ import org.msh.pharmadex2.service.common.ValidationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -77,10 +77,18 @@ public class ImportWorkflowService {
 	private String NAME_COL_VALIDATION = "validation";
 	private String NAME_COL_IMPORT = "import";
 
-	private String STATUS_RECEIVING = "Receiving";
+	private String RESULT = "Result";
+	private String STATUS = "Status";
+	
+	private String RESULT_DICTIONARIES = "Dictionaries";
+	private String RESULT_RESOURCES = "Resources";
+	private String RESULT_DATACONFIG = "Data Configurations";
+	private String RESULT_WORKFLOW = "WorkFlow";
+
+	private String STATUS_IMPORTING = "Importing";
 	private String STATUS_SCHEDULED = "Scheduled";
 	private String STATUS_RECEIVED = "Received";
-	private String STATUS_SKIPT = "Skipt";
+	//private String STATUS_SKIPT = "Skipt";
 	private String STATUS_ERROR = "Error!";
 
 	private static String req_ping = "/api/public/pingbyimport";
@@ -97,6 +105,13 @@ public class ImportWorkflowService {
 		data.getServerurl().setStrict(false);
 		data.setIdentifier("");
 		data.setValid(false);// by red check
+		cleanImportLists(data);
+		data.getProcTable().getRows().clear();
+		data.getWfTable().getRows().clear();
+		data.setProcessIDselect(0l);
+		data.setProcessURL("");
+		data.setWfIDselect(0l);
+		data.setWfURL("");
 
 		String url = data.getServerurl().getValue();
 		if(url != null && url.startsWith("http")) {
@@ -115,8 +130,8 @@ public class ImportWorkflowService {
 		}
 		return data;
 	}
-	
-	public ImportWorkflowDTO reload(ImportWorkflowDTO data) throws ObjectNotFoundException {
+
+	/*public ImportWorkflowDTO reload(ImportWorkflowDTO data) throws ObjectNotFoundException {
 		cleanImportLists(data);
 		data.getProcTable().getRows().clear();
 		data.getWfTable().getRows().clear();
@@ -124,11 +139,11 @@ public class ImportWorkflowService {
 		data.setProcessURL("");
 		data.setWfIDselect(0l);
 		data.setWfURL("");
-		
+
 		data = loadProccesses(data);
-		
+
 		return data;
-	}
+	}*/
 
 	/**
 	 * пингуем указанный сервер
@@ -143,6 +158,7 @@ public class ImportWorkflowService {
 			data.setConnect(false);
 			data.getServerurl().setStrict(false);
 			data.setIdentifier(messages.get("error") + " " + messages.get("serverurl"));
+			
 			String url = data.getServerurl().getValue();
 			if(url != null && url.startsWith("http")) {
 				try {
@@ -188,30 +204,100 @@ public class ImportWorkflowService {
 		return data;
 	}
 
-	public ImportWorkflowDTO runimport(ImportWorkflowDTO data) throws ObjectNotFoundException {
-		LocaleContextHolder.setDefaultLocale(Messages.parseLocaleString("EN_US"));
+	@Transactional
+	public ImportWorkflowDTO importRunWorker(ImportWorkflowDTO data, UserDetailsDTO user) throws ObjectNotFoundException, JsonProcessingException {
+		messages.setDefaultLocaleToLCH();
+		AsyncService.writeAsyncContext(AsyncService.PROGRESS_SHEETS, "4");
+
+		// run next step
+		data = dictionaries(data);
+		if(data.isValid()) {
+			data = resources(data);
+			if(data.isValid()) {
+				data = dataConfigs(data);
+				if(data.isValid()) {
+					data = wf(data, user);
+				}
+			}
+		}
+		return data;
+	}
+
+	/**
+	 * load result import from AsyncService and build result table
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	public ImportWorkflowDTO loadResultTabel(ImportWorkflowDTO data) throws ObjectNotFoundException {
+		String title = "";
+		if(data.getProcTable().getRows() != null) {
+			for(TableRow r:data.getProcTable().getRows()) {
+				if(r.getSelected()) {
+					title = r.getRow().get(0).getValue();
+					break;
+				}
+			}
+		}
+		if(data.getWfTable().getRows() != null) {
+			for(TableRow r:data.getWfTable().getRows()) {
+				if(r.getSelected()) {
+					title += " - " + r.getRow().get(0).getValue();
+					break;
+				}
+			}
+		}
+		data.setTitleResultTable(title);
+
 		// создаем таблицу
 		if(data.getStatusTable().getHeaders().getHeaders().size() == 0) {
 			data.getStatusTable().setHeaders(createHeadersStatus(data.getStatusTable().getHeaders()));
 		}
 		data.getStatusTable().getRows().clear();
 
-		TableRow rowDict = createRow("Dictionaries");
+		TableRow rowDict = createRow(RESULT_DICTIONARIES);
 		data.getStatusTable().getRows().add(rowDict);
 
-		TableRow rowRes = createRow("Resources");
+		TableRow rowRes = createRow(RESULT_RESOURCES);
 		data.getStatusTable().getRows().add(rowRes);
 
-		TableRow rowConfig = createRow("Data Configurations");
+		TableRow rowConfig = createRow(RESULT_DATACONFIG);
 		data.getStatusTable().getRows().add(rowConfig);
 
-		// адо сразу создать запись словаря, апотом уже активности к ней
-		TableRow rowWFConfig = createRow("WorkFlow");
+		// надо сразу создать запись словаря, а потом уже активности к ней
+		TableRow rowWFConfig = createRow(RESULT_WORKFLOW);
 		data.getStatusTable().getRows().add(rowWFConfig);
 
 		data.getStatusTable().setSelectable(false);
 
-		data.getStatusTable().getRows().get(0).getCellByKey(NAME_COL_VALIDATION).setValue(STATUS_RECEIVING);
+		//data.getStatusTable().getRows().get(0).getCellByKey(NAME_COL_VALIDATION).setValue(STATUS_RECEIVING);
+
+		String row1_status = AsyncService.readAsyncContext(RESULT_DICTIONARIES + "/" + STATUS);
+		String row1_result = AsyncService.readAsyncContext(RESULT_DICTIONARIES + "/" + RESULT);
+		rowDict.getRow().get(1).setValue(row1_status);
+		rowDict.getRow().get(2).setValue(row1_result);
+		
+		String row2_status = AsyncService.readAsyncContext(RESULT_RESOURCES + "/" + STATUS);
+		String row2_result = AsyncService.readAsyncContext(RESULT_RESOURCES + "/" + RESULT);
+		if(row2_status.isEmpty())
+			row2_status = STATUS_SCHEDULED;
+		rowRes.getRow().get(1).setValue(row2_status);
+		rowRes.getRow().get(2).setValue(row2_result);
+		
+		String row3_status = AsyncService.readAsyncContext(RESULT_DATACONFIG + "/" + STATUS);
+		String row3_result = AsyncService.readAsyncContext(RESULT_DATACONFIG + "/" + RESULT);
+		if(row3_status.isEmpty())
+			row3_status = STATUS_SCHEDULED;
+		rowConfig.getRow().get(1).setValue(row3_status);
+		rowConfig.getRow().get(2).setValue(row3_result);
+		
+		String row4_status = AsyncService.readAsyncContext(RESULT_WORKFLOW + "/" + STATUS);
+		String row4_result = AsyncService.readAsyncContext(RESULT_WORKFLOW + "/" + RESULT);
+		if(row4_status.isEmpty())
+			row4_status = STATUS_SCHEDULED;
+		rowWFConfig.getRow().get(1).setValue(row4_status);
+		rowWFConfig.getRow().get(2).setValue(row4_result);
+		
 		return data;
 	}
 
@@ -236,6 +322,9 @@ public class ImportWorkflowService {
 	}
 
 	public ImportWorkflowDTO dictionaries(ImportWorkflowDTO data) throws ObjectNotFoundException {
+		//AsyncService.writeAsyncContext(AsyncService.PROGRESS_SHEETS_IMPORTED, "1");
+		AsyncService.writeAsyncContext(AsyncService.PROGRESS_CURRENT_SHEET, RESULT_DICTIONARIES + " " + STATUS_IMPORTING);
+		
 		// validate and import dictionaries 
 		logger.trace("ImportWF: dictionaries requested");
 		data = requestToMainServer(data, req_dictionaries);
@@ -244,26 +333,38 @@ public class ImportWorkflowService {
 			// создаем на локальном словарu
 			data = createDictionariesOnLocal(data);
 		}else {
-			data.getStatusTable().getRows().get(0).getCellByKey(NAME_COL_VALIDATION).setValue(STATUS_ERROR);
-			data.getStatusTable().getRows().get(0).getCellByKey(NAME_COL_IMPORT).setValue(data.getIdentifier());
+			AsyncService.writeAsyncContext(RESULT_DICTIONARIES + "/" + STATUS, STATUS_ERROR);
+			AsyncService.writeAsyncContext(RESULT_DICTIONARIES + "/" + RESULT, data.getIdentifier());
+			AsyncService.writeAsyncContext(AsyncService.PROGRESS_STOP_ERROR, "Error");
+			//data.getStatusTable().getRows().get(0).getCellByKey(NAME_COL_VALIDATION).setValue(STATUS_ERROR);
+			//data.getStatusTable().getRows().get(0).getCellByKey(NAME_COL_IMPORT).setValue(data.getIdentifier());
 		}
 		return data;
 	}
 
 	public ImportWorkflowDTO resources(ImportWorkflowDTO data) throws ObjectNotFoundException {
+		//AsyncService.writeAsyncContext(AsyncService.PROGRESS_SHEETS_IMPORTED, "2");
+		AsyncService.writeAsyncContext(AsyncService.PROGRESS_CURRENT_SHEET, RESULT_RESOURCES + " " + STATUS_IMPORTING);
+		
 		logger.trace("ImportWF: resources requested");
 		data = requestToMainServer(data, req_resources);
 		if(data.isValid()) {
 			// создаем на локальном ресурсы
 			data = createResourcesOnLocal(data);
 		}else {
-			data.getStatusTable().getRows().get(1).getCellByKey(NAME_COL_VALIDATION).setValue(STATUS_ERROR);
-			data.getStatusTable().getRows().get(1).getCellByKey(NAME_COL_IMPORT).setValue(data.getIdentifier());
+			AsyncService.writeAsyncContext(RESULT_RESOURCES + "/" + STATUS, STATUS_ERROR);
+			AsyncService.writeAsyncContext(RESULT_RESOURCES + "/" + RESULT, data.getIdentifier());
+			AsyncService.writeAsyncContext(AsyncService.PROGRESS_STOP_ERROR, "Error");
+			//data.getStatusTable().getRows().get(1).getCellByKey(NAME_COL_VALIDATION).setValue(STATUS_ERROR);
+			//data.getStatusTable().getRows().get(1).getCellByKey(NAME_COL_IMPORT).setValue(data.getIdentifier());
 		}
 		return data;
 	}
 
 	public ImportWorkflowDTO dataConfigs(ImportWorkflowDTO data) {
+		//AsyncService.writeAsyncContext(AsyncService.PROGRESS_SHEETS_IMPORTED, "3");
+		AsyncService.writeAsyncContext(AsyncService.PROGRESS_CURRENT_SHEET, RESULT_DATACONFIG + " " + STATUS_IMPORTING);
+		
 		logger.trace("ImportWF: dataConfigs requested");
 		data = requestToMainServer(data, req_dataconfigs);
 		if(data.isValid()) {
@@ -274,21 +375,30 @@ public class ImportWorkflowService {
 				e.printStackTrace();
 			}
 		}else {
-			data.getStatusTable().getRows().get(2).getCellByKey(NAME_COL_VALIDATION).setValue(STATUS_ERROR);
-			data.getStatusTable().getRows().get(2).getCellByKey(NAME_COL_IMPORT).setValue(data.getIdentifier());
+			AsyncService.writeAsyncContext(RESULT_DATACONFIG + "/" + STATUS, STATUS_ERROR);
+			AsyncService.writeAsyncContext(RESULT_DATACONFIG + "/" + RESULT, data.getIdentifier());
+			AsyncService.writeAsyncContext(AsyncService.PROGRESS_STOP_ERROR, "Error");
+			//data.getStatusTable().getRows().get(2).getCellByKey(NAME_COL_VALIDATION).setValue(STATUS_ERROR);
+			//data.getStatusTable().getRows().get(2).getCellByKey(NAME_COL_IMPORT).setValue(data.getIdentifier());
 		}
 		return data;
 	}
 
 	public ImportWorkflowDTO wf(ImportWorkflowDTO data, UserDetailsDTO user) throws ObjectNotFoundException, JsonProcessingException {
+		//AsyncService.writeAsyncContext(AsyncService.PROGRESS_SHEETS_IMPORTED, "4");
+		AsyncService.writeAsyncContext(AsyncService.PROGRESS_CURRENT_SHEET, RESULT_WORKFLOW + " " + STATUS_IMPORTING);
+		
 		logger.trace("ImportWF: wf&activities requested");
 		data = requestToMainServer(data, req_wf);
 		if(data.isValid()) {
 			// создаем на локальном 
 			data = createWFOnLocal(data, user);
 		}else {
-			data.getStatusTable().getRows().get(3).getCellByKey(NAME_COL_VALIDATION).setValue(data.getIdentifier());
-			data.getStatusTable().getRows().get(3).getCellByKey(NAME_COL_IMPORT).setValue(data.getIdentifier());
+			AsyncService.writeAsyncContext(RESULT_WORKFLOW + "/" + STATUS, STATUS_ERROR);
+			AsyncService.writeAsyncContext(RESULT_WORKFLOW + "/" + RESULT, data.getIdentifier());
+			AsyncService.writeAsyncContext(AsyncService.PROGRESS_STOP_ERROR, "Error");
+			//data.getStatusTable().getRows().get(3).getCellByKey(NAME_COL_VALIDATION).setValue(data.getIdentifier());
+			//data.getStatusTable().getRows().get(3).getCellByKey(NAME_COL_IMPORT).setValue(data.getIdentifier());
 		}
 		return data;
 	}
@@ -313,11 +423,11 @@ public class ImportWorkflowService {
 		}else {
 			logger.trace("ImportWF: dictionaries received-NULL");
 		}
-		
+
 		logger.trace("ImportWF: dictionaries created-" + count);
 		logger.trace("ImportWF: dictionaries skipt-" + countSkipt);
 
-		data = printResult(data, 0, countSkipt, count, data.getDictsImport().keySet().size());
+		data = printResult(RESULT_DICTIONARIES, data, 1, countSkipt, count, data.getDictsImport().keySet().size());
 
 		cleanImportLists(data);
 		return data;
@@ -337,7 +447,7 @@ public class ImportWorkflowService {
 			}
 		}
 	}
-	
+
 	@Transactional
 	public void buildDict(String url, Map<Long, List<DictNodeDTO>> listdict, Concept root) throws ObjectNotFoundException {
 		if(listdict != null) {
@@ -386,7 +496,7 @@ public class ImportWorkflowService {
 				for(String url:resources.keySet()) {
 					curImportURL = url;
 					Concept root = closureServ.loadConceptByIdentifierActive(url);
-					
+
 					DataCollectionDTO config = data.getConfigImport().get(url);
 					List<Concept> concepts = literalServ.loadOnlyChilds(dataConf);
 					Concept ret = new Concept();
@@ -396,7 +506,7 @@ public class ImportWorkflowService {
 							ret = c;
 						}
 					}
-					
+
 					if(root != null && root.getID() > 0 && resServ.isResourceUrl(url)
 							&& ret != null && ret.getID() > 0) {
 						countSkipt++;
@@ -409,7 +519,7 @@ public class ImportWorkflowService {
 								dv.setVarNodeId(0);
 								dv.setNodeId(config.getNodeId());
 								dv = superService.dataCollectionVariableSave(dv, false);
-								
+
 								if(dv.isValid() || !dv.isStrict()) {
 									// теперь создаем словарь для этого ресурса
 									if(dv.getClazz().getValue().getCode().equals("documents")) {
@@ -430,17 +540,16 @@ public class ImportWorkflowService {
 							}else {
 								data.setValid(false);
 								data.setIdentifier("Error in resources URL: " + url + ". " + resDTO.getIdentifier());
-	
+
 								break;
 							}
 						}else {
 							data.setValid(false);
 							data.setIdentifier("Error in config resources URL: " + url + ". " + config.getIdentifier());
-	
+
 							break;
 						}
 					}
-					
 				}
 			}else {
 				logger.trace("ImportWF: resources received-NULL");
@@ -452,9 +561,8 @@ public class ImportWorkflowService {
 		}
 		logger.trace("ImportWF: resources created-" + count);
 		logger.trace("ImportWF: resources skipt-" + countSkipt);
-		
-		data = printResult(data, 1, countSkipt, count, resources.keySet().size());
-		
+
+		data = printResult(RESULT_RESOURCES, data, 2, countSkipt, count, resources.keySet().size());
 		cleanImportLists(data);
 		return data;
 	}
@@ -467,10 +575,10 @@ public class ImportWorkflowService {
 		if(configs != null && configs.keySet().size() > 0) {
 			logger.trace("ImportWF: DataConfigs received-" + configs.keySet().size());
 			Concept dataConf = closureServ.loadRoot(SystemService.DATA_COLLECTIONS_ROOT);
-			
+
 			for(String url:configs.keySet()) {
 				Concept root = closureServ.findConceptInBranchByIdentifier(dataConf, url);
-				
+
 				if(root != null && root.getID() > 0 && assistServ.isDataConfigurationUrl(url)) {
 					// такой урл уже есть
 					countSkipt++;
@@ -500,9 +608,8 @@ public class ImportWorkflowService {
 		}
 		logger.trace("ImportWF: DataConfigs created-" + count);
 		logger.trace("ImportWF: DataConfigs skipt-" + countSkipt);
-		
-		data = printResult(data, 2, countSkipt, count, configs.keySet().size());
 
+		data = printResult(RESULT_DATACONFIG, data, 3, countSkipt, count, configs.keySet().size());
 		cleanImportLists(data);
 		return data;
 	}
@@ -533,7 +640,7 @@ public class ImportWorkflowService {
 					}
 				}
 			}
-			
+
 			if(procRoot != null) {
 				String applURL = null;
 				Concept root = new Concept();
@@ -542,20 +649,20 @@ public class ImportWorkflowService {
 				root.setIdentifier(root.getID() + "");
 				root = closureServ.save(root);
 				count++;
-				
+
 				for(String lit:dict.getLiterals().keySet()){
 					if(lit.equals(LiteralService.URL)) {
 						literalServ.createUpdateLiteral(lit, dict.getLiterals().get(lit).getValue(), root);
 					}else {
 						literalServ.createUpdateLiteral(lit, dict.getLiterals().get(lit).getValue(), root);	
 					}
-					
+
 					if(lit.equals(LiteralService.APPLICATION_URL)) {
 						applURL = dict.getLiterals().get(lit).getValue();
 					}
 				}
 				logger.trace("ImportWF: WF created-1");
-				
+
 				if(applURL != null) {
 					// если по такому урлу уже есть конфигурация - пропускаем 
 					Concept confConcept = closureServ.loadConceptByIdentifierActive("configuration." + applURL);
@@ -572,8 +679,7 @@ public class ImportWorkflowService {
 			logger.trace("ImportWF: WF received-NULL");
 		}
 
-		data = printResult(data, 3, countSkipt, count, countSkipt+count);
-
+		data = printResult(RESULT_WORKFLOW, data, 4, countSkipt, count, countSkipt+count);
 		cleanImportLists(data);
 		return data;
 	}
@@ -613,7 +719,7 @@ public class ImportWorkflowService {
 				firstThing = thingServ.storeDataUnderThing(firstThing, user, firstActivity, thing);
 				thing = thingRepo.save(thing);
 				count++;
-				
+
 				for(int i = 1; i < path.size(); i++) {
 					ThingDTO dto = path.get(i);
 
@@ -656,23 +762,23 @@ public class ImportWorkflowService {
 					buildDict(urldict, dict, root);
 				}
 			}
-			
+
 			if(dto != null) {
 				Concept execConcept = null;
 				Concept finalConcept = null;
-				
+
 				List<String> vals = data.getPathImportDict().get(dto.getNodeId());
 				if(vals != null && vals.get(0) != null)
 					execConcept = closureServ.loadConceptByIdentifierActive(vals.get(0));
 				if(vals != null && vals.get(1) != null)
 					finalConcept = closureServ.loadConceptByIdentifierActive(vals.get(1));
-				
+
 				DictionaryDTO dictExec = dto.getDictionaries().get(AssemblyService.ACTIVITY_EXECUTIVES);
 				dictExec.getPrevSelected().clear();
 				if(dictExec != null && execConcept != null) {
 					dictExec.getPrevSelected().add(execConcept.getID());
 				}
-			
+
 				DictionaryDTO dictFinal = dto.getDictionaries().get(AssemblyService.ACTIVITY_CONFIG_FINALIZE);
 				dictFinal.getPrevSelected().clear();
 				if(dictFinal != null) {
@@ -680,7 +786,7 @@ public class ImportWorkflowService {
 						Concept finDict = closureServ.loadConceptByIdentifier(SystemService.DICTIONARY_SYSTEM_FINALIZATION);
 						finalConcept = closureServ.findConceptInBranchByIdentifier(finDict, SystemService.FINAL_ACCEPT);
 					}
-					
+
 					if(finalConcept != null)
 						dictFinal.getPrevSelected().add(finalConcept.getID());
 				}
@@ -690,7 +796,7 @@ public class ImportWorkflowService {
 		}
 		return dto;
 	}
-	
+
 	private ImportWorkflowDTO requestToMainServer(ImportWorkflowDTO data, String req) {
 		try {
 			String url = data.getServerurl() + req;
@@ -748,36 +854,59 @@ public class ImportWorkflowService {
 		ret= boilerServ.translateHeaders(ret);
 		return ret;
 	}
-	
-	private ImportWorkflowDTO printResult(ImportWorkflowDTO data, int numRow, int avail, int receiv, int tot) {
+
+	//RESULT_DICTIONARIES
+	private ImportWorkflowDTO printResult(String rowKey, ImportWorkflowDTO data, int numRow, int avail, int receiv, int tot) {
 		String str = "Available " + avail + "; received new " + receiv + "; total " + tot;
-		String s = "Dictionaries ";
-		switch (numRow) {
-		case 0:
-			s = "Dictionaries ";
-			break;
-		case 1:
-			s = "Resources ";
-			break;
-		case 2:
-			s = "Data Configurations ";
-			break;
-		case 3:
-			s = "WorkFlow ";
-			break;
-		}
+		
+		AsyncService.writeAsyncContext(AsyncService.PROGRESS_SHEETS_IMPORTED, numRow + "");
+		//AsyncService.writeAsyncContext(AsyncService.PROGRESS_CURRENT_SHEET, rowKey);
 		
 		if(data.isValid()) {
-			s += " Success. " + str;
-			data.getStatusTable().getRows().get(numRow).getCellByKey(NAME_COL_VALIDATION).setValue(STATUS_RECEIVED);
-			if(numRow < 3)
-				data.getStatusTable().getRows().get(numRow + 1).getCellByKey(NAME_COL_VALIDATION).setValue(STATUS_RECEIVING);
+			AsyncService.writeAsyncContext(rowKey + "/" + STATUS, STATUS_RECEIVED);
+			AsyncService.writeAsyncContext(rowKey + "/" + RESULT, "Success. " + str);
 		}else {
-			s += " Error!. " + str + ". " + data.getIdentifier();
-			data.getStatusTable().getRows().get(numRow).getCellByKey(NAME_COL_VALIDATION).setValue(STATUS_ERROR);
+			AsyncService.writeAsyncContext(rowKey + "/" + STATUS, STATUS_ERROR);
+			AsyncService.writeAsyncContext(rowKey + "/" + RESULT, " Error! " + str + ". " + data.getIdentifier());
+			AsyncService.writeAsyncContext(AsyncService.PROGRESS_STOP_ERROR, "Error");
 		}
-		data.getStatusTable().getRows().get(numRow).getCellByKey(NAME_COL_IMPORT).setValue(s);
-		data.setIdentifier(s);
+
+		return data;
+	}
+
+	/**
+	 * Progress bar logic for admin unit import
+	 * @param data
+	 * @return
+	 */
+	public AsyncInformDTO calcProgress(AsyncInformDTO data) {
+		//names
+		data.setTitle(messages.get("processImportWorkflow"));
+
+		String importedSheets = AsyncService.readAsyncContext(AsyncService.PROGRESS_SHEETS_IMPORTED);
+		String totalSheets = AsyncService.readAsyncContext(AsyncService.PROGRESS_SHEETS);
+		
+		String currentSheet = AsyncService.readAsyncContext(AsyncService.PROGRESS_CURRENT_SHEET);
+		
+		Float importedSh = new Float(0);
+		if(!importedSheets.isEmpty()) {
+			importedSh = new Float(importedSheets);
+		}
+		int coef = 25*importedSh.intValue();
+		if(coef == 0) {
+			coef = 15;
+		}
+		data.setComplPercent(coef);
+		data.setProgressMessage(currentSheet);
+				
+		String stopError = AsyncService.readAsyncContext(AsyncService.PROGRESS_STOP_ERROR);
+		if(!stopError.isEmpty()) {// proces Stop by Error
+			data.setCompleted(false);
+			data.setCancelled(true);
+		}else {
+			data.setCancelled(false);
+			data.setCompleted(totalSheets.equals(importedSheets));
+		}
 		return data;
 	}
 }

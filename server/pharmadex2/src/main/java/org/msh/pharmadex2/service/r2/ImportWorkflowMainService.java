@@ -66,6 +66,16 @@ public class ImportWorkflowMainService {
 	@Autowired
 	private Messages messages;
 
+	private final String varDictionary = "dictionary";
+	private final String varResource = "resource";
+	private final String varResourceConfig = "resource configuration";
+	private final String varActivity = "activity";
+	private final String varActivityConfig = "activity configuration";
+	private final String varProcess = "process";
+	private final String varDataConfig = "data configuration";
+	private final String varProcessURLs = "process URLs";
+	private final String varWFconfig = "wf config";
+
 	/**
 	 * load data to ProcTable (list dictionaries) and to WfTable
 	 * to WfTable load process? when have 1 finalization activity
@@ -74,7 +84,7 @@ public class ImportWorkflowMainService {
 	 */
 	public ImportWorkflowDTO loadProcesses(ImportWorkflowDTO data) {
 		try {
-			LocaleContextHolder.setDefaultLocale(Messages.parseLocaleString("EN_US"));
+			messages.setDefaultLocaleToLCH();
 
 			if(data.getProcessIDselect() == 0) {// первая загрузка
 				DictionaryDTO procDictionary = systemServ.stagesDictionary();
@@ -164,24 +174,18 @@ public class ImportWorkflowMainService {
 	 * (не берутся словари из ресурсов - єто ветка импорта ресурсов)
 	 */
 	public ImportWorkflowDTO validateDictionaries(ImportWorkflowDTO data){
-		LocaleContextHolder.setDefaultLocale(Messages.parseLocaleString("EN_US"));
-		try {
-			TableQtb table = new TableQtb();
-			table.setHeaders(createTemplHeaders(table.getHeaders(), false));
-			jdbcRepo.importWF_main(data.getWfIDselect(), 1);
+		messages.setDefaultLocaleToLCH();
+		TableQtb table = new TableQtb();
+		table.setHeaders(createTemplHeaders(table.getHeaders(), false));
+		jdbcRepo.importWF_main(data.getWfIDselect(), 1);
 
-			List<TableRow> rows = jdbcRepo.qtbGroupReport("select distinct d.dataurl as url from importwf_main as d order by d.dataurl", "", "", table.getHeaders());
-			if(rows != null && rows.size() > 0) {
-				data.setValid(true);
-			}
+		List<TableRow> rows = jdbcRepo.qtbGroupReport("select distinct d.dataurl as url from importwf_main as d order by d.dataurl", "", "", table.getHeaders());
+		if(rows != null && rows.size() > 0) {
+			data.setValid(true);
+		}
 
-			if(data.isValid()) {
-				data = importDictionaries(data, rows);
-			}
-		} catch (ObjectNotFoundException e) {
-			data.setValid(false);
-			data.setIdentifier("Error valid Dictionaries in Main Server!");
-			e.printStackTrace();
+		if(data.isValid()) {
+			data = importDictionaries(data, rows);
 		}
 		return data;
 	}
@@ -193,38 +197,27 @@ public class ImportWorkflowMainService {
 	 * если есть url configuration - то считаем что данные ОК
 	 *  */
 	public ImportWorkflowDTO validateResources(ImportWorkflowDTO data){
-		LocaleContextHolder.setDefaultLocale(Messages.parseLocaleString("EN_US"));
-		try {// валидируем Resources
-			TableQtb table = new TableQtb();
-			table.setHeaders(createResourceHeaders(table.getHeaders()));
-			jdbcRepo.importWF_main(data.getWfIDselect(), 2);
+		messages.setDefaultLocaleToLCH();
+		// валидируем Resources
+		TableQtb table = new TableQtb();
+		table.setHeaders(createResourceHeaders(table.getHeaders()));
+		jdbcRepo.importWF_main(data.getWfIDselect(), 2);
 
-			List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from importwf_main as d group by d.ID, d.dataurl, d.clazz, d.config", "", "", table.getHeaders());
-			if(rows != null && rows.size() > 0) {
-				int countAll = rows.size();
-				int ind = 0;
-				for(TableRow row:rows) {
-					String url = row.getRow().get(1).getValue();
-					if(url.length() > 3) {
-						String configURL = row.getRow().get(3).getValue();
-						if(configURL != null && configURL.length() > 3) {
-							ind++;
-						}
-					}
-				}
-				if(countAll == ind) {
-					data.setValid(true);
-					data = importResources(data, rows);
-				}else {
-					data.setValid(false);
-					data.setIdentifier("ERROR! Empty data configuration URL!");
+		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from importwf_main as d group by d.ID, d.dataurl, d.clazz, d.config", "", "", table.getHeaders());
+		if(rows != null && rows.size() > 0) {
+			for(TableRow row:rows) {
+				String url = row.getRow().get(1).getValue();
+				String configURL = row.getRow().get(3).getValue();
+				if(!(url.length() > 3 && configURL != null && configURL.length() > 3)) {
+					data = buildErrorString(url, varResourceConfig, messages.get("notfound"), data);
+					break;
 				}
 			}
-		} catch (ObjectNotFoundException e) {
-			data.setValid(false);
-			data.setIdentifier("Error valid Resources in Main Server!");
-			e.printStackTrace();
+			if(data.isValid()) {
+				data = importResources(data, rows);
+			}
 		}
+
 		return data;
 	}
 
@@ -236,9 +229,8 @@ public class ImportWorkflowMainService {
 	 * @return
 	 */
 	public ImportWorkflowDTO validateDataConfigs(ImportWorkflowDTO data) {
-		LocaleContextHolder.setDefaultLocale(Messages.parseLocaleString("EN_US"));
+		messages.setDefaultLocaleToLCH();
 		// отбираем урлы датаКонфигураций всех активностей+запись словаря
-		//try {
 		TableQtb table = new TableQtb();
 		table.setHeaders(createTemplHeaders(table.getHeaders(), true));
 		table.getHeaders().getHeaders().add(TableHeader.instanceOf(
@@ -258,19 +250,19 @@ public class ImportWorkflowMainService {
 
 		List<TableRow> rows = jdbcRepo.qtbGroupReport(q, "", "", table.getHeaders());
 		if(rows != null && rows.size() > 0) {
-			int countAll = rows.size();
-			int ind = 0;
 			for(TableRow row:rows) {
 				String verif = row.getRow().get(2).getValue();
-				ind += Integer.valueOf(verif);
+				if(Integer.valueOf(verif) == 0) {
+					data = buildErrorString(row.getRow().get(1).getValue(), varDataConfig, messages.get("notfound"), data);
+					break;
+				}
 			}
-			data.setValid(countAll == ind);
+		}else {
+			data = buildErrorString(data.getWfURL(), varProcess, messages.get("notfound"), data);
 		}
 
 		if(data.isValid()) {
 			data = importDataConfigs(data, rows);
-		}else {
-			data.setIdentifier("Not found data configuration urls!");
 		}
 
 		return data;
@@ -280,7 +272,7 @@ public class ImportWorkflowMainService {
 	 * далее проверяем записи активностей
 	 * */
 	public ImportWorkflowDTO validateWF(ImportWorkflowDTO data) {
-		LocaleContextHolder.setDefaultLocale(Messages.parseLocaleString("EN_US"));
+		messages.setDefaultLocaleToLCH();
 		try {
 			Concept root = systemServ.findProccessByUrl(data.getProcessURL(), data.getWfURL());
 			Map<String, String> urls = new HashMap<String, String>();
@@ -331,12 +323,10 @@ public class ImportWorkflowMainService {
 					data = validateActivitiesConfigs(data);
 				}
 			}else {
-				data.setValid(false);
-				data.setIdentifier("Empty one of field URL");
+				data = buildErrorString(data.getWfURL(), varProcessURLs, messages.get("notfound"), data);
 			}
 		} catch (ObjectNotFoundException e) {
-			data.setValid(false);
-			data.setIdentifier("Error valid WorkFlow in Main Server!");
+			data = buildErrorString(data.getWfURL(), varProcess, e.getMessage(), data);
 			e.printStackTrace();
 		}
 		return data;
@@ -345,14 +335,12 @@ public class ImportWorkflowMainService {
 	/** получаем все записи активити и проверяем их
 	 * проверки все делаем интерфейсніми методами */
 	private ImportWorkflowDTO validateActivitiesConfigs(ImportWorkflowDTO data) {
-		LocaleContextHolder.setDefaultLocale(Messages.parseLocaleString("EN_US"));
+		messages.setDefaultLocaleToLCH();
 		try {
 			WorkflowDTO wfdto = new WorkflowDTO();
 			wfdto.setDictNodeId(data.getWfIDselect());
 			wfdto = superService.workflowConfiguration(wfdto, null);
 			if(wfdto.getPath() != null && wfdto.getPath().size() >= 1) {
-				int count = 0;
-
 				for(ThingDTO th:wfdto.getPath()) {
 					Concept node = closureServ.loadConceptById(th.getNodeId());
 					Thing thing = new Thing();
@@ -369,22 +357,18 @@ public class ImportWorkflowMainService {
 					th.setLogical(dtoServ.readAllLogical(th.getLogical(), node));
 
 					th = validServ.thing(th, new ArrayList<AssemblyDTO>(), false);
-					if(th.isValid()) {
-						count++;
+					if(!th.isValid()) {
+						data = buildErrorString(th.getActivityName(), varActivityConfig, th.getIdentifier(), data);
+						break;
 					}
 				}
 
-				if(count == wfdto.getPath().size()) {
-					data.setValid(true);
+				if(data.isValid()) {
 					data = importActivitiesConfigs(data, wfdto);
-				}else {
-					data.setValid(false);
-					data.setIdentifier("Bad activity! " + wfdto.getTitle());
 				}
 			}
 		} catch (ObjectNotFoundException e) {
-			data.setValid(false);
-			data.setIdentifier("Error valid ActivitiesConfigs in Main Server!");
+			data = buildErrorString(data.getWfURL(), varWFconfig, e.getMessage(), data);
 			e.printStackTrace();
 		}
 		return data;
@@ -397,13 +381,16 @@ public class ImportWorkflowMainService {
 	 * String - урл словаря
 	 * Map<Long, List<DictNodeDTO>> - это карта ОДНОГО словаря, где Long это парент ид - ид родительской записи
 	 */
-	private ImportWorkflowDTO importDictionaries(ImportWorkflowDTO data, List<TableRow> rows) throws ObjectNotFoundException {
+	private ImportWorkflowDTO importDictionaries(ImportWorkflowDTO data, List<TableRow> rows) {
 		for(TableRow r:rows) {
 			String url = r.getRow().get(0).getValue();
 			if(!url.toLowerCase().equals(SystemService.DICTIONARY_ADMIN_UNITS.toLowerCase())) {
 				Concept root = closureServ.loadConceptByIdentifierActive(url);
 				if(root != null && root.getID() > 0) {
 					data = buildDict(url, root, data);
+					if(!data.isValid()) {
+						return data;
+					}
 				}
 			}
 		}
@@ -411,54 +398,70 @@ public class ImportWorkflowMainService {
 		return data;
 	}
 
-	public ImportWorkflowDTO buildDict(String url, Concept root, ImportWorkflowDTO data) throws ObjectNotFoundException {
-		DictNodeDTO dictDTO = new DictNodeDTO();
-		dictDTO.setUrl(url);
-		dictDTO.setParentId(0);
-		dictDTO.setNodeId(root.getID());
-		dictDTO = dictServ.literalsLoad(dictDTO);
+	public ImportWorkflowDTO buildDict(String url, Concept root, ImportWorkflowDTO data) {
+		try {
+			DictNodeDTO dictDTO = new DictNodeDTO();
+			dictDTO.setUrl(url);
+			dictDTO.setParentId(0);
+			dictDTO.setNodeId(root.getID());
+			dictDTO = dictServ.literalsLoad(dictDTO);
 
-		dictDTO.getLiterals().get(LiteralService.PREF_NAME).setValue(literalServ.readPrefLabel(root));
-		dictDTO.getLiterals().get(LiteralService.DESCRIPTION).setValue(literalServ.readDescription(root));
+			dictDTO.getLiterals().get(LiteralService.PREF_NAME).setValue(literalServ.readPrefLabel(root));
+			dictDTO.getLiterals().get(LiteralService.DESCRIPTION).setValue(literalServ.readDescription(root));
 
-		Map<Long, List<DictNodeDTO>> dict = new HashMap<Long, List<DictNodeDTO>>();
-		List<DictNodeDTO> list = new ArrayList<DictNodeDTO>();
-		list.add(dictDTO);
-		dict.put(0l, list);
-		data.getDictsImport().put(url, dict);
+			Map<Long, List<DictNodeDTO>> dict = new HashMap<Long, List<DictNodeDTO>>();
+			List<DictNodeDTO> list = new ArrayList<DictNodeDTO>();
+			list.add(dictDTO);
+			dict.put(0l, list);
+			data.getDictsImport().put(url, dict);
 
-		recursionLoadDictionary(url, root.getID(), dict);
-
+			String error = recursionLoadDictionary(url, root.getID(), dict);
+			if(error != null) {
+				data = buildErrorString(url, varDictionary, error, data);
+			}
+		} catch (ObjectNotFoundException e) {
+			data = buildErrorString(url, varDictionary, e.getMessage(), data);
+			e.printStackTrace();
+		}
 		return data;
 	}
 
-	private void recursionLoadDictionary(String url, long parID, Map<Long, List<DictNodeDTO>> dict) throws ObjectNotFoundException {
-		// разбираем словарь по уровням
-		Concept levelNode = closureServ.loadConceptById(parID);
-		List<Concept> child = literalServ.loadOnlyChilds(levelNode);
-		if(child != null && child.size() > 0) {
-			for(Concept c:child) {
-				if(c.getActive()) {
-					DictNodeDTO dictDTO = new DictNodeDTO();
-					dictDTO.setUrl(url);
-					dictDTO.setParentId(parID);
-					dictDTO.setNodeId(c.getID());
-					dictDTO = dictServ.literalsLoad(dictDTO);
+	private String recursionLoadDictionary(String url, long parID, Map<Long, List<DictNodeDTO>> dict){
+		try {
+			// разбираем словарь по уровням
+			Concept levelNode = closureServ.loadConceptById(parID);
+			List<Concept> child = literalServ.loadOnlyChilds(levelNode);
+			if(child != null && child.size() > 0) {
+				for(Concept c:child) {
+					if(c.getActive()) {
+						DictNodeDTO dictDTO = new DictNodeDTO();
 
-					dictDTO.getLiterals().get(LiteralService.PREF_NAME).setValue(literalServ.readPrefLabel(c));
-					dictDTO.getLiterals().get(LiteralService.DESCRIPTION).setValue(literalServ.readDescription(c));
+						dictDTO.setUrl(url);
+						dictDTO.setParentId(parID);
+						dictDTO.setNodeId(c.getID());
+						dictDTO = dictServ.literalsLoad(dictDTO);
 
-					List<DictNodeDTO> list = dict.get(parID);
-					if(list == null) {
-						list = new ArrayList<DictNodeDTO>();
+						dictDTO.getLiterals().get(LiteralService.PREF_NAME).setValue(literalServ.readPrefLabel(c));
+						dictDTO.getLiterals().get(LiteralService.DESCRIPTION).setValue(literalServ.readDescription(c));
+
+						List<DictNodeDTO> list = dict.get(parID);
+						if(list == null) {
+							list = new ArrayList<DictNodeDTO>();
+						}
+						list.add(dictDTO);
+						dict.put(parID, list);
+
+						String err = recursionLoadDictionary(url, c.getID(), dict);
+						if(err != null) {
+							return err;
+						}
 					}
-					list.add(dictDTO);
-					dict.put(parID, list);
-
-					recursionLoadDictionary(url, c.getID(), dict);
 				}
 			}
+		} catch (ObjectNotFoundException e) {
+			return e.getMessage();
 		}
+		return null;
 	}
 
 	/**
@@ -468,104 +471,99 @@ public class ImportWorkflowMainService {
 	 * заполняем varsImport (урс ресурса - список записей Variable из конфигурации List<DataVariableDTO>)
 	 * заполняем dictsImport (урс словаря из конфигурации - карта словаря)
 	 */
-	private ImportWorkflowDTO importResources(ImportWorkflowDTO data, List<TableRow> rows) throws ObjectNotFoundException {
+	private ImportWorkflowDTO importResources(ImportWorkflowDTO data, List<TableRow> rows) {
 		for(TableRow r:rows) {
 			String url = r.getRow().get(1).getValue();
-			long id = r.getDbID();
+			try {
+				long id = r.getDbID();
 
-			Concept root = closureServ.loadConceptById(id);
-			if(root != null) {
-				//  для записи ресурса
-				ResourceDTO resDTO = new ResourceDTO();
-				resDTO.getUrl().setValue(root.getIdentifier());
-				resDTO.getConfigUrl().setValue(root.getLabel());
-				resDTO.getDescription().setValue(literalServ.readDescription(root));
-				resDTO = validServ.resourceDefinition(resDTO, false);//superService.resourceDefinitionSave(resDTO);
-				if(resDTO.isValid()) {
-					// записи конфигурации ресурса
-					Concept dataConf = closureServ.loadRoot(SystemService.DATA_COLLECTIONS_ROOT);
-					Concept rootConfig = closureServ.findConceptInBranchByIdentifier(dataConf, root.getLabel());
-					if(rootConfig == null) {
-						data.setValid(false);
-						data.setIdentifier("Not found Resources configuration! URL - " + root.getLabel());
-						return data;
-					}
-					DataCollectionDTO config = new DataCollectionDTO();
-					config.setNodeId(rootConfig.getID());
-					config = superService.dataCollectionDefinitionLoad(config);
-					config = validServ.dataCollection(config);
-					if(config.isValid()) {
-						// получим список Assembly для конфигурации - есть условие одна documents и одна heading
-						List<Assembly> datas = assemblyServ.loadDataConfiguration(root.getLabel());
-						if(!datas.isEmpty()) {
-							List<Assembly> doc = new ArrayList<Assembly>();
-							List<Assembly> hea = new ArrayList<Assembly>();
-							for(Assembly d:datas) {
-								if(d.getClazz().equalsIgnoreCase("documents")){
-									doc.add(d);
-								}else if(d.getClazz().equalsIgnoreCase("heading")) {
-									hea.add(d);
-								}
-								if(doc.size()==0 || doc.size()>1 || doc.size()+hea.size()!=datas.size()) {
-									data.setValid(false);
-									data.setIdentifier(messages.get("errorConfigDataResource") + " Resource config URL-" + root.getLabel());
-									logger.error(messages.get("errorConfigDataResource"));
-									break;
-								}
-							}//
-							//  
-							if(data.isValid()) {
-								List<DataVariableDTO> list = new ArrayList<DataVariableDTO>();
-								for(Assembly assm:datas) {
-									DataVariableDTO dvDTO = new DataVariableDTO();
-									dvDTO.setNodeId(rootConfig.getID());
-									dvDTO.setVarNodeId(assm.getPropertyName().getID());
+				Concept root = closureServ.loadConceptById(id);
+				if(root != null) {
+					//  для записи ресурса
+					ResourceDTO resDTO = new ResourceDTO();
+					resDTO.getUrl().setValue(root.getIdentifier());
+					resDTO.getConfigUrl().setValue(root.getLabel());
+					resDTO.getDescription().setValue(literalServ.readDescription(root));
+					resDTO = validServ.resourceDefinition(resDTO, false);//superService.resourceDefinitionSave(resDTO);
+					if(resDTO.isValid()) {
+						// записи конфигурации ресурса
+						Concept dataConf = closureServ.loadRoot(SystemService.DATA_COLLECTIONS_ROOT);
+						Concept rootConfig = closureServ.findConceptInBranchByIdentifier(dataConf, root.getLabel());
+						if(rootConfig == null) {
+							data = buildErrorString(root.getLabel(), varResourceConfig, messages.get("notfound"), data);
+							return data;
+						}
+						DataCollectionDTO config = new DataCollectionDTO();
+						config.setNodeId(rootConfig.getID());
+						config = superService.dataCollectionDefinitionLoad(config);
+						config = validServ.dataCollection(config);
+						if(config.isValid()) {
+							// получим список Assembly для конфигурации - есть условие одна documents и одна heading
+							List<Assembly> datas = assemblyServ.loadDataConfiguration(root.getLabel());
+							if(!datas.isEmpty()) {
+								List<Assembly> doc = new ArrayList<Assembly>();
+								List<Assembly> hea = new ArrayList<Assembly>();
+								for(Assembly d:datas) {
+									if(d.getClazz().equalsIgnoreCase("documents")){
+										doc.add(d);
+									}else if(d.getClazz().equalsIgnoreCase("heading")) {
+										hea.add(d);
+									}
+									if(doc.size()==0 || doc.size()>1 || doc.size()+hea.size()!=datas.size()) {
+										data = buildErrorString(root.getLabel(), varResourceConfig, messages.get("errorConfigDataResource"), data);
+										break;
+									}
+								}//
+								//  
+								if(data.isValid()) {
+									List<DataVariableDTO> list = new ArrayList<DataVariableDTO>();
+									for(Assembly assm:datas) {
+										DataVariableDTO dvDTO = new DataVariableDTO();
+										dvDTO.setNodeId(rootConfig.getID());
+										dvDTO.setVarNodeId(assm.getPropertyName().getID());
 
-									dvDTO = dtoServ.assembly(assm, rootConfig, assm.getPropertyName(), dvDTO);
-									dvDTO = validServ.variable(dvDTO, false, false);
-									if(dvDTO.isValid() || !dvDTO.isStrict()) {
-										list.add(dvDTO);
-										if(dvDTO.getClazz().getValue().getCode().equals("documents")) {
-											Concept dictRoot = closureServ.loadConceptByIdentifierActive(dvDTO.getDictUrl().getValue());
-											if(dictRoot != null && dictRoot.getID() > 0) {
-												data = buildDict(dvDTO.getDictUrl().getValue(), dictRoot, data);
-											}else {
-												// если на главном сервере нет словаря с таким урлом - будем создавать пустой на клиенте
-												data.getDictsImport().put(dvDTO.getDictUrl().getValue(), null);
+										dvDTO = dtoServ.assembly(assm, rootConfig, assm.getPropertyName(), dvDTO);
+										dvDTO = validServ.variable(dvDTO, false, false);
+										if(dvDTO.isValid() || !dvDTO.isStrict()) {
+											list.add(dvDTO);
+											if(dvDTO.getClazz().getValue().getCode().equals("documents")) {
+												Concept dictRoot = closureServ.loadConceptByIdentifierActive(dvDTO.getDictUrl().getValue());
+												if(dictRoot != null && dictRoot.getID() > 0) {
+													data = buildDict(dvDTO.getDictUrl().getValue(), dictRoot, data);
+												}else {
+													// если на главном сервере нет словаря с таким урлом - будем создавать пустой на клиенте
+													data.getDictsImport().put(dvDTO.getDictUrl().getValue(), null);
+												}
 											}
 										}
 									}
-								}
 
-								if(list.size() > 0) {
-									// все проверено, все ок - добавляем на импорт
-									data.getResImport().put(url, resDTO);
-									data.getConfigImport().put(url, config);
-									data.getVarsImport().put(url, list);
+									if(list.size() > 0) {
+										// все проверено, все ок - добавляем на импорт
+										data.getResImport().put(url, resDTO);
+										data.getConfigImport().put(url, config);
+										data.getVarsImport().put(url, list);
+									}
+								}else {
+									// была ошибка - остановка импорта
+									break;
 								}
 							}else {
-								// была ошибка - остановка импорта
+								data = buildErrorString(root.getLabel(), varResourceConfig, messages.get("errorConfigDataResource"), data);
 								break;
 							}
 						}else {
-							data.setValid(false);
-							data.setIdentifier("Empty Resources configuration! URL - " + root.getLabel());
-							logger.error(messages.get("errorConfigDataResource"));
+							data = buildErrorString(root.getLabel(), varResourceConfig, config.getIdentifier(), data);
 							break;
 						}
 					}else {
-						data.setValid(false);
-						data.setIdentifier("Bad Resources configuration! URL is "
-								+config.getUrl().getValue()
-								+"variable: "+config.getVarName()
-								+ "details : " + config.getIdentifier());
+						data = buildErrorString(root.getIdentifier(), varResource, resDTO.getIdentifier(), data);
 						break;
 					}
-				}else {
-					data.setValid(false);
-					data.setIdentifier("Resource " + url + ". " + resDTO.getIdentifier());
-					break;
 				}
+			} catch (ObjectNotFoundException e) {
+				data = buildErrorString(url, varResource, e.getMessage(), data);
+				e.printStackTrace();
 			}
 		}
 
@@ -583,18 +581,16 @@ public class ImportWorkflowMainService {
 	 * 					3) по выбранным урлам проверяем и создаем конфигурации
 	 */
 	private ImportWorkflowDTO importDataConfigs(ImportWorkflowDTO data, List<TableRow> rows) {
-		try {
-			for(TableRow r:rows) {
-				String url = r.getRow().get(1).getValue();
+		for(TableRow r:rows) {
+			String url = r.getRow().get(1).getValue();
+			try {
 				long id = r.getDbID();
-				System.out.println(url + " id " + id);
 
 				// записи конфигурации
 				Concept dataConf = closureServ.loadRoot(SystemService.DATA_COLLECTIONS_ROOT);
-				Concept rootConfig = closureServ.findConceptInBranchByIdentifier(dataConf, url);
+				Concept rootConfig = closureServ.findActivConceptInBranchByIdentifier(dataConf, url);
 				if(rootConfig == null) {
-					data.setValid(false);
-					data.setIdentifier("Not found data configuration!(" + url + ")");
+					data = buildErrorString(url, varDataConfig, messages.get("notfound"), data);
 					return data;
 				}
 				DataCollectionDTO config = new DataCollectionDTO();
@@ -615,11 +611,7 @@ public class ImportWorkflowMainService {
 						if(dvDTO.isValid() || !dvDTO.isStrict()) {
 							list.add(dvDTO);
 						}else {
-							data.setValid(false);
-							data.setIdentifier("Bad configuration! URL is " +dvDTO.getUrl().getValue()
-									+" description: "+ config.getIdentifier() 
-									+ " variable is " + assm.getPropertyName()
-									+ " details " +assm.getPropertyName().getIdentifier() +"/"+dvDTO.getIdentifier());
+							data = buildErrorString(url, assm.getPropertyName().getIdentifier(), messages.get("errorConfigDataResource"), data);
 							break;
 						}
 					}
@@ -641,11 +633,9 @@ public class ImportWorkflowMainService {
 								// записи конфигурации
 								rootConfig = closureServ.findConceptInBranchByIdentifier(dataConf, urltr);
 								if(rootConfig == null) {
-									data.setValid(false);
-									data.setIdentifier("Not found data configuration!(" + url + ")");
+									data = buildErrorString(urltr, varDataConfig, messages.get("notfound"), data);
 									return data;
 								}
-								System.out.println(urltr + " id " + rootConfig.getID());
 
 								config = new DataCollectionDTO();
 								config.setNodeId(rootConfig.getID());
@@ -665,11 +655,7 @@ public class ImportWorkflowMainService {
 										if(dvDTO.isValid() || !dvDTO.isStrict()) {
 											list.add(dvDTO);
 										}else {
-											data.setValid(false);
-											data.setIdentifier("Bad configuration! URL is " +dvDTO.getUrl().getValue()
-													+" description: "+ config.getIdentifier() 
-													+ " variable is " + assm.getPropertyName()
-													+ " details " +assm.getPropertyName().getIdentifier() +"/"+dvDTO.getIdentifier());
+											data = buildErrorString(urltr, assm.getPropertyName().getIdentifier(), messages.get("errorConfigDataResource"), data);
 											break;
 										}
 									}
@@ -683,17 +669,13 @@ public class ImportWorkflowMainService {
 						}
 					}
 				}else {
-					data.setValid(false);
-					data.setIdentifier("Bad configuration! URL is " 
-							+ config.getUrl().getValue()
-							+ "details : "+ config.getIdentifier());
+					data = buildErrorString(url, varDataConfig, config.getIdentifier(), data);
 					break;
 				}
+			} catch (ObjectNotFoundException e) {
+				data = buildErrorString(url, varDataConfig, e.getMessage(), data);
+				e.printStackTrace();
 			}
-		} catch (ObjectNotFoundException e) {
-			data.setValid(false);
-			data.setIdentifier("Error valid DataConfigurations in Main Server!");
-			e.printStackTrace();
 		}
 		return data;
 	}
@@ -733,8 +715,7 @@ public class ImportWorkflowMainService {
 		if(dictDTO.isValid()) {
 			data.setDict(dictDTO);
 		}else {
-			data.setValid(false);
-			data.setIdentifier(dictDTO.getIdentifier());
+			data = buildErrorString(data.getProcessURL(), varWFconfig, dictDTO.getIdentifier(), data);
 		}
 
 		return data;
@@ -865,5 +846,13 @@ public class ImportWorkflowMainService {
 		ret.getHeaders().get(0).setSortValue(TableHeader.SORT_ASC);
 		ret= boilerServ.translateHeaders(ret);
 		return ret;
+	}
+
+	private ImportWorkflowDTO buildErrorString(String url, String var, String err, ImportWorkflowDTO data) {
+		data.setValid(false);
+		String error = url + "/" + var + "/" + err;
+		data.setIdentifier(error);
+		logger.error(error);
+		return data;
 	}
 }

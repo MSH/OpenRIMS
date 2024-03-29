@@ -3,7 +3,6 @@ package org.msh.pharmadex2.controller.r2;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.sql.SQLException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,6 +30,7 @@ import org.msh.pharmadex2.dto.FormatsDTO;
 import org.msh.pharmadex2.dto.ImportLocalesDTO;
 import org.msh.pharmadex2.dto.ImportWorkflowDTO;
 import org.msh.pharmadex2.dto.MessageDTO;
+import org.msh.pharmadex2.dto.ProcessComponentsDTO;
 import org.msh.pharmadex2.dto.PublicOrgDTO;
 import org.msh.pharmadex2.dto.ReassignActivitiesDTO;
 import org.msh.pharmadex2.dto.ReassignUserDTO;
@@ -56,7 +56,6 @@ import org.msh.pharmadex2.service.r2.AsyncService;
 import org.msh.pharmadex2.service.r2.ContentService;
 import org.msh.pharmadex2.service.r2.DWHService;
 import org.msh.pharmadex2.service.r2.DictService;
-import org.msh.pharmadex2.service.r2.ExchangeConfigurationService;
 import org.msh.pharmadex2.service.r2.ImportATCcodesService;
 import org.msh.pharmadex2.service.r2.ImportAdmUnitsService;
 import org.msh.pharmadex2.service.r2.ImportBService;
@@ -68,6 +67,7 @@ import org.msh.pharmadex2.service.r2.ImportWorkflowService;
 import org.msh.pharmadex2.service.r2.LoggerEventService;
 import org.msh.pharmadex2.service.r2.MailService;
 import org.msh.pharmadex2.service.r2.MetricService;
+import org.msh.pharmadex2.service.r2.ProcessComponentsService;
 import org.msh.pharmadex2.service.r2.PubOrgService;
 import org.msh.pharmadex2.service.r2.ReassignActivitiesService;
 import org.msh.pharmadex2.service.r2.ReassignUserService;
@@ -156,8 +156,6 @@ public class AdminAPI {
 	@Autowired
 	ImportExportWorkflowService importExportWorkflowService;
 	@Autowired
-	ExchangeConfigurationService exchangeServ;
-	@Autowired
 	ResolverService resolverServ;
 	@Autowired
 	ReassignUserService reassignService;
@@ -175,6 +173,8 @@ public class AdminAPI {
 	private ReassignActivitiesService reassignActivServ;
 	@Autowired
 	private AsyncService asyncService;
+	@Autowired
+	private ProcessComponentsService processComponents;
 	/**
 	 * Tiles for landing page
 	 * 
@@ -1059,14 +1059,30 @@ public class AdminAPI {
 
 	@PostMapping("/api/admin/import/legacydata/run")
 	public ThingDTO importLegacyDataRun(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
-		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 		try {
-			importBServ.importLegacyDataRun(data, user);
-			data = thingServ.loadThing(data, user);
-			return data;
-		} catch (ObjectNotFoundException | IOException e) {
+			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+			data.clearErrors();
+			
+			if(!AsyncService.hasDataImportThread()) {
+				asyncService.importLegacyDataRun(data, user);
+			}else {
+				data=(ThingDTO) asyncService.concurrentError(data);
+			}
+		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
+		return data;
+	}
+
+	@PostMapping("/api/admin/import/legacydata/progress")
+	public AsyncInformDTO importLegacyDataProgress(@RequestBody AsyncInformDTO data) throws DataNotFoundException {
+		try {
+			data = asyncService.dataImportProgress(data);
+		} catch (JsonProcessingException e) {
+			e.printStackTrace();
+			throw new DataNotFoundException(e);
+		}
+		return data;
 	}
 
 	@PostMapping("/api/admin/import/legacydata/reload")
@@ -1186,15 +1202,33 @@ public class AdminAPI {
 
 	@PostMapping("/api/admin/import/atccodes/run")
 	public ThingDTO importATCcodesRun(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
-		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-		if(!AsyncService.hasDataImportThread()) {
-			asyncService.importRunAsync(data, user);
-		}else {
-			data.addError(messages.get("errorprocessisrunning"));
+		try {
+			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+			data.clearErrors();
+			
+			if(!AsyncService.hasDataImportThread()) {
+				asyncService.importAtccodesRun(data, user);
+			}else {
+				data=(ThingDTO) asyncService.concurrentError(data);
+			}
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
 		}
+		
 		return data;
 	}
 
+	@PostMapping("/api/admin/import/atccodes/progress")
+	public AsyncInformDTO importATCcodesProgress(@RequestBody AsyncInformDTO data) throws DataNotFoundException {
+		try {
+			data = asyncService.dataImportProgress(data);
+		} catch (JsonProcessingException e) {
+			e.printStackTrace();
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
 	@PostMapping("/api/admin/workflow/export/excel")
 	public ResponseEntity<Resource> workflowExportExcel(Authentication auth,@RequestBody WorkflowDTO data)
 			throws DataNotFoundException {
@@ -1274,6 +1308,22 @@ public class AdminAPI {
 		ResponseEntity<Resource> res;
 		try {
 			res = resourceServ.adminHelpUrlAssistant();
+			return res;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+	/**
+	 * Workflow Assistance help
+	 * @return
+	 * @throws DataNotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value="/api/admin/process/validator/manual", method = RequestMethod.GET)
+	public ResponseEntity<Resource> helpWorkflowAssistant() throws DataNotFoundException, IOException {
+		ResponseEntity<Resource> res;
+		try {
+			res = resourceServ.adminHelpWorkflowAssistant();
 			return res;
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
@@ -1553,20 +1603,9 @@ public class AdminAPI {
 	}
 
 	@PostMapping("/api/admin/importwf/load")
-	public ImportWorkflowDTO loadImportwf(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException{
+	public ImportWorkflowDTO importWFload(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException{
 		try {
 			data = importwfServ.load(data);
-		} catch (ObjectNotFoundException e) {
-			throw new DataNotFoundException(e);
-		}
-
-		return data;
-	}
-
-	@PostMapping("/api/admin/importwf/reload")
-	public ImportWorkflowDTO reloadImportwf(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException{
-		try {
-			data = importwfServ.reload(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -1581,7 +1620,7 @@ public class AdminAPI {
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/admin/importwf/connect")
-	public ImportWorkflowDTO connectMainServer(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException{
+	public ImportWorkflowDTO importWFconnectmainserver(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException{
 		try {
 			data = importwfServ.connectMainServer(data);
 		} catch (ObjectNotFoundException e) {
@@ -1590,50 +1629,54 @@ public class AdminAPI {
 
 		return data;
 	}
+	
+	/*@PostMapping("/api/admin/importwf/reload")
+	public ImportWorkflowDTO importWFreload(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException{
+		try {
+			data = importwfServ.reload(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+
+		return data;
+	}*/
+
+	
 
 	@PostMapping("/api/admin/importwf/runimport")
-	public ImportWorkflowDTO runimport(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException, ObjectNotFoundException{
-		data = importwfServ.runimport(data);
-
+	public ImportWorkflowDTO importWFrun(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException{
+		try {
+			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+			data.clearErrors();
+			
+			if(!AsyncService.hasDataImportThread()) {
+				asyncService.importWFRun(data, user);
+			}else {
+				data = (ImportWorkflowDTO) asyncService.concurrentError(data);
+			}
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
+	@PostMapping("/api/admin/importwf/progress")
+	public AsyncInformDTO importWFprogress(@RequestBody AsyncInformDTO data) throws DataNotFoundException {
+		try {
+			data = asyncService.dataImportProgress(data);
+		} catch (JsonProcessingException e) {
+			e.printStackTrace();
+			throw new DataNotFoundException(e);
+		}
 		return data;
 	}
 
-	/**
-	 * 
-	 * @param data
-	 * @return
-	 * @throws DataNotFoundException
-	 * @throws ObjectNotFoundException 
-	 */
-	@PostMapping("/api/admin/importwf/dictionaries")
-	public ImportWorkflowDTO importwfDictionaries(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException, ObjectNotFoundException{
-		data = importwfServ.dictionaries(data);
+	@PostMapping("/api/admin/importwf/loadresult")
+	public ImportWorkflowDTO importWFloadresult(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException, ObjectNotFoundException{
+		data = importwfServ.loadResultTabel(data);
 
 		return data;
 	}
-
-	@PostMapping("/api/admin/importwf/resources")
-	public ImportWorkflowDTO importwfResources(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException, ObjectNotFoundException{
-		data = importwfServ.resources(data);
-
-		return data;
-	}
-
-	@PostMapping("/api/admin/importwf/dataconfigs")
-	public ImportWorkflowDTO dataConfigs(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException, ObjectNotFoundException{
-		data = importwfServ.dataConfigs(data);
-
-		return data;
-	}
-
-	@PostMapping("/api/admin/importwf/wfconfigs")
-	public ImportWorkflowDTO wfConfigs(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException, ObjectNotFoundException, JsonProcessingException{
-		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-		data = importwfServ.wf(data, user);
-
-		return data;
-	}
-
 
 	/**
 	 * load "dictionary.guest.applications"
@@ -2063,5 +2106,21 @@ public class AdminAPI {
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
+	}
+	
+	/**
+	 * Show selected rows only in table vailableActivities 
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException 
+	 */
+	@PostMapping("/api/admin/process/components")
+	public ProcessComponentsDTO processComponents(@RequestBody ProcessComponentsDTO data) throws DataNotFoundException{
+		try {
+			data=processComponents.load(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
 	}
 }

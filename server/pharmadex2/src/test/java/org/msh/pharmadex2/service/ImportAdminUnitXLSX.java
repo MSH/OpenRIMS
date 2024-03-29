@@ -1,6 +1,8 @@
 package org.msh.pharmadex2.service;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -19,17 +21,20 @@ import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.junit.jupiter.api.Test;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.Pharmadex2Application;
+import org.msh.pharmadex2.dto.LegacyDataErrorsDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.r2.DictService;
+import org.msh.pharmadex2.service.r2.ImportAdmUnitsService;
 import org.msh.pharmadex2.service.r2.LiteralService;
+import org.msh.pharmadex2.service.r2.SystemService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.context.i18n.LocaleContextHolder;
 
 import com.fasterxml.jackson.core.JsonParseException;
@@ -47,7 +52,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  *
  *
  */
-@SpringBootTest(classes=Pharmadex2Application.class, webEnvironment = WebEnvironment.RANDOM_PORT)
+//@SpringBootTest(classes=Pharmadex2Application.class, webEnvironment = WebEnvironment.RANDOM_PORT)
+@SpringBootTest(classes=Pharmadex2Application.class)
 public class ImportAdminUnitXLSX {
 	@Autowired
 	DictService dictServ;
@@ -61,6 +67,11 @@ public class ImportAdminUnitXLSX {
 	private LiteralService literalServ;
 	@Autowired
 	private ObjectMapper objectMapper;
+	
+	//@Autowired
+	//private ImportAService importAService;
+	@Autowired
+	private ImportAdmUnitsService importAdmUnits;
 
 	private static String DICTIONARY_URL_IN_DB = "dictionary.admin.units";
 	private static String DICTIONARY_URL = "dictionary.admin.units";
@@ -521,6 +532,72 @@ public class ImportAdminUnitXLSX {
 		for(Long id:list) {
 			Concept root = closureServ.loadConceptById(id);
 			closureServ.removeNode(root);
+		}
+	}
+	
+	//@Test
+	public void createConfigurationByImportAdmUnits() throws ObjectNotFoundException {
+		Concept root = closureServ.loadRoot(SystemService.CONFIGURATION_ADMIN_UNITS);
+		
+	}
+	
+	private Concept createItemConfiguration() {
+		return null;
+		
+		/*child.setIdentifier(dataRow.SN);
+		child = closureServ.saveToTree(parentConcept, child);
+
+		//строки на англ языке уже валидированные - пустых имен точно нет! Пустые на нац языке заполнены англ названиями
+		// создаем или обновляем данные
+		Map<String, String> values = new HashMap<String, String>();
+		values.put(langs[0], dataRow.names[item.index]);
+		values.put(langs[1], dataRow.namesNational[item.index]);
+		child = literalServ.createUpdateLiteral(LiteralService.PREF_NAME, child, values);
+
+		values = new HashMap<String, String>();
+		values.put(langs[0], dataRow.description);
+		values.put(langs[1], dataRow.description);
+		child = literalServ.createUpdateLiteral(LiteralService.DESCRIPTION, child, values);
+
+		values = new HashMap<String, String>();
+		values.put(langs[0], dataRow.coordinates);
+		values.put(langs[1], dataRow.coordinates);
+		child = literalServ.createUpdateLiteral(LiteralService.GIS_LOCATION, child, values);
+
+		values = new HashMap<String, String>();
+		values.put(langs[0], zooms[item.index]);
+		values.put(langs[1], zooms[item.index]);
+		child = literalServ.createUpdateLiteral(LiteralService.ZOMM, child, values);*/
+	}
+	
+	@Test
+	public void importTest() throws IOException, ObjectNotFoundException {
+		//importAdmUnits.loadConfigurationByImport();
+		importAdmUnits.setDefaultValues();
+	}
+	
+	//@Test
+	public void importAdmUnits() throws IOException, ObjectNotFoundException {
+		Path pathFile = Paths.get("src","test","resources", "Madagascar-GIS coordinatesTemplate mini.xlsx");
+		//Path pathFile = Paths.get("src","test","resources", "GIS coordinates.xlsx");
+		byte[] bytes = Files.readAllBytes(pathFile);
+		if(bytes.length > 0) {
+			InputStream inputStream = new ByteArrayInputStream(bytes);
+			XSSFWorkbook wb = new XSSFWorkbook(inputStream);
+			LegacyDataErrorsDTO errors= new LegacyDataErrorsDTO(wb);
+			Concept rootCountry = importAdmUnits.archiveDictionary();//closureServ.loadRoot(SystemService.DICTIONARY_ADMIN_UNITS);//
+			
+			int sheetIndex = 1;
+			XSSFSheet sheet = wb.getSheetAt(sheetIndex);
+			importAdmUnits.importAdminunitsSheet(sheet, errors, rootCountry, sheetIndex);
+			//importAService.importAdminunitsSheet(sheet, errors, rootCountry, sheetIndex);
+			
+			Path pathFileOut = Paths.get("src","test","resources", "Madagascar-GIS.xlsxOut.xlsx");
+			File fileout = pathFileOut.toFile();
+			FileOutputStream fos = new FileOutputStream(fileout);
+			wb.write(fos);
+			fos.flush();
+			fos.close();
 		}
 	}
 }

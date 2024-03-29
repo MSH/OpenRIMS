@@ -201,7 +201,7 @@ class ApplicationStart extends Component{
                                 <Button size="sm"
                                     className="mr-1" color="success"
                                     onClick={()=>{
-                                        Navigator.message(this.state.identifier,"*","saveAllGuest",{})
+                                        Navigator.message(this.state.identifier,"*","saveRelax",{})
                                     }}
                             
                                 >{this.state.labels.global_save}</Button>{' '}

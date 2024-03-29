@@ -2,6 +2,9 @@ package org.msh.pdex2.dto.table;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+
+import org.apache.commons.collections.SetUtils;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -251,6 +254,17 @@ public class Headers {
 		headers.setPageSize(Integer.MAX_VALUE);
 		headers.getHeaders().addAll(listHeaders);
 		return headers;
+	}
+	/**
+	 * List all keys from headers
+	 * Useful for select
+	 * @return
+	 */
+	public String listKeys() {
+		String ret = getHeaders().stream().map(header->{
+			return header.getKey();
+		}).collect(Collectors.joining(","));
+		return ret;
 	}
 
 	

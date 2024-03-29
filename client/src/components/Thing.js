@@ -46,7 +46,8 @@ class Thing extends Component{
             data:this.props.data,             //ThingDTO         
             labels:{
                 save_app_error:'',
-                success:''
+                success:'',
+                saved_with_errors:'',
             },
         }
         this.state.data.readOnly=this.props.readOnly
@@ -104,18 +105,27 @@ class Thing extends Component{
      * Guest Applications should be saved by own way
      * savedByAction means saved by Save button
      */
-         saveGuest(savedByAction){
-            Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/thing/save/application",this.state.data,(query,result)=>{
+         saveGuest(savedByAction, relax){
+            let api="/thing/save/application"
+            let err_mess=this.state.labels.save_app_error
+            let color='danger'
+            if(relax){
+                api="/ting/save/relax"
+                err_mess=this.state.labels.saved_with_errors
+                color='warning'
+            }
+            Fetchers.postJSON("/api/"+Navigator.tabSetName()+api,this.state.data,(query,result)=>{
                 this.state.data=result
                 if(this.state.data.valid){
                     this.storeLocal()
                     Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.success, color:'success'})
                 }else{
-                    let err_mess=this.state.labels.save_app_error
+                    // 
+                    //let err_mess=this.state.labels.save_app_error
                     if(this.state.data.identifier){
                         err_mess=this.state.data.identifier
                     }
-                    Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:err_mess, color:'danger'})
+                    Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:err_mess, color:color})
                     this.setState(this.state)
                 }
                 if(savedByAction){
@@ -194,8 +204,8 @@ class Thing extends Component{
         }
 
         if(data.from==this.props.recipient && !this.state.data.readOnly && !this.props.readOnly){
-            if(data.subject=="saveAllGuest" || data.subject=="saveAllUsersData"){                       //file new data under the user
-                this.saveGuest(true);
+            if(data.subject=="saveAllGuest" || data.subject=="saveAllUsersData" || data.subject=="saveRelax"){                       //file new data under the user
+                this.saveGuest(true,data.subject=="saveRelax");
             }
         }
         if(data.to==this.state.identifier){

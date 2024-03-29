@@ -2,30 +2,26 @@ package org.msh.pharmadex2.service.r2;
 
 import java.io.IOException;
 import java.lang.Thread.State;
-import java.sql.SQLException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import org.apache.commons.lang3.ThreadUtils;
-import org.hibernate.annotations.Synchronize;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pharmadex2.Pharmadex2Application;
 import org.msh.pharmadex2.dto.AsyncInformDTO;
+import org.msh.pharmadex2.dto.ImportWorkflowDTO;
 import org.msh.pharmadex2.dto.ReassignUserDTO;
-import org.msh.pharmadex2.dto.ReportConfigDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.form.AllowValidation;
-import org.msh.pharmadex2.service.common.BoilerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -43,11 +39,15 @@ import com.fasterxml.jackson.databind.JsonMappingException;
  */
 @Service
 public class AsyncService {
-	private static final String PROCESS_IMPORT_ATC = "processImportATC";
+	
 	// Processes
 	private static final String PROCESS_DWH_UPDATE = "processDwhUpdate";
 	public static final String PROCESS_REASSIGN_APPLICANT = "reassignApplicant";
 	public static final String PROCESS_IMPORT_ADMIN_UNITS = "processImportAdminUnits";
+	private static final String PROCESS_IMPORT_ATC = "processImportATC";
+	private static final String PROCESS_IMPORT_LEGACYDATA = "processLegacyData";
+	private static final String PROCESS_IMPORT_WF = "processImportWF";
+	
 	public static final String PROCESS_NAME = "processName";
 	//shared multi thread memory
 	public static ConcurrentMap<String,String> asyncContext = new ConcurrentHashMap<String, String>();
@@ -55,6 +55,13 @@ public class AsyncService {
 	public static final String PROGRESS_SHEETS_IMPORTED = "sheets_imported";
 	public static final String PROGRESS_SHEETS = "sheets";
 	public static final String PROGRESS_CURRENT_SHEET = "currentSheet";
+	
+	public static final String PROGRESS_TOTAL = "total";
+	public static final String PROGRESS_TOTAL_REMOVE = "totalremove";
+	public static final String PROGRESS_COUNTER = "counter";
+	public static final String PROGRESS_COUNTER_REMOVE = "counterremove";
+	
+	public static final String PROGRESS_STOP_ERROR = "stopError";
 	//logger
 	private static final Logger logger = LoggerFactory.getLogger(AsyncService.class);
 
@@ -64,6 +71,10 @@ public class AsyncService {
 	private DWHService dwhServ;
 	@Autowired
 	private ImportATCcodesService importAtc;
+	@Autowired
+	private ImportBService importLegacyServ;
+	@Autowired
+	private ImportWorkflowService importwfServ;
 	@Autowired
 	private Messages messages;
 	@Autowired
@@ -135,12 +146,44 @@ public class AsyncService {
 	 * @param user
 	 */
 	@Async("taskExecutorDataImport")
-	public void importRunAsync(ThingDTO data, UserDetailsDTO user) {
+	public void importAtccodesRun(ThingDTO data, UserDetailsDTO user) {
 		initialize();
 		AsyncService.writeAsyncContext(PROCESS_NAME, PROCESS_IMPORT_ATC);
 		try {
 			importAtc.importRunWorker(data,user);
 		} catch (ObjectNotFoundException | IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * Start async thread to run import Legacy data
+	 * @param data
+	 * @param user
+	 */
+	@Async("taskExecutorDataImport")
+	public void importLegacyDataRun(ThingDTO data, UserDetailsDTO user) {
+		initialize();
+		AsyncService.writeAsyncContext(PROCESS_NAME, PROCESS_IMPORT_LEGACYDATA);
+		try {
+			importLegacyServ.importRunWorker(data,user);
+		} catch (ObjectNotFoundException | IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * Start async thread to run import wf
+	 * @param data
+	 * @param user
+	 */
+	@Async("taskExecutorDataImport")
+	public void importWFRun(ImportWorkflowDTO data, UserDetailsDTO user) {
+		initialize();
+		AsyncService.writeAsyncContext(PROCESS_NAME, PROCESS_IMPORT_WF);
+		try {
+			importwfServ.importRunWorker(data, user);
+		} catch (ObjectNotFoundException | JsonProcessingException e) {
 			e.printStackTrace();
 		}
 	}
@@ -198,6 +241,16 @@ public class AsyncService {
 		case AsyncService.PROCESS_REASSIGN_APPLICANT:
 			data=reassignUserServ.asyncInform();
 			break;
+		case AsyncService.PROCESS_IMPORT_ATC:
+			data = importAtc.calcProgress(data);
+			break;
+		case AsyncService.PROCESS_IMPORT_LEGACYDATA:
+			data = importLegacyServ.calcProgress(data);
+			break;
+		case AsyncService.PROCESS_IMPORT_WF:
+			data = importwfServ.calcProgress(data);
+			break;
+			
 			//TODO the rest of processes
 		}
 

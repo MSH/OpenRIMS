@@ -1,8 +1,10 @@
 package org.msh.pharmadex2.service.r2;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,8 +21,10 @@ import org.msh.pdex2.model.r2.FileResource;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AssemblyDTO;
+import org.msh.pharmadex2.dto.AsyncInformDTO;
 import org.msh.pharmadex2.dto.FileDTO;
 import org.msh.pharmadex2.dto.LegacyDataDTO;
+import org.msh.pharmadex2.dto.LegacyDataErrorsDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
@@ -28,7 +32,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 /**
@@ -164,21 +167,36 @@ public class ImportBService {
 			data=thingServ.loadThing(data, user);
 		}
 		
-		Long dictNodeId = loadDictConcept(false).getID();
-		if(data.getDocuments().get(AssemblyService.DATAIMPORT_DATA) != null) {
-			TableQtb t = data.getDocuments().get(AssemblyService.DATAIMPORT_DATA).getTable();
-			List<TableRow> rows = t.getRows();
-			List<TableRow> rowsNew = new ArrayList<TableRow>();
-			if(rows.get(0).getDbID() == dictNodeId) {
-				rowsNew.add(0, rows.get(0));
-				rowsNew.add(1, rows.get(1));
-			}else if(rows.get(1).getDbID() == dictNodeId) {
-				rowsNew.add(0, rows.get(1));
-				rowsNew.add(1, rows.get(0));
+		data = compareRows(data);
+		return data;
+	}
+	
+	/**
+	 * sort rows DATAIMPORT table
+	 * first row - file by import
+	 * second row - file error
+	 * @return
+	 */
+	private ThingDTO compareRows(ThingDTO data){
+		try {
+			Long dictNodeId = loadDictConcept(false).getID();
+			
+			if(data.getDocuments().get(AssemblyService.DATAIMPORT_DATA) != null) {
+				TableQtb t = data.getDocuments().get(AssemblyService.DATAIMPORT_DATA).getTable();
+				List<TableRow> rows = t.getRows();
+				List<TableRow> rowsNew = new ArrayList<TableRow>();
+				if(rows.get(0).getDbID() == dictNodeId) {
+					rowsNew.add(0, rows.get(0));
+					rowsNew.add(1, rows.get(1));
+				}else if(rows.get(1).getDbID() == dictNodeId) {
+					rowsNew.add(0, rows.get(1));
+					rowsNew.add(1, rows.get(0));
+				}
+				data.getDocuments().get(AssemblyService.DATAIMPORT_DATA).getTable().setRows(rowsNew);
 			}
-			data.getDocuments().get(AssemblyService.DATAIMPORT_DATA).getTable().setRows(rowsNew);
+		} catch (ObjectNotFoundException e) {
+			e.printStackTrace();
 		}
-		
 		return data;
 	}
 	
@@ -190,6 +208,7 @@ public class ImportBService {
 			if(!(result.isEmpty() || result.startsWith("End"))) {
 				data.getAddresses().clear();
 			}
+			data = compareRows(data);
 		}
 		return data;
 	}
@@ -207,8 +226,8 @@ public class ImportBService {
 	 * @throws ObjectNotFoundException
 	 * @throws IOException
 	 */
-	@Async
-	public void importLegacyDataRun(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException, IOException{
+	// NO @Transactional
+	public void importRunWorker(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException, IOException{
 		FileDTO dto = data.getDocuments().get(AssemblyService.DATAIMPORT_DATA);
 		Concept fileNode = null;
 		Long dictNodeId = loadDictConcept(false).getID();
@@ -226,31 +245,47 @@ public class ImportBService {
 			}
 			
 			FileResource fr = boilerServ.fileResourceByNode(fileNode);
-			XSSFWorkbook wb = legacyDataServ.importLegacyData(fr.getFile());
-			
-			String fnameErr = "Error.xlsx";
-			String nfile = fileNode.getLabel();
-			if(nfile.endsWith(".xlsx")) {
-				fnameErr = nfile.replace(".xlsx", ".xlsxOut.xlsx");
+			if(fr != null && fr.getFile().length > 0) {
+				InputStream inputStream = new ByteArrayInputStream(fr.getFile());
+				XSSFWorkbook book = new XSSFWorkbook(inputStream);
+				AsyncService.writeAsyncContext(AsyncService.PROGRESS_SHEETS, book.getNumberOfSheets()+"");
+				
+				LegacyDataErrorsDTO errors = new LegacyDataErrorsDTO(book);
+				
+				//remove old fileErrors
+				Long dictNodeErrId = loadDictConcept(true).getID();
+				if(dictNodeErrId > 0 && dto.getLinked().get(dictNodeErrId) != null && dto.getLinked().get(dictNodeErrId) > 0) {
+					Concept errNode = closureServ.loadConceptById(dto.getLinked().get(dictNodeErrId));
+					thingServ.fileRemove(errNode.getID(), user);
+				}
+				
+				book = legacyDataServ.importLegacyData(book, errors);
+				if(errors.hasErrorRows()) {// create fileError when rows has errors
+					String fnameErr = "Error.xlsx";
+					String nfile = fileNode.getLabel();
+					if(nfile.endsWith(".xlsx")) {
+						fnameErr = nfile.replace(".xlsx", ".xlsxOut.xlsx");
+					}
+					
+					File fError = new File(fnameErr);
+					FileOutputStream fos = new FileOutputStream(fError);
+					book.write(fos);
+					fos.flush();
+					fos.close();
+					
+					FileDTO fdto = new FileDTO();
+					fdto.setThingNodeId(dto.getThingNodeId());
+					fdto.setThingUrl(dto.getThingUrl());
+					fdto.setDictNodeId(loadDictConcept(true).getID());
+					fdto.setDictUrl(dto.getDictUrl());
+					fdto.setUrl(dto.getUrl());
+					fdto.setVarName(dto.getVarName());
+					fdto.setFileName(fError.getName());
+					fdto.setFileSize(fError.length());
+					fdto.setMediaType(fr.getMediatype());
+					thingServ.fileSave(fdto, user, Files.readAllBytes(fError.toPath()));
+				}
 			}
-			
-			File fError = new File(fnameErr);
-			FileOutputStream fos = new FileOutputStream(fError);
-			wb.write(fos);
-			fos.flush();
-			fos.close();
-			
-			FileDTO fdto = new FileDTO();
-			fdto.setThingNodeId(dto.getThingNodeId());
-			fdto.setThingUrl(dto.getThingUrl());
-			fdto.setDictNodeId(loadDictConcept(true).getID());
-			fdto.setDictUrl(dto.getDictUrl());
-			fdto.setUrl(dto.getUrl());
-			fdto.setVarName(dto.getVarName());
-			fdto.setFileName(fError.getName());
-			fdto.setFileSize(fError.length());
-			fdto.setMediaType(fr.getMediatype());
-			thingServ.fileSave(fdto, user, Files.readAllBytes(fError.toPath()));
 		}
 	}
 
@@ -305,5 +340,52 @@ public class ImportBService {
 		}
 		
 		return itemDict;
+	}
+	
+	/**
+	 * Progress bar logic for legacy data
+	 * we record the number of lines to import for smooth and frequent changes progress bar
+	 * @param data
+	 * @return
+	 */
+	public AsyncInformDTO calcProgress(AsyncInformDTO data) {
+		//names
+		data.setTitle(messages.get("processImportLegacyData"));
+		
+		// percents
+		int minPercent = 2; // by start min = 2%, other min = 0
+		
+		String totalSheets = AsyncService.readAsyncContext(AsyncService.PROGRESS_SHEETS);
+		Float totalS = new Float(totalSheets);
+		//Float coef = 100/totalS;
+		
+		// total & imported это в рамках одного текущего листа
+		String totalRows = AsyncService.readAsyncContext(AsyncService.PROGRESS_TOTAL);
+		String importedRows = AsyncService.readAsyncContext(AsyncService.PROGRESS_COUNTER);
+		
+		String importedSheets = AsyncService.readAsyncContext(AsyncService.PROGRESS_SHEETS_IMPORTED);
+		if(!importedRows.isEmpty() && Integer.valueOf(importedRows) >= 1) {
+			minPercent = 0;
+		}
+		String currentSheet = AsyncService.readAsyncContext(AsyncService.PROGRESS_CURRENT_SHEET);
+		if(!totalRows.isEmpty() && !importedRows.isEmpty()) {
+			Float total = new Float(totalRows);
+			Float imported = new Float(importedRows);
+			Float importedSh = new Float(importedSheets);
+			
+			Float percentF = ((imported)/total)*100;
+			if(percentF > minPercent)
+				data.setComplPercent(percentF.intValue());
+			logger.trace(percentF + "");
+			//data.setProgressMessage(importedSheets + " " + messages.get("of") + " " + totalSheets + "-" + currentSheet);
+			data.setProgressMessage(importedRows + " " + messages.get("of") + " " + totalRows + "-" + currentSheet);
+			data.setCompleted(totalSheets.equals(importedSheets));
+		}else {
+			data.setComplPercent(minPercent);
+			data.setProgressMessage(messages.get("starting"));
+			data.setCompleted(false);
+		}
+		
+		return data;
 	}
 }

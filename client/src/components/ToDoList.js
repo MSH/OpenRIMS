@@ -106,7 +106,8 @@ class ToDoList extends Component{
             case "scheduled":
                 return(this.scheduled())
             default:
-                return (this.alert())
+               // return (this.alert())
+               return(this.actual())
 
         }
     }
@@ -121,13 +122,13 @@ class ToDoList extends Component{
                             <NavbarToggler onClick={()=>{this.state.isOpen=!this.state.isOpen; this.setState(this.state)}} className="me-2" />
                                 <Collapse isOpen={this.state.isOpen} navbar>
                                     <Nav className="me-auto" navbar>
-                                        <Nav>     
+                                   {/*      <Nav>     it seems deprecated
                                             <NavItem active={this.state.menu=='alert' || this.state.menu.length==0}>
                                                 <NavLink href={"/"+Navigator.tabSetName()+"#"+Navigator.tabName()+"/alert"}>{this.state.labels.alert}</NavLink>
                                             </NavItem>
-                                        </Nav>
+                                        </Nav> */}
                                         <Nav>     
-                                            <NavItem active={this.state.menu=='actual'}>
+                                            <NavItem active={this.state.menu=='actual' || this.state.menu.length==0}>
                                                 <NavLink href={"/"+Navigator.tabSetName()+"#"+Navigator.tabName()+"/actual"}>{this.state.labels.actual}</NavLink>
                                             </NavItem>
                                         </Nav>

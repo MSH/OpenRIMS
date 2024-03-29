@@ -275,12 +275,12 @@ public class ResourceService {
 
 	@Transactional
 	public ResponseEntity<Resource> loadTileIconByUrl(String imgUrl) throws ObjectNotFoundException {
-		Concept node = fileNode("images.tiles", imgUrl);
+		Concept node = fileNode("images.design", imgUrl); //fileNode("images.tiles", imgUrl);
 		FileResource fres = boilerServ.fileResourceByNode(node);
 		Resource res = new ByteArrayResource(fres.getFile());
-		String format=fres.getMediatype();
+		String format=fres.getMediatype();//+"+xml"
 		return ResponseEntity.ok()
-				.contentType(MediaType.parseMediaType(format+"+xml"))
+				.contentType(MediaType.parseMediaType(format))
 				.header("filename","specialfeatures.svg")
 				.body(res);
 	}
@@ -506,6 +506,15 @@ public class ResourceService {
 	public ResponseEntity<Resource> adminHelpUrlAssistant() throws ObjectNotFoundException, IOException {
 		return downloadFile("system.url.assistant.help","URLAssistant.pdf");
 	}
+	/**
+	 * Workflow assistance help
+	 * @return
+	 * @throws IOException 
+	 * @throws ObjectNotFoundException 
+	 */
+	public ResponseEntity<Resource> adminHelpWorkflowAssistant() throws ObjectNotFoundException, IOException {
+		return downloadFile("workflow.assistant","WorkflowAssistant.pdf");
+	}
 
 	/**
 	 * Determine URL to get thing help document from image.resources
@@ -612,6 +621,5 @@ public class ResourceService {
 	public ResponseEntity<Resource> adminHelpImportATC() throws ObjectNotFoundException, IOException {
 		return downloadFile("atc.import","ATCImport.pdf");
 	}
-
 
 }

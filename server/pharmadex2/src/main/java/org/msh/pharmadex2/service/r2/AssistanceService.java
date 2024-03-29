@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.msh.pdex2.dto.table.TableHeader;
 import org.msh.pdex2.dto.table.TableQtb;
@@ -23,6 +24,7 @@ import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.URLAssistantDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.enums.AssistantEnum;
+import org.msh.pharmadex2.service.common.ValidationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,7 +41,14 @@ import org.springframework.transaction.annotation.Transactional;
 public class AssistanceService {
 	private static final Logger logger = LoggerFactory.getLogger(AssistanceService.class);
 	private static final List<String> FORBIDDEN_DOMAINS =  
-			Collections.unmodifiableList(Arrays.asList("dictionary", "configuration", "activity","log","system"));
+			Collections.unmodifiableList(Arrays.asList(
+					"dictionary"
+					,"configuration.resources"
+					,"report.configuration"
+					,"activity.configuration"
+					,"log"
+					,"system"
+					));
 	@Autowired
 	private JdbcRepository jdbcRepo;
 	@Autowired
@@ -92,7 +101,6 @@ public class AssistanceService {
 		case URL_DICTIONARY_ALL:			//Any existing or not existing dictionary
 			rows= urlDictRows(data);
 			break;
-		case URL_APPLICATION_NEW:			//An application should be new	
 		case URL_APPLICATION_ALL:			//Any existing or not existing URL for applications
 			rows= urlApplRows(data);
 			break;
@@ -101,7 +109,6 @@ public class AssistanceService {
 			rows= urlDataRows(data);
 			break;
 		case URL_RESOURCE_NEW:				//A file resource should be new new
-		case URL_RESOURCE_ALL:			//A file resource should be existing 
 			rows= urlResourceRows(data);
 			break;
 		default:
@@ -285,7 +292,6 @@ public class AssistanceService {
 		case URL_DICTIONARY_ALL:			//Any existing or not existing dictionary
 			rows= subDomainDictRows(data);
 			break;
-		case URL_APPLICATION_NEW:			//An application should be new	
 		case URL_APPLICATION_ALL:			//Any existing or not existing URL for applications
 			rows= subDomainApplRows(data);
 			break;
@@ -294,7 +300,6 @@ public class AssistanceService {
 			rows= subDomainDataRows(data);
 			break;
 		case URL_RESOURCE_NEW:				//A file resource should be new new
-		case URL_RESOURCE_ALL:			//A file resource should be existing 
 			rows= subDomainResourceRows(data);
 			break;
 		default:
@@ -464,7 +469,6 @@ public class AssistanceService {
 		case URL_DICTIONARY_ALL:			//Any existing or not existing dictionary
 			rows= domainDictRows(data);
 			break;
-		case URL_APPLICATION_NEW:			//An application should be new	
 		case URL_APPLICATION_ALL:			//Any existing or not existing URL for applications
 			rows= domainApplRows(data);
 			break;
@@ -472,8 +476,7 @@ public class AssistanceService {
 		case URL_DATA_NEW:						//data URL should not be existing
 			rows= domainDataRows(data);
 			break;
-		case URL_RESOURCE_NEW:				//A file resource should be new new
-		case URL_RESOURCE_ALL:			//A file resource should be existing 
+		case URL_RESOURCE_NEW:				//A file resource should be new new 
 			rows= domainResourceRows(data);
 			break;
 		default:
@@ -758,28 +761,33 @@ public class AssistanceService {
 		data.getUrl().clearValidation();
 		String url=data.getUrl().getValue();
 		if(!url.isEmpty()) {
-			if(isValidURL(url)) {
+			if(isValidURL(url) && (!isForbiddenUrl(url) || isDictionaryAssistant(data.getAssistant()))) {
 				switch(data.getAssistant()) {
 				case URL_DICTIONARY_NEW:
 					if(!isNewURL(url)) {
 						data.getUrl().invalidate(messages.get("url_exists"));
+						break;
 					}
 					if(!isDictionaryUrl(url)) {
 						data.getUrl().invalidate(messages.get("url_dictionary_error"));
+						break;
 					}
 					break;
 				case URL_DICTIONARY_ALL:
-					if(!isDictionaryUnderUrl(url)) {
+					if(!isDictionaryUrl(url)) {
 						data.getUrl().invalidate(messages.get("url_dictionary_error"));
+						break;
+					}
+					if(!isRootUrl(url)) {
+						data.getUrl().invalidate(messages.get("notexisting_dictionary_error"));
+						break;
 					}
 					break;
 				case URL_DATA_NEW:
 				case URL_RESOURCE_NEW:
 					if(!isNewURL(url)) {
 						data.getUrl().invalidate(messages.get("url_exists"));
-					}
-					if(isForbiddenDataUrl(url)) {
-						data.getUrl().invalidate(messages.get("forbiddendomain" + " "+url));
+						break;
 					}
 					break;
 				case URL_DATA_ANY:
@@ -787,20 +795,27 @@ public class AssistanceService {
 						data.getUrl().invalidate(messages.get("notdataurl"));
 					}
 					break;
-				case URL_RESOURCE_ALL:
-					if(!isResourceUrl(url)) {
-						data.getUrl().invalidate(messages.get("error_url"));
-					}
-					break;
 				default:
 					//nothing to do yet
 				}
 			}else {
 				data.getUrl().invalidate(messages.get("error_url"));
+				if(isForbiddenUrl(url) && !isDictionaryAssistant(data.getAssistant())) {
+					data.getUrl().invalidate(url+" "+messages.get("forbiddendomain") + " ("+FORBIDDEN_DOMAINS + ")");
+				}
 			}
 		}
 		data.propagateValidation();
 		return data;
+	}
+	/**
+	 * Is it dictionary related assistant?
+	 * @param assistant
+	 * @return
+	 */
+	private boolean isDictionaryAssistant(AssistantEnum assistant) {
+		return assistant.equals(AssistantEnum.URL_DICTIONARY_ALL)
+				|| assistant.equals(AssistantEnum.URL_DICTIONARY_NEW);
 	}
 	/**
 	 * Is this URL belongs to resources
@@ -845,11 +860,17 @@ public class AssistanceService {
 	 * @param url
 	 * @return
 	 */
-	private boolean isForbiddenDataUrl(String url) {
+	private boolean isForbiddenUrl(String url) {
 		if(url != null) {
-			return FORBIDDEN_DOMAINS.contains(parseUrl(url,1).toLowerCase());
+			//return FORBIDDEN_DOMAINS.contains(parseUrl(url,1).toLowerCase()); 2024-03-28
+			List<String> forbidden = FORBIDDEN_DOMAINS.stream()
+					.filter(e->{
+						return url.toUpperCase().startsWith(e.toUpperCase());
+					})
+					.collect(Collectors.toList());
+			return !forbidden.isEmpty();
 		}
-		return false;
+		return true;	//null domain is forbidden
 	}
 
 	/**
@@ -879,28 +900,38 @@ public class AssistanceService {
 			if(parts.length==2) {
 				value=parts[1];
 			}
-			 try {
-			        new URL(url).toURI();
-			        return true;
-			    } catch (MalformedURLException e) {
-			        return false;
-			    } catch (URISyntaxException e) {
-			        return false;
-			    }
+			try {
+				new URL(url).toURI();
+				return true;
+			} catch (MalformedURLException e) {
+				return false;
+			} catch (URISyntaxException e) {
+				return false;
+			}
 		}else {
-			Matcher urlMatcher = URL_PATTERN.matcher(value);
-			return urlMatcher.matches();
+			if(!ValidationService.REGEX.matcher(value).find()) {
+				Matcher urlMatcher = URL_PATTERN.matcher(value);
+				return urlMatcher.matches();
+			}else {
+				return false;
+			}
 		}
 	}
 	/**
 	 * Is this url new in the database?
 	 * @param url
+	 * @param tableQtb 
 	 * @return
 	 */
 	@Transactional
 	public boolean isNewURL(String url) {
-		List<Concept> list=closureServ.loadAllConceptsByIdentifier(url);
-		return list.isEmpty();
+		List<Concept> concepts = closureServ.loadAllConceptsByIdentifier(url);
+		List<Concept> active = concepts.stream()
+				.filter(e->{
+					return e.getActive();
+				})
+				.collect(Collectors.toList());
+		return active.isEmpty();
 	}
 	/**
 	 * Preview a dictionary or a thing under the URL
@@ -929,7 +960,7 @@ public class AssistanceService {
 					data.setPreviewOther(messages.get("previewunavailable"));
 				}
 			}else {
-				if(isDictionaryUnderUrl(data.getUrl().getValue())) {
+				if(isDictionaryUrl(data.getUrl().getValue()) && isRootUrl(data.getUrl().getValue())) {
 					data.getPreviewDict().setUrl(data.getUrl().getValue());
 					data.setPreviewDict(dictService.createDictionary(data.getPreviewDict()));
 				}else {
@@ -943,20 +974,21 @@ public class AssistanceService {
 	}
 
 	/**
-	 * is it dictionary URL?
+	 * is it root url?
 	 * @param url
 	 * @return
 	 */
 	@Transactional
-	public boolean isDictionaryUnderUrl(String url) {
-		if(isDictionaryUrl(url)) {
-			Concept root = closureServ.loadConceptByIdentifier(url);
-			if(root != null) {
-				Concept parent = closureServ.getParent(root);
+	public boolean isRootUrl(String url) {
+		boolean ret=false;
+		List<Concept> concepts = closureServ.loadAllConceptsByIdentifier(url);
+		for(Concept concept :concepts) {
+			if(concept.getActive()) {
+				Concept parent = closureServ.getParent(concept);
 				return parent==null;
 			}
 		}
-		return false;
+		return ret;
 	}
 
 }

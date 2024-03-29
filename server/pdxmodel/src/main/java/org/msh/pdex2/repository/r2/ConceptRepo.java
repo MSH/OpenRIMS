@@ -15,4 +15,5 @@ public interface ConceptRepo extends CrudRepository<Concept, Long> {
 	 List<Concept> findByLabel(String label);
 	List<Concept> findAllByIdentifierAndLabel(String identifier, String label);
 	List<Concept> findAllByIdentifier(String identifier);
+	List<Concept> findAllByIdentifierAndActive(String identifier, boolean b);
 }

@@ -14,10 +14,8 @@ import SearchControlNew from './utils/SearchControlNew'
 import FieldUpload from './form/FieldUpload'
 
 /**
- * Allows:
- * - establish/remove relations to the nodes on a level of a dictionary tree.
- * - add nodes to the level if not "display"
  * ~~~~
+ * Edit or use a classifier
   <Dictionary
     identifier={this.state.identifier+'mydict'}     //address of this dictionary for messages, if needed
     data={this.state.data.mydict}                   //DictionaryDTO
@@ -25,28 +23,28 @@ import FieldUpload from './form/FieldUpload'
     display                                        //display only
     noborder                                        //will not show a border around 
   />
- * @event
- * incoming 
- *  askData             ask data user selected
- *  refreshData         refresh data from properties
- * Outgoing
- *  onGetData in reply to askData
- *  onSelectionChange when any selection occurs
- * 
- * data is DictionaryDTO
- * 
- * @example
+ * Example:
  * <Dictionary identifier={this.state.data.dictionaries[i].url} recipien={this.state.identifier} data={this.state.data.dictionaries[i]} display />
  *  />
+ * Messages
+ * Incoming:
+ * askData ask the current DictionaryDTO. The DictionaryDTO will be sent in onGetData outgoung message
+ * refreshData - refresh the current DictionryDTO from this.props.data
+ * selectdictrow - select the first row in the dictionary
+ * addDictItem  - add item to the dictionary. The right "to" identifier should be passed
+ * editWorkflowItem - edit the first selected item. Place buttons Assist and Process to manage workflow
+ * Outgoing:
+ * onDictionaryReloaded - the dictionary has been reloaded
+ * onSelectionChange the selection has been changed
+ * onSaveData the dictionary node has been saved, suspended, or cancelled, i.e., DictNode.js has been closed
  *  ~~~~   
- * 23.08.2022 khomenska
- * Add sendMessSave:false - используем, когда по клику на Save нужно еще где то что-то сделать, вне словаря
  */
 class Dictionary extends Component{
     constructor(props){
         super(props)
         this.state={
-            identifier:Date.now().toString(),
+            identifier:this.props.identifier,
+            processDict:false,  //extended button set in the DictNode
             sendMess:false,
             sendMessSave:false,
             activeNode:0,
@@ -144,7 +142,7 @@ class Dictionary extends Component{
         )
     }
     /**
-     * listen for askData broadcast and getData only to own address
+     * listen for incoming messages from the parent component
      */
     eventProcessor(event){
         let data=event.data
@@ -158,6 +156,20 @@ class Dictionary extends Component{
             }
             if(data.subject=="selectdictrow"){
                 this.selectRow(1)
+            }
+            if(data.to==this.props.identifier){
+                if(data.subject=="addDictItem"){
+                    this.state.activeNode=0;
+                    this.state.edit=true
+                    this.setState(this.state)
+                }
+                if(data.subject=="editWorkflowItem"){
+                    this.state.activeNode=this.state.data.prevSelected[0];
+                    this.state.data.prevSelected=[]
+                    this.state.processDict=true
+                    this.state.edit=true
+                    this.setState(this.state)
+                }
             }
         }
     }
@@ -215,6 +227,7 @@ class Dictionary extends Component{
             }
             Navigator.message(this.props.identifier,to,"onSaveData",this.state.data)
             this.state.sendMessSave=false
+            this.state.processDict=false
         }
         if(this.props.data.url != this.state.data.url){
             this.state.data=this.props.data
@@ -567,7 +580,8 @@ class Dictionary extends Component{
                         <DictNode identifier={this.props.identifier+".node"}
                                     nodeId={this.state.activeNode}
                                     parentId={this.state.data.selection.value.id}
-                                    url={this.state.data.url}          
+                                    url={this.state.data.url} 
+                                    processButtons={this.state.processDict}         
                                     onCancel={()=>{this.state.edit=false
                                                     this.state.sendMessSave = true
                                                    this.setState(this.state)

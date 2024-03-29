@@ -165,22 +165,16 @@ public class LegacyDataService {
 	 * @throws IOException 
 	 * @throws ObjectNotFoundException 
 	 */
-	public XSSFWorkbook importLegacyData(byte[] xlsx) throws IOException, ObjectNotFoundException {
-		if(xlsx.length > 0){						
-			InputStream inputStream = new ByteArrayInputStream(xlsx);
-			XSSFWorkbook book=new XSSFWorkbook(inputStream);
-			LegacyDataErrorsDTO errors= new LegacyDataErrorsDTO(book);
-			int sheetIndex=0;
-			XSSFSheet sheet = boilerServ.getSheetAt(book, sheetIndex);
-			while(!errors.isErrorOrNullSheet(sheet)) {
-				importLegacyDataSheet(sheet, errors);
-				sheetIndex++;
-				sheet=boilerServ.getSheetAt(book,sheetIndex);
-			}
-			return book;
-		}else {
-			return null;
+	public XSSFWorkbook importLegacyData(XSSFWorkbook book, LegacyDataErrorsDTO errors) throws IOException, ObjectNotFoundException {
+		int sheetIndex = 0;
+		XSSFSheet sheet = boilerServ.getSheetAt(book, sheetIndex);
+		while(!errors.isErrorOrNullSheet(sheet)) {
+			importLegacyDataSheet(sheet, errors);
+			AsyncService.writeAsyncContext(AsyncService.PROGRESS_SHEETS_IMPORTED, (sheetIndex+1)+"");
+			sheetIndex++;
+			sheet=boilerServ.getSheetAt(book,sheetIndex);
 		}
+		return book;
 	}
 	/**
 	 * Import data from the particular data sheet
@@ -189,15 +183,18 @@ public class LegacyDataService {
 	 * @param errors
 	 * @throws ObjectNotFoundException 
 	 */
-	@Transactional
+	// NO @Transactional
 	private void importLegacyDataSheet(XSSFSheet sheet, LegacyDataErrorsDTO errors) throws ObjectNotFoundException {
 		String url=sheetName(sheet);
+		AsyncService.writeAsyncContext(AsyncService.PROGRESS_CURRENT_SHEET, url);
 		int rownum=1;
 		XSSFRow row = boilerServ.getSheetRow(sheet,rownum);
 		Concept root=closureServ.loadRoot(url);
 		Concept protocol=protocolConcept(AssemblyService.SYSTEM_IMPORT_LEGACY_DATA);
 		protocol=literalServ.createUpdateLiteral(AssemblyService.DATAIMPORT_RESULT, "started for "+ url, protocol);
 		logger.info("started for "+url);
+		
+		AsyncService.writeAsyncContext(AsyncService.PROGRESS_TOTAL, sheet.getLastRowNum() + "");
 		int threshold=0;			//when the data will finished?
 		while(row !=null && threshold<300) {					//see 300 invalid records before finish
 			writeProtocol(rownum, 100, url, protocol);
@@ -206,6 +203,8 @@ public class LegacyDataService {
 			}else {
 				threshold++;
 			}
+			
+			AsyncService.writeAsyncContext(AsyncService.PROGRESS_COUNTER, rownum + "");
 			rownum++;
 			row = boilerServ.getSheetRow(sheet,rownum);
 		}

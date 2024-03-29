@@ -118,6 +118,7 @@ public class ValidationService {
 	 * ((\\.|\\_)[a-z0-9]{1,})* - после любого _ или . всегда буква или цыфра. Повторы тоже возможны
 	 */
 	private static final String regexVarName = "^[a-z]{1,}[a-z0-9]*" + "((\\.|\\_)[a-z0-9]{1,})*";
+	public static Pattern REGEX = Pattern.compile("[$&+,:;=\\\\?@#|/'<>.^*()%!-]");
 	private static final Pattern pattern = Pattern.compile(regexVarName, Pattern.CASE_INSENSITIVE);
 	public static final String regexEmail="^[-a-z0-9~!$%^&*_=+}{\\'?]+(\\.[-a-z0-9~!$%^&*_=+}{\\'?]+)*@([a-z0-9_]"
 			+ "[-a-z0-9_]*(\\.[-a-z0-9_]+)*\\.(aero|arpa|biz|com|coop|edu|gov|info|int|mil|museum|name|net|org|pro|travel|mobi|"
@@ -702,6 +703,7 @@ public class ValidationService {
 				}else {
 					//suggest(dto.getReg_number(), 3, 255, strict);
 					dto.getReg_number().invalidate(messages.get("pressButtonAssignNumber") + " "+ar.getDescription());
+					dto.setStrict(strict);
 				}
 			}
 			//expiration date should fit an interval if defined
@@ -1156,6 +1158,7 @@ public class ValidationService {
 		}
 		data=variableFileTypes(data);
 		// special validation
+		data=variableIfPrefLabel(data);
 		data=variableMinMaxWhenRequired(data,strict);
 		data= variableUrl(data, strict);
 		data=variableDictUrl(data,strict);
@@ -1164,6 +1167,34 @@ public class ValidationService {
 		data.propagateValidation();
 		return data;
 	}
+	
+	private DataVariableDTO variableIfPrefLabel(DataVariableDTO data) {
+		String clazz = data.getClazz().getValue().getCode();
+		if(clazz.equalsIgnoreCase("literals") || clazz.equalsIgnoreCase("strings")) {
+			if(data.getVarName().getValue().equalsIgnoreCase("prefLabel")) {
+				FormFieldDTO<OptionDTO> ropt = data.getRequired();
+				YesNoNA required=dtoServ.optionToEnum(YesNoNA.values(), ropt.getValue());
+				if(required.equals(YesNoNA.NA) || required.equals(YesNoNA.NO)) {
+					data.getRequired().setValue(dtoServ.enumToOptionDTO(YesNoNA.YES, YesNoNA.values()));				
+				}
+				long min = boilerServ.nullIsZero(data.getMinLen().getValue());
+				long max = boilerServ.nullIsZero(data.getMaxLen().getValue());
+				if(min==0) {
+					min=3l;
+				}
+				if(max==0) {
+					max=255l;
+				}
+				if(min>max) {
+					max=255l;
+				}
+				data.getMaxLen().setValue(max);
+				data.getMinLen().setValue(min);
+			}
+		}
+		return data;
+	}
+	
 	/**
 	 * field fileTypes should be checked and all non-printable characters should be removed:
 	 * <ul>

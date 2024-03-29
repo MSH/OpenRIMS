@@ -24,7 +24,6 @@ import org.msh.pharmadex2.service.common.ContextServices;
 import org.msh.pharmadex2.service.common.UserService;
 import org.msh.pharmadex2.service.common.ValidationService;
 import org.msh.pharmadex2.service.r2.ContentService;
-import org.msh.pharmadex2.service.r2.ExchangeConfigMainService;
 import org.msh.pharmadex2.service.r2.ImportWorkflowMainService;
 import org.msh.pharmadex2.service.r2.ReportService;
 import org.msh.pharmadex2.service.r2.ResourceService;
@@ -68,8 +67,6 @@ public class PublicAPI{
 	private ResourceService resourceServ;
 	@Autowired
 	private ReportService reportServ;
-	@Autowired
-	ExchangeConfigMainService exchangeMainServ;
 	@Autowired
 	private ValidationService validService;
 	@Autowired

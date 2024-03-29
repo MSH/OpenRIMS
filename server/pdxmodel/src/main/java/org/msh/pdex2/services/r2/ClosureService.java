@@ -3,6 +3,7 @@ package org.msh.pdex2.services.r2;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -162,11 +163,11 @@ public class ClosureService {
 							}
 						}
 						conc= conceptRepo.save(conc);
-						try {
-							entityManager.flush();
-						} catch (Exception e) {
-							// nothing to do
-						}
+						/*	try {
+								entityManager.flush();
+							} catch (Exception e) {
+								// nothing to do
+							}*/
 						if(parent != null) {
 							entityManager.refresh(parent);	//to ensure new children
 						}
@@ -528,6 +529,12 @@ public class ClosureService {
 		ret = conceptRepo.findAllByIdentifier(identifier);
 		return ret;
 	}
+	@Transactional
+	public List<Concept> loadAllConceptsByIdentifierAndActive(String identifier, boolean active) {
+		List<Concept> ret = new ArrayList<Concept>();
+		ret = conceptRepo.findAllByIdentifierAndActive(identifier,active);
+		return ret;
+	}
 
 	/**
 	 * Load concept by Identifier and find first ACTIVE Concept
@@ -613,8 +620,48 @@ public class ClosureService {
 			}
 		}
 	}
+	/**
+	 * Efficient version of findActivConceptInBranchByIdentifier
+	 * @param root
+	 * @param identifier
+	 * @return concept found or new concept with the identifier given 
+	 * @throws ObjectNotFoundException 
+	 */
+	@Transactional
+	public Concept findActiveInBranchByIdentifier(Concept root, String identifier) throws ObjectNotFoundException {
+		List<Long> conceptIDs = closureRepo.findInBranchActiveByConceptIdentifierFast(root.getID(), identifier);
+		Concept ret = new Concept();
+		if(conceptIDs.isEmpty()) {
+			ret.setIdentifier(identifier);
+		}else {
+			if(conceptIDs.size()==1) {
+				Optional<Concept> reto = conceptRepo.findById(conceptIDs.get(0));
+				if(reto.isPresent()) {
+					ret= reto.get();
+				}else {
+					throw new ObjectNotFoundException("findActiveInBranchByIdentifier Concept not found, ID is "+conceptIDs.get(0) ,logger);
+				}
+			}else {
+				throw new ObjectNotFoundException(
+						"findActiveInBranchByIdentifier.  The branch has more than one child with the same Identifier. Closures IDs are"+ conceptIDs
+						+" branch root is "+root,logger);
+			}
+		}
+		return ret;
+	}
+
+	/**
+	 * All node identifiers under the parent concept
+	 * @param parentIdentifier
+	 * @return
+	 */
+	@Transactional
+	public Set<String> loadLevelIdentifiers(Concept parent) {
+		Set<String> ret = closureRepo.findAllIdentifiersUnderParent(parent.getIdentifier());
+		return ret;
+	}
+
+
 
 	
-
-
 }

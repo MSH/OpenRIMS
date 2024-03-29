@@ -318,6 +318,12 @@ let j=-1
      */
     paintCell(cell, rowNo, header){
         switch(header.columnType){ 
+            case 11: //true, false
+            if(cell.originalValue){
+                return(<i className="fas fa-check" style={{color: "#3eaf3c",}}/>)
+            }else{
+                return(<i className="fas fa-times" style={{color: "#c53707",}} />)
+            }
             case 2: //check
                 return (
                     <Input className="m-auto p-auto"

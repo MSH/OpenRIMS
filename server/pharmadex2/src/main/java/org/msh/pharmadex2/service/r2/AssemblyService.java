@@ -664,7 +664,7 @@ public class AssemblyService {
 			assm.setPropertyName(DATAIMPORT_DATA);
 			assm.setDescription(messages.get("pleaseuploadimportdata"));
 			assm.setReadOnly(false);
-			assm.setRequired(true);
+			assm.setRequired(false);
 			assm.setTextArea(false);
 			assm.setUrl("data.import");
 			assm.setAuxDataUrl("");

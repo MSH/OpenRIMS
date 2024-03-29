@@ -8,6 +8,7 @@ import Pharmadex from './Pharmadex'
 import Thing from './Thing'
 import Alerts from './utils/Alerts'
 import Spinner from './utils/Spinner'
+import AsyncInform from './AsyncInform'
 
 /**
  * Import legacy data
@@ -18,10 +19,11 @@ class Import_B extends Component{
         this.state={
             identifier:Date.now().toString(),
             data:{},
+            showProgress:false,
             labels:{
                 global_cancel:'',
                 global_save:'',
-                askforimportrun:'',
+                askforlegacydataimportrun:'',
                 reload:"",
                 startImport :""
             }
@@ -46,7 +48,7 @@ class Import_B extends Component{
             }
             if(data.subject=="savedByAction"){
                 this.state.data=data.data
-                Alerts.warning(this.state.labels.askforimportrun,
+                Alerts.warning(this.state.labels.askforlegacydataimportrun,
                     ()=>{   //yes
                         //run import
                         this.verifyImport()
@@ -54,6 +56,10 @@ class Import_B extends Component{
                     ()=>{   //no
 
                     })
+            }
+            if(data.to== this.state.identifier && data.subject=='OnAsyncProcessCompleted'){
+                this.state.showProgress=false
+                this.load()
             }
         }
     }
@@ -81,8 +87,13 @@ class Import_B extends Component{
     runImport(){
         Fetchers.postJSON("/api/admin/import/legacydata/run", this.state.data, (query, result)=>{
             this.state.data=result
+            if(this.state.data.valid){
+                Navigator.message('*', '*', 'show.alert.pharmadex.2', this.state.labels.startImport)
+                this.state.showProgress=true
+            }else{
+                this.state.showProgress=false
+            }
             this.setState(this.state)
-            Navigator.message('*', '*', 'show.alert.pharmadex.2', this.state.labels.startImport)
         })
     }
 
@@ -137,32 +148,37 @@ class Import_B extends Component{
     }
 
     render(){
-        if(this.state.data.nodeId==undefined || this.state.labels.locale==undefined){
+        if((this.state.data.nodeId==undefined && this.state.showProgress==false) || this.state.labels.locale==undefined){
             return Pharmadex.wait()
         }
-        return(
-            <Container fluid>
-                <Row>
-                    <Col>
-                        {this.headerFooter()}
-                    </Col>
-                </Row>
-                <Row>
-                    <Col>
-                        <Thing data={this.state.data} recipient={this.state.identifier} noload/>
-                    </Col>
-                </Row>
-                <Row>
-                    <Col>
-                        {this.headerFooter()}
-                    </Col>
-                </Row>
-            </Container>
-        )
+        if(this.state.showProgress){
+            return (
+                <AsyncInform recipient={this.state.identifier} loadAPI='/api/admin/import/legacydata/progress'/>
+            )
+        }else{
+            return(
+                <Container fluid>
+                    <Row>
+                        <Col>
+                            {this.headerFooter()}
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col>
+                            <Thing data={this.state.data} recipient={this.state.identifier} noload/>
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col>
+                            {this.headerFooter()}
+                        </Col>
+                    </Row>
+                </Container>
+            )
+        }
     }
-
-
 }
+
 export default Import_B
 Import_B.propTypes={
     

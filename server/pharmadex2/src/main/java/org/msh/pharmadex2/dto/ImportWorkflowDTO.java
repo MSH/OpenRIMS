@@ -33,6 +33,7 @@ public class ImportWorkflowDTO extends AllowValidation{
 	 * при истине - можно выполнять импорт  */
 	private boolean validateWFselect = false;
 	
+	private String titleResultTable = "";
 	/**  */
 	private boolean selectedOnly = false;
 	/** configuration URL-data dictionary */
@@ -189,6 +190,14 @@ public class ImportWorkflowDTO extends AllowValidation{
 
 	public void setPathImportDict(Map<Long, List<String>> pathImportDict) {
 		this.pathImportDict = pathImportDict;
+	}
+
+	public String getTitleResultTable() {
+		return titleResultTable;
+	}
+
+	public void setTitleResultTable(String titleResultTable) {
+		this.titleResultTable = titleResultTable;
 	}
 	
 }

@@ -8,7 +8,7 @@ import Authority from './Authority'
 import UserElement from './UserElement'
 import Dictionaries from './Dictionaries'
 import Tiles from './Tiles'
-import Workflows from './Workflows'
+import Processes from './Processes'
 import WorkflowConfigurator from './WorkflowConfigurator'
 import DataConfigurator from './DataConfigurator'
 import DataFormPreview from './dataconfig/DataFormPreview'
@@ -45,12 +45,11 @@ class Administrate extends Component{
                 manageapplications:'',
                 dictionaries:'',
                 tiles:"",
-                workflows:'',
+                processes:'',
                 authorities:'',
                 system:'',
                 language:'',
                 global_exit:'',
-                workflows:'',
                 dataconfigurator:'',
                 reports:'',
                 messages:'',
@@ -97,8 +96,8 @@ class Administrate extends Component{
                 return <Authorities />
             case "tiles":
                 return <Tiles />
-            case "workflows":
-                return <Workflows/>
+            case "processes":
+                return <Processes/>
             case "resources":
                 return <Resources />
             case "workflowconfigurator":
@@ -228,11 +227,11 @@ class Administrate extends Component{
                                         </DropdownToggle>
                                         <DropdownMenu right>
                                             <DropdownItem>
-                                                <NavItem active={this.state.menu=='workflows' || this.state.menu=='workflowconfigurator'}>
-                                                    <NavLink href="/admin#administrate/workflows">
+                                                <NavItem active={this.state.menu=='processes'|| this.state.menu=='workflowconfigurator'}>
+                                                    <NavLink href="/admin#administrate/processes">
                                                     <div>
                                                         <i className="fas fa-xs fa-link mr-1"></i>
-                                                        {this.state.labels.workflows}
+                                                        {this.state.labels.processes}
                                                     </div>
                                                     </NavLink>
                                                 </NavItem>

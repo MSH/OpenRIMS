@@ -59,6 +59,11 @@ class AsyncInform extends Component{
         Fetchers.postJSONNoSpinner(this.props.loadAPI, this.state.data, (query,result)=>{
             this.state.data=result
             this.timeoutID=setTimeout(this.loader,this.state.data.pollInSeconds*1000)
+            if(this.state.data.cancelled){
+                Navigator.message(this.state.identifier, this.props.recipient, "OnAsyncProcessCancelled",this.state.data)
+            }else if(this.state.data.completed){
+                Navigator.message(this.state.identifier, this.props.recipient, "OnAsyncProcessEnd",this.state.data)
+            }
             this.setState(this.state)
         })
     }

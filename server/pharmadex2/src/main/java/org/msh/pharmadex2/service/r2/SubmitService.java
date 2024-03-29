@@ -773,8 +773,9 @@ public class SubmitService {
 				if (data.isValid()) {
 					Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
 					List<Concept> nextActs = boilerServ.loadActivities(configRoot);
-					boolean fullValid=checkPagesDefined(curHis.getApplicationData());
-					if(fullValid) {
+					List<Concept> allPages = new ArrayList<Concept>();
+					allPages=checkPagesDefined(curHis.getApplicationData(),allPages, true);
+					if(!allPages.isEmpty()) {
 						if (nextActs.size() > 0) {
 							List<ActivityToRun> toRun = appServ.activitiesToRun(data, applUrl, curHis, nextActs);
 							//finish the current activity and run others
@@ -787,13 +788,14 @@ public class SubmitService {
 								// tracking by an applicant
 								appServ.activityTrackRun(null, curHis, applUrl, user.getEmail()); 
 								// monitoring by the all supervisors as a last resort
-								appServ.activityMonitoringRun(null, curHis, applUrl); 
+								//2024-03-05 no longer needed appServ.activityMonitoringRun(null, curHis, applUrl); 
 								// run activities
 								for(ActivityToRun act :toRun ) {
 									for (String email : act.getExecutors()) {
 										appServ.activityCreate(null, act.getConfig(), curHis, email, String.join(",",act.getFallBack()));
 									}
 								}
+								thingServ.saveConfigurations(allPages);
 							}else {
 								if(data.isValid()) {
 									data.setValid(false);
@@ -853,35 +855,41 @@ public class SubmitService {
 		return data;
 	}
 	/**
-	 * check "persons" (in general 1:m)
+	 * check "persons" recusively
 	 * @param page
-	 * @return
+	 * @param ret list of concepts found
+	 * @return 
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	private boolean checkPagesPersonDefined(Concept page) throws ObjectNotFoundException {
+	private List<Concept> checkPagesPersonDefined(Concept page, List<Concept> ret) throws ObjectNotFoundException {
 		Thing pThing = new Thing();
 		pThing=boilerServ.thingByNode(page, pThing);
 		for(ThingPerson tp : pThing.getPersons()) {
-			if (!checkPagesDefined(tp.getConcept())){
-				return false;
+			ret=checkPagesDefined(tp.getConcept(), ret,false);
+			if (ret.isEmpty()){
+				break;
 			}
 		}
-		return true;
+		return ret;
 	}
 	/**
 	 * Have all pages been defined?
 	 * @param data
-	 * @return
+	 * @param checkPersons - check persons pages as well
+	 * @return not empty list if OK, empty list if fails
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional			// may become public in the future
-	private boolean checkPagesDefined(Concept data) throws ObjectNotFoundException {
-		boolean ret = true;
+	private List<Concept> checkPagesDefined(Concept data, List<Concept> ret, boolean checkPersons) throws ObjectNotFoundException {
 		if(data.getActive()) {
+			ret.add(data);
 			//check persons on the first page
-			if(!checkPagesPersonDefined(data)) {
-				return false;
+			if(checkPersons) {
+				ret=checkPagesPersonDefined(data, ret);
+			}
+			if(ret.isEmpty()) {
+				return ret;
 			}
 			// get thing
 			Thing thing = new Thing();
@@ -890,7 +898,9 @@ public class SubmitService {
 				// get all pages
 				Map<String,Concept> pages =new LinkedHashMap<String, Concept>();
 				for(ThingThing tt : thing.getThings()) {
-					pages.put(tt.getUrl().toUpperCase(),tt.getConcept());
+					if(tt.getConcept().getActive()) {
+						pages.put(tt.getUrl().toUpperCase(),tt.getConcept());
+					}
 				}
 				// get data configuration URL
 				Concept owner = closureServ.getParent(data);
@@ -902,27 +912,33 @@ public class SubmitService {
 							if(assm.getClazz().equalsIgnoreCase("things")) {
 								String url = assm.getUrl();
 								Concept page = pages.get(url.toUpperCase());
-								if(page==null) {
-									return false;
-								}else {
-									if(!checkPagesPersonDefined(page)) {
-										return false;
+								if(page!=null) {
+									ret.add(page);
+									if(checkPersons) {
+										ret= checkPagesPersonDefined(page,ret);
 									}
+									if(ret.isEmpty()) {
+										break;
+									}
+								}else {
+									ret.clear();
+									break;
 								}
 							}
 						}
 					}else {
-						ret=false;
+						ret.clear();
 					}
 				}else {
-					ret=false;
+					ret.clear();
 				}
 			}else {
-				ret=false;
+				ret.clear();
 			}
 		}
 		return ret;
 	}
+
 	/**
 	 * Add activities for all executors listed In case next activity is
 	 * Finalize.AMEND - implement the amendment

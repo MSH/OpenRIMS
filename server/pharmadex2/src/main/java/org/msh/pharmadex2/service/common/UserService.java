@@ -38,6 +38,7 @@ import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AskForPass;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
+import org.msh.pharmadex2.dto.UserAccessDTO;
 import org.msh.pharmadex2.dto.UserElementDTO;
 import org.msh.pharmadex2.dto.UserFormDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
@@ -1227,6 +1228,27 @@ public class UserService implements UserDetailsService {
 				}
 			}
 		}
+		return ret;
+	}
+	
+	/**
+	 * Determine supervisor's access
+	 * @param email
+	 * @return
+	 */
+	@Transactional
+	public UserAccessDTO nraUserAccess(String email) {
+		UserAccessDTO ret = UserAccessDTO.instanceOf(email);
+		List<TableHeader> headList = jdbcRepo.headersFromSelect("select * from user_access where false", new ArrayList<String>());
+		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from user_access", "", "email='"+email+"'", Headers.of(headList));
+		for(TableRow row : rows) {
+			ret.setOfficeID(row.getCellByKey("officeID").getIntValue());
+			ret.setMainOffice(row.getCellByKey("adminUnitID").getValue().equalsIgnoreCase("0")); //null really
+			ret.getRoles().add(row.getCellByKey("role").getValue());
+			ret.getApplDicts().add((long) row.getCellByKey("applDictID").getIntValue());
+		}
+		/*ret.setMainOffice(false); //TEST TEST TEST
+		ret.setOfficeID(79070);*/
 		return ret;
 	}
 }

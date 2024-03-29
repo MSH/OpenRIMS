@@ -945,6 +945,26 @@ public class ActivityAPI{
 		return data;
 	}
 	/**
+	 * Save without validation an application data under the user
+	 * 
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping({ "/api/*/ting/save/relax" })
+	public ThingDTO thingSaveRelax(Authentication auth, UriComponentsBuilder uri, @RequestBody ThingDTO data) throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		try {
+			data.setStrict(false);
+			data = thingServ.saveUnderOwner(data, user);
+		} catch (ObjectNotFoundException | JsonProcessingException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	/**
 	 * Refresh a thing, e.g. after onSelectionChange
 	 * @param auth
 	 * @param data

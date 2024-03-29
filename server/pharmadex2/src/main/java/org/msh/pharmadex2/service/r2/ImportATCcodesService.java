@@ -6,25 +6,27 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.msh.pdex2.dto.table.TableQtb;
+import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.FileResource;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.services.r2.ClosureService;
+import org.msh.pharmadex2.dto.AsyncInformDTO;
 import org.msh.pharmadex2.dto.FileDTO;
 import org.msh.pharmadex2.dto.LegacyDataErrorsDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
@@ -36,7 +38,6 @@ import org.msh.pharmadex2.service.common.ValidationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,8 +49,8 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 public class ImportATCcodesService {
 
 	private static final Logger logger = LoggerFactory.getLogger(ImportATCcodesService.class);
-	private static AtomicInteger counter = new AtomicInteger(0);					//how many imported
-	private static AtomicInteger total = new AtomicInteger(0);						//how many to import
+	private static AtomicInteger counter = new AtomicInteger(0);//how many imported
+	private static AtomicInteger total = new AtomicInteger(0);//how many to import
 
 	@Autowired
 	ClosureService closureServ;
@@ -116,9 +117,39 @@ public class ImportATCcodesService {
 		}else {
 			data=thingServ.loadThing(data, user);
 		}
+		data = compareRows(data);
 		return data;
 	}
 
+	/**
+	 * sort rows DATAIMPORT table
+	 * first row - file by import
+	 * second row - file error
+	 * @return
+	 */
+	private ThingDTO compareRows(ThingDTO data){
+		try {
+			Long dictNodeId = loadDictConcept(false).getID();
+			
+			if(data.getDocuments().get(AssemblyService.DATAIMPORT_DATA) != null) {
+				TableQtb t = data.getDocuments().get(AssemblyService.DATAIMPORT_DATA).getTable();
+				List<TableRow> rows = t.getRows();
+				List<TableRow> rowsNew = new ArrayList<TableRow>();
+				if(rows.get(0).getDbID() == dictNodeId) {
+					rowsNew.add(0, rows.get(0));
+					rowsNew.add(1, rows.get(1));
+				}else if(rows.get(1).getDbID() == dictNodeId) {
+					rowsNew.add(0, rows.get(1));
+					rowsNew.add(1, rows.get(0));
+				}
+				data.getDocuments().get(AssemblyService.DATAIMPORT_DATA).getTable().setRows(rowsNew);
+			}
+		} catch (ObjectNotFoundException e) {
+			e.printStackTrace();
+		}
+		return data;
+	}
+	
 	/**
 	 * Really run ATC import
 	 * @param data
@@ -126,13 +157,23 @@ public class ImportATCcodesService {
 	 * @throws ObjectNotFoundException
 	 * @throws IOException
 	 */
-	@Transactional
+	//NO @Transactional
 	public void importRunWorker(ThingDTO data, UserDetailsDTO user) throws ObjectNotFoundException, IOException{
 		data=thingServ.saveUnderParent(data, user);
 		setTotal(new AtomicInteger(0));
 		setCounter(new AtomicInteger(0));
 		XSSFSheet sheet = loadSheet(data);
 		if(sheet != null){
+			AsyncService.writeAsyncContext(AsyncService.PROGRESS_SHEETS, sheet.getSheetName());
+			logger.trace(sheet.getSheetName());
+			FileDTO dto = data.getDocuments().get(AssemblyService.DATAIMPORT_DATA);
+			//remove old fileErrors
+			Long dictNodeErrId = loadDictConcept(true).getID();
+			if(dictNodeErrId > 0 && dto.getLinked().get(dictNodeErrId) != null && dto.getLinked().get(dictNodeErrId) > 0) {
+				Concept errNode = closureServ.loadConceptById(dto.getLinked().get(dictNodeErrId));
+				thingServ.fileRemove(errNode.getID(), user);
+			}
+			
 			Concept rootMain = deactiveCodes();
 			LegacyDataErrorsDTO errors = new LegacyDataErrorsDTO(sheet.getWorkbook());
 			if(!loadATCcodes(data, user, sheet, rootMain, errors)) {
@@ -140,6 +181,7 @@ public class ImportATCcodesService {
 			}
 		}else {
 			//TODO error message to AsyncSErvice#context
+			logger.trace("Error");
 		}
 	}
 
@@ -155,7 +197,7 @@ public class ImportATCcodesService {
 	 * @throws ObjectNotFoundException
 	 * @throws JsonProcessingException 
 	 */
-	@Transactional
+	//NO @Transactional
 	public boolean loadATCcodes(ThingDTO data, UserDetailsDTO user, XSSFSheet sh, Concept root, LegacyDataErrorsDTO errors) throws ObjectNotFoundException, JsonProcessingException {
 		boolean flag = true;
 		Set<String> uoms = new HashSet<String>();			//dictionary.who.uom
@@ -163,19 +205,27 @@ public class ImportATCcodesService {
 		//search for the first row
 		int firstRow=0;
 		setTotal(new AtomicInteger(sh.getLastRowNum()));
+		AsyncService.writeAsyncContext(AsyncService.PROGRESS_TOTAL_REMOVE, "");
+		AsyncService.writeAsyncContext(AsyncService.PROGRESS_COUNTER_REMOVE, "");
+		AsyncService.writeAsyncContext(AsyncService.PROGRESS_TOTAL, getTotal() + "");
 		setCounter(new AtomicInteger(0));
 		for(int i=0;i<=sh.getLastRowNum();i++) {
 			XSSFRow row = sh.getRow(i);
 			String identifier = cellAsString(row, COLUMN_CODE);
 			if(identifier.equals("A")) {
 				firstRow=i;
+				logger.trace("Start");
 				break;
 			}
 		}
 		if(firstRow<sh.getLastRowNum()) {
-			//import
+			//---------------------------    import
+			//get all existing
+			Set<String> existing = closureServ.loadLevelIdentifiers(root);
+			//import row by row
 			for (int i = firstRow; i <= sh.getLastRowNum(); i++) {
 				setCounter(new AtomicInteger(i));
+				AsyncService.writeAsyncContext(AsyncService.PROGRESS_COUNTER, getCounter() + "");
 				if(i>99 && i % 100 == 0) {
 					//TODO message 
 				}
@@ -183,7 +233,7 @@ public class ImportATCcodesService {
 				String atcCode = cellAsString(row, COLUMN_CODE);
 				String atcText = cellAsString(row,COLUMN_LABEL);
 				if(legacyDataService.validString(atcCode) && legacyDataService.validString(atcText)) {
-					loadRow(root, row, atcCode, atcText,uoms,arouts);
+					loadRow(root, row, atcCode, atcText,uoms,arouts, existing);
 				}else {
 					errors.add(row, row.getLastCellNum(), sh.getSheetName());
 					flag = false;
@@ -191,6 +241,7 @@ public class ImportATCcodesService {
 			}
 			updateDictionary("dictionary.who.uom", messages.get("dos_unit"),"https://www.whocc.no/atc_ddd_index/", uoms);
 			updateDictionary("dictionary.who.adminroute",messages.get("admin_route"),"https://www.whocc.no/atc_ddd_index/", arouts);
+			logger.trace("End");
 		}else {
 			flag=false;
 		}
@@ -202,22 +253,24 @@ public class ImportATCcodesService {
 	 * @param row
 	 * @param atcCode
 	 * @param atcText
+	 * @param existing 
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	public void loadRow(Concept root, XSSFRow row, String atcCode, String atcText,Set<String> uoms,Set<String> arouts) throws ObjectNotFoundException {
+	public void loadRow(Concept root, XSSFRow row, String atcCode, String atcText,Set<String> uoms,Set<String> arouts, Set<String> existing) throws ObjectNotFoundException {
 		String dddText=dddToString(row,uoms, arouts);
-		Concept concept = closureServ.loadConceptByIdentifier(atcCode+"/"+dddText);
-		if(concept == null) {
-			Concept conc = new Concept();
-			conc=closureServ.save(conc);
-			conc.setIdentifier(atcCode+"/"+dddText);
-			conc.setLabel(atcCode);
-			conc=closureServ.saveToTreeFast(root, conc);
-			conc=createLiterals(conc, atcCode, atcText, dddText);
+		String identifier=atcCode+"/"+dddText;
+		Concept node = new Concept();
+		if(!existing.contains(identifier)) {
+			existing.add(identifier);
+			node.setIdentifier(identifier);
+			node.setLabel(atcCode);
+			node=closureServ.saveToTreeFast(root, node);
+			node=createLiterals(node, atcCode, atcText, dddText);
 		}else {
-			concept.setActive(true);
-			concept=closureServ.save(concept);
+			node=closureServ.findActivConceptInBranchByIdentifier(root, identifier);
+			node.setActive(true);
+			node=closureServ.save(node);
 		}
 	}
 
@@ -332,9 +385,14 @@ public class ImportATCcodesService {
 		Concept root = closureServ.loadRoot(SystemService.PRODUCTCLASSIFICATION_ATC_HUMAN);
 		List<Concept> codes = closureServ.loadLevel(root);
 		if(codes != null && codes.size() > 0) {
+			AsyncService.writeAsyncContext(AsyncService.PROGRESS_TOTAL_REMOVE, codes.size() + "");
+			logger.trace(codes.size() + "");
+			int i = 0;
 			for(Concept c:codes) {
 				c.setActive(false);
 				closureServ.saveToTreeFast(root, c);
+				AsyncService.writeAsyncContext(AsyncService.PROGRESS_COUNTER_REMOVE, i + "");
+				i++;
 			}
 		}
 		return root;
@@ -415,5 +473,47 @@ public class ImportATCcodesService {
 		}
 
 		return itemDict;
+	}
+	/**
+	 * Progress bar logic for admin unit import
+	 * 25% на процесс удаления прежних записей (если они есть)
+	 * 75% на создание новых если были старые
+	 * или 
+	 * 100% на создание новых если старых не было
+	 * @param data
+	 * @return
+	 */
+	public AsyncInformDTO calcProgress(AsyncInformDTO data) {
+		//names
+		data.setTitle(messages.get("processImportAtccodes"));
+		int per = 100;
+		int min = 10;
+		data.setComplPercent(min); //minimum value
+		
+		String totalRem = AsyncService.readAsyncContext(AsyncService.PROGRESS_TOTAL_REMOVE);
+		String counterRem = AsyncService.readAsyncContext(AsyncService.PROGRESS_COUNTER_REMOVE);
+		if(!totalRem.isEmpty() && !counterRem.isEmpty()) {
+			per = 70;
+			Float total = new Float(totalRem);
+			Float imported = new Float(counterRem);
+			Float percentF = ((imported)/total)*30;
+			if(percentF > min)
+				data.setComplPercent(percentF.intValue());
+			data.setProgressMessage("Remove " + counterRem + " " + messages.get("of") + " " + totalRem);
+		}
+		
+		// percents
+		String totalS=AsyncService.readAsyncContext(AsyncService.PROGRESS_TOTAL);
+		String importedS=AsyncService.readAsyncContext(AsyncService.PROGRESS_COUNTER);
+		if(!totalS.isEmpty() && !importedS.isEmpty()) {
+			Float total = new Float(totalS);
+			Float imported = new Float(importedS);
+			Float percentF = ((imported)/total)*per;
+			if(percentF > min)
+				data.setComplPercent(percentF.intValue());
+			data.setProgressMessage("Import " + importedS + " " + messages.get("of") + " " + totalS);
+			data.setCompleted(totalS.equals(importedS));
+		}
+		return data;
 	}
 }

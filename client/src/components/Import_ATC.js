@@ -7,6 +7,7 @@ import Pharmadex from './Pharmadex'
 import Thing from './Thing'
 import Alerts from './utils/Alerts'
 import Spinner from './utils/Spinner'
+import AsyncInform from './AsyncInform'
 /**
  * Import ATC codes
  */
@@ -23,7 +24,8 @@ class Import_ATC extends Component{
                 continue:'',
                 reload:"",
                 startImport :""
-            }
+            },
+            showProgress:false
         }
         this.eventProcessor=this.eventProcessor.bind(this)
         this.headerFooter=this.headerFooter.bind(this)
@@ -48,11 +50,15 @@ class Import_ATC extends Component{
                     ()=>{   //yes
                         //run import
                         this.runImport()
-                        this.reload()
+                        //this.reload()
                     },
                     ()=>{   //no
 
                     })
+            }
+            if(data.to== this.state.identifier && data.subject=='OnAsyncProcessCompleted'){
+                this.state.showProgress=false
+                this.load()
             }
         }
     }
@@ -66,9 +72,15 @@ class Import_ATC extends Component{
     runImport(){
         Fetchers.postJSON("/api/admin/import/atccodes/run", this.state.data, (query, result)=>{
             this.state.data=result
+            if(this.state.data.valid){
+                Navigator.message('*', '*', 'show.alert.pharmadex.2', this.state.labels.startImport)
+                this.state.showProgress=true
+            }else{
+                this.state.showProgress=false
+            }
             this.setState(this.state)
-            Navigator.message('*', '*', 'show.alert.pharmadex.2', this.state.labels.startImport)
-            Navigator.message(this.state.identifier, "*", "thingReload", this.state.data)
+            //Navigator.message('*', '*', 'show.alert.pharmadex.2', this.state.labels.startImport)
+            //Navigator.message(this.state.identifier, "*", "thingReload", this.state.data)
         })
     }
 
@@ -127,28 +139,34 @@ class Import_ATC extends Component{
         )
     }
     render(){
-        if(this.state.data.nodeId==undefined || this.state.labels.locale==undefined){
+        if((this.state.data.nodeId==undefined && this.state.showProgress==false) || this.state.labels.locale==undefined){
             return Pharmadex.wait()
         }
-        return(
-            <Container fluid>
-                <Row>
-                    <Col>
-                        {this.headerFooter()}
-                    </Col>
-                </Row>
-                <Row>
-                    <Col>
-                        <Thing data={this.state.data} recipient={this.state.identifier} readOnly={this.state.data.readOnly} noload/>
-                    </Col>
-                </Row>
-                <Row>
-                    <Col>
-                        {this.headerFooter()}
-                    </Col>
-                </Row>
-            </Container>
-        )
+        if(this.state.showProgress){
+            return (
+                <AsyncInform recipient={this.state.identifier} loadAPI='/api/admin/import/atccodes/progress'/>
+            )
+        }else{
+            return(
+                <Container fluid>
+                    <Row>
+                        <Col>
+                            {this.headerFooter()}
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col>
+                            <Thing data={this.state.data} recipient={this.state.identifier} readOnly={this.state.data.readOnly} noload/>
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col>
+                            {this.headerFooter()}
+                        </Col>
+                    </Row>
+                </Container>
+            )
+        }
     }
 
 

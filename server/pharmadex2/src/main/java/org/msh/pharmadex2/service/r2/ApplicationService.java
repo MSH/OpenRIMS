@@ -211,7 +211,7 @@ public class ApplicationService {
 		headers.getHeaders().add(TableHeader.instanceOf(
 				"tcategory",
 				"category",
-				true, true, true, TableHeader.COLUMN_STRING, 0));
+				true, true, true, TableHeader.COLUMN_LINK, 0));
 		headers.getHeaders().get(0).setSortValue(TableHeader.SORT_DESC);
 		headers = boilerServ.translateHeaders(headers);
 		headers.setPageSize(20);
@@ -549,6 +549,7 @@ public class ApplicationService {
 	 * @param curHis
 	 * @param applUrl
 	 * @throws ObjectNotFoundException
+	 * @deprecated 2024-03-05
 	 */
 	public void activityMonitoringRun(Date scheduled, History curHis, String applUrl) throws ObjectNotFoundException {
 		// get all supervisors
@@ -762,6 +763,7 @@ public class ApplicationService {
 	 * @param eMail
 	 * @throws ObjectNotFoundException
 	 */
+	@Transactional
 	public Concept createActivityNode(String url, String eMail) throws ObjectNotFoundException {
 		Concept root = closureServ.loadRoot(url);
 		Concept exec = new Concept();
@@ -890,12 +892,14 @@ public class ApplicationService {
 
 	/**
 	 * Close or cancel a single activity
+	 * Save data configuration into the concept if one
 	 * @param curHis
 	 * @param cancelled
 	 * @return
+	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public History stopOneActivity(History curHis, boolean cancelled) {
+	public History stopOneActivity(History curHis, boolean cancelled) throws ObjectNotFoundException {
 		if(curHis.getGo() == null) {
 			Date come = curHis.getCome();
 			Date go = new Date();
@@ -905,6 +909,10 @@ public class ApplicationService {
 			curHis.setGo(new Date());
 			curHis.setCancelled(cancelled);
 			curHis = boilerServ.saveHistory(curHis);
+			// save data configuration
+			if(curHis.getActivityData()!=null && curHis.getActivityData().getLabel()==null && curHis.getDataUrl()!=null) {
+				thingServ.storeConfigurationToNode(curHis.getDataUrl(), curHis.getActivityData());
+			}
 		}
 		return curHis;
 	}

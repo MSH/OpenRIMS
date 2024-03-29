@@ -45,6 +45,7 @@ import org.msh.pharmadex2.service.common.BoilerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -186,10 +187,20 @@ public class ResolverService {
 					return str;
 				}
 			}
-
+			//Jalali number
+			if(dataType.equalsIgnoreCase("numberJ")) {
+				if(data instanceof Long) {
+					Long retLong= (Long) data;
+					Locale locale = LocaleContextHolder.getLocale();
+					String str = String.format(locale,"%,d", retLong);
+					str=boilerServ.numberToJalali(str);
+					return str;
+				}
+			}
 
 			if(dataType.equalsIgnoreCase("date") || dataType.equalsIgnoreCase("registered") || dataType.equalsIgnoreCase("expired")
-					||  dataType.equalsIgnoreCase("from") ||  dataType.equalsIgnoreCase("to") || dataType.equalsIgnoreCase("today")) {
+					||  dataType.equalsIgnoreCase("from") ||  dataType.equalsIgnoreCase("to") || dataType.equalsIgnoreCase("today")
+					|| dataType.equalsIgnoreCase("todayJ")|| dataType.equalsIgnoreCase("todayJ1")) {
 				if(data instanceof LocalDate) {
 					LocalDate ld = (LocalDate) data;
 					return TableCell.localDateToString(ld);
@@ -201,7 +212,14 @@ public class ResolverService {
 					|| dataType.equalsIgnoreCase("registeredBS") || dataType.equalsIgnoreCase("expiredBS")
 					|| dataType.equalsIgnoreCase("registeredBS1") || dataType.equalsIgnoreCase("expiredBS1")
 					|| dataType.equalsIgnoreCase("fromBS") || dataType.equalsIgnoreCase("toBS")
-					|| dataType.equalsIgnoreCase("fromBS1") || dataType.equalsIgnoreCase("toBS1")) {
+					|| dataType.equalsIgnoreCase("fromBS1") || dataType.equalsIgnoreCase("toBS1")
+					|| dataType.equalsIgnoreCase("dateJ")|| dataType.equalsIgnoreCase("dateJ1")
+					|| dataType.equalsIgnoreCase("fromJ")||dataType.equalsIgnoreCase("fromJ1")
+					|| dataType.equalsIgnoreCase("toJ")||dataType.equalsIgnoreCase("toJ1")
+					|| dataType.equalsIgnoreCase("todayJ")|| dataType.equalsIgnoreCase("todayJ1")
+					|| dataType.equalsIgnoreCase("registeredJ") || dataType.equalsIgnoreCase("expiredJ")
+					|| dataType.equalsIgnoreCase("registeredJ1") || dataType.equalsIgnoreCase("expiredJ1")
+					) {
 				if(data instanceof String) {
 					return data;
 				}
@@ -239,7 +257,28 @@ public class ResolverService {
 					return str;
 				}
 			}
-
+			// full Gregorian years from date to the current date, but Jalali numbers
+			if(dataType.equalsIgnoreCase("yearsJ")) {
+				if(data instanceof LocalDate) {
+					LocalDate ld = (LocalDate) data;
+					int years = fullYears(ld);
+					Locale locale = LocaleContextHolder.getLocale();
+					String str = String.format(locale,"%,d", new Long(years));
+					str=boilerServ.numberToJalali(str);
+			        return str;
+				}
+			}
+			// full Jalali years from date to the current date
+			if(dataType.equalsIgnoreCase("yearsJ1")) {
+					if(data instanceof LocalDate) {
+						LocalDate ld = (LocalDate) data;
+						int years = boilerServ.fullYearsJalali(ld);
+						Locale locale = LocaleContextHolder.getLocale();
+						String str = String.format(locale,"%,d", new Long(years));
+						str=boilerServ.numberToJalali(str);
+				        return str;
+				}
+			}
 			if(data instanceof YesNoNA) {
 				YesNoNA v = (YesNoNA)data;
 				ret = messages.get(v.getKey());
@@ -414,9 +453,13 @@ public class ResolverService {
 			value.put("date", valLd);
 			value.put("dateBS", boilerServ.localDateToNepali(valLd,false));
 			value.put("dateBS1", boilerServ.localDateToNepali(valLd,true));
+			value.put("dateJ", boilerServ.localDateToJalali(valLd,false));
+			value.put("dateJ1", boilerServ.localDateToJalali(valLd,true));
 			value.put("years", valLd);
 			value.put("yearsBS", valLd);
 			value.put("yearsBS1", valLd);
+			value.put("yearsJ", valLd);
+			value.put("yearsJ1", valLd);
 			// check nepali
 			String nepali=(String) value.get("dateBS");
 			if(nepali==null || nepali.isEmpty()) {
@@ -463,6 +506,11 @@ public class ResolverService {
 			value.put("expiredBS",boilerServ.localDateToNepali(valReg.getExpiry_date().getValue(),false));
 			value.put("registeredBS1",boilerServ.localDateToNepali(valReg.getRegistration_date().getValue(),true));
 			value.put("expiredBS1",boilerServ.localDateToNepali(valReg.getExpiry_date().getValue(),true));
+			
+			value.put("registeredJ",boilerServ.localDateToJalali(valReg.getRegistration_date().getValue(),false));
+			value.put("expiredJ",boilerServ.localDateToJalali(valReg.getExpiry_date().getValue(),false));
+			value.put("registeredJ1",boilerServ.localDateToJalali(valReg.getRegistration_date().getValue(),true));
+			value.put("expiredJ1",boilerServ.localDateToJalali(valReg.getExpiry_date().getValue(),true));
 			// check nepali
 			String nepali=(String) value.get("registeredBS");
 			if(nepali==null || nepali.isEmpty()) {
@@ -566,10 +614,12 @@ public class ResolverService {
 					Long num = boilerServ.longParse(valStr);
 					value.put("number", num);
 					value.put("numberBS", num);
+					value.put("numberJ", num);
 					return value;
 				}else if(valStr.length() == 0) {
 					value.put("number", valStr);
 					value.put("numberBS",valStr);
+					value.put("numberJ",valStr);
 					value = renderServ.error(varName, "readVariable. Value is empty for "+varName, value);
 					return value;
 				}
@@ -583,9 +633,13 @@ public class ResolverService {
 					value.put("date", dt);
 					value.put("dateBS", boilerServ.localDateToNepali(dt,false));
 					value.put("dateBS1", boilerServ.localDateToNepali(dt,true));
+					value.put("dateJ", boilerServ.localDateToJalali(dt,false));
+					value.put("dateJ1", boilerServ.localDateToJalali(dt,true));
 					value.put("years", dt);
 					value.put("yearsBS", dt);
 					value.put("yearsBS1", dt);
+					value.put("yearsJ", dt);
+					value.put("yearsJ1", dt);
 					// check nepali
 					String nepali=(String) value.get("dateBS");
 					if(nepali==null || nepali.isEmpty()) {
@@ -596,9 +650,13 @@ public class ResolverService {
 					value.put("date", valStr);
 					value.put("dateBS", valStr);
 					value.put("dateBS1", valStr);
+					value.put("dateJ", valStr);
+					value.put("dateJ1", valStr);
 					value.put("years",valStr);
 					value.put("yearsBS", valStr);
 					value.put("yearsBS1", valStr);
+					value.put("yearsJ", valStr);
+					value.put("yearsJ1", valStr);
 					value = renderServ.error(varName, "readVariable. Value is empty for "+varName, value);
 					return value;
 				}
@@ -703,7 +761,7 @@ public class ResolverService {
 	 * @param dt
 	 * @return
 	 */
-	private int fullYears(LocalDate dt) {
+	public static int fullYears(LocalDate dt) {
 		Period period = Period.between(dt, LocalDate.now().plusDays(1));
 		return period.getYears();
 	}
@@ -1039,9 +1097,13 @@ public class ResolverService {
 			value.put("registered",regDate);				//to locale string!!!!
 			value.put("registeredBS", boilerServ.localDateToNepali(regDate, false));
 			value.put("registeredBS1",boilerServ.localDateToNepali(regDate, true));
+			value.put("registeredJ", boilerServ.localDateToJalali(regDate, false));
+			value.put("registeredJ1",boilerServ.localDateToJalali(regDate, true));
 			value.put("expired", expDate);
 			value.put("expiredBS", boilerServ.localDateToNepali(expDate, false));
 			value.put("expiredBS1",boilerServ.localDateToNepali(expDate, true));
+			value.put("expiredJ", boilerServ.localDateToJalali(expDate, false));
+			value.put("expiredJ1",boilerServ.localDateToJalali(expDate, true));
 			// check nepali
 			String nepali=(String) value.get("registeredBS");
 			String nepali1=(String) value.get("expiredBS");
