@@ -892,7 +892,7 @@ public class AssistanceService {
 	 */
 	public boolean isValidURL(String url) {
 		String URL_REGEX =
-				"[A-Za-z0-9_]+((\\.)?[A-Za-z0-9_]+)*";
+				"^[A-Za-z0-9_]++((\\.)?[A-Za-z0-9_]++)*$";
 		Pattern URL_PATTERN = Pattern.compile(URL_REGEX);
 		String value=url;
 		if(url.startsWith("http")) {
@@ -909,12 +909,12 @@ public class AssistanceService {
 				return false;
 			}
 		}else {
-			if(!ValidationService.REGEX.matcher(value).find()) {
+			//if(!ValidationService.REGEX.matcher(value).find()) {
 				Matcher urlMatcher = URL_PATTERN.matcher(value);
-				return urlMatcher.matches();
-			}else {
-				return false;
-			}
+				return urlMatcher.find();
+			//}else {
+			//	return false;
+			//}
 		}
 	}
 	/**
