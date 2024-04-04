@@ -488,7 +488,7 @@ public class ImportWorkflowMainService {
 					if(resDTO.isValid()) {
 						// записи конфигурации ресурса
 						Concept dataConf = closureServ.loadRoot(SystemService.DATA_COLLECTIONS_ROOT);
-						Concept rootConfig = closureServ.findConceptInBranchByIdentifier(dataConf, root.getLabel());
+						Concept rootConfig = closureServ.findActivConceptInBranchByIdentifier(dataConf, root.getLabel());
 						if(rootConfig == null) {
 							data = buildErrorString(root.getLabel(), varResourceConfig, messages.get("notfound"), data);
 							return data;
@@ -631,7 +631,7 @@ public class ImportWorkflowMainService {
 								String urltr = tr.getRow().get(0).getValue();
 
 								// записи конфигурации
-								rootConfig = closureServ.findConceptInBranchByIdentifier(dataConf, urltr);
+								rootConfig = closureServ.findActivConceptInBranchByIdentifier(dataConf, urltr);
 								if(rootConfig == null) {
 									data = buildErrorString(urltr, varDataConfig, messages.get("notfound"), data);
 									return data;

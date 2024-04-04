@@ -577,7 +577,7 @@ public class ImportWorkflowService {
 			Concept dataConf = closureServ.loadRoot(SystemService.DATA_COLLECTIONS_ROOT);
 
 			for(String url:configs.keySet()) {
-				Concept root = closureServ.findConceptInBranchByIdentifier(dataConf, url);
+				Concept root = closureServ.findActivConceptInBranchByIdentifier(dataConf, url);
 
 				if(root != null && root.getID() > 0 && assistServ.isDataConfigurationUrl(url)) {
 					// такой урл уже есть
@@ -784,7 +784,7 @@ public class ImportWorkflowService {
 				if(dictFinal != null) {
 					if(finalConcept == null) {// если из главного пришло не понятное значение, для всех активити ставим НО, для последнего Ацепт
 						Concept finDict = closureServ.loadConceptByIdentifier(SystemService.DICTIONARY_SYSTEM_FINALIZATION);
-						finalConcept = closureServ.findConceptInBranchByIdentifier(finDict, SystemService.FINAL_ACCEPT);
+						finalConcept = closureServ.findActivConceptInBranchByIdentifier(finDict, SystemService.FINAL_ACCEPT);
 					}
 
 					if(finalConcept != null)
