@@ -169,6 +169,7 @@ error_bmpFile
 role
 finalize
 newapplications
+prod_app_type
 amdmt_type
 inspections
 suspend_info
@@ -221,6 +222,10 @@ screenposition
 auxiliarydata
 success
 warningRemove
+search
+global_add
+preview
+explore
 search
 global_add
 deregistration
@@ -365,6 +370,9 @@ global_back
 manageapplications
 global_cancel
 search
+/*application_info
+scheduled
+global_archive
 next
 application_info
 global_save
@@ -414,6 +422,17 @@ logo_url
 download
 more
 welcomeaboard
+directories
+search
+global_add
+global_cancel
+variables
+preview
+explore
+restricted_edit
+global_help
+global_import_short
+import_electronic_form
 directories
 search
 global_add

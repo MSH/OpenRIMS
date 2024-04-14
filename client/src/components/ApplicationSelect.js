@@ -1,5 +1,5 @@
 import React , {Component} from 'react'
-import {Row, Col, Container} from 'reactstrap'
+import {Row, Col, Container, Collapse} from 'reactstrap'
 import Fetchers from './utils/Fetchers'
 import Locales from './utils/Locales'
 import TableSearch from './utils/TableSearch'
@@ -23,13 +23,24 @@ class ApplicationSelect extends Component{
             labels:{
                 manageapplications:'',
                 global_cancel:'',
-                search:''
+                search:'',
+                /* application_info:'', */
+                scheduled:'',
+                global_archive:'',
             },
             data:{},    //DictionaryDTO
+            showApp:false,
+            showShc:false,
+            showArch:false,
+            dictId:0,
+            countApp:'',
+            countArch:'',
+            countSch:'',
         }
         this.eventProcessor=this.eventProcessor.bind(this)
         this.loadData=this.loadData.bind(this)
-        this.inspectionApplications=this.inspectionApplications.bind(this)
+        this.inspectionApplications=this.applications.bind(this)
+        this.inspectionArchive=this.inspectionArchive.bind(this)
         this.selectRow=this.selectRow.bind(this)
         this.markSelected=this.markSelected.bind(this)
     }
@@ -38,17 +49,19 @@ class ApplicationSelect extends Component{
      * listen for onSelectionChange broadcast from the dictionary
      */
       eventProcessor(event){
-        /*let data=event.data
-        if(data.subject=="onSelectionChange" && data.from==this.state.identifier+"_dict"){
-            this.selectRow(data.data)
-            this.state.data=data.data
+        let data=event.data
+        if(data.subject=="countApp"){
+            this.state.countApp=data.data.count1
             this.setState(this.state)
         }
-        if(data.subject=="onDictionaryReloaded" && data.from==this.state.identifier+"_dict"){
-            this.state.data=data.data
-            this.markSelected()
+        if(data.subject=="countArch"){
+            this.state.countArch=data.data.count2
             this.setState(this.state)
-        }*/
+        }
+        if(data.subject=="countSch"){
+            this.state.countSch=data.data.count3
+            this.setState(this.state)
+        }
     }
     componentDidMount(){
         window.addEventListener("message",this.eventProcessor)
@@ -62,9 +75,15 @@ class ApplicationSelect extends Component{
                 row.selected = false
                 if(index == selRowNo){
                     row.selected = true
+                    this.state.dictId=row.dbID
                     Fetchers.writeLocaly("application_selected_row",row.dbID)
                 }
             })
+        }
+        if(this.state.dictId>0){
+            this.state.showApp=true
+            this.state.showShc=false
+            this.state.showArch=false
         }
     }
     markSelected(){
@@ -74,6 +93,7 @@ class ApplicationSelect extends Component{
                 row.selected=false
                 if(row.dbID==selected_row){
                     row.selected=true
+                    this.state.dictId=row.dbID
                 }
             })
         }
@@ -84,9 +104,11 @@ class ApplicationSelect extends Component{
         Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName() +"/applications", this.state.data, (query,result)=>{
             this.state.data=result
             this.markSelected()
-            /* let selected_row=Fetchers.readLocaly("application_selected_row",-1);
-            if(this.state.data.table.rows.length > selected_row && selected_row>-1)
-                this.state.data.table.rows[selected_row].selected=true */
+            if(this.state.dictId>0){
+                this.state.showApp=true
+                this.state.showShc=false
+                this.state.showArch=false
+            }
             this.setState(this.state)
         })
     }
@@ -98,31 +120,60 @@ class ApplicationSelect extends Component{
     /**
      * Show / hide the list of applications in accrdance with the dictionary choice
      */
-    inspectionApplications(){
-        let dictId=0
+    applications(){
         if(this.state.data.table != undefined && Fetchers.isGoodArray(this.state.data.table.rows)){
             this.state.data.table.rows.forEach((row,index) => {
                 if(row.selected){
-                    dictId=row.dbID
-                   // Fetchers.writeLocaly("application_selected_row",index);
+                    this.state.dictId=row.dbID
                 }
             });
         }
-        if(dictId>0){
-            return <ApplicationList dictItemId={dictId} recipient={this.state.identifier} /> 
+        if(this.state.dictId>0){
+            return <ApplicationList dictItemId={this.state.dictId} recipient={this.state.identifier} /> 
         }else{
             return []
         }
     }
+   /**
+     * Show / hide the list of applications Archive in accrdance with the dictionary choice
+     */
+   inspectionArchive(){
+    // let dictId=0
+    if(this.state.data.archive != undefined && Fetchers.isGoodArray(this.state.data.archive.rows)){
+        this.state.data.archive.rows.forEach((row,index) => {
+            if(row.selected){
+                this.state.dictId=row.dbID
+               // Fetchers.writeLocaly("application_selected_row",index);
+            }
+        });
+    }
+    if(this.state.dictId>0){
+        return <ApplicationList dictItemId={this.state.dictId} recipient={this.state.identifier} archive /> 
+    }else{
+        return []
+    }
+}
 
     render(){
         if(this.state.data.table == undefined){
             return []
         }
+        let awe="fas fa-caret-right"
+        if(this.state.showApp){
+            awe="fas fa-caret-down"
+        }
+        let awe1="fas fa-caret-right"
+        if(this.state.showShc){
+            awe1="fas fa-caret-down"
+        }
+        let awe2="fas fa-caret-right"
+        if(this.state.showArch){
+            awe2="fas fa-caret-down"
+        }
         return(
             <Container fluid>
                 <Row>
-                    <Col>
+                    <Col xs='12' sm='12' lg='6' xl='6'>
                         <TableSearch 
                             label={this.state.labels.search}
                             tableData={this.state.data.table} 
@@ -142,17 +193,86 @@ class ApplicationSelect extends Component{
                                 this.setState(this.state)
                             }}
                         />
+                    </Col>
+                    <Col hidden={this.state.dictId==0}>
+                        {/* Applications live */}
                         <Row>
-                            <Col>
-                                <HostSchedule
-                                    dictURL={'dictionary.host.applications'}
-                                    recipient={this.state.identifier}
-                                />
+                            <Col className="btn btn-link p-0 border-0 d-flex justify-content-start"
+                                onClick={()=>{
+                                    this.state.showApp=!this.state.showApp
+                                    if(this.state.showApp){
+                                        this.state.showShc=false
+                                        this.state.showArch=false
+                                    }
+                                    this.setState(this.state)
+                                }}>
+                                <Row>
+                                    <Col>
+                                        <h5 className="ml-3"><i className={awe}></i>{this.state.labels.manageapplications +' '+this.state.countApp}</h5>
+                                    </Col>
+                                </Row>
                             </Col>
                         </Row>
-                    </Col>
-                    <Col>
-                        {this.inspectionApplications()}
+                        <Collapse isOpen={this.state.showApp}>
+                            <Row>
+                                <Col>
+                                    {this.applications()}
+                                </Col>
+                            </Row>
+                        </Collapse>
+                        {/* Archive */}
+                        <Row>
+                            <Col className="btn btn-link p-0 border-0 d-flex justify-content-start"
+                                onClick={()=>{
+                                    this.state.showArch=!this.state.showArch
+                                    if(this.state.showArch){
+                                        this.state.showApp=false
+                                        this.state.showShc=false
+                                    }
+                                    this.setState(this.state)
+                                }}>
+                                <Row>
+                                    <Col>
+                                        <h5 className="ml-3"><i className={awe2}></i>{this.state.labels.global_archive+' '+this.state.countArch}</h5>
+                                    </Col>
+                                </Row>
+                            </Col>
+                        </Row>
+                        <Collapse isOpen={this.state.showArch}>
+                            <Row>
+                                <Col>
+                                {this.inspectionArchive()}
+                                </Col>
+                            </Row>
+                        </Collapse>
+                        {/* Schedule */}
+                        <Row>
+                            <Col className="btn btn-link p-0 border-0 d-flex justify-content-start"
+                                onClick={()=>{
+                                    this.state.showShc=!this.state.showShc
+                                    if(this.state.showShc){
+                                        this.state.showApp=false
+                                        this.state.showArch=false
+                                    }
+                                    this.setState(this.state)
+                                }}>
+                                <Row>
+                                    <Col>
+                                    <h5 className="ml-3"><i className={awe1}></i>{this.state.labels.scheduled+' '+this.state.countSch}</h5>
+                                    </Col>
+                                </Row>
+                            </Col>
+                        </Row>
+                        <Collapse isOpen={this.state.showShc}>
+                            <Row>
+                                <Col>
+                                    <HostSchedule
+                                        dictURL={'dictionary.host.applications'}
+                                        recipient={this.state.identifier}
+                                    />
+                                </Col>
+                            </Row>
+                        </Collapse>
                     </Col>
                 </Row>
             </Container>

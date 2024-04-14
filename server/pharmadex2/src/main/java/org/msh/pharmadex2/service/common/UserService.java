@@ -307,7 +307,7 @@ public class UserService implements UserDetailsService {
 	@Transactional
 	public UserDetailsDTO loadUserByEmail(String email, boolean googleLogin) {
 		UserDetailsDTO userDTO = null;
-		if(email.equals("admin")) {// supervisor:password from DB
+		if(email.equals("admin") || email.equals("guest")) {// supervisor:password from DB
 			//User user = loadUserByLogin(email);
 			Optional<User> usero = userRepo.findByUsername(email);
 			if (usero.isPresent()) {

@@ -100,6 +100,7 @@ public class ResolverService {
 				logger.trace("resolve key "+key);
 				String[] expr = key.split("@");
 				if(expr.length==2) {
+					hasTable=key.toUpperCase().contains("@FORM") || key.toUpperCase().contains("@CHANGES");
 					Map<String, Object> value = resolve(expr[0],fres, assemblies, hasTable, user);	//first change here in READVARIABLE
 					model.put(key, valueToString(value, expr[1]));				//second there
 					errors = resolveError(value, errors);
@@ -791,9 +792,10 @@ public class ResolverService {
 				Integer index=Integer.valueOf(urls.get(1));
 				if(pers.size()>index) {
 					List<String> path=urls.subList(1, urls.size());
-					value = plainVariable(value,path,pers.get(index),assemblies, false);
 					if(hasTable) {
 						value=renderObject(pers.get(index), path, urls.get(urls.size()-1), assemblies, value);
+					}else {
+						value = plainVariable(value,path,pers.get(index),assemblies, false);
 					}
 				}else {
 					value.put(urls.get(urls.size()-1), "");

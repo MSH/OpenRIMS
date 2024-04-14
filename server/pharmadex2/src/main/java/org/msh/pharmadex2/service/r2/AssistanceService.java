@@ -761,7 +761,7 @@ public class AssistanceService {
 		data.getUrl().clearValidation();
 		String url=data.getUrl().getValue();
 		if(!url.isEmpty()) {
-			if(isValidURL(url) && (!isForbiddenUrl(url) || isDictionaryAssistant(data.getAssistant()))) {
+			if(isValidURL(url) && (!isForbiddenUrl(url) || data.getAssistant()==AssistantEnum.URL_ANY || isDictionaryAssistant(data.getAssistant()))) {
 				switch(data.getAssistant()) {
 				case URL_DICTIONARY_NEW:
 					if(!isNewURL(url)) {

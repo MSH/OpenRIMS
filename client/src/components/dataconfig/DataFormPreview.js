@@ -79,12 +79,8 @@ class DataFormPreview extends Component{
                                 label={this.state.labels.cancel}
                                 color='info'
                                 onClick={()=>{
-                                    let data={
-                                        nodeId:this.props.nodeId
-                                    }
-                                     let param=JSON.stringify(data)
-
-                                    Navigator.navigate("administrate", "dataconfigurator",param)
+                                    window.opener.focus()
+                                    window.close()
                                 }}
                             />
                     </Col>

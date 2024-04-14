@@ -128,9 +128,10 @@ public class ApplicationService {
 			String appUrl = literalServ.readValue("applicationurl", dictItem);
 			String dataUrl = literalServ.readValue("dataurl", dictItem);
 			if(data.isAmendment()) {
+				//data=amendmentServ.createAmendmentsTable(dataUrl, user.getEmail(), data, searchStr);
 				data.setTable(amendmentServ.createAmendmentsTable(dataUrl, user.getEmail(), data.getTable(), searchStr));
 			}else {
-				data.setTable(createApplicationsTable(appUrl, dataUrl, user.getEmail(), data.getTable(), searchStr));
+				data =createApplicationsTable(appUrl, dataUrl, user.getEmail(), data, searchStr);
 			}
 		}
 		return data;
@@ -146,8 +147,45 @@ public class ApplicationService {
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
-	private TableQtb createApplicationsTable(String appUrl, String dataUrl, String email, TableQtb table, String searchStr)
+	private ApplicationsDTO createApplicationsTable(String appUrl, String dataUrl, String email, ApplicationsDTO data, String searchStr)
 			throws ObjectNotFoundException {
+		TableQtb table = data.getTable();
+		if(data.isArch()) {
+			table=data.getArchive();
+		}
+		table=headerTableApp(searchStr, table);
+		jdbcRepo.applications_applicant(dataUrl,email);
+		String select = "select * from applications_applicant";
+		//String where=  "category in ('NOTSUBMITTED', 'REVOKED', 'ONAPPROVAL', 'ACTIVE', 'LOST')";
+		String where = "category not in ('INACTIVE')";
+		if(data.isArch()) {
+			where=  "category in ('INACTIVE')";
+		}
+		List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", where, table.getHeaders());
+		data.setCount(rows.size());
+		//divided into archive and living
+		TableQtb.tablePage(rows, table);
+		table = boilerServ.translateRows(table);
+		table.setSelectable(false);
+		if(data.isArch()) {
+				data.setArchive(table);
+		}else {
+				//paint color
+				for(TableRow row : table.getRows()) {
+					for(TableCell cell :row.getRow()) {
+						if(cell.getKey().equalsIgnoreCase("term")) {
+							if(cell.getIntValue()<0) {
+								cell.setStyleClass("text-danger");
+							}
+						}
+					}
+				}
+				data.setTable(table);
+		}
+		return data;
+	}
+
+	private TableQtb headerTableApp(String searchStr, TableQtb table) {
 		if (table.getHeaders().getHeaders().size() == 0) {
 			table.setHeaders(createApplicationsTableHeaders(table.getHeaders()));
 			if(searchStr != null && !searchStr.equals("null") && searchStr.length() > 2) {
@@ -164,23 +202,6 @@ public class ApplicationService {
 					if(th.getConditionS().length() > 0) {
 						th.setConditionS("");
 						th.setFilterActive(false);
-					}
-				}
-			}
-		}
-
-		jdbcRepo.applications_applicant(dataUrl,email);
-		String select = "select * from applications_applicant";
-		List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", "", table.getHeaders());
-		TableQtb.tablePage(rows, table);
-		table = boilerServ.translateRows(table);
-		table.setSelectable(false);
-		//paint color
-		for(TableRow row : table.getRows()) {
-			for(TableCell cell :row.getRow()) {
-				if(cell.getKey().equalsIgnoreCase("term")) {
-					if(cell.getIntValue()<0) {
-						cell.setStyleClass("text-danger");
 					}
 				}
 			}

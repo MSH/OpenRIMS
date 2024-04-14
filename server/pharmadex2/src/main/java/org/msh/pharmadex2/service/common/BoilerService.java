@@ -67,6 +67,7 @@ import org.msh.pdex2.repository.r2.ThingRepo;
 import org.msh.pdex2.repository.r2.ThingSchedulerRepo;
 import org.msh.pdex2.repository.r2.ThingThingRepo;
 import org.msh.pdex2.services.r2.ClosureService;
+import org.msh.pharmadex2.dto.DictNodeDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.FileResourceDTO;
 import org.msh.pharmadex2.dto.ThingDTO;

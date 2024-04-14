@@ -50,6 +50,7 @@ class HostSchedule extends Component{
     load(){
         Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/host/schedule", this.state.data, (query,result)=>{
             this.state.data=result
+            Navigator.message(this.state.identifier,this.props.identifier,"countSch",{count3:this.state.data.count})
             this.setState(this.state)
         })
     }
@@ -66,7 +67,7 @@ class HostSchedule extends Component{
             <Container fluid>
                 <Row>
                     <Col xs='12' sm='12' lg='9' xl='9'>
-                        <h5>{this.state.data.hostDictionary+' '+this.state.labels.scheduled}</h5>
+                        {/* <h5>{this.state.data.hostDictionary+' '+ this.state.labels.scheduled}</h5>  */}
                     </Col>
                     <Col  xs='12' sm='12' lg='3' xl='3'>
                         <SearchControl label={this.state.labels.search} table={this.state.data.table} loader={this.load} />

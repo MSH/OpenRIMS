@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import javax.swing.plaf.TableHeaderUI;
+
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -33,6 +35,7 @@ import org.msh.pharmadex2.dto.DataCollectionDTO;
 import org.msh.pharmadex2.dto.DataConfigDTO;
 import org.msh.pharmadex2.dto.DataPreviewDTO;
 import org.msh.pharmadex2.dto.DataVariableDTO;
+import org.msh.pharmadex2.dto.DictNodeDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.MessageDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
@@ -344,6 +347,9 @@ public class SupervisorService {
 	public DataConfigDTO dataCollectionVariablesLoad(DataConfigDTO data, String searchStr) throws ObjectNotFoundException {
 		data.setRestricted(true);
 		if (data.getNodeId() > 0) {
+			//URL
+			Concept node = closureServ.loadConceptById(data.getNodeId());
+			data.setUrl(node.getIdentifier());
 			// variables
 			TableQtb table = data.getVarTable();
 			if (table.getHeaders().getHeaders().size() == 0) {
@@ -1163,6 +1169,24 @@ public class SupervisorService {
 			throw new ObjectNotFoundException("messagesLostBundles. Headers not defined",logger);
 		}
 		return ret;
+	}
+	/**
+	 * Get data configuratuion node id by data configuration url
+	 * @param data
+	 * @return nodeId in the data.nodeID or -1 in the nodeId if configuration is not found
+	 */
+	@Transactional
+	public DictNodeDTO dataConfigNodeIdByUrl(DictNodeDTO data) {
+		String select = "SELECT ID \r\n" + 
+				"FROM pdx2.dataconfig_all dc";
+		String where="dc.Identifier='"+data.getUrl()+"'";
+		List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", where, new Headers());
+		if(rows.size()==1) {
+			data.setNodeId(rows.get(0).getDbID());
+		}else {
+			data.setNodeId(-1l);
+		}
+		return data;
 	}
 
 }

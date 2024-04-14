@@ -124,6 +124,7 @@ class DataVarForm extends Component{
                                             }else{
                                                 Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:result.identifier, color:'warning'})
                                             }
+                                            Navigator.message(this.state.identifier, this.props.recipient, "onVariableSave",{})
                                         }else{
                                             if(result.strict){
                                                 this.state.color='danger'
@@ -131,6 +132,7 @@ class DataVarForm extends Component{
                                             }else{
                                                 this.state.color='warning'
                                                 Navigator.message(this.state.identifier, this.props.recipient,"formCancel",{})
+                                                Navigator.message(this.state.identifier, this.props.recipient, "onVariableSave",{})
                                             }
                                             Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:result.identifier, color:this.state.color})
                                         }
@@ -148,6 +150,7 @@ class DataVarForm extends Component{
                                         Fetchers.postJSON("/api/admin/data/configuration/variable/suspend", this.state.data, (query,result)=>{
                                             if(result.valid){
                                                 Navigator.message(this.state.identifier, this.props.recipient,"formCancel",{})
+                                                Navigator.message(this.state.identifier, this.props.recipient,"onVariableSave",{})
                                             }else{
                                                 this.state.data=result
                                                 this.setState(this.state)

@@ -14,6 +14,7 @@ public class HostScheduleDTO extends AllowValidation {
 	private String dictURL="";							// the dictionary with host processes
 	private String hostDictionary="";				// name of the dictionary
 	private TableQtb table= new TableQtb();
+	private int count=0;
 	public String getDictURL() {
 		return dictURL;
 	}
@@ -32,6 +33,12 @@ public class HostScheduleDTO extends AllowValidation {
 	}
 	public void setTable(TableQtb table) {
 		this.table = table;
+	}
+	public int getCount() {
+		return count;
+	}
+	public void setCount(int count) {
+		this.count = count;
 	}
 	
 }

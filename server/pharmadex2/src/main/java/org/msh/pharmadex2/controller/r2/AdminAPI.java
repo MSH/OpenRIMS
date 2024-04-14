@@ -1062,7 +1062,7 @@ public class AdminAPI {
 		try {
 			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 			data.clearErrors();
-			
+
 			if(!AsyncService.hasDataImportThread()) {
 				asyncService.importLegacyDataRun(data, user);
 			}else {
@@ -1205,7 +1205,7 @@ public class AdminAPI {
 		try {
 			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 			data.clearErrors();
-			
+
 			if(!AsyncService.hasDataImportThread()) {
 				asyncService.importAtccodesRun(data, user);
 			}else {
@@ -1214,7 +1214,7 @@ public class AdminAPI {
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
-		
+
 		return data;
 	}
 
@@ -1228,7 +1228,7 @@ public class AdminAPI {
 		}
 		return data;
 	}
-	
+
 	@PostMapping("/api/admin/workflow/export/excel")
 	public ResponseEntity<Resource> workflowExportExcel(Authentication auth,@RequestBody WorkflowDTO data)
 			throws DataNotFoundException {
@@ -1329,7 +1329,7 @@ public class AdminAPI {
 			throw new DataNotFoundException(e);
 		}
 	}
-	
+
 	@RequestMapping(value="/api/admin/help/import/atc", method = RequestMethod.GET)
 	public ResponseEntity<Resource> helpImportATC() throws DataNotFoundException, IOException {
 		ResponseEntity<Resource> res;
@@ -1340,7 +1340,7 @@ public class AdminAPI {
 			throw new DataNotFoundException(e);
 		}
 	}
-	
+
 
 	/**
 	 * Import a national language help
@@ -1629,7 +1629,7 @@ public class AdminAPI {
 
 		return data;
 	}
-	
+
 	/*@PostMapping("/api/admin/importwf/reload")
 	public ImportWorkflowDTO importWFreload(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException{
 		try {
@@ -1641,14 +1641,14 @@ public class AdminAPI {
 		return data;
 	}*/
 
-	
+
 
 	@PostMapping("/api/admin/importwf/runimport")
 	public ImportWorkflowDTO importWFrun(Authentication auth, @RequestBody ImportWorkflowDTO data) throws DataNotFoundException{
 		try {
 			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 			data.clearErrors();
-			
+
 			if(!AsyncService.hasDataImportThread()) {
 				asyncService.importWFRun(data, user);
 			}else {
@@ -1659,7 +1659,7 @@ public class AdminAPI {
 		}
 		return data;
 	}
-	
+
 	@PostMapping("/api/admin/importwf/progress")
 	public AsyncInformDTO importWFprogress(@RequestBody AsyncInformDTO data) throws DataNotFoundException {
 		try {
@@ -2107,7 +2107,7 @@ public class AdminAPI {
 			throw new DataNotFoundException(e);
 		}
 	}
-	
+
 	/**
 	 * Show selected rows only in table vailableActivities 
 	 * @param data
@@ -2121,6 +2121,18 @@ public class AdminAPI {
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
+		return data;
+	}
+
+	/**
+	 * Show selected rows only in table vailableActivities 
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException 
+	 */
+	@PostMapping("/api/admin/data/config/nodeid")
+	public DictNodeDTO dataConfigNodeIdByUrl(@RequestBody DictNodeDTO data) throws DataNotFoundException{
+		data=superVisServ.dataConfigNodeIdByUrl(data);
 		return data;
 	}
 }

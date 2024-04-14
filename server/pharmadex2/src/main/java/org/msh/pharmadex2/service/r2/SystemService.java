@@ -314,8 +314,10 @@ public class SystemService {
 	public DictionaryDTO processesEnabled(String url, String email, DictionaryDTO data) throws ObjectNotFoundException {
 		Concept root = closureServ.loadRoot(url);
 		String prefLabel = literalServ.readPrefLabel(root);
-		if (prefLabel.length() == 0) {
-			if(url.equals(DICTIONARY_GUEST_AMENDMENTS)) {
+		//if (prefLabel.length() == 0) {
+			if(url.equals(DICTIONARY_GUEST_APPLICATIONS)) {
+				prefLabel = messages.get("prod_app_type");
+			}else if(url.equals(DICTIONARY_GUEST_AMENDMENTS)) {
 				prefLabel = messages.get("amdmt_type");
 			}else if(url.equals(DICTIONARY_GUEST_DEREGISTRATION)){
 				prefLabel = messages.get("deregistration");
@@ -324,7 +326,7 @@ public class SystemService {
 			}else {
 				prefLabel = messages.get("newapplications");
 			}
-		}
+		//}
 		data.setHome(prefLabel);
 		
 		TableQtb table = data.getTable();

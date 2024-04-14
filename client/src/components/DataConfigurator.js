@@ -1,5 +1,5 @@
 import React , {Component} from 'react'
-import {Container, Row, Col, FormText, Card,CardBody,CardHeader} from 'reactstrap'
+import {Container, Row, Col, FormText} from 'reactstrap'
 import PropTypes from 'prop-types'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
@@ -9,9 +9,8 @@ import CollectorTable from './utils/CollectorTable'
 import Pharmadex from './Pharmadex'
 import ButtonUni from './form/ButtonUni'
 import DataCollForm from './dataconfig/DataCollForm'
-import DataVarForm from './dataconfig/DataVarForm'
-import Downloader from './utils/Downloader'
 import ImportDataConfiguration from './ImportDataConfiguration'
+import DataVarTable from './dataconfig/DataVarTable'
 
 /**
  * Configure workflow data
@@ -24,7 +23,6 @@ class DataConfigurator extends Component{
             identifier:Date.now().toString(),
             form:false,
             vars:this.props.vars,
-            varForm:false,
             data:{
                 nodeId:this.props.nodeId
             },                //DataConfigDTO
@@ -48,8 +46,6 @@ class DataConfigurator extends Component{
         this.left=this.left.bind(this)
         this.dataCollForm=this.dataCollForm.bind(this)
         this.right=this.right.bind(this)
-        this.dataVarsTable=this.dataVarsTable.bind(this)
-        this.loaderVar=this.loaderVar.bind(this)
     }
 
     /**
@@ -63,7 +59,7 @@ class DataConfigurator extends Component{
                     this.state.form=false
                     this.loader()
                 }
-                if(data.subject=="formCollCancel"){
+                if(data.subject=="formCollCancel" || data.subject=='formCollSave'){
                     this.state.form=false
                     this.state.data.nodeId=0
                     this.loader()
@@ -103,98 +99,6 @@ class DataConfigurator extends Component{
             }
             this.setState(this.state)
         })
-    }
-    /**
-     * Laod variables for known collection
-     */
-    loaderVar(){
-        Fetchers.postJSONNoSpinner("/api/admin/data/collection/variables/load", this.state.data, (query,result)=>{
-            this.state.data=result
-            this.setState(this.state)
-        })
-    }
-    /**
-     * Variables for a data definition
-     */
-    dataVarsTable(){
-        if(this.state.data.varTable == undefined || this.state.labels.locale==undefined){
-            return []
-        }
-        return(
-                <Container fluid>
-                    <Row>
-                        <Col xs='12' sm='12' lg='12' xl='6'>
-                            <SearchControlNew label={this.state.labels.search} table={this.state.data.varTable} loader={this.loader}/>
-                        </Col>
-                       
-                        <Col xs='12' sm='12' lg='12' xl='2'>
-                            <ButtonUni
-                                label={this.state.labels.global_add}
-                                onClick={()=>{
-                                    this.state.data.varNodeId=0
-                                    this.state.form=true
-                                    this.state.vars=true
-                                    this.setState(this.state)
-                                }}
-                                color="primary"
-                            />
-                        </Col>
-                        <Col xs='12' sm='12' lg='12' xl='2'>
-                            <ButtonUni
-                            label={this.state.labels.preview}
-                            onClick={()=>{
-                               let data={
-                                   nodeId:this.state.data.nodeId
-                               }
-                                let param=JSON.stringify(data)
-                                Fetchers.writeLocaly("dataconfig_search", this.state.data.table.generalSearch)
-                                Fetchers.writeLocaly("dataconfig_vars_search", this.state.data.varTable.generalSearch)
-                                Navigator.navigate("administrate", "dataformpreview",param) 
-                            }}
-                            color="success"
-                            />
-                        </Col>
-                        <Col xs='12' sm='12' lg='12' xl='2'>
-                            <ButtonUni
-                                label={this.state.labels.explore}
-                                onClick={()=>{
-                                    let dl = new Downloader()
-                                    dl.postDownload('/api/admin/data/collection/variables/export', this.state.data, "file.bin")
-                                }}
-                                color="secondary"
-                            />
-                        </Col>
-                       
-                    </Row>
-                    <Row>
-                        <Col>
-                            <CollectorTable
-                                tableData={this.state.data.varTable}
-                                loader={this.loaderVar}
-                                headBackground={Pharmadex.settings.tableHeaderBackground}
-                                styleCorrector={(header)=>{
-                                    if(["col","row", "ord", "ext"].includes(header)){
-                                        return {width:'8%'}
-                                    }
-                                    if(header=="clazz"){
-                                        return {width:'15%'}
-                                    }
-                                    if(header=="propertyName"){
-                                        return {width:'20%'}
-                                    }
-                                }}
-                                linkProcessor={(rowNo, col)=>{
-                                    this.state.data.varNodeId=this.state.data.varTable.rows[rowNo].dbID
-                                    this.state.form=true
-                                    this.state.vars=true
-                                    this.setState(this.state)
-                                }}
-                                
-                            />
-                        </Col>
-                    </Row>
-                </Container>
-        )
     }
 
     /**
@@ -281,7 +185,8 @@ class DataConfigurator extends Component{
                                     this.state.data.varTable.headers.headers.forEach((th) =>{
                                         th.generalCondition = ""
                                     })
-                                    this.loaderVar()
+                                    //this.loaderVar()
+                                    this.setState(this.state)
                                 }else{
                                     this.state.vars=false
                                     this.state.form=false
@@ -319,16 +224,12 @@ class DataConfigurator extends Component{
      * Right column
      */
     right(){
-        if(this.state.vars){
-            if(this.state.form){
-                return(
-                    <DataVarForm nodeId={this.state.data.nodeId} varNodeId={this.state.data.varNodeId} 
-                                        recipient={this.state.identifier} restricted={this.state.data.restricted}/>
-                )
-            }else{
-                return this.dataVarsTable()
-            }
+        if(this.state.data.nodeId==0){
+            return []
         }
+        return(
+            <DataVarTable nodeId={this.state.data.nodeId} recipient={this.state.identifier}/>
+        )
     }
 
     render(){
@@ -353,7 +254,6 @@ class DataConfigurator extends Component{
                 </Row>
                 <Row>
                     <Col xs='12' sm='12' lg='6'xl='6'>
-                        
                         {this.left()} 
                     </Col>
                     <Col xs='12' sm='12' lg='6'xl='6'>

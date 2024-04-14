@@ -52,9 +52,17 @@ class ApplicationList extends Component{
         }
         //let srch = Fetchers.readLocaly("applicationlist_search", "");
         //api += "/search=" + srch
-
+        this.state.data.arch=false
+        if(this.props.archive){
+            this.state.data.arch=true
+        }
         Fetchers.postJSON(api, this.state.data, (query,result)=>{
             this.state.data=result
+            if(this.props.archive){
+                Navigator.message(this.state.identifier,this.props.identifier,"countArch",{count2:this.state.data.count})
+            }else{
+                Navigator.message(this.state.identifier,this.props.identifier,"countApp",{count1:this.state.data.count})
+            }
             Fetchers.writeLocaly("applicationlist_search", "");
             this.setState(this.state)
         })
@@ -89,13 +97,17 @@ class ApplicationList extends Component{
         if(this.state.data.table==undefined){
             return []
         }
+        let showtable=this.state.data.table
+            if(this.props.archive){
+                showtable=this.state.data.archive
+            }
         return(
             <Container fluid className={Pharmadex.settings.activeBorder}>
-                <Row className="mt-1 mb-3">
+                {/* <Row className="mt-1 mb-3">
                     <Col>
                         <h6>{this.state.labels.manageapplications}</h6>
                     </Col>
-                </Row>
+                </Row> */}
                 <Row>
                     <Col xs='12' sm='12' lg='10' xl='10'>
                         <SearchControlNew label={this.state.labels.search} table={this.state.data.table} loader={this.loadTable} />
@@ -114,7 +126,7 @@ class ApplicationList extends Component{
                 <Row>
                     <Col>
                         <CollectorTable
-                            tableData={this.state.data.table}
+                            tableData={showtable}
                             loader={this.loadTable}
                             headBackground={Pharmadex.settings.tableHeaderBackground}
                             styleCorrector={(header)=>{
@@ -133,7 +145,7 @@ class ApplicationList extends Component{
                                     url:this.state.data.url,
                                     applDictNodeId:this.state.data.dictItemId,
                                     historyId:0,    //unknown yet, will be resolved by application_or_activity
-                                    dataId:this.state.data.table.rows[row].dbID,    //since 2023-03-17 application data node ID
+                                    dataId:showtable.rows[row].dbID,    //since 2023-03-17 application data node ID
                                 }
                                 //Fetchers.writeLocaly("applicationlist_search", this.state.data.table.generalSearch)
                                 Fetchers.postJSONNoSpinner("/api/guest/application/or/activity", data, (query,result)=>{
@@ -161,5 +173,6 @@ ApplicationList.propTypes={
     dictItemId:PropTypes.number.isRequired,         //id of dict item selected
     recipient:PropTypes.string.isRequired,          //the recipient of messages
     noadd:PropTypes.bool,                           //disable "add" button
-    amend:PropTypes.bool,                           //it is amendment, see loadTable()
+    amend:PropTypes.bool,
+    archive:PropTypes.bool                           //it is archive, see loadTable()
 }

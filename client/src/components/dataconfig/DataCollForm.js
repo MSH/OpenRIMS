@@ -10,7 +10,15 @@ import Pharmadex from '../Pharmadex'
 import FieldDisplay from '../form/FieldDisplay'
 
 /**
- * Form to add/edit/display a definition of a data collection
+ * Form to add/edit/display a definition of a data collection. Parameters
+ *~~~
+    nodeId:PropTypes.number.isRequired,     //node id of a data collection, zero means new one
+    url:PropTypes.string,                   //url by default
+    recipient:PropTypes.string.isRequired,  //recipient for messaging
+ *~~~
+ *Example:
+ *~~~
+ *~~~
  */
 class DataCollForm extends Component{
     constructor(props){
@@ -18,7 +26,7 @@ class DataCollForm extends Component{
         this.state={
             identifier:Date.now().toString(),
             data:{
-                nodeId:this.props.nodeId
+                nodeId:this.props.nodeId,
             },            //DataCollectionDTO
             labels:{
                 save:'',
@@ -27,6 +35,10 @@ class DataCollForm extends Component{
                 duplicate:'',
                 warningRemove:''
             }
+        }
+        if(this.props.url){
+            this.state.data.url={}
+            this.state.data.url.value=this.props.url
         }
         this.eventProcessor=this.eventProcessor.bind(this)
         this.loadData=this.loadData.bind(this)
@@ -76,7 +88,7 @@ class DataCollForm extends Component{
                             Fetchers.postJSON("/api/admin/data/collection/definition/save", this.state.data, (query,result)=>{
                                 this.state.data=result
                                 if(this.state.data.valid){
-                                    Navigator.message(this.state.identifier, this.props.recipient,"formCollCancel",{})
+                                    Navigator.message(this.state.identifier, this.props.recipient,"formCollSave",this.state.data)
                                 }else{
                                     this.setState(this.state)
                                     Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:result.identifier, color:'danger'})
@@ -150,6 +162,7 @@ class DataCollForm extends Component{
 }
 export default DataCollForm
 DataCollForm.propTypes={
-    nodeId:PropTypes.number.isRequired,     //node id of a data collection
+    nodeId:PropTypes.number.isRequired,     //node id of a data collection, zero means new one
+    url:PropTypes.string,                   //url by default
     recipient:PropTypes.string.isRequired,  //recipient for messaging
 }

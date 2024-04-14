@@ -105,6 +105,7 @@ public class InspectionService {
 		jdbcRepo.host_schedule(data.getDictURL(),user.getEmail());
 		String select= "select * from host_schedule";
 		List<TableRow> rows= jdbcRepo.qtbGroupReport(select, "", "", data.getTable().getHeaders());
+		data.setCount(rows.size());
 		TableQtb.tablePage(rows, data.getTable());
 		data.getTable().setSelectable(false);
 		return data;

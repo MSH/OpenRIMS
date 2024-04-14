@@ -8,6 +8,8 @@ import Pharmadex from './Pharmadex'
 import ButtonUni from './form/ButtonUni'
 import ViewEdit from './form/ViewEdit'
 import CollectorTable from './utils/CollectorTable'
+import DataVarTable from './dataconfig/DataVarTable'
+import DataCollForm from './dataconfig/DataCollForm'
 
 
 /**
@@ -19,6 +21,8 @@ class ProcessValidator extends Component{
         super(props)
         this.state={
             identifier:Date.now().toString(),
+            selectedID:0,
+            url:'',
             data:{
                 dictNodeID:this.props.dictNodeID
             },    //ProcessComponentsDTO.java
@@ -39,6 +43,8 @@ class ProcessValidator extends Component{
         this.load=this.load.bind(this)
         this.table=this.table.bind(this)
         this.tableHasFalse=this.tableHasFalse.bind(this)
+        this.rightColumn=this.rightColumn.bind(this)
+        this.dataFormConfiguration=this.dataFormConfiguration.bind(this)
     }
 
     /**
@@ -47,6 +53,18 @@ class ProcessValidator extends Component{
      */
         eventProcessor(event){
             let data=event.data
+            if(data.to==this.state.identifier){
+                if(data.subject=='formCollCancel'){
+                    this.state.selectedID=0
+                    this.state.url=''
+                    this.setState(this.state)
+                }
+                if(data.subject=='formCollSave'){
+                    this.state.selectedID=data.data.nodeId
+                    this.state.url=data.data.url.value
+                    this.setState(this.state)
+                }
+            }
            
         }
 
@@ -84,13 +102,13 @@ class ProcessValidator extends Component{
 
                 </Col>
                 <Col xs='12' sm='12' lg='2' xl='1'>
-                    {/* <ButtonUni
+                    <ButtonUni
                         label={this.state.labels.reload}
                         color="primary"
                         onClick={()=>{
-
+                            this.load()
                         }}
-                    /> */}
+                    />
                 </Col>
                 <Col xs='12' sm='12' lg='2' xl='1'>
                     <ButtonUni
@@ -227,6 +245,21 @@ class ProcessValidator extends Component{
                                 return {width:'10%'}
                             }
                         }}
+                        linkProcessor={(row,cell)=>{
+                            this.state.url=data.rows[row].row[0].value  //the only column in any table should be URL
+                            let api=''
+                            switch(index){
+                                case 1:
+                                    api='/api/admin/data/config/nodeid'
+                                default:
+                            }
+                            if(api.length>0){
+                                Fetchers.postJSON(api,{url:this.state.url,nodeId:0},(query,result)=>{
+                                    this.state.selectedID=result.nodeId
+                                    this.setState(this.state)
+                                })
+                            }
+                        }}
                     />
                 </Collapse>
             </Col>
@@ -252,6 +285,49 @@ class ProcessValidator extends Component{
         )
     }
 
+    /**
+     * Serve configuration of electronic forms
+     */
+    dataFormConfiguration(){
+        if(this.state.selectedID>0){
+            return(
+                <DataVarTable nodeId={this.state.selectedID}  recipient={this.state.identifier} />
+            )
+        }else{
+            return(
+                <DataCollForm nodeId={0} url={this.state.url} recipient={this.state.identifier} />
+            )
+        }
+
+    }
+
+    /**
+     * component designers
+     */
+    rightColumn(){
+        if(this.state.selectedID==0){   //no selection
+            return []
+        }else{
+            let index=-1
+            this.state.collapse.forEach((e,ind)=>{
+                if(e){
+                    index=ind
+                }
+            })
+            if(index==-1){                  //all are collapsed
+                this.state.selectedID=0
+                return []
+            }else{
+                switch(index){
+                    case 1:                 // Electronic form configurator
+                        return this.dataFormConfiguration()
+                    default:
+                        return []
+                }
+            }
+        }
+    }
+
     render(){
         if(this.state.labels.locale==undefined || this.state.data.dictName == undefined){
             return Pharmadex.wait()
@@ -264,6 +340,7 @@ class ProcessValidator extends Component{
                         {this.leftColumn()}
                     </Col>
                     <Col xs='12' sm='12' lg='12' xl='6'>
+                        {this.rightColumn()}
                     </Col>
                 </Row>
                 {this.header()}

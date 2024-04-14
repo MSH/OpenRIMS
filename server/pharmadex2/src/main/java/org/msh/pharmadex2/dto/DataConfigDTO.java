@@ -11,8 +11,10 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  */
 @JsonIgnoreProperties(ignoreUnknown=true)
 public class DataConfigDTO extends AllowValidation {
-	//selected data url node
+	//selected data config node
 	private long nodeId=0;
+	//selected data config URL
+	private String url="";
 	//a page selected last time
 	private int pageNo=0;
 	//selected variable url node
@@ -31,6 +33,12 @@ public class DataConfigDTO extends AllowValidation {
 		this.nodeId = nodeId;
 	}
 	
+	public String getUrl() {
+		return url;
+	}
+	public void setUrl(String url) {
+		this.url = url;
+	}
 	public int getPageNo() {
 		return pageNo;
 	}

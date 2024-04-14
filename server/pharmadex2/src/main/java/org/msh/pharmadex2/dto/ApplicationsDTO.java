@@ -22,13 +22,15 @@ public class ApplicationsDTO extends AllowValidation {
 	private TableQtb table = new TableQtb();
 	private TableQtb scheduled = new TableQtb();
 	private TableQtb fullsearch = new TableQtb();
+	private TableQtb archive = new TableQtb();
 	private ThingDTO thing= new ThingDTO();
 	private FormFieldDTO<LocalDateTime> dateactual=new FormFieldDTO(LocalDateTime.now()) ;
 	private boolean amendment=false;
 	private FormFieldDTO<OptionDTO> prod_app_type = new FormFieldDTO<OptionDTO>();
 	private FormFieldDTO<OptionDTO> state = new FormFieldDTO<OptionDTO>();
 	private boolean canAdd = false;
-	
+	private boolean arch = false;
+	private int count=0;
 	public String getUrl() {
 		return url;
 	}
@@ -133,5 +135,28 @@ public class ApplicationsDTO extends AllowValidation {
 		this.canAdd = canAdd;
 	}
 
-	
+	public TableQtb getArchive() {
+		return archive;
+	}
+
+	public void setArchive(TableQtb archive) {
+		this.archive = archive;
+	}
+
+	public boolean isArch() {
+		return arch;
+	}
+
+	public void setArch(boolean arch) {
+		this.arch = arch;
+	}
+
+	public int getCount() {
+		return count;
+	}
+
+	public void setCount(int count) {
+		this.count = count;
+	}
+
 }
