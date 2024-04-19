@@ -1,0 +1,1 @@
+This test plan allows quick startint the complex performance tests
