@@ -7,6 +7,7 @@ import Pharmadex from './Pharmadex'
 import ThingsPublisher from './reports/ThingsPublisher'
 import Navigator from './utils/Navigator'
 import Downloader from './utils/Downloader'
+import Alerts from './utils/Alerts'
 
 /**
  * Display public available permit data
@@ -20,14 +21,20 @@ class PublicPermitData extends Component{
             data: this.props.data,      //PublicPermitDTO.java
             labels:{
                 historyData:'',
-                uploadApplReceipt:''
+                uploadApplReceipt:'',
+                return_action:'',
+                withdraw_Application:'',
+                no_receipt:'',
+                access_deny:'',
             },
-            fullcollapse:[]
+            fullcollapse:[],
+            show:true //show link uploadApplReceipt
         }
         this.eventProcessor=this.eventProcessor.bind(this)
         this.load=this.load.bind(this)
         this.builLeftColumn=this.builLeftColumn.bind(this)
         this.buildRightColumn=this.buildRightColumn.bind(this)
+        this.withdrawApplication=this.withdrawApplication.bind(this)
     }
 
     /**
@@ -52,15 +59,18 @@ class PublicPermitData extends Component{
         Fetchers.postJSON("/api/public/permit/data", this.state.data, (query,result)=>{
             this.state.data=result
             //Locales.createLabels(this)
-            
-            this.state.fullcollapse = []
-            if(Fetchers.isGoodArray(this.state.data.application)){
-                this.state.data.application.forEach((thing, index)=>{
-                    this.state.fullcollapse.push({
-                        ind:index,
-                        collapse:false
+            if(this.state.data.valid){
+                this.state.fullcollapse = []
+                if(Fetchers.isGoodArray(this.state.data.application)){
+                    this.state.data.application.forEach((thing, index)=>{
+                        this.state.fullcollapse.push({
+                            ind:index,
+                            collapse:false
+                        })
                     })
-                })
+                }
+            }else{
+                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.access_deny, color:'danger'})
             }
             this.setState(this.state)
         })
@@ -85,7 +95,7 @@ class PublicPermitData extends Component{
                         {applTitle}
                     </CardTitle>
                     <CardBody>
-                        <Row className='d-print-none' hidden={!this.state.data.guest}>
+                        <Row className='d-print-none' hidden={!this.state.data.guest || !this.state.show}>
                             <Col xs='12' sm='12' lg='12' xl='12' className='d-flex justify-content-end'>
                                 <Button key={100} color="link" size='sm'
                                     onClick={()=>{
@@ -97,6 +107,10 @@ class PublicPermitData extends Component{
                                                     if(data.receiptDocumentID>0){
                                                         let dl = new Downloader()
                                                         dl.postDownload('/api/guest/application/receipt/open', data, "file.bin")
+                                                    }else{
+                                                        this.state.show=false
+                                                        this.setState(this.state)
+                                                        Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.no_receipt, color:'danger'})
                                                     }
                                                 })
                                             }}>
@@ -133,6 +147,12 @@ class PublicPermitData extends Component{
         }
     }
 
+    withdrawApplication(){
+        Fetchers.postJSON("/api/guest/withdraw/application", this.state.data, (query,result)=>{
+        window.history.back()
+        })
+    }
+
     render(){
         if(this.state.data.title == undefined || this.state.labels.locale==undefined){// || !Fetchers.isGoodArray(this.state.data.application)){
             return Pharmadex.wait()
@@ -143,12 +163,26 @@ class PublicPermitData extends Component{
                     <Col>
                         <h1 className="text-center">{this.state.data.title}</h1>
                     </Col>
+                    
                 </Row>
                 <Row>
-                    <Col>
+                    <Col xs='12' sm='12' lg='10' xl='10'>
                         <FormText color="muted">
                             {this.state.data.description}
                         </FormText>
+                    </Col>
+                    <Col xs='12' sm='12' lg='2' xl='2'>
+                    <div className="mb-1 d-flex justify-content-end">
+                    <Button size="sm" hidden={!this.state.data.reject}
+                            className="mr-1" color="warning"
+                            onClick={()=>{
+                                Alerts.warning(this.state.labels.withdraw_Application,()=>{
+                                    this.withdrawApplication()
+                                   }, ()=>{})
+                            }}
+                            //action return to applicant
+                        >{this.state.labels.return_action}</Button>{' '}
+                    </div>   
                     </Col>
                 </Row>
 

@@ -15,6 +15,7 @@ import org.msh.pharmadex2.dto.GisLocationDTO;
 import org.msh.pharmadex2.dto.HostScheduleDTO;
 import org.msh.pharmadex2.dto.LegacyDataDTO;
 import org.msh.pharmadex2.dto.PermitsDTO;
+import org.msh.pharmadex2.dto.PublicPermitDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
 import org.msh.pharmadex2.dto.SubmitRecieptDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
@@ -51,6 +52,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+
 //import com.fasterxml.jackson.core.JsonProcessingException;
 @RestController
 public class GuestAPI {
@@ -84,6 +87,8 @@ public class GuestAPI {
 	private Messages mess;
 	@Autowired
 	private ResourceService resourceServ;
+	@Autowired
+	private UserService userService;
 
 	/**
 	 * Tiles for landing page
@@ -444,12 +449,14 @@ public class GuestAPI {
 		return data;
 	}
 	
-	@PostMapping("/api/guest/application/receipt")
+	@PostMapping("/api/*/application/receipt")
 	public SubmitRecieptDTO applicationReceipt(Authentication auth, UriComponentsBuilder uri, 
 			@RequestBody SubmitRecieptDTO data)
 			throws DataNotFoundException {
 		try {
+			if(auth!=null) {
 			accessServ.allowAuthenticated(auth, uri);
+			}
 			data = resourceServ.applReceipt(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e); 
@@ -472,5 +479,26 @@ public class GuestAPI {
 		} catch (ObjectNotFoundException | IOException e) {
 			throw new DataNotFoundException(e);
 		}
+	}
+	
+	/**
+	 * Withdraw application by an applicant
+	 * The application should be in onApproval state
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 * @throws JsonProcessingException
+	 */
+	@PostMapping(value="/api/guest/withdraw/application")
+	public PublicPermitDTO withdrawApplication(Authentication auth, @RequestBody PublicPermitDTO data) throws DataNotFoundException, JsonProcessingException{
+		try {
+			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+				data=submServ.withdrawApplication(user, data);
+			
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
 	}
 }

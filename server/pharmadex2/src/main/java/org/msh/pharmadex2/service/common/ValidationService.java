@@ -1780,10 +1780,10 @@ public class ValidationService {
 	public ActivitySubmitDTO submitNext(History curHis, UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		data.clearErrors();
 		Concept exec = closureServ.getParent(curHis.getActivity());
-		if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {
-			if(isActivityForeground(curHis.getActConfig())) {
-				if(curHis.getGo()==null) {
-					return data;
+		if(accServ.sameEmail(exec.getIdentifier(), user.getEmail())) {	//the current activity belongs to the current user
+			if(isActivityForeground(curHis.getActConfig())) {	//the current activity is foreground
+				if(curHis.getGo()==null) {	//the current activity is not finished yet
+					return data; //next is allowed
 				}
 			}
 		}

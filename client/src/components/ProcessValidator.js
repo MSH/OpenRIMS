@@ -10,7 +10,7 @@ import ViewEdit from './form/ViewEdit'
 import CollectorTable from './utils/CollectorTable'
 import DataVarTable from './dataconfig/DataVarTable'
 import DataCollForm from './dataconfig/DataCollForm'
-
+import ResourceFilling from './ResourceFilling'
 
 /**
  * Process validator
@@ -26,13 +26,14 @@ class ProcessValidator extends Component{
             data:{
                 dictNodeID:this.props.dictNodeID
             },    //ProcessComponentsDTO.java
-            collapse:[false,false],
+            collapse:[false,false,false],
             labels:{
                 reload:'',
                 global_help:'',
                 global_close:'',
                 global_details:'',
                 pages:'',
+                resources:'',
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -45,6 +46,7 @@ class ProcessValidator extends Component{
         this.tableHasFalse=this.tableHasFalse.bind(this)
         this.rightColumn=this.rightColumn.bind(this)
         this.dataFormConfiguration=this.dataFormConfiguration.bind(this)
+        this.resource=this.resource.bind(this)
     }
 
     /**
@@ -142,6 +144,7 @@ class ProcessValidator extends Component{
                     if(ind == i){
                         this.state.collapse[i] = !this.state.collapse[i]
                     }else{
+                        this.state.selectedID=0
                         this.state.collapse[i]=false
                     }
                 })
@@ -251,6 +254,10 @@ class ProcessValidator extends Component{
                             switch(index){
                                 case 1:
                                     api='/api/admin/data/config/nodeid'
+                                    break
+                                case 2:
+                                    api='/api/admin/resources/nodeid'
+                                    break
                                 default:
                             }
                             if(api.length>0){
@@ -281,6 +288,11 @@ class ProcessValidator extends Component{
                         {this.table(this.state.data.dataConfigurations, this.state.labels.pages,1)}
                     </Col>
                 </Row>
+                <Row>
+                    <Col>
+                        {this.table(this.state.data.resources, this.state.labels.resources,2)}
+                    </Col>
+                </Row>
             </Container>
         )
     }
@@ -300,7 +312,16 @@ class ProcessValidator extends Component{
         }
 
     }
-
+resource(){
+    if(this.state.selectedID>0){
+    return(<ResourceFilling
+                        nodeId={this.state.selectedID}
+                        recipient={this.state.identifier}
+                        />)
+    }else{
+        return[]
+    }
+}
     /**
      * component designers
      */
@@ -321,6 +342,8 @@ class ProcessValidator extends Component{
                 switch(index){
                     case 1:                 // Electronic form configurator
                         return this.dataFormConfiguration()
+                    case 2:                 // Electronic form resource
+                        return this.resource()
                     default:
                         return []
                 }

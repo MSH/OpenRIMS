@@ -784,9 +784,22 @@ public class AssistanceService {
 					}
 					break;
 				case URL_DATA_NEW:
+					if(!isNewURL(url)) {
+						data.getUrl().invalidate(messages.get("url_exists"));
+						break;
+					}
+					break;
 				case URL_RESOURCE_NEW:
 					if(!isNewURL(url)) {
 						data.getUrl().invalidate(messages.get("url_exists"));
+						break;
+					}
+					if(!isNewURL("dictionary."+url)) {
+						data.getUrl().invalidate("dictionary."+url+" - "+messages.get("url_exists"));
+						break;
+					}
+					if(!isNewURL("configuration."+url)) {
+						data.getUrl().invalidate("configuration."+url+" - "+messages.get("url_exists"));
 						break;
 					}
 					break;

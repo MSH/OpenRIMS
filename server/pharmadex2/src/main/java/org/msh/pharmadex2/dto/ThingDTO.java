@@ -26,6 +26,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class ThingDTO extends AllowValidation {
 	//Help document, if one
 	private long helpDocumentID = 0l;
+	//Help document as a string
+	private String helpDocumentIDString = "";
 	//UX identifier
 	private String uxIdentifier="";
 	//Application's data
@@ -96,6 +98,12 @@ public class ThingDTO extends AllowValidation {
 	}
 	
 	
+	public String getHelpDocumentIDString() {
+		return helpDocumentIDString;
+	}
+	public void setHelpDocumentIDString(String helpDocumentIDString) {
+		this.helpDocumentIDString = helpDocumentIDString;
+	}
 	public String getUxIdentifier() {
 		return uxIdentifier;
 	}

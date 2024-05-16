@@ -16,6 +16,8 @@ public class PublicPermitDTO extends AllowValidation {
 	private List<ThingDTO> applHistory = new ArrayList<ThingDTO>();	//alloed data pages from the application history
 	//guest or not guest
 	private boolean guest = false;
+	//my application or not
+	private boolean reject=false;
 	
 	public long getPermitDataID() {
 		return permitDataID;
@@ -71,5 +73,13 @@ public class PublicPermitDTO extends AllowValidation {
 
 	public void setGuest(boolean guest) {
 		this.guest = guest;
+	}
+
+	public boolean isReject() {
+		return reject;
+	}
+
+	public void setReject(boolean reject) {
+		this.reject = reject;
 	}
 }

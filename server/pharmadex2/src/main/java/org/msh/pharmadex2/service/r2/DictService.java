@@ -937,6 +937,7 @@ public class DictService {
 		Concept root=closureServ.loadRoot(data.getUrl());
 		data.setSystem(checkSystem(root));
 		data.setMaxDepth(jdbcRepo.dict_depth(data.getUrl()));
+		data.setUrlId(root.getID());
 		String home=literalServ.readValue("prefLabel", root);
 		data.setHome(home);
 		//determine the algorithm 
@@ -1305,6 +1306,16 @@ public class DictService {
 			TableQtb.tablePage(rows, table);
 		}
 		return data;
+	}
+	// autoCreate dictionary for resource
+	public RootNodeDTO createDictResource(String url) throws ObjectNotFoundException {
+		RootNodeDTO dict=new RootNodeDTO();
+		dict.getUrl().setValue("dictionary."+url);
+		String pl=url.replace(".","_");
+		dict.getPrefLabel().setValue(pl);
+		dict.setValid(true);
+		dict=rootNodeSave(dict);
+		return dict;
 	}
 
 }

@@ -21,6 +21,7 @@ import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
+import org.msh.pdex2.model.enums.YesNoNA;
 import org.msh.pdex2.model.i18n.ResourceBundle;
 import org.msh.pdex2.model.i18n.ResourceMessage;
 import org.msh.pdex2.model.r2.Assembly;
@@ -97,6 +98,8 @@ public class SupervisorService {
 	ResourceMessageRepo resourceMessageRepo;
 	@Autowired
 	ResourceBundleRepo resourceBundleRepo;
+	@Autowired
+	AssistanceService assisServ;
 
 	@Value("${variables.properties.edit}")
 	private boolean variablesPropertiesEdit;
@@ -318,6 +321,51 @@ public class SupervisorService {
 		}
 		return data;
 	}
+//autoCreate configuration for resource
+	public DataCollectionDTO createConfigResource(String url, String dictUrl) throws ObjectNotFoundException {
+		DataCollectionDTO conf=new DataCollectionDTO();
+		conf.getUrl().setValue("configuration."+url);
+		conf.getDescription().setValue(url.replaceAll("."," "));
+		conf=dataCollectionDefinitionSave(conf);
+		DataVariableDTO item= new DataVariableDTO();
+		item.setNodeId(conf.getNodeId());
+		item.getPublicavailable().setValue(dtoServ.enumToOptionDTO(YesNoNA.NO, YesNoNA.values()));
+		item.getHidefromapplicant().setValue(dtoServ.enumToOptionDTO(YesNoNA.NO, YesNoNA.values()));
+		item.getVarName().setValue("item");
+		item.getRow().setValue(0l);
+		item.getCol().setValue(0l);
+		item.getOrd().setValue(0l);
+		item.getClazz().getValue().setCode("documents");
+		item.getMinLen().setValue(0l);
+		item.getMaxLen().setValue(0l);
+		item.getRequired().setValue(dtoServ.enumToOptionDTO(YesNoNA.YES, YesNoNA.values()));
+		item.getMult().setValue(dtoServ.enumToOptionDTO(YesNoNA.NO, YesNoNA.values()));
+		item.getUrl().setValue("resources.files");
+		item.getDictUrl().setValue(dictUrl);
+		item.getReadOnly().setValue(dtoServ.enumToOptionDTO(YesNoNA.NO, YesNoNA.values()));
+		item.getUnique().setValue(dtoServ.enumToOptionDTO(YesNoNA.NO, YesNoNA.values()));
+		item.getPrefLabel().setValue(dtoServ.enumToOptionDTO(YesNoNA.NO, YesNoNA.values()));
+		item.getFileTypes().setValue("");
+		item=dataCollectionVariableSave(item, true);
+		return conf;
+	}
+
+	public ResourceDTO resurceDefinitionSave(ResourceDTO data) throws ObjectNotFoundException {
+		data.clearErrors();
+		String url=data.getUrl().getValue();
+		RootNodeDTO dict=new RootNodeDTO();
+		dict=dictServ.createDictResource(url);
+		if(dict.isValid()) {
+			DataCollectionDTO conf=new DataCollectionDTO();
+			conf=createConfigResource(url,dict.getUrl().getValue());
+			data.getConfigUrl().setValue(conf.getUrl().getValue());
+			data.getDictUrl().setValue(dict.getUrl().getValue());
+			data = resourceDefinitionSave(data);
+		}else {
+			data.addError(dict.getUrl().getValue()+" - "+messages.get("error_dict_url"));
+		}
+		return data;
+	}
 
 	/**
 	 * Suspend data definition
@@ -481,7 +529,7 @@ public class SupervisorService {
 			throw new ObjectNotFoundException("dataCollectionVariableSave. Data collection node id is ZERO", logger);
 		}
 	}
-	
+
 	/**
 	 * Preview a thing created from data definition
 	 * 
@@ -520,7 +568,7 @@ public class SupervisorService {
 		return data;
 	}
 
-	
+
 	/**
 	 * Save a definition of the resource
 	 * 
@@ -683,7 +731,11 @@ public class SupervisorService {
 		}
 		for (TableRow row : table.getRows()) {
 			if (row.getSelected()) {
+				if (data.getNodeId() > 0) {
 				data.setSelected(row.getDbID());
+				}else {
+					data.setSelected(0l);
+				}
 				break;
 			}
 		}
@@ -703,10 +755,23 @@ public class SupervisorService {
 			data.getUrl().setValue(node.getIdentifier());
 			data.getConfigUrl().setValue(node.getLabel());
 			data.getDescription().setValue(literalServ.readDescription(node));
+//load url dictionary
+			List<Assembly> allAssms = assemblyServ.loadDataConfiguration(node.getLabel(),"documents");
+			for(Assembly clazz : allAssms) {
+				if(clazz.getClazz().equalsIgnoreCase("documents")) {
+					if(clazz.getUrl()!=null || clazz.getUrl().length()>0) {
+						data.getDictUrl().setValue(clazz.getDictUrl());
+					}else {
+						data.addError(messages.get("errorConfigDataResource"));
+						return data;
+					}
+				}
+			}
 		} else {
 			data.getUrl().setValue("");
 			data.getDescription().setValue("");
 			data.getConfigUrl().setValue("");
+			data.getDictUrl().setValue("");
 		}
 		data.getTable().getHeaders().setPageSize(200);
 		return data;
@@ -1128,11 +1193,11 @@ public class SupervisorService {
 	 */
 	@Transactional
 	public void messagesLostAddToBundle(String key, String value, ResourceBundle bundle) {
-			ResourceMessage mess = new ResourceMessage();
-			mess.setMessage_key(key);
-			mess.setMessage_value(value);
-			resourceMessageRepo.save(mess);
-			bundle.getMessages().add(mess);
+		ResourceMessage mess = new ResourceMessage();
+		mess.setMessage_key(key);
+		mess.setMessage_value(value);
+		resourceMessageRepo.save(mess);
+		bundle.getMessages().add(mess);
 	}
 
 	/**
@@ -1180,6 +1245,19 @@ public class SupervisorService {
 		String select = "SELECT ID \r\n" + 
 				"FROM pdx2.dataconfig_all dc";
 		String where="dc.Identifier='"+data.getUrl()+"'";
+		List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", where, new Headers());
+		if(rows.size()==1) {
+			data.setNodeId(rows.get(0).getDbID());
+		}else {
+			data.setNodeId(-1l);
+		}
+		return data;
+	}
+
+	public DictNodeDTO dataResourceNodeIdByUrl(DictNodeDTO data) {
+		String select = "SELECT ID \r\n" + 
+				"FROM pdx2.resources dc";
+		String where="dc.url='"+data.getUrl()+"' and dc.lang='"+LocaleContextHolder.getLocale().toString().toUpperCase()+"'";
 		List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", where, new Headers());
 		if(rows.size()==1) {
 			data.setNodeId(rows.get(0).getDbID());

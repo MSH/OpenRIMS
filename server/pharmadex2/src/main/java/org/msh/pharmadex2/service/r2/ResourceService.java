@@ -415,28 +415,34 @@ public class ResourceService {
 	public ThingDTO thingHelp(ThingDTO data) throws ObjectNotFoundException {
 		Concept node = fileNode("images.design", data.getUrl());
 		if(node != null) {
-			data.setHelpDocumentID(node.getID());
+			data.setHelpDocumentIDString(node.getID()+"");
 		}else {
 			InputStream in = getClass().getResourceAsStream("/static/shablon/"+data.getUrl()+".pdf");
 			if(in!=null) {
-				data.setHelpDocumentID(-1l);
+				data.setHelpDocumentIDString(data.getUrl()+".pdf");
 			}
 		}
 		return data;
 	}
 	/**
 	 * Open thing help document
-	 * @param id
+	 * @param iD
 	 * @return
 	 * @throws IOException 
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public ResponseEntity<Resource> thingHelpOpen(Long id) throws ObjectNotFoundException, IOException {
-		Concept node = closureServ.loadConceptById(id);
-		String typeOpen = "inline";
-		String mediaType = "application/pdf";
-		return createFileResponse(node.getLabel(), node, typeOpen, mediaType);
+	public ResponseEntity<Resource> thingHelpOpen(String iD) throws ObjectNotFoundException, IOException {
+		try {
+			Long id = Long.parseLong(iD);
+			Concept node = closureServ.loadConceptById(id);
+			String typeOpen = "inline";
+			String mediaType = "application/pdf";
+			return createFileResponse(node.getLabel(), node, typeOpen, mediaType);
+		}
+		catch(NumberFormatException nfe){
+			return downloadFile("nobody.never",iD);
+		}
 	}
 
 	/**
@@ -496,7 +502,7 @@ public class ResourceService {
 	public ResponseEntity<Resource> adminHelpImportMessages() throws ObjectNotFoundException, IOException {
 		return downloadFile("system.import.locales.help","DefinitionLocalLanguage.pdf");
 	}
-	
+
 	/**
 	 * URL assistant help
 	 * @return

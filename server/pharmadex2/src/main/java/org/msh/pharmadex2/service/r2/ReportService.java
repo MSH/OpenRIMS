@@ -29,6 +29,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+
 /**
  * Responsible for applications report, data changes history etc
  * 
@@ -65,6 +67,8 @@ public class ReportService {
 	private ThingService thingServ;
 	@Autowired
 	private DictService dictServ;
+	@Autowired
+	private SubmitService submitServ;
 
 
 	/*
@@ -722,7 +726,27 @@ public class ReportService {
 		}
 		return dto;
 	}
-
+	
+	/**
+	 * @throws ObjectNotFoundException 
+	 * 
+	 */
+	@Transactional
+	public PublicPermitDTO isReject(UserDetailsDTO user, PublicPermitDTO data) throws ObjectNotFoundException{
+		Concept applData = closureServ.loadConceptById(data.getPermitDataID());
+		Concept owner=closureServ.getParent(applData);
+		data.setReject(false);
+		String select = "select * from onapproval_app";
+		Headers headers = new Headers();
+		headers.getHeaders().add(TableHeader.instanceOf("dataModuleId", TableHeader.COLUMN_LONG));
+		headers.getHeaders().add(TableHeader.instanceOf("state", TableHeader.COLUMN_STRING));
+		String where="dataModuleId="+applData.getID();
+		List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", where, headers);
+		if(rows.size()>0 && accessControl.sameEmail(owner.getIdentifier(), user.getEmail())) {
+			data.setReject(true);
+		}
+		return data;
+	}
 	/*
 	 * public String getLinkReport() { return linkReport; }
 	 */
@@ -748,10 +772,10 @@ public class ReportService {
 		headers.getHeaders().get(1).setSort(true);		//GO
 		headers.getHeaders().get(1).setSortValue(TableHeader.SORT_ASC);
 		List<TableRow> hisRows = jdbcRepo.qtbGroupReport(select, "", "", headers);
+		Concept applData = closureServ.loadConceptById(data.getPermitDataID());
 		History his= new History();
 		if(his.getID()==0){
 			// from the first history record
-			Concept applData = closureServ.loadConceptById(data.getPermitDataID());
 			List<History> otherHis = boilerServ.historyAllOrderByCome(applData);
 			if(!otherHis.isEmpty()) {
 				his=otherHis.get(0);
@@ -830,5 +854,7 @@ public class ReportService {
 		ret.setDataUrl(literalServ.readValue("url", itemDict));
 		return ret;
 	}
+
+
 
 }

@@ -115,6 +115,7 @@ class ActivityManager extends Component{
                     this.state.reject=false
                     this.setState(this.state)
                 }
+                //submit button, save button
                 if(data.subject=="savedByAction" || data.subject=="cancelThing" || data.subject=="checklist_saved"){
                         this.state.saveCounter--
                         if(this.state.saveCounter==0){
@@ -122,14 +123,16 @@ class ActivityManager extends Component{
                                 this.state.data.data[this.state.pathIndex]=data.data
                             }
                             Navigator.message(this.state.identifier, "*", 'show.alert.pharmadex.2', this.state.labels.app_save_success)
-                            if(this.state.submit){ 
+                            if(this.state.submit){  //submit button has been pressed
                                 this.state.submit=false
                                 Fetchers.postJSONNoSpinner("/api/"+Navigator.tabSetName()+"/activity/done", this.state.data, (query,result)=>{
                                     if(result.done){
+                                        //one concurrent activity has been closed, however the rest are left 
                                         Navigator.message(this.state.identifier, this.props.recipient, 'reload', {})
                                         window.location="/"+Navigator.tabSetName()+"#"+Navigator.tabName()
                                     }else{
-                                        this.state.send=true    //turn of ActivitySubmit form
+                                        //
+                                        this.state.send=true    //turn on ActivitySubmit form
                                         this.setState(this.state)
                                     }
                                 })
@@ -469,7 +472,12 @@ class ActivityManager extends Component{
                         <Button size="sm"
                          className="mr-1" color="info"
                          onClick={()=>{
-                            Navigator.navigate("admin")
+                            if(this.state.send){
+                                this.state.send=false
+                                this.setState(this.state)
+                            }else{
+                                window.history.back()
+                            }
                          }}
                         >{this.state.labels.global_cancel}</Button>{' '}
 

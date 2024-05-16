@@ -30,6 +30,7 @@ import org.msh.pharmadex2.dto.ActivityToRun;
 import org.msh.pharmadex2.dto.CheckListDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.PersonDTO;
+import org.msh.pharmadex2.dto.PublicPermitDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.VerifItemDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
@@ -87,8 +88,7 @@ public class SubmitService {
 	@Autowired
 	private ObjectMapper objectMapper;
 	/**
-	 * Create data for activity submit form Send-submit is not here
-	 * 
+	 * Create for ActivitySubmit lists of allowed actions, next activities, executors, host processes to run
 	 * @param user
 	 * @param data
 	 * @return
@@ -111,8 +111,6 @@ public class SubmitService {
 				data.getExecs().getRows().clear();
 				data.setReloadExecs(false);
 			}
-			// create lists for choices
-			// who am I?
 			History his = boilerServ.historyById(data.getHistoryId());
 			// for trace and monitoring only re-assign is allowed
 			if (!data.isReassign() && his.getActConfig() == null) {
@@ -302,11 +300,7 @@ public class SubmitService {
 			if (data.isValid()) {
 				allowed.add("0");
 			}
-			if(accServ.isSupervisor(user) || accServ.isModerator(user)) {
-				/*data = validServ.actionCancel(curHis, data);
-				if (data.isValid()) {
-					allowed.add("3"); // cancel !!!Danger Activity, you can lose applications
-				}*/
+			if(accServ.isSupervisor(user) || accServ.isModerator(user)) {	//new activity allowed for moder and super
 				data = validServ.actionNew(curHis, data);
 				if (data.isValid()) {
 					allowed.add("2"); // new activity, any activity 26072023
@@ -318,12 +312,6 @@ public class SubmitService {
 						allowed.add("9"); // revoke the permit is allowed for any NMRA user
 					}
 				}
-				/*else {
-					if(validServ.submitDecline(curHis, data)) {
-						allowed.add("10");	//decline is a regular action
-						allowed.add("0");		// next should be allowed too
-					}
-				}*/
 			}
 		}else //it is a finalization step. Possible one of outcomes "Approve (4) or  Decline(10)  
 			// Revocation may be added if appropriate (Host workflow!!!)
@@ -763,15 +751,17 @@ public class SubmitService {
 	@Transactional
 	public CheckListDTO submit(CheckListDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
 		if (data.getHistoryId() > 0) {
-			// get workflow configuration root
 			History curHis = boilerServ.historyById(data.getHistoryId());
 			data=(CheckListDTO) submitCondition(curHis,data, user);
 			if(data.isValid()) {
+				//the application root and workflow validation
 				Concept applRoot = closureServ.loadParents(curHis.getApplication()).get(0);
 				String applUrl = applRoot.getIdentifier();
 				data = (CheckListDTO)validServ.validWorkFlowConfig(data, applUrl);
 				if (data.isValid()) {
+					//the activities configuration root
 					Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
+					//the configRoot contains a configuration for the first activity
 					List<Concept> nextActs = boilerServ.loadActivities(configRoot);
 					List<Concept> allPages = new ArrayList<Concept>();
 					allPages=checkPagesDefined(curHis.getApplicationData(),allPages, true);
@@ -1777,6 +1767,36 @@ public class SubmitService {
 				return data;
 			}
 		}
+		return data;
+	}
+	/**
+	 * Withdraw an application by an applicant
+	 * The application should be in onApproval state
+	 * @param user
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 * @throws JsonProcessingException
+	 */
+	public PublicPermitDTO withdrawApplication(UserDetailsDTO user, PublicPermitDTO data) throws ObjectNotFoundException, JsonProcessingException {
+		History curHis = boilerServ.historyById(data.getHistoryID());
+		//Concept applicant = closureServ.getParent(curHis.getApplicationData());
+		cancelActivities(curHis);
+		// create new application
+		ThingDTO tdto = new ThingDTO();
+		tdto.setNodeId(curHis.getApplicationData().getID());
+		Concept applicant = closureServ.getParent(curHis.getApplication());
+		Concept application = closureServ.getParent(applicant);
+		tdto.setApplicationUrl(application.getIdentifier());
+		tdto.setApplDictNodeId(curHis.getApplDict().getID());
+		//UserDetailsDTO user = new UserDetailsDTO();
+		//user.setEmail(applicant.getIdentifier());
+		tdto = thingServ.loadThing(tdto, user);
+		tdto = thingServ.createApplication(tdto, applicant.getIdentifier(), curHis.getApplicationData());
+		//addNotesHistoryData(data, tdto);
+		History his = boilerServ.historyById(tdto.getHistoryId());
+		his.setPrevNotes(messages.get("withdrawApplication")+" - "+user.getEmail());
+		his = boilerServ.saveHistory(his);
 		return data;
 	}
 }

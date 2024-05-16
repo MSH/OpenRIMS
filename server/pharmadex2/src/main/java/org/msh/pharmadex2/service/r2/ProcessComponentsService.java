@@ -50,6 +50,29 @@ public class ProcessComponentsService {
 	public ProcessComponentsDTO load(ProcessComponentsDTO data) throws ObjectNotFoundException {
 		data=loadDetails(data);
 		data=loadPages(data);
+		data=loadResources(data);
+		//TODO data=loadDictionaries(data);
+		return data;
+	}
+	
+	/**
+	 * Load resources existing and not existing
+	 * The not existing is a resource with no files loaded
+	 * @param data
+	 * @return
+	 */
+	private ProcessComponentsDTO loadResources(ProcessComponentsDTO data) {
+		String select = "SELECT distinct ClazzUrl as 'url', \r\n" + 
+				"(min(attached)=max(attached) and min(attached!=0)) as 'good'\r\n" + 
+				"FROM page_clazz_url p\r\n" + 
+				"left join resources r on r.url=p.ClazzUrl\r\n";
+		String where = "Clazz='resources' and pageUrl in "+createInCriteriaFromRows(data.getDataConfigurations().getRows());
+		if(data.getResources().getHeaders().getHeaders().size()==0) {
+			data.getResources().setHeaders(headersOnScreenTable());
+		}
+		List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "Group By ClazzUrl", where, data.getResources().getHeaders());
+		TableQtb.tablePage(rows, data.getResources());
+		data.getResources().setSelectable(false);
 		return data;
 	}
 	/**
@@ -62,13 +85,13 @@ public class ProcessComponentsService {
 		//get all data URLs
 		jdbcRepo.importWF_activities(data.getDictNodeID());
 		String select= "select distinct dataurl as url from importwf_activities";
-		List<TableRow> mainPages=jdbcRepo.qtbGroupReport(select, "", "", headersUrls());
+		List<TableRow> mainPages=jdbcRepo.qtbGroupReport(select, "", "", headersToSelectUrls());
 		if(!mainPages.isEmpty()) {
 			// get all aux data urls (
 			String where="mainUrl in "+createInCriteriaFromRows(mainPages);
 			select="SELECT distinct auxUrl as 'url' \r\n" + 
 					"FROM pdx2.dataconfig_auxdata";
-			List<TableRow> auxPages = jdbcRepo.qtbGroupReport(select, "", where, headersUrls());
+			List<TableRow> auxPages = jdbcRepo.qtbGroupReport(select, "", where, headersToSelectUrls());
 			//collect main and aux data urls and get other pages
 			List<TableRow> mainAndAuxPages = new ArrayList<TableRow>();
 			mainAndAuxPages.addAll(mainPages);
@@ -76,7 +99,7 @@ public class ProcessComponentsService {
 			where="mainUrl in "+createInCriteriaFromRows(mainAndAuxPages);
 			select="SELECT distinct url\r\n" + 
 					"FROM pdx2.dataconfig_things";
-			List<TableRow> otherPages = jdbcRepo.qtbGroupReport(select, "", where, headersUrls());
+			List<TableRow> otherPages = jdbcRepo.qtbGroupReport(select, "", where, headersToSelectUrls());
 			//collect all pages need for the application and get pages for which configuration is defined
 			List<TableRow> applicationPages=new ArrayList<TableRow>();
 			applicationPages.addAll(mainAndAuxPages);
@@ -84,20 +107,20 @@ public class ProcessComponentsService {
 			where="url in "+createInCriteriaFromRows(applicationPages);
 			select="SELECT url \r\n" + 
 					"FROM pdx2.dataconfig_defined";
-			List<TableRow> definedPages =jdbcRepo.qtbGroupReport(select, "", where, headersUrls());
+			List<TableRow> definedPages =jdbcRepo.qtbGroupReport(select, "", where, headersToSelectUrls());
 			//collect urls of required and defined pages
 			Set<String> applPageUrls=urlsFromRows(applicationPages);
 			Set<String> definedPageUrls = urlsFromRows(definedPages);
 			//create output table
 			if(data.getDataConfigurations().getHeaders().getHeaders().isEmpty()) {
-				data.getDataConfigurations().setHeaders(headersTable());
+				data.getDataConfigurations().setHeaders(headersOnScreenTable());
 			}
 			long i =1;
 			List<TableRow> rows = new ArrayList<TableRow>();
 			for(String url :applPageUrls) {
 				TableRow row = TableRow.instanceOf(i);
 				row.getRow().add(TableCell.instanceOf("url",url));
-				row.getRow().add(TableCell.instanceOf("dataconfigurator",definedPageUrls.contains(url)));
+				row.getRow().add(TableCell.instanceOf("good",definedPageUrls.contains(url)));
 				rows.add(row);
 				i++;
 			}
@@ -115,13 +138,13 @@ public class ProcessComponentsService {
 		return data;
 	}
 	/**
-	 * Headers for any table
+	 * Headers for on screen tables
 	 * @return
 	 */
-	private Headers headersTable() {
-		Headers ret = headersUrls();
+	private Headers headersOnScreenTable() {
+		Headers ret = headersToSelectUrls();
 		ret.getHeaders().add(TableHeader.instanceOf(
-				"'dataconfigurator'",
+				"good",
 				"",
 				true,
 				false,
@@ -171,10 +194,10 @@ public class ProcessComponentsService {
 		}
 	}
 	/**
-	 * Headers 
+	 * Headers to select URLs
 	 * @return
 	 */
-	private Headers headersUrls() {
+	private Headers headersToSelectUrls() {
 		Headers ret = new Headers();
 		ret.getHeaders().add(TableHeader.instanceOf(
 				"url",

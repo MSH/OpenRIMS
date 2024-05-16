@@ -801,7 +801,7 @@ public class AdminAPI {
 	@PostMapping("/api/admin/resource/definition/save")
 	public ResourceDTO resurceDefinitionSave(@RequestBody ResourceDTO data) throws DataNotFoundException {
 		try {
-			data = superVisServ.resourceDefinitionSave(data);
+			data=superVisServ.resurceDefinitionSave(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
@@ -2133,6 +2133,17 @@ public class AdminAPI {
 	@PostMapping("/api/admin/data/config/nodeid")
 	public DictNodeDTO dataConfigNodeIdByUrl(@RequestBody DictNodeDTO data) throws DataNotFoundException{
 		data=superVisServ.dataConfigNodeIdByUrl(data);
+		return data;
+	}
+	/**
+	 * Show selected rows only in table vailableActivities 
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException 
+	 */
+	@PostMapping("/api/admin/resources/nodeid")
+	public DictNodeDTO dataCResourceNodeIdByUrl(@RequestBody DictNodeDTO data) throws DataNotFoundException{
+		data=superVisServ.dataResourceNodeIdByUrl(data);
 		return data;
 	}
 }

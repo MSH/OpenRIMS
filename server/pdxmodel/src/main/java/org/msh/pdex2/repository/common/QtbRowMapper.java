@@ -60,6 +60,7 @@ public class QtbRowMapper implements RowMapper<TableRow> {
 				break;
 			case TableHeader.COLUMN_BOOLEAN_CHECKBOX:
 			case TableHeader.COLUMN_BOOLEAN_RADIO:
+			case TableHeader.COLUMN_TRUE_FALSE:
 			case TableHeader.COLUMN_YESNO:
 				ret.getRow().add(TableCell.instanceOf(header.getKey(),rs.getBoolean(header.getKey())));
 				break;

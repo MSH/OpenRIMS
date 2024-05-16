@@ -279,7 +279,7 @@ public class CommonAPI {
 	public ResponseEntity<Resource> thingHelpOpen(@PathVariable(value = "id") String ID) throws DataNotFoundException, IOException {
 		ResponseEntity<Resource> res;
 		try {
-			res = resource.thingHelpOpen(new Long(ID));
+			res = resource.thingHelpOpen(ID);
 			return res;
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);

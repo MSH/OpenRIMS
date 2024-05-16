@@ -40,6 +40,7 @@ import org.msh.pharmadex2.dto.ApplicationOrActivityDTO;
 import org.msh.pharmadex2.dto.ApplicationsDTO;
 //import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.CheckListDTO;
+import org.msh.pharmadex2.dto.PublicPermitDTO;
 //import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.QuestionDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
@@ -464,7 +465,8 @@ public class ApplicationService {
 		return data;
 	}
 	/**
-	 * Collect necessary data about activities to run
+	 * Collect all background activities and the first activity in the nextActs list
+	 * Search for executors for the activities collected
 	 * @param data to inform about errors
 	 * @param applUrl url of an application only to create messages
 	 * @param curHis 
@@ -1332,7 +1334,7 @@ public class ApplicationService {
 				List<ActivityToRun> toRun = activitiesToRun(data, applUrl, curHis, nextActs);
 				if(toRun.size()>0 && data.isValid()) {
 					activityTrackRun(sch.getScheduled(), curHis, applUrl, applicantEmail); // tracking by an applicant
-					activityMonitoringRun(sch.getScheduled(), curHis, applUrl); // monitoring by the all supervisors
+					//activityMonitoringRun(sch.getScheduled(), curHis, applUrl); // monitoring by the all supervisors
 					// run activities
 					for(ActivityToRun act :toRun ) {
 						for (String email : act.getExecutors()) {
@@ -1577,5 +1579,5 @@ public class ApplicationService {
 		}
 		return data;
 	}
-	
+
 }

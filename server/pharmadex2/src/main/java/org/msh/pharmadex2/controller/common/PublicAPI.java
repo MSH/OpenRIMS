@@ -43,6 +43,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+
 
 /**
  * This controller responsible for public domain  REST API
@@ -335,21 +337,22 @@ public class PublicAPI{
 	 * @throws DataNotFoundException
 	 * @throws IOException
 	 */
-	@PostMapping(value="/api/public/permit/data")
+	@PostMapping(value="/api/*/permit/data")
 	public PublicPermitDTO permitData(Authentication auth, @RequestBody PublicPermitDTO data) throws DataNotFoundException{
 		try {
 			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 			if(!validService.IsNotSubmittedGuest(data.getPermitDataID())) {
+				data=reportServ.isReject(user,data);
 				data=reportServ.permitData(user, data);
 			}else {
-				
+				data.setValid(false);
 			}
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}
 		return data;
 	}
-
+	
 	@PostMapping(value="/api/public/importwf/processes/load")
 	public ImportWorkflowDTO loadProcesses(Authentication auth, @RequestBody ImportWorkflowDTO data) throws ObjectNotFoundException{
 		data = importWFMainServ.loadProcesses(data);

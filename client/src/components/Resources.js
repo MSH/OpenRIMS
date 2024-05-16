@@ -8,8 +8,8 @@ import ButtonUni from './form/ButtonUni'
 import Pharmadex from './Pharmadex'
 import CollectorTable from './utils/CollectorTable'
 import ViewEdit from './form/ViewEdit'
-import Thing from './Thing'
-import Dictionary from './Dictionary'
+import ResourceFilling from './ResourceFilling'
+//import Dictionary from './Dictionary'
 import FieldDisplay from './form/FieldDisplay'
 
 /**
@@ -21,11 +21,11 @@ class Resources extends Component{
         this.state={
             form:false,
             thing:false,
-            dict:false,
+            //dict:false,
             identifier:Date.now().toString(),
             data:{},                                //ResourceDTO
-            thingData:{},                           //ThingDTO
-            dictData:{},                            //DictionaryDTO
+           // thingData:{},                           //ThingDTO
+           // dictData:{},                            //DictionaryDTO
             labels:{
                 search:'',
                 global_add:'',
@@ -33,58 +33,27 @@ class Resources extends Component{
                 save:'',
                 global_suspend:'',
                 resources:'',
-                resource:'',
                 url:'',
                 configUrl:'',
-                description:'',
+                dictUrl:'',
+                description:'', 
                 global_elreference:'',
                 warningRemove:'',
                 global_help:'',
-                items:'',
-                elassistance:'',
+               // elassistance:'',
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
         this.loader=this.loader.bind(this)
         this.left=this.left.bind(this)
-        this.right=this.right.bind(this)
-        this.dict=this.dict.bind(this)
         this.prepareThing=this.prepareThing.bind(this)
-        this.prepareDict=this.prepareDict.bind(this)
-        this.closeThing=this.closeThing.bind(this)
     }
-    /**
-     * clothe the thing ( the right column)
-     */
-    closeThing(){
-        let table=this.state.data.table
-        if(Fetchers.isGoodArray(table.rows)){
-            table.rows.forEach((row,index)=>{
-                row.selected=false
-            })
-        }
-        this.state.thing=false
-        this.state.dict=false
-        this.setState(this.state)
-    }
-
     /**
      * Listen messages from other components
      * @param {Window Event} event 
      */
         eventProcessor(event){
             let data=event.data
-            if(data.to==this.state.identifier){
-                if(data.subject=='resourceSaved'){
-                    this.state.thing=false
-                    this.closeThing()
-                }
-            }
-             if(data.to=='*'){
-                if(data.subject=='onDictionaryReloaded'){
-                    Navigator.message(this.state.identifier,'*','thingReload',{})
-                }
-            } 
         }
 
     componentDidMount(){
@@ -109,26 +78,14 @@ class Resources extends Component{
      * Prepare a thing before loading and ask to load it by Thing.js
      */
     prepareThing(){
-        Fetchers.postJSONNoSpinner("/api/admin/resource/thing/prepare", this.state.data, (query, result)=>{
-            this.state.thingData=result
-            this.state.thing=true
-            this.state.form=false
-            this.prepareDict()
-            this.setState(this.state)
-        })
-       
-    }
-    prepareDict(){
-        Fetchers.postJSONNoSpinner("/api/admin/resource/dictionary/prepare", this.state.thingData, (query, result)=>{
-            this.state.dictData=result
-            if(this.state.dictData.valid){
-            this.state.dict=true
-            this.setState(this.state)
-            }else{
-                this.setState(this.state)
-                Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:result.identifier, color:'danger'})
-            }
-        })
+        if(this.state.thing){
+          return(  <ResourceFilling
+            nodeId={this.state.data.nodeId}
+            recipient={this.state.identifier}
+            />)
+        }else{
+            return []
+        }
     }
     /**
      * Control buttons
@@ -196,8 +153,13 @@ class Resources extends Component{
             <Container fluid className={Pharmadex.settings.activeBorder}>
                 {this.buttons()}
                     <FieldDisplay mode="text" attribute="url" component={this} />
+                 <Row>
+                    <Col hidden={this.state.data.url.assistant=='URL_RESOURCE_NEW' && this.state.data.dictUrl.value==''}>
+                        <FieldDisplay mode='text' component={this} attribute='dictUrl' />
+                    </Col>
+                </Row> 
                 <Row>
-                    <Col>
+                    <Col hidden={this.state.data.url.assistant=='URL_RESOURCE_NEW' && this.state.data.configUrl.value==''}>
                         <FieldDisplay mode='text' component={this} attribute='configUrl' />
                     </Col>
                 </Row>
@@ -224,7 +186,7 @@ class Resources extends Component{
                                 onClick={()=>{
                                     this.state.data.nodeId=0
                                     this.state.form=true
-                                    this.state.resource=false
+                                    this.state.thing=false
                                     this.loader()
                                 }}
                                 color="primary"
@@ -246,7 +208,7 @@ class Resources extends Component{
                                         this.state.data.nodeId=this.state.data.table.rows[rowNo].dbID
                                         this.state.form=true
                                         this.state.thing=false
-                                        this.state.dict=false
+                                        //this.state.dict=false
                                         this.loader()
                                     }}
                                     selectRow={(rowNo)=>{
@@ -260,17 +222,16 @@ class Resources extends Component{
                                         });
                                         if(row.selected){
                                             this.state.data.nodeId=row.dbID
-                                            //let data=this.state.data
-                                            this.prepareThing()
-                                           // this.prepareDict(data)
+                                            this.state.thing=true
+                                            this.state.form=false
+                                           this.setState(this.state)
                                         }else{
                                             this.state.vars=false
                                             this.state.thing=false
-                                            this.state.dict=false
+                                            //this.state.dict=false
                                             this.state.data.nodeId=0
                                             this.setState(this.state)
                                         }
-                                        
                                     }}
                                 />
                             </Col>
@@ -279,9 +240,8 @@ class Resources extends Component{
                 </Row>
             )
         }
-    
     }
-    //thing or nothing
+    /* //thing or nothing
     right(){
         if(this.state.thing){
             let data=this.state.thingData
@@ -321,7 +281,7 @@ class Resources extends Component{
                 </Row>
             )
         }
-    }
+    } */
     render(){
         if(this.state.data.table==undefined || this.state.labels.locale==undefined){
             return []
@@ -329,7 +289,7 @@ class Resources extends Component{
         return(
             <Container fluid>
                 <Row className='mb-5'>
-                    <Col xs='12' sm='12' lg='3' xl='4'/>
+                    <Col xs='12' sm='12' lg='6' xl='6'/>
                     <Col xs='12' sm='12' lg='3' xl='2'>
                         <ButtonUni
                             label={this.state.labels.global_help}
@@ -339,16 +299,7 @@ class Resources extends Component{
                             color="info"
                         />
                     </Col>
-                    {/* <Col xs='12' sm='12' lg='3' xl='2'>
-                        <ButtonUni
-                            label={this.state.labels.elassistance}
-                            onClick={()=>{
-                                window.open('/admin#elassistance/','_blank')
-                            }}
-                            color="secondary"
-                        />
-                    </Col> */}
-                    <Col xs='12' sm='12' lg='3' xl='2'>
+                    <Col xs='12' sm='12' lg='3' xl='3'>
                         <ButtonUni
                             label={this.state.labels.global_elreference}
                             outline
@@ -357,17 +308,6 @@ class Resources extends Component{
                             }}
                             color="info"
                         />
-                    </Col>
-                    <Col xs='12' sm='12' lg='3' xl='2'>
-                        <div hidden={!this.state.thing}>
-                            <ButtonUni
-                                label={this.state.labels.save}
-                                color='primary'
-                                onClick={()=>{
-                                    Navigator.message(this.state.identifier, "*", "saveResource", {})
-                                }}
-                            />
-                        </div>
                     </Col>
                 </Row>
                 <Row>
@@ -380,21 +320,7 @@ class Resources extends Component{
                         {this.left()}
                     </Col>
                     <Col xs='12' sm='12' lg='6' xl='6'>
-                        <Row>
-                            <Col>
-                                <h6>{this.state.labels.resource}</h6>
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col>
-                               {this.right()}
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col>
-                               {this.dict()}
-                            </Col>
-                        </Row>
+                        {this.prepareThing()}
                     </Col>
                 </Row>
 

@@ -17,6 +17,7 @@ public class AmendmentNewDTO extends AllowValidation{
 	private long dataNodeId=0;
 	private TableQtb applications = new TableQtb();
 	private TableQtb dataUnits = new TableQtb();
+	private int count=0;
 	
 	public long getDictItemId() {
 		return dictItemId;
@@ -48,6 +49,12 @@ public class AmendmentNewDTO extends AllowValidation{
 	}
 	public void setDataUnits(TableQtb dataUnits) {
 		this.dataUnits = dataUnits;
+	}
+	public int getCount() {
+		return count;
+	}
+	public void setCount(int count) {
+		this.count = count;
 	}
 	
 }
