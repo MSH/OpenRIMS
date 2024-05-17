@@ -420,6 +420,8 @@ public class ResourceService {
 			InputStream in = getClass().getResourceAsStream("/static/shablon/"+data.getUrl()+".pdf");
 			if(in!=null) {
 				data.setHelpDocumentIDString(data.getUrl()+".pdf");
+			}else {
+				data.setHelpDocumentIDString("");
 			}
 		}
 		return data;

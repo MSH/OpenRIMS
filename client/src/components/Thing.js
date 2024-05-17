@@ -897,7 +897,9 @@ class Thing extends Component{
                             Fetchers.postJSON("/api/"+Navigator.tabSetName()+"/common/thing/help", this.state.data, (query,result)=>{
                                 this.state.data=result
                                 this.setState(this.state)
-                                window.open('/api/common/thing/help/open/'+this.state.data.helpDocumentIDString,'_blank').focus()
+                                if(this.state.data.helpDocumentIDString.length!=0){
+                                    window.open('/api/common/thing/help/open/'+this.state.data.helpDocumentIDString,'_blank').focus()
+                                }
                             })
                         }}
                     >
