@@ -153,7 +153,8 @@ public class ResourceService {
 				Concept dictRoot=closureServ.getParent(td.getDictNode());
 				if(dictRoot.getActive()) {
 					jdbcRepo.resource_read(dictRoot.getID());
-					List<TableRow> rows= jdbcRepo.qtbGroupReport(select, "", "resurl='"+thing.getUrl()+"'", table.getHeaders());
+					//List<TableRow> rows= jdbcRepo.qtbGroupReport(select, "", "resurl='"+thing.getUrl()+"'", table.getHeaders());
+					List<TableRow> rows= jdbcRepo.qtbGroupReport(select, "", "resurl='"+node.getIdentifier()+"'", table.getHeaders());
 					TableQtb.tablePage(rows, table);
 					table.setSelectable(false);
 					break;

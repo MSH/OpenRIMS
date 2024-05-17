@@ -60,6 +60,8 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+
 /**
  * Services for supervisor
  * 
@@ -798,17 +800,27 @@ public class SupervisorService {
 	 * Put right node id and url to the thing definition
 	 * 
 	 * @param data
+	 * @param user 
 	 * @return
 	 * @throws ObjectNotFoundException
+	 * @throws JsonProcessingException 
 	 */
 	@Transactional
-	public ThingDTO resourceThingPrepare(ResourceDTO data) throws ObjectNotFoundException {
+	public ThingDTO resourceThingPrepare(ResourceDTO data, UserDetailsDTO user) throws ObjectNotFoundException, JsonProcessingException {
 		if (data.getNodeId() > 0) {
 			ThingDTO ret = new ThingDTO();
 			Concept node = closureServ.loadConceptById(data.getNodeId());
 			ret.setVarName(node.getIdentifier());
 			ret.setNodeId(node.getID());
 			ret.setUrl(node.getLabel());
+			Thing th=boilerServ.thingByNode(node, new Thing());
+			if(th.getID()==0) {
+				th.setConcept(node);
+				th.setUrl(node.getLabel());
+				th=boilerServ.saveThing(th);
+				node.setActive(true);
+				closureServ.save(node);
+			}
 			return ret;
 		} else {
 			throw new ObjectNotFoundException("resourceThingPrepare. Node ID is ZERO", logger);

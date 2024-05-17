@@ -834,11 +834,12 @@ public class AdminAPI {
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/admin/resource/thing/prepare")
-	public ThingDTO resourceThingPrepare(@RequestBody ResourceDTO data) throws DataNotFoundException {
+	public ThingDTO resourceThingPrepare(Authentication auth, @RequestBody ResourceDTO data) throws DataNotFoundException {
 		try {
-			ThingDTO ret = superVisServ.resourceThingPrepare(data);
+			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+			ThingDTO ret = superVisServ.resourceThingPrepare(data, user);
 			return ret;
-		} catch (ObjectNotFoundException e) {
+		} catch (ObjectNotFoundException | JsonProcessingException e) {
 			throw new DataNotFoundException(e);
 		}
 	}
