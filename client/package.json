@@ -46,7 +46,7 @@
     "url-search-params-polyfill": "^8.1.0",
     "web-streams-polyfill": "^3.0.2",
     "webpack-cli": "^4.5.0",
-    "webpack-dev-server": "^3.11.2",
+    "webpack-dev-server": "^5.0.4",
     "whatwg-fetch": "^3.6.2"
   },
   "devDependencies": {
