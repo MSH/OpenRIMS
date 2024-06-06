@@ -53,7 +53,7 @@ class WorkflowConfigurator extends Component{
         this.setState(this.state)
         if(data.valid){
             if(byAction){
-                this.state.data.selected--
+                //this.state.data.selected--
                 if(this.state.data.selected>=0){
                     this.state.data.path[this.state.data.selected].repaint=true
                     this.setState(this.state)

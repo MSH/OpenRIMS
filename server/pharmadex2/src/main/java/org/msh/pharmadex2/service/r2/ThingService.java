@@ -52,6 +52,7 @@ import org.msh.pharmadex2.dto.AddressDTO;
 import org.msh.pharmadex2.dto.AddressValuesDTO;
 import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.AtcDTO;
+import org.msh.pharmadex2.dto.DataUnitDTO;
 import org.msh.pharmadex2.dto.DictValuesDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.FileDTO;
@@ -90,6 +91,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 
@@ -215,17 +217,11 @@ public class ThingService {
 			dto.setUrl(head.getUrl());
 			data.getHeading().put(head.getPropertyName(), dto);
 		}
-		//logger.trace("literals{");
-		//exts - not used
-		//List<String> exts=boilerServ.variablesExtensions(data);
-		//Applicant user?
+
 		boolean thisApplicant=accessControlServ.isApplicant(user);
 
 		data.getStrings().clear();
 		List<AssemblyDTO> strings = assemblyServ.auxStrings(data.getUrl(),assemblies,storedConfig);
-		/*if(accessControlServ.isApplicant(user) && strings.isHideFromApplicant()) {
-			continue;
-		}*/
 		data=dtoServ.createStrings(data,strings, thisApplicant);
 
 		List<AssemblyDTO> literals = assemblyServ.auxLiterals(data.getUrl(),assemblies,storedConfig);
@@ -1943,7 +1939,7 @@ public class ThingService {
 		}
 		return data;
 	}
-
+	
 	/**
 	 * Create a thing from literals to have possibility to display it on the screen
 	 * @param node
@@ -2099,8 +2095,7 @@ public class ThingService {
 	public ThingDTO deepCloneThing(ThingDTO dto) throws ObjectNotFoundException {
 		ThingDTO deepCopy;
 		try {
-			deepCopy = objectMapper
-					.readValue(objectMapper.writeValueAsString(dto), ThingDTO.class);
+			deepCopy = objectMapper.readValue(objectMapper.writeValueAsString(dto), ThingDTO.class);
 			return deepCopy;
 		} catch (JsonProcessingException e) {
 			throw new ObjectNotFoundException(e,logger);
@@ -2781,6 +2776,6 @@ public class ThingService {
 			}
 		}
 		return false;
-	}
+	}	
 }
 

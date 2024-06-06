@@ -11,6 +11,7 @@ import org.apache.commons.lang3.ThreadUtils;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pharmadex2.Pharmadex2Application;
+import org.msh.pharmadex2.Pharmadex2Beans;
 import org.msh.pharmadex2.dto.AsyncInformDTO;
 import org.msh.pharmadex2.dto.ImportWorkflowDTO;
 import org.msh.pharmadex2.dto.ReassignUserDTO;
@@ -118,7 +119,7 @@ public class AsyncService {
 	public static boolean hasDataImportThread() {
 		boolean ret=false;
 		for (Thread t : ThreadUtils.getAllThreads()) {
-			if(t.getName().startsWith(Pharmadex2Application.DATA_IMPORT)) {
+			if(t.getName().startsWith(Pharmadex2Beans.DATA_IMPORT)) {
 				if(t.isAlive() && t.getState()==State.RUNNABLE) {
 					ret=true;
 					break;

@@ -34,6 +34,7 @@ public class DictNodeDTO  extends AllowValidation {
 	private List<String> title= new ArrayList<String>();
 	//is it a leaf or a branch 
 	private boolean leaf=false;
+	private DictionaryDTO dict= new DictionaryDTO();
 
 	public long getParentId() {
 		return parentId;
@@ -123,6 +124,14 @@ public class DictNodeDTO  extends AllowValidation {
 		for(String key : getLiterals().keySet()) {
 			getLiterals().get(key).setValue("");
 		}
+	}
+
+	public DictionaryDTO getDict() {
+		return dict;
+	}
+
+	public void setDict(DictionaryDTO dict) {
+		this.dict = dict;
 	}
 	
 }

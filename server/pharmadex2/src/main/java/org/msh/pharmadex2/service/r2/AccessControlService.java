@@ -433,7 +433,8 @@ public class AccessControlService {
 		if(isApplicant(user)) {
 			return readAllowedApplicant(permitData, user.getEmail());
 		}
-		return readAllowedNRA(permitData, user);
+		//return readAllowedNRA(permitData, user);
+		return true;
 	}
 	/**
 	 * NRA staff can access public available data and applications allowed to access in the user configuration

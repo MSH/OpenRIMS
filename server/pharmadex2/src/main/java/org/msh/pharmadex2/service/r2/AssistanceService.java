@@ -93,6 +93,9 @@ public class AssistanceService {
 		data=headersUrlTable(data);
 		List<TableRow> rows = new ArrayList<TableRow>();
 		switch(data.getAssistant()) {
+		case URL_ACTIVITY:
+			rows=urlActivityRows(data);
+			break;
 		case URL_ANY:								// Any existing or not existing URL that is suit URL syntax
 		case URL_NEW:								//URL should suit the syntax, however does not exist
 			rows= urlAnyRows(data);
@@ -102,6 +105,7 @@ public class AssistanceService {
 			rows= urlDictRows(data);
 			break;
 		case URL_APPLICATION_ALL:			//Any existing or not existing URL for applications
+		case URL_HOST:
 			rows= urlApplRows(data);
 			break;
 		case URL_DATA_ANY:						//Any existing or not existing data configurations
@@ -117,6 +121,37 @@ public class AssistanceService {
 		prepareTable(data.getUrls(),data.getSelectedUrl() ,rows);
 		urlFieldSet(data);
 		return data;
+	}
+	/**
+	 * URL's for activities
+	 * @param data
+	 * @return
+	 */
+	private List<TableRow> urlActivityRows(URLAssistantDTO data) {
+		List<TableRow> ret = new ArrayList<TableRow>();
+		String filter = urlFilter(data);
+		//URL make sense only if sub domain has been selected
+		if(!filter.isEmpty()) {
+			String select="select * from (\r\n" + 
+					"select distinct val.Identifier as 'Lang',val.Label  as 'url','' as 'prefLabel'\r\n" + 
+					"from concept au\r\n" + 
+					"-- active activity\r\n" + 
+					"join closure clo on clo.childID=au.ID and clo.`Level`=2\r\n" + 
+					"join concept a on a.ID=clo.parentID and a.Active\r\n" + 
+					"-- values\r\n" + 
+					"join closure clo1 on clo1.parentID=au.ID and clo1.`Level`=1\r\n" + 
+					"join concept val on val.ID=clo1.childID\r\n" + 
+					"where\r\n" + 
+					"au.Identifier = 'activityurl' and\r\n" + 
+					"au.Active\r\n" + 
+					") t";
+			String where ="Lang='"+LocaleContextHolder.getLocale().toString().toUpperCase()+"' and\r\n" +
+									"url like '"+filter+"%'";
+			ret = jdbcRepo.qtbGroupReport(select, "", where, data.getUrls().getHeaders());
+		}else {
+			cleanUpUrl(data);
+		}
+		return ret;
 	}
 	/**
 	 * URLs for resources
@@ -178,15 +213,19 @@ public class AssistanceService {
 		String filter = urlFilter(data);
 		//URL make sense only if sub domain has been selected
 		if(!filter.isEmpty()) {
-			String select="select * from (\r\n" + 
+			String select="select distinct url, prefLabel from (\r\n" + 
 					"SELECT  \r\n" + 
 					"au.url as 'url',\r\n" + 
 					"au.prefLabel as 'prefLabel',\r\n" + 
-					"au.Lang as 'Lang'\r\n" + 
+					"au.Lang as 'Lang',\r\n" + 
+					"au.dict as 'Dict'\r\n" +
 					"FROM application_urls au\r\n" + 
 					") t";
 			String where="Lang='"+LocaleContextHolder.getLocale().toString().toUpperCase()+"'";
 			where = where +" and url like '"+filter+"%'";
+			if(data.getAssistant()==AssistantEnum.URL_HOST) {
+				where = where + " and Dict='dictionary.host.applications'";
+			}
 			ret = jdbcRepo.qtbGroupReport(select, "", where, data.getUrls().getHeaders());
 		}else {
 			cleanUpUrl(data);
@@ -284,6 +323,9 @@ public class AssistanceService {
 		data=headersSubDomainTable(data);
 		List<TableRow> rows = new ArrayList<TableRow>();
 		switch(data.getAssistant()) {
+		case URL_ACTIVITY:
+			rows=subDomainActivity(data);
+			break;
 		case URL_ANY:								// Any existing or not existing URL that is suit URL syntax
 		case URL_NEW:								//URL should suit the syntax, however does not exist
 			rows= subDomainAnyRows(data);
@@ -293,6 +335,7 @@ public class AssistanceService {
 			rows= subDomainDictRows(data);
 			break;
 		case URL_APPLICATION_ALL:			//Any existing or not existing URL for applications
+		case URL_HOST:
 			rows= subDomainApplRows(data);
 			break;
 		case URL_DATA_ANY:						//Any existing or not existing data configurations
@@ -309,7 +352,37 @@ public class AssistanceService {
 		urlFieldSet(data);
 		return data;
 	}
-
+	/**
+	 * Activity sub-domain
+	 * @param data
+	 * @return
+	 */
+	private List<TableRow> subDomainActivity(URLAssistantDTO data) {
+		List<TableRow> ret = new ArrayList<TableRow>();
+		String filter = subDomainFilter(data,2);
+		//sub domain make sense only if domain has been selected
+		if(!filter.isEmpty()) {
+			String select="select * from (\r\n" + 
+					"select distinct val.Identifier as 'Lang', SUBSTRING_INDEX(val.Label,'.',2) as 'subdomain'\r\n" + 
+					"from concept au\r\n" + 
+					"-- active activity\r\n" + 
+					"join closure clo on clo.childID=au.ID and clo.`Level`=2\r\n" + 
+					"join concept a on a.ID=clo.parentID and a.Active\r\n" + 
+					"-- values\r\n" + 
+					"join closure clo1 on clo1.parentID=au.ID and clo1.`Level`=1\r\n" + 
+					"join concept val on val.ID=clo1.childID\r\n" + 
+					"where\r\n" + 
+					"au.Identifier = 'activityurl' and\r\n" + 
+					"au.Active\r\n" + 
+					") t";
+			String where="subdomain like '"+filter+"%'\r\n"+
+								 "and Lang='"+LocaleContextHolder.getLocale().toString().toUpperCase()+"'";
+			ret = jdbcRepo.qtbGroupReport(select, "", where, data.getSubDomain().getHeaders());
+		}else {
+			cleanupSubdomain(data);
+		}
+		return ret;
+	}
 	/**
 	 * Sub domains for resources configuration
 	 * @param data
@@ -364,12 +437,16 @@ public class AssistanceService {
 		String filter = subDomainFilter(data,2);
 		//sub domain make sense only if domain has been selected
 		if(!filter.isEmpty()) {
-			String select="select * from (\r\n" + 
+			String select="select distinct subdomain from (\r\n" + 
 					"SELECT distinct\r\n" + 
-					"SUBSTRING_INDEX(apu.url,'.',2) as 'subdomain'\r\n" + 
+					"SUBSTRING_INDEX(apu.url,'.',2) as 'subdomain',\r\n" +
+					"apu.dict as 'Dict'\r\n" + 
 					"FROM application_urls apu\r\n" + 
 					")t";
 			String where="subdomain like '"+filter+"%'";
+			if(data.getAssistant()==AssistantEnum.URL_HOST) {
+				where = where + " and Dict='dictionary.host.applications'";
+			}
 			ret = jdbcRepo.qtbGroupReport(select, "", where, data.getSubDomain().getHeaders());
 		}else {
 			cleanupSubdomain(data);
@@ -461,6 +538,9 @@ public class AssistanceService {
 		data=headersDomainTable(data);
 		List<TableRow> rows = new ArrayList<TableRow>();
 		switch(data.getAssistant()) {
+		case URL_ACTIVITY:
+			rows=domainActivity(data);
+			break;
 		case URL_ANY:								// Any existing or not existing URL that is suit URL syntax
 		case URL_NEW:								//URL should suit the syntax, however does not exist
 			rows= domainAnyRows(data);
@@ -470,6 +550,7 @@ public class AssistanceService {
 			rows= domainDictRows(data);
 			break;
 		case URL_APPLICATION_ALL:			//Any existing or not existing URL for applications
+		case URL_HOST:
 			rows= domainApplRows(data);
 			break;
 		case URL_DATA_ANY:						//Any existing or not existing data configurations
@@ -485,6 +566,37 @@ public class AssistanceService {
 		prepareTable(data.getDomain(),data.getSelectedDomain() ,rows);
 		urlFieldSet(data);
 		return data;
+	}
+	/**
+	 * Existing URLs for activities
+	 * @param data
+	 * @return
+	 */
+	private List<TableRow> domainActivity(URLAssistantDTO data) {
+		List<TableRow> ret = new ArrayList<TableRow>();
+		if(!data.getOldValue().isEmpty()) {	//apply filters if ones
+			String filter=parseUrl(data.getOldValue(), 1);
+			for(TableHeader header : data.getDomain().getHeaders().getHeaders()) {
+				header.setGeneralCondition(filter);
+			}
+			data.setSelectedDomain(filter);
+		}
+		String select="select * from (\r\n" + 
+				"select distinct val.Identifier as 'Lang', SUBSTRING_INDEX(val.Label,'.',1) as 'domain'\r\n" + 
+				"from concept au\r\n" + 
+				"-- active activity\r\n" + 
+				"join closure clo on clo.childID=au.ID and clo.`Level`=2\r\n" + 
+				"join concept a on a.ID=clo.parentID and a.Active\r\n" + 
+				"-- values\r\n" + 
+				"join closure clo1 on clo1.parentID=au.ID and clo1.`Level`=1\r\n" + 
+				"join concept val on val.ID=clo1.childID\r\n" + 
+				"where\r\n" + 
+				"au.Identifier = 'activityurl' and\r\n" + 
+				"au.Active\r\n" + 
+				") t"; 
+		String where = "Lang='"+LocaleContextHolder.getLocale().toString().toUpperCase()+"'";
+		ret = jdbcRepo.qtbGroupReport(select, "", where, data.getDomain().getHeaders());
+		return ret;
 	}
 	/**
 	 * Existing file uploading resources
@@ -550,13 +662,17 @@ public class AssistanceService {
 			}
 			data.setSelectedDomain(filter);
 		}
-		String select="select * from (\r\n" + 
+		String select="select distinct domain from (\r\n" + 
 				"SELECT distinct\r\n" + 
 				"SUBSTRING_INDEX(apu.url,'.',1) as 'domain',\r\n" + 
-				"apu.Lang as 'Lang'\r\n" + 
+				"apu.Lang as 'Lang',\r\n" + 
+				"apu.dict as 'Dict'\r\n" + 
 				"FROM application_urls apu\r\n" + 
 				")t";
 		String where = "Lang='"+LocaleContextHolder.getLocale().toString().toUpperCase()+"'";
+		if(data.getAssistant()==AssistantEnum.URL_HOST) {
+			where = where + " and Dict='dictionary.host.applications'";
+		}
 		ret = jdbcRepo.qtbGroupReport(select, "", where, data.getDomain().getHeaders());
 		return ret;
 	}

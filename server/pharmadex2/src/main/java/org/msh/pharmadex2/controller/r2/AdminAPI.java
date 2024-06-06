@@ -26,6 +26,8 @@ import org.msh.pharmadex2.dto.Dict2DTO;
 import org.msh.pharmadex2.dto.DictNodeDTO;
 import org.msh.pharmadex2.dto.DictionariesDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
+import org.msh.pharmadex2.dto.ELAssistantBuildDTO;
+import org.msh.pharmadex2.dto.ELAssistantSelectDTO;
 import org.msh.pharmadex2.dto.FormatsDTO;
 import org.msh.pharmadex2.dto.ImportLocalesDTO;
 import org.msh.pharmadex2.dto.ImportWorkflowDTO;
@@ -56,6 +58,7 @@ import org.msh.pharmadex2.service.r2.AsyncService;
 import org.msh.pharmadex2.service.r2.ContentService;
 import org.msh.pharmadex2.service.r2.DWHService;
 import org.msh.pharmadex2.service.r2.DictService;
+import org.msh.pharmadex2.service.r2.ELAssistantService;
 import org.msh.pharmadex2.service.r2.ImportATCcodesService;
 import org.msh.pharmadex2.service.r2.ImportAdmUnitsService;
 import org.msh.pharmadex2.service.r2.ImportBService;
@@ -175,6 +178,8 @@ public class AdminAPI {
 	private AsyncService asyncService;
 	@Autowired
 	private ProcessComponentsService processComponents;
+	@Autowired
+	private ELAssistantService elAssistant;
 	/**
 	 * Tiles for landing page
 	 * 
@@ -453,26 +458,7 @@ public class AdminAPI {
 		return data;
 	}
 
-	/*	*//**
-	 * 2011-11-11 DEPRECATED and useless!!! Load activity or user data configuration
-	 * 
-	 * @param data
-	 * @return
-	 * @throws DataNotFoundException
-	 *//*
-						@PostMapping("/api/admin/thing/load")
-						public ThingDTO thingLoad(Authentication auth,@RequestBody ThingDTO data) throws DataNotFoundException {
-						if(data.getNodeId()>0) {
-							try {
-								UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-								data=superVisServ.thingLoad(data,user);
-							} catch (ObjectNotFoundException e) {
-								throw new DataNotFoundException(e);
-							}
-						}
-						return data;
-						}*/
-
+	
 	/**
 	 * Append an new created activity to workflow to the end of path
 	 * 
@@ -1315,6 +1301,22 @@ public class AdminAPI {
 		}
 	}
 	/**
+	 * URL assistance help
+	 * @return
+	 * @throws DataNotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value="/api/admin/help/elassistant", method = RequestMethod.GET)
+	public ResponseEntity<Resource> helpELAssistant() throws DataNotFoundException, IOException {
+		ResponseEntity<Resource> res;
+		try {
+			res = resourceServ.adminHelpELAssistant();
+			return res;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+	/**
 	 * Workflow Assistance help
 	 * @return
 	 * @throws DataNotFoundException
@@ -2143,8 +2145,74 @@ public class AdminAPI {
 	 * @throws DataNotFoundException 
 	 */
 	@PostMapping("/api/admin/resources/nodeid")
-	public DictNodeDTO dataCResourceNodeIdByUrl(@RequestBody DictNodeDTO data) throws DataNotFoundException{
+	public DictNodeDTO dataResourceNodeIdByUrl(@RequestBody DictNodeDTO data) throws DataNotFoundException{
 		data=superVisServ.dataResourceNodeIdByUrl(data);
 		return data;
+	}
+	/**
+	 * Show selected rows only in table vailableActivities 
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException 
+	 * @throws ObjectNotFoundException 
+	 */
+	@PostMapping("/api/admin/dictionaries/nodeid")
+	public DictNodeDTO dataDictionaryNodeIdByUrl(@RequestBody DictNodeDTO data) throws DataNotFoundException, ObjectNotFoundException{
+		data=superVisServ.dataDictNodeIdByUrl(data);
+		return data;
+	}
+	/**
+	 * Get workflows to build ELs
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/el/assitant/workflows")
+	public ELAssistantSelectDTO elAssistantWorkflows( @RequestBody ELAssistantSelectDTO data) throws DataNotFoundException {
+		try {
+			data=elAssistant.elAssistantWorkflows(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
+	/**
+	 * Build EL using selected workflow and user's choices
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/el/assitant/build")
+	public ELAssistantBuildDTO elAssistantBuild( @RequestBody ELAssistantBuildDTO data) throws DataNotFoundException {
+		try {
+			data=elAssistant.elAssistantBuild(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
+	/**
+	 * Test EL expression just built
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/el/assitant/test")
+	public ResponseEntity<Resource> elAssistanceTest(Authentication auth,@RequestBody ELAssistantBuildDTO data)
+			throws DataNotFoundException {
+		Resource res;
+		try {
+			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+			res = elAssistant.test(data,user);
+		} catch (IOException | ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return ResponseEntity.ok()
+				.contentType(MediaType.valueOf("application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
+				.header(HttpHeaders.CONTENT_DISPOSITION, "inline" + "; filename=\"" + "eltest.docx" + "\"")
+				.header("filename", "eltest.docx")
+				.body(res);
 	}
 }

@@ -11,6 +11,7 @@ import CollectorTable from './utils/CollectorTable'
 import DataVarTable from './dataconfig/DataVarTable'
 import DataCollForm from './dataconfig/DataCollForm'
 import ResourceFilling from './ResourceFilling'
+import Dictionary from './Dictionary'
 
 /**
  * Process validator
@@ -26,7 +27,8 @@ class ProcessValidator extends Component{
             data:{
                 dictNodeID:this.props.dictNodeID
             },    //ProcessComponentsDTO.java
-            collapse:[false,false,false],
+            dictData:{}, 
+            collapse:[false,false,false,false],
             labels:{
                 reload:'',
                 global_help:'',
@@ -34,6 +36,7 @@ class ProcessValidator extends Component{
                 global_details:'',
                 pages:'',
                 resources:'',
+                dictionaries:'',
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -47,6 +50,7 @@ class ProcessValidator extends Component{
         this.rightColumn=this.rightColumn.bind(this)
         this.dataFormConfiguration=this.dataFormConfiguration.bind(this)
         this.resource=this.resource.bind(this)
+        this.dictionary=this.dictionary.bind(this)
     }
 
     /**
@@ -258,11 +262,15 @@ class ProcessValidator extends Component{
                                 case 2:
                                     api='/api/admin/resources/nodeid'
                                     break
+                                case 3:
+                                    api='/api/admin/dictionaries/nodeid'
+                                    break
                                 default:
                             }
                             if(api.length>0){
                                 Fetchers.postJSON(api,{url:this.state.url,nodeId:0},(query,result)=>{
                                     this.state.selectedID=result.nodeId
+                                    this.state.dictData=result.dict
                                     this.setState(this.state)
                                 })
                             }
@@ -291,6 +299,11 @@ class ProcessValidator extends Component{
                 <Row>
                     <Col>
                         {this.table(this.state.data.resources, this.state.labels.resources,2)}
+                    </Col>
+                </Row>
+                <Row>
+                    <Col>
+                        {this.table(this.state.data.dictionaries, this.state.labels.dictionaries,3)}
                     </Col>
                 </Row>
             </Container>
@@ -322,6 +335,15 @@ resource(){
         return[]
     }
 }
+dictionary(){
+    if(this.state.selectedID>0){
+        return(
+        <Dictionary identifier={this.state.url} data={this.state.dictData} />
+)
+    }else{
+        return[]
+    }
+}
     /**
      * component designers
      */
@@ -344,6 +366,8 @@ resource(){
                         return this.dataFormConfiguration()
                     case 2:                 // Electronic form resource
                         return this.resource()
+                    case 3:                 // Electronic form resource
+                        return this.dictionary()
                     default:
                         return []
                 }

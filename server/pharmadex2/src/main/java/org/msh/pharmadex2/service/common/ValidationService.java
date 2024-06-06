@@ -111,7 +111,6 @@ public class ValidationService {
 	private JdbcRepository jdbcRepo;
 	@Autowired
 	private AmendmentService amendmentServ;
-
 	/**
 	 * ^[a-z]{1,} - первый символ всегда буква
 	 * [a-z0-9]* - далее буква или цыфра или _ или .
@@ -291,18 +290,6 @@ public class ValidationService {
 			dict.clearErrors();
 			dict.setStrict(strict);
 			if(dict.isRequired()) {
-				// 22.03.2023 by issue 1561 khomka
-				/*long sumIds=dict.getSelection().getValue().getId() * dict.getSelection().getValue().getOptions().size();		//value exists, list is empty
-				for(Long id : dict.getPrevSelected()) {
-					sumIds+=id;
-				}
-				if(sumIds==0 ) {
-					dict.setValid(false);
-					dict.setStrict(strict);
-					dict.setIdentifier(messages.get("error_dictionaryempty") +". "+ description);
-				}else {
-					dict.clearErrors();
-				}*/
 				if(dict.getPrevSelected().size() > 0) {
 					dict.clearErrors();
 				}else{
@@ -371,6 +358,7 @@ public class ValidationService {
 			if(str.getFileTypes().length()>0) {
 				data=checkPattern(data,str, data.getStrings(),  strict);
 			}
+			data=validConcurrenturl(data, strict, str);
 			if(str.isRequired()) {
 				mandatoryString(data, str, strict);
 			}
@@ -380,6 +368,7 @@ public class ValidationService {
 			if(lit.getFileTypes().length()>0) {
 				data=checkPattern(data,lit, data.getLiterals(),strict);
 			}
+			data=validConcurrenturl(data, strict, lit);
 			if(lit.isRequired()) {
 				mandatoryLiteral(data, lit,strict);
 			}
@@ -418,6 +407,7 @@ public class ValidationService {
 			if(dic.isRequired()) {
 				DictionaryDTO dict = data.getDictionaries().get(dic.getPropertyName());
 				dictionary(dict,dic.getDescription(),strict);
+				data=validBackground(data, strict, dic, dict);
 			}
 		}
 		List<AssemblyDTO> addrs = assemblyServ.auxAddresses(data.getUrl(),allAssms,dataConfigStored);
@@ -471,6 +461,77 @@ public class ValidationService {
 			}
 		}
 		data.propagateValidation();
+		return data;
+	}
+
+	private ThingDTO validBackground(ThingDTO data, boolean strict, AssemblyDTO dic, DictionaryDTO dict) {
+		if(dic.getPropertyName().equalsIgnoreCase(assemblyServ.ACTIVITY_CONFIG_FINALIZE)) {
+			List<TableRow> rows = dict.getTable().getRows();
+			for(TableRow r:rows) {
+				if(r.getSelected()) {
+					String p=r.getCellByKey("pref").getValue();
+					if(!p.equalsIgnoreCase("NO")) {
+						Map<String, FormFieldDTO<OptionDTO>> fields=data.getLogical();
+						FormFieldDTO<OptionDTO> fld=fields.get("background");
+						if(fld!=null) {
+							String c=fld.getValue().getCode().trim();
+							if(c.equalsIgnoreCase("yes")) {
+								data.setValid(false);
+								data.setIdentifier(messages.get("invalidfinalactiv_background"));
+								  fld.setError(true);
+								  fld.setSuggest(messages.get("invalidfinalactiv_background"));
+								  fld.setStrict(strict);
+								  helpLogical(fld,fld.getDescription());
+								 
+							}
+						}
+					}
+				}
+			}
+		}
+		return data;
+	}
+/**
+ * The first workflow activity should not have a CONCURRENTURL
+ * @param data
+ * @param strict
+ * @param str
+ * @return
+ */
+	private ThingDTO validConcurrenturl(ThingDTO data, boolean strict, AssemblyDTO str) {
+		if(str.getPropertyName().equalsIgnoreCase(assemblyServ.CONCURRENTURL) && data.getUrl().equalsIgnoreCase(assemblyServ.ACTIVITY_CONFIGURATION)) {
+			Map<String, FormFieldDTO<String>> fields= data.getStrings();
+			FormFieldDTO<String> fld=fields.get(str.getPropertyName());
+			if(fld!=null) {
+				String value= fld.getValue();
+				if(value.length()>0) {
+					if(data.getParentId()==0) {
+						data.setValid(false);
+						data.setIdentifier(messages.get("invalidconcurrentURL"));
+						fld.setError(true);
+						fld.setSuggest(messages.get("invalidconcurrentURL"));
+						fld.setStrict(strict);
+						help(fld, str.getDescription());
+					}else {
+						Map<String, FormFieldDTO<OptionDTO>> fieldsL=data.getLogical();
+						FormFieldDTO<OptionDTO> fldL=fieldsL.get("background");
+						if(fldL!=null) {
+							String c=fldL.getValue().getCode().trim();
+							if(c.equalsIgnoreCase("yes")) {
+								data.setValid(false);
+								data.setIdentifier(messages.get("invalidconcurrentURL_background"));
+								  fldL.setError(true);
+								  fldL.setSuggest(messages.get("invalidconcurrentURL_background"));
+								  fldL.setStrict(strict);
+								  helpLogical(fldL,fldL.getDescription());
+								 
+							}
+						}
+					}
+				}
+			}
+		}
+		
 		return data;
 	}
 	/**
@@ -971,6 +1032,12 @@ public class ValidationService {
 	 * @param description
 	 */
 	private void help(FormFieldDTO<String> data, String description) {
+		String suggest = data.getSuggest();
+		if(description.length()>0) {
+			data.setSuggest(suggest+" "+description);
+		}		
+	}
+	private void helpLogical(FormFieldDTO<OptionDTO> data, String description) {
 		String suggest = data.getSuggest();
 		if(description.length()>0) {
 			data.setSuggest(suggest+" "+description);

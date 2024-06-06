@@ -177,6 +177,12 @@ public class AssemblyService {
 			doc1.setUrl("/shablon/ATC_DDD_2021_WHO.xlsx"); 
 			ret.add(doc1); 
 		}
+		if(url.equalsIgnoreCase(SYSTEM_IMPORT_LEGACY_DATA)) {
+			AssemblyDTO doc1 = new AssemblyDTO(); 
+			doc1.setPropertyName("templateupload");
+			doc1.setUrl("/shablon/LegacyImportTemplate.xlsx"); 
+			ret.add(doc1); 
+		}
 		//*********************************** read from configuration ***************************************************
 		if(ret.size()==0) {
 			//List<Assembly> assms =loadDataConfiguration(url);
@@ -227,6 +233,7 @@ public class AssemblyService {
 				fld.setReadOnly(false);
 				fld.setTextArea(false);
 				fld.setPropertyName("activityurl");
+				fld.setAssistant(AssistantEnum.URL_ACTIVITY);
 				ret.add(fld);	
 			}
 			{
@@ -235,6 +242,7 @@ public class AssemblyService {
 				fld.setReadOnly(false);
 				fld.setTextArea(false);
 				fld.setPropertyName("checklisturl");
+				fld.setAssistant(AssistantEnum.URL_DICTIONARY_ALL);
 				ret.add(fld);	
 			}
 			{
@@ -243,6 +251,7 @@ public class AssemblyService {
 				fld.setReadOnly(false);
 				fld.setTextArea(false);
 				fld.setPropertyName("dataurl");
+				fld.setAssistant(AssistantEnum.URL_DATA_ANY);
 				ret.add(fld);	
 			}
 			{
@@ -258,6 +267,7 @@ public class AssemblyService {
 				fld.setRequired(false);
 				fld.setReadOnly(false);
 				fld.setTextArea(false);
+				fld.setAssistant(AssistantEnum.URL_HOST);
 				fld.setPropertyName(CONCURRENTURL);
 				ret.add(fld);	
 			}
@@ -910,6 +920,7 @@ public class AssemblyService {
 			//file uploader and r/o field for messages output
 			LayoutRowDTO row= new LayoutRowDTO();
 			LayoutCellDTO cell1 = new LayoutCellDTO();
+			cell1.getVariables().add("templateupload");
 			cell1.getVariables().add(DATAIMPORT_DATA);
 			cell1.getVariables().add(DATAIMPORT_RESULT);
 			row.getCells().add(cell1);

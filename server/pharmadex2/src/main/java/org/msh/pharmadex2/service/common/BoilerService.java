@@ -67,7 +67,6 @@ import org.msh.pdex2.repository.r2.ThingRepo;
 import org.msh.pdex2.repository.r2.ThingSchedulerRepo;
 import org.msh.pdex2.repository.r2.ThingThingRepo;
 import org.msh.pdex2.services.r2.ClosureService;
-import org.msh.pharmadex2.dto.DictNodeDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.FileResourceDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
@@ -79,7 +78,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import com.github.binodnme.dateconverter.converter.DateConverter;
 import com.github.binodnme.dateconverter.utils.DateBS;
 import com.github.eloyzone.jalalicalendar.DateConverterPers;
@@ -140,7 +138,7 @@ public class BoilerService {
 	private PubOrgRepo pubOrgRepo;
 	@Autowired
 	private LegacyDataRepo legacyRepo;
-
+	
 	/**
 	 * Convert resource bundle to DTO
 	 * @param bundle
@@ -1603,5 +1601,4 @@ public class BoilerService {
 		String formattedDate = localDate.atStartOfDay().atOffset(ZoneOffset.UTC).format(formatter);
         return formattedDate;
 	}
-	
 }

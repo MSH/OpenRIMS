@@ -14,5 +14,7 @@ public enum AssistantEnum {
 	URL_APPLICATION_ALL,			//Any existing or not existing URL for applications
 	URL_DATA_ANY,						//Any existing or not existing data configurations
 	URL_DATA_NEW,						//data URL should not be existing
-	URL_RESOURCE_NEW				//A file resource should be new new
+	URL_RESOURCE_NEW,				//A file resource should be new new
+	URL_ACTIVITY,							//existing or new activity URL
+	URL_HOST								//HOST Applications for concurrent run
 }

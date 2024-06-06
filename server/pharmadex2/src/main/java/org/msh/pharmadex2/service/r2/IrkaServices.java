@@ -4,22 +4,16 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 import org.msh.pdex2.exception.ObjectNotFoundException;
-import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.r2.Concept;
-import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.RegisterDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
-import org.msh.pharmadex2.service.common.BoilerService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class IrkaServices {
-	private static final Logger logger = LoggerFactory.getLogger(IrkaServices.class);
 	@Autowired
 	private ClosureService closureServ;
 	/**
@@ -72,5 +66,4 @@ public class IrkaServices {
 		data.getReg_number().setValue(data.getNumberPrefix()+numStr+"-"+yearStr);
 		return data;
 	}
-
 }

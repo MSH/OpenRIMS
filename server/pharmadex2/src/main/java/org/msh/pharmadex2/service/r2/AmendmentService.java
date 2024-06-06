@@ -55,6 +55,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
@@ -83,7 +84,8 @@ public class AmendmentService {
 	private ThingAmendmentRepo thingAmendmentRepo;
 	@Autowired
 	private DtoService dtoServ;
-
+	@Autowired
+	private ObjectMapper objectMapper;
 	/**
 	 * Save an amendment data
 	 * 
@@ -923,8 +925,10 @@ public class AmendmentService {
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException
+	 * @throws JsonProcessingException 
+	 * @throws JsonMappingException 
 	 */
-	public AmendmentNewDTO proposeAdd(UserDetailsDTO user, AmendmentNewDTO data) throws ObjectNotFoundException {
+	public AmendmentNewDTO proposeAdd(UserDetailsDTO user, AmendmentNewDTO data) throws ObjectNotFoundException, JsonMappingException, JsonProcessingException{
 		data = proposeApplications(user, data);
 		if (data.getDataNodeId() > 0) {
 			return proposeDataUnit(data);
@@ -940,9 +944,11 @@ public class AmendmentService {
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException
+	 * @throws JsonProcessingException 
+	 * @throws JsonMappingException 
 	 */
 	@Transactional
-	private AmendmentNewDTO proposeDataUnit(AmendmentNewDTO data) throws ObjectNotFoundException {
+	private AmendmentNewDTO proposeDataUnit(AmendmentNewDTO data) throws ObjectNotFoundException, JsonMappingException, JsonProcessingException{
 		if (data.getDataNodeId() > 0 && data.getDictItemId() > 0) {
 			// prepare data units
 			Concept dataNode = closureServ.loadConceptById(data.getDataNodeId());
@@ -959,6 +965,16 @@ public class AmendmentService {
 			String modiUrl = literalServ.readValue("url", dictNode);
 			// for all data units, search possibility to modify
 			for (DataUnitDTO du : dataNodes) {
+				//? storedConfigData
+				Concept nodeDu = closureServ.loadConceptById(du.getNodeId());
+				//List<AssemblyDTO> storedConfig = loadDataConfigurationFromNode(nodeDu.getID());
+				if(nodeDu.getLabel()!=null) {
+					try {
+					du=objectMapper.readValue(nodeDu.getLabel(), DataUnitDTO.class);
+					} catch (JsonProcessingException e) {
+						//nothing to do
+					}
+				}//? storedConfigData
 				if (dataUrl.length() > 0 && modiUrl.length() > 0) {
 					if (canBeModified(du.getUrl(), modiUrl)) {
 						TableRow row = dataUnitRow(du);
@@ -973,7 +989,7 @@ public class AmendmentService {
 		data.getDataUnits().setSelectable(false);
 		return data;
 	}
-
+	
 	/**
 	 * Create a list of all root and auxiliary data nodes
 	 * @param appldata

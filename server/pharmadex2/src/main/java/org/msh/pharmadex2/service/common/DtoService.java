@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 /**
  * A collection of methods to create DTOs
  * The creation is mainly from entities
@@ -49,7 +50,7 @@ public class DtoService {
 	BoilerService boilerServ;
 	@Autowired
 	Messages messages;
-
+	
 	/**
 	 * Create optionDTO in the current language from the list of dictionary nodes
 	 * Any dictionary node may contain:
@@ -284,7 +285,7 @@ public class DtoService {
 		data.getLiterals().clear();
 		if(literals != null) {
 			for(AssemblyDTO ad : literals) {
-				FormFieldDTO<String> fld = FormFieldDTO.of("", ad.isReadOnly(), ad.isTextArea());
+				FormFieldDTO<String> fld = FormFieldDTO.of("", ad.isReadOnly(), ad.isTextArea(),ad.getAssistant());
 				data.getLiterals().put(ad.getPropertyName(), fld);
 			}
 		}
@@ -300,7 +301,7 @@ public class DtoService {
 		data.getStrings().clear();
 		if(strings != null) {
 			for(AssemblyDTO ad : strings) {
-				FormFieldDTO<String> fld = FormFieldDTO.of("", ad.isReadOnly(), ad.isTextArea());
+				FormFieldDTO<String> fld = FormFieldDTO.of("", ad.isReadOnly(), ad.isTextArea(), ad.getAssistant());
 				data.getStrings().put(ad.getPropertyName(), fld);
 			}
 		}
@@ -693,7 +694,4 @@ public class DtoService {
 		ret.setAuxDataUrl(assm.getAuxDataUrl());
 		return ret;
 	}
-
-	
-
 }

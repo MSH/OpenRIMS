@@ -630,5 +630,14 @@ public class ResourceService {
 	public ResponseEntity<Resource> adminHelpImportATC() throws ObjectNotFoundException, IOException {
 		return downloadFile("atc.import","ATCImport.pdf");
 	}
+	/**
+	 * EL Assistant help
+	 * @return
+	 * @throws IOException 
+	 * @throws ObjectNotFoundException 
+	 */
+	public ResponseEntity<Resource> adminHelpELAssistant() throws ObjectNotFoundException, IOException {
+		return downloadFile("el.assistant","elassistant.pdf");
+	}
 
 }

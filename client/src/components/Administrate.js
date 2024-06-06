@@ -30,6 +30,7 @@ import Formats from './Formats'
 import ReassignUsers from './ReassignUsers'
 import Import_Messages from './Import_Messages'
 import ReassignActivities from './ReassignActivities'
+import ELAssistant from './ELAssistant'
 
 /**
  * Administrative functions for the supervisor
@@ -72,6 +73,7 @@ class Administrate extends Component{
                 reassignusers:'',
                 importLocales:'',
                 reassignactivities:'',
+                elassistance:'',
             },
             isOpen:false,
             menu:'',
@@ -100,6 +102,8 @@ class Administrate extends Component{
                 return <Processes/>
             case "resources":
                 return <Resources />
+            case "elassistant":
+                return <ELAssistant />
             case "workflowconfigurator":
                 parStr = Navigator.parameterValue()
                 params=JSON.parse(parStr)
@@ -318,6 +322,17 @@ class Administrate extends Component{
                                                         <div>
                                                             <i className="fas fa-xs fa-boxes mr-1"></i>
                                                             {this.state.labels.resources}
+                                                        </div>
+                                                    </NavLink>
+                                                </NavItem>
+                                            </DropdownItem>
+                                            <DropdownItem>
+                                                <NavItem>
+                                                    <NavLink active={this.state.menu=='resources'}
+                                                                    href="/admin#administrate/elassistant">
+                                                        <div>
+                                                            <i className="fas fa-xs fa-file-word mr-1"></i>
+                                                            {this.state.labels.elassistance}
                                                         </div>
                                                     </NavLink>
                                                 </NavItem>

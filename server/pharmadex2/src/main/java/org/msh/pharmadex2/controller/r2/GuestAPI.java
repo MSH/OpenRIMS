@@ -53,6 +53,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 
 //import com.fasterxml.jackson.core.JsonProcessingException;
 @RestController
@@ -314,9 +315,11 @@ public class GuestAPI {
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException
+	 * @throws JsonProcessingException 
+	 * @throws JsonMappingException 
 	 */
 	@PostMapping("/api/*/amendment/propose/add")
-	public AmendmentNewDTO amendmentProposeAdd(Authentication auth, @RequestBody AmendmentNewDTO data) throws DataNotFoundException {
+	public AmendmentNewDTO amendmentProposeAdd(Authentication auth, @RequestBody AmendmentNewDTO data) throws DataNotFoundException, JsonMappingException, JsonProcessingException {
 		UserDetailsDTO user =userServ.userData(auth, new UserDetailsDTO());
 			try {
 				data=amendServ.proposeAdd(user, data);

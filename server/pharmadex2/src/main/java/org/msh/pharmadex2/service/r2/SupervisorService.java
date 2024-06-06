@@ -35,6 +35,7 @@ import org.msh.pharmadex2.dto.AboutDTO;
 import org.msh.pharmadex2.dto.DataCollectionDTO;
 import org.msh.pharmadex2.dto.DataConfigDTO;
 import org.msh.pharmadex2.dto.DataPreviewDTO;
+import org.msh.pharmadex2.dto.DataUnitDTO;
 import org.msh.pharmadex2.dto.DataVariableDTO;
 import org.msh.pharmadex2.dto.DictNodeDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
@@ -61,6 +62,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 
 /**
  * Services for supervisor
@@ -1206,10 +1208,16 @@ public class SupervisorService {
 	@Transactional
 	public void messagesLostAddToBundle(String key, String value, ResourceBundle bundle) {
 		ResourceMessage mess = new ResourceMessage();
+		List<ResourceMessage> messlist=resourceMessageRepo.findByMessage_key(key, bundle.getId());
+		if(messlist.size()!=0) {
+			mess=messlist.get(0);
+		}
 		mess.setMessage_key(key);
 		mess.setMessage_value(value);
 		resourceMessageRepo.save(mess);
-		bundle.getMessages().add(mess);
+		if(messlist.size()==0) {
+			bundle.getMessages().add(mess);
+		}
 	}
 
 	/**
@@ -1255,7 +1263,7 @@ public class SupervisorService {
 	@Transactional
 	public DictNodeDTO dataConfigNodeIdByUrl(DictNodeDTO data) {
 		String select = "SELECT ID \r\n" + 
-				"FROM pdx2.dataconfig_all dc";
+				"FROM dataconfig_all dc";
 		String where="dc.Identifier='"+data.getUrl()+"'";
 		List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", where, new Headers());
 		if(rows.size()==1) {
@@ -1268,7 +1276,7 @@ public class SupervisorService {
 
 	public DictNodeDTO dataResourceNodeIdByUrl(DictNodeDTO data) {
 		String select = "SELECT ID \r\n" + 
-				"FROM pdx2.resources dc";
+				"FROM resources dc";
 		String where="dc.url='"+data.getUrl()+"' and dc.lang='"+LocaleContextHolder.getLocale().toString().toUpperCase()+"'";
 		List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", where, new Headers());
 		if(rows.size()==1) {
@@ -1278,5 +1286,22 @@ public class SupervisorService {
 		}
 		return data;
 	}
-
+	
+	public DictNodeDTO dataDictNodeIdByUrl(DictNodeDTO data) throws ObjectNotFoundException {
+		String select = "SELECT ID \r\n" + 
+				"FROM alldictionary dc";
+		String where="dc.url='"+data.getUrl()+"' and dc.lang='"+LocaleContextHolder.getLocale().toString().toUpperCase()+"'";
+		List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", where, new Headers());
+		if(rows.size()==1) {
+			data.setNodeId(rows.get(0).getDbID());
+			DictionaryDTO dict = new DictionaryDTO();
+			dict.setUrlId(rows.get(0).getDbID());
+			dict.setUrl(data.getUrl());
+			data.setDict(dictServ.createDictionary(dict));
+			dict=dictServ.page(dict);
+		}else {
+			data.setNodeId(-1l);
+		}
+		return data;
+	}
 }

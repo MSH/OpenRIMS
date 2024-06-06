@@ -28,6 +28,7 @@ public class ProcessComponentsDTO extends AllowValidation {
 	private FormFieldDTO<String> applDescr=FormFieldDTO.of("");	//application description
 	private TableQtb dataConfigurations = new TableQtb();			//table for data configuration
 	private TableQtb resources = new TableQtb();			//table for resources
+	private TableQtb dictionaries = new TableQtb();			//table for dictionaries
 	public FormFieldDTO<String> getDictURL() {
 		return dictURL;
 	}
@@ -82,4 +83,11 @@ public class ProcessComponentsDTO extends AllowValidation {
 	public void setResources(TableQtb resources) {
 		this.resources = resources;
 	}
+	public TableQtb getDictionaries() {
+		return dictionaries;
+	}
+	public void setDictionaries(TableQtb dictionaries) {
+		this.dictionaries = dictionaries;
+	}
+	
 }

@@ -1731,13 +1731,14 @@ public class SubmitService {
 	@Transactional
 	public void cancelActivities(History curHis) throws ObjectNotFoundException {
 		List<History> allHis = boilerServ.historyAllByApplication(curHis.getApplication());
+		appServ.closeActivity(curHis, false);
 		// close activities in the current
 		for (History his : allHis) {
 			if (his.getID() != curHis.getID() && his.getGo() == null) {
 				appServ.closeActivity(his, true);
 			}
 		}
-		appServ.closeActivity(curHis, false);
+		//appServ.closeActivity(curHis, false);
 	}
 
 	/**

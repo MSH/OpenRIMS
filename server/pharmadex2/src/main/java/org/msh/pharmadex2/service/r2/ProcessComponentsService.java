@@ -1,16 +1,12 @@
 package org.msh.pharmadex2.service.r2;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import javax.transaction.Transactional;
-
 import org.msh.pdex2.dto.table.Headers;
 import org.msh.pdex2.dto.table.TableCell;
 import org.msh.pdex2.dto.table.TableHeader;
@@ -24,6 +20,7 @@ import org.msh.pharmadex2.dto.ProcessComponentsDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 /**
  * Responsible for process components collection
  * The front end is ProcessValidator.js
@@ -51,10 +48,83 @@ public class ProcessComponentsService {
 		data=loadDetails(data);
 		data=loadPages(data);
 		data=loadResources(data);
-		//TODO data=loadDictionaries(data);
+		data=loadDictionaries(data);
 		return data;
 	}
-	
+	/**
+	 * Dictionaries are:
+	 * <ul>
+	 * <li>check lists for application form and workflow forms
+	 * <li>dictionaries defined in pages of the application form and workflow forms
+	 * <li>dictionaries defined for "documents" 
+	 * </ul>
+	 * @param data
+	 * @return
+	 */
+	private ProcessComponentsDTO loadDictionaries(ProcessComponentsDTO data) {
+		//check lists
+		jdbcRepo.importWF_activities(data.getDictNodeID());
+		String select= "select distinct dicturl as 'url' from importwf_activities";
+		List<TableRow> checkListRows=jdbcRepo.qtbGroupReport(select, "", "", headersToSelectUrls());
+		//defined in the pages
+		String selectPageDict = "SELECT distinct ClazzUrl as 'url' \r\n" + 
+				"FROM page_clazz_url pcu\r\n" + 
+				"where \r\n" + 
+				"Clazz='dictionaries' and\r\n" + 
+				"PageUrl in " +createInCriteriaFromRows(data.getDataConfigurations().getRows());
+		List<TableRow> dictPagesRows=jdbcRepo.qtbGroupReport(selectPageDict, "", "", headersToSelectUrls());
+		//defined for "documents"
+		String selectDocDict = "SELECT distinct DictUrl as 'url' \r\n" + 
+				"FROM page_clazz_url pcu\r\n" + 
+				"where \r\n" + 
+				"pcu.Clazz='documents' and\r\n" + 
+				"PageUrl in " + createInCriteriaFromRows(data.getDataConfigurations().getRows());
+		List<TableRow> docDictRows=jdbcRepo.qtbGroupReport(selectDocDict, "", "", headersToSelectUrls());
+		// check definitions of dictionaries
+		List<TableRow> dictUrls = new ArrayList<TableRow>();
+		dictUrls.addAll(checkListRows);
+		dictUrls.addAll(dictPagesRows);
+		dictUrls.addAll(docDictRows);
+		String definedDict="select c.Identifier as 'url'\r\n" + 
+				"from concept c\r\n" + 
+				"left join closure clo on clo.childID=c.ID and clo.`Level`=1\r\n" + 
+				"join closure clo1 on clo1.parentID=c.ID and clo1.`Level`=1\r\n" + 
+				"left join concept item on item.ID=clo1.childID and item.Identifier != '_LITERALS_' and item.Active\r\n" + 
+				"where \r\n" + 
+				"c.Active and\r\n" + 
+				"c.Identifier like 'dictionary.%' \r\n" + 
+				"group by c.Identifier\r\n" + 
+				"having count(item.ID)>0";
+		List<TableRow> definedDictRows=jdbcRepo.qtbGroupReport(definedDict, "", "", headersToSelectUrls());
+		//collect urls of defined and required dictionaries
+		Set<String> definedUrls=urlsFromRows(definedDictRows);
+		Set<String> requiredUrls = urlsFromRows(dictUrls);
+		//create output table
+		if(data.getDictionaries().getHeaders().getHeaders().isEmpty()) {
+			data.getDictionaries().setHeaders(headersOnScreenTable());
+		}
+		long i =1;
+		List<TableRow> rows = new ArrayList<TableRow>();
+		for(String url :requiredUrls) {
+			TableRow row = TableRow.instanceOf(i);
+			row.getRow().add(TableCell.instanceOf("url",url));
+			row.getRow().add(TableCell.instanceOf("good",definedUrls.contains(url)));
+			rows.add(row);
+			i++;
+		}
+		Collections.sort(rows, new Comparator<TableRow>() {
+
+			@Override
+			public int compare(TableRow o1, TableRow o2) {
+				return o1.getRow().get(0).getValue().compareTo(o2.getRow().get(0).getValue());
+			}
+
+		});
+		TableQtb.tablePage(rows, data.getDictionaries());
+		data.getDictionaries().setSelectable(false);
+		return data;
+	}
+
 	/**
 	 * Load resources existing and not existing
 	 * The not existing is a resource with no files loaded
@@ -81,7 +151,21 @@ public class ProcessComponentsService {
 	 * @return
 	 */
 	@Transactional
-	private ProcessComponentsDTO loadPages(ProcessComponentsDTO data) {
+	public ProcessComponentsDTO loadPages(ProcessComponentsDTO data) {
+		List<TableRow> rows = pagesRows(data);
+		TableQtb.tablePage(rows, data.getDataConfigurations());
+		data.getDataConfigurations().setSelectable(false);
+		return data;
+	}
+	/**
+	 * get rows for data configuration table
+	 * @param data
+	 * @return
+	 */
+	@Transactional
+	public List<TableRow> pagesRows(ProcessComponentsDTO data) {
+		//result rows
+		List<TableRow> rows = new ArrayList<TableRow>();
 		//get all data URLs
 		jdbcRepo.importWF_activities(data.getDictNodeID());
 		String select= "select distinct dataurl as url from importwf_activities";
@@ -90,7 +174,7 @@ public class ProcessComponentsService {
 			// get all aux data urls (
 			String where="mainUrl in "+createInCriteriaFromRows(mainPages);
 			select="SELECT distinct auxUrl as 'url' \r\n" + 
-					"FROM pdx2.dataconfig_auxdata";
+					"FROM dataconfig_auxdata";
 			List<TableRow> auxPages = jdbcRepo.qtbGroupReport(select, "", where, headersToSelectUrls());
 			//collect main and aux data urls and get other pages
 			List<TableRow> mainAndAuxPages = new ArrayList<TableRow>();
@@ -98,7 +182,7 @@ public class ProcessComponentsService {
 			mainAndAuxPages.addAll(auxPages);
 			where="mainUrl in "+createInCriteriaFromRows(mainAndAuxPages);
 			select="SELECT distinct url\r\n" + 
-					"FROM pdx2.dataconfig_things";
+					"FROM dataconfig_things";
 			List<TableRow> otherPages = jdbcRepo.qtbGroupReport(select, "", where, headersToSelectUrls());
 			//collect all pages need for the application and get pages for which configuration is defined
 			List<TableRow> applicationPages=new ArrayList<TableRow>();
@@ -106,7 +190,7 @@ public class ProcessComponentsService {
 			applicationPages.addAll(otherPages);
 			where="url in "+createInCriteriaFromRows(applicationPages);
 			select="SELECT url \r\n" + 
-					"FROM pdx2.dataconfig_defined";
+					"FROM dataconfig_defined";
 			List<TableRow> definedPages =jdbcRepo.qtbGroupReport(select, "", where, headersToSelectUrls());
 			//collect urls of required and defined pages
 			Set<String> applPageUrls=urlsFromRows(applicationPages);
@@ -116,7 +200,6 @@ public class ProcessComponentsService {
 				data.getDataConfigurations().setHeaders(headersOnScreenTable());
 			}
 			long i =1;
-			List<TableRow> rows = new ArrayList<TableRow>();
 			for(String url :applPageUrls) {
 				TableRow row = TableRow.instanceOf(i);
 				row.getRow().add(TableCell.instanceOf("url",url));
@@ -130,12 +213,10 @@ public class ProcessComponentsService {
 				public int compare(TableRow o1, TableRow o2) {
 					return o1.getRow().get(0).getValue().compareTo(o2.getRow().get(0).getValue());
 				}
-				
+
 			});
-			TableQtb.tablePage(rows, data.getDataConfigurations());
-			data.getDataConfigurations().setSelectable(false);
 		}
-		return data;
+		return rows;
 	}
 	/**
 	 * Headers for on screen tables
