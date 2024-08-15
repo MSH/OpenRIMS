@@ -75,8 +75,8 @@ public class ThingDTO extends AllowValidation {
 	private Map<String,RegisterDTO> registers = new LinkedHashMap<String, RegisterDTO>();												//filing system registers
 	private Map<String,AtcDTO> atc = new LinkedHashMap<String, AtcDTO>();																		//atc codes
 	private Map<String, LegacyDataDTO> legacy = new LinkedHashMap<String, LegacyDataDTO>();										//list of legacy applications to import
-	private Map<String, IntervalDTO> intervals = new LinkedHashMap<String, IntervalDTO>();
-	private Map<String, LinksDTO> links = new LinkedHashMap<String, LinksDTO>();	
+	private Map<String, IntervalDTO> intervals = new LinkedHashMap<String, IntervalDTO>();												//date intervals
+	private Map<String, LinksDTO> links = new LinkedHashMap<String, LinksDTO>();																//links to external data
 	private Map<String, FormFieldDTO<OptionDTO>> droplist = new LinkedHashMap<String, FormFieldDTO<OptionDTO>>();// dropdown list Dictionary																									//action bar for it @depricated
 	
 	//The main static path - things that should be filled

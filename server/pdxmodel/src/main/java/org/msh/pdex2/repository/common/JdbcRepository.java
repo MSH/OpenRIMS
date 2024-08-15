@@ -32,6 +32,7 @@ import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedCaseInsensitiveMap;
@@ -43,8 +44,9 @@ import org.springframework.util.LinkedCaseInsensitiveMap;
  * @author Alex Kurasoff
  *
  */
-@Repository
-@Transactional
+@Service
+//@Repository
+//@Transactional
 public class JdbcRepository {
 	private static final Logger logger = LoggerFactory.getLogger(JdbcRepository.class);
 	@Autowired
@@ -93,7 +95,7 @@ public class JdbcRepository {
 	 * @param headers for additional where filters and 
 	 * @return
 	 */
-	@Transactional
+	//@Transactional
 	public List<TableRow> qtbGroupReport(String select, String groupByHaving, String mainWhere, Headers headers){
 		String sql=createFullSelect(select, groupByHaving, mainWhere, headers);
 		return selectQuery(sql, headers);
@@ -117,7 +119,7 @@ public class JdbcRepository {
 	 * @param headers
 	 * @return
 	 */
-	@Transactional
+	//@Transactional
 	public List<TableRow> selectQuery(String select, Headers headers){
 		List<TableRow> ret = new ArrayList<TableRow>();
 		ret = jdbcTemplate.query(select, new QtbRowMapper(headers));
@@ -252,9 +254,9 @@ public class JdbcRepository {
 		String data="";
 		for(TableHeader header : headers){
 			if(columns.length()==0){
-				columns=header.getKey();
+				columns=header.getQuotedKey();
 			}else{
-				columns=columns+","+header.getKey();
+				columns=columns+","+header.getQuotedKey();
 			}
 			if(data.length()==0){
 				data="?";

@@ -8,8 +8,8 @@
  */
 
 /**
- * Licensee: DuKe TeAm
- * License Type: Purchased
+ * Licensee: 
+ * License Type: Evaluation
  */
 package org.msh.pdex2.model.r2;
 
@@ -18,28 +18,27 @@ import javax.persistence.*;
 @Entity
 @org.hibernate.annotations.Proxy(lazy=false)
 @Table(name="thinglegacydata")
-@Inheritance(strategy=InheritanceType.SINGLE_TABLE)
 public class ThingLegacyData implements Serializable {
 	public ThingLegacyData() {
 	}
 	
-	@Column(name="ID", nullable=false)	
+	@Column(name="ID", nullable=false, length=19)	
 	@Id	
-	@GeneratedValue(generator="VAC22227718DA768E98E02BEC")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22227718DA768E98E02BEC", strategy="native")	
+	@GeneratedValue(generator="ORG_MSH_PDEX2_MODEL_R2_THINGLEGACYDATA_ID_GENERATOR")	
+	@org.hibernate.annotations.GenericGenerator(name="ORG_MSH_PDEX2_MODEL_R2_THINGLEGACYDATA_ID_GENERATOR", strategy="native")	
 	private long ID;
-	
-	@OneToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
-	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.SAVE_UPDATE, org.hibernate.annotations.CascadeType.LOCK})	
-	@JoinColumns({ @JoinColumn(name="conceptID") })	
-	@Basic(fetch=FetchType.LAZY)	
-	private org.msh.pdex2.model.r2.Concept concept;
 	
 	@Column(name="VarName", nullable=true, length=255)	
 	private String varName;
 	
 	@Column(name="Url", nullable=true, length=255)	
 	private String url;
+	
+	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class, fetch=FetchType.LAZY)	
+	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.LOCK})	
+	@JoinColumns(value={ @JoinColumn(name="conceptID", referencedColumnName="ID", nullable=false) }, foreignKey=@ForeignKey(name="FKthinglegac41517"))	
+	@org.hibernate.annotations.LazyToOne(value=org.hibernate.annotations.LazyToOneOption.NO_PROXY)	
+	private org.msh.pdex2.model.r2.Concept concept;
 	
 	private void setID(long value) {
 		this.ID = value;

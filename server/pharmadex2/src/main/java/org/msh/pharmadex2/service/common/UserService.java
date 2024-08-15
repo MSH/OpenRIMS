@@ -22,7 +22,7 @@ import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.enums.YesNoNA;
-import org.msh.pdex2.model.old.User;
+import org.msh.pdex2.model.r2.User;
 import org.msh.pdex2.model.old.User_role;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.PasswordsTemporary;
@@ -1049,6 +1049,7 @@ public class UserService implements UserDetailsService {
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
+	@Transactional
 	public AskForPass temporaryPassword(AskForPass data){
 		try {
 			data.clearErrors();
@@ -1115,7 +1116,6 @@ public class UserService implements UserDetailsService {
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	@Transactional
 	private AskForPass loadUserByEmail(AskForPass data) throws ObjectNotFoundException {
 		data = temporaryPasswordCreate(data);
 		
@@ -1179,16 +1179,17 @@ public class UserService implements UserDetailsService {
 		return dto;
 	}
 
-	@Transactional
 	private TableRow companyUserData(String email) {
-		jdbcRepo.company_users();
-		String select="select * from company_users where useremail='"+email+"'";
-		Headers headers= new Headers();
-		headers.getHeaders().addAll(jdbcRepo.headersFromSelect(select, new ArrayList<String>()));
-		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from company_users", "", "useremail='"+email+"'", headers);
-		if(rows.size() == 1) {
-			return rows.get(0);
-		}
+		
+		  jdbcRepo.company_users(); String
+		  select="select * from company_users where useremail='"+email+"'"; Headers
+		  headers= new Headers();
+		  headers.getHeaders().addAll(jdbcRepo.headersFromSelect(select, new
+		  ArrayList<String>())); List<TableRow> rows =
+		  jdbcRepo.qtbGroupReport("select * from company_users", "",
+		  "useremail='"+email+"'", headers); if(rows.size() == 1) { return rows.get(0);
+		  }
+		 
 		return null;
 	}
 

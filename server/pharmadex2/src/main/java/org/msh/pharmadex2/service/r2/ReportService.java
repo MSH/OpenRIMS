@@ -726,7 +726,7 @@ public class ReportService {
 		}
 		return dto;
 	}
-	
+
 	/**
 	 * @throws ObjectNotFoundException 
 	 * 
@@ -736,14 +736,16 @@ public class ReportService {
 		Concept applData = closureServ.loadConceptById(data.getPermitDataID());
 		Concept owner=closureServ.getParent(applData);
 		data.setReject(false);
-		String select = "select * from onapproval_app";
-		Headers headers = new Headers();
-		headers.getHeaders().add(TableHeader.instanceOf("dataModuleId", TableHeader.COLUMN_LONG));
-		headers.getHeaders().add(TableHeader.instanceOf("state", TableHeader.COLUMN_STRING));
-		String where="dataModuleId="+applData.getID();
-		List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", where, headers);
-		if(rows.size()>0 && accessControl.sameEmail(owner.getIdentifier(), user.getEmail())) {
-			data.setReject(true);
+		if(!accessControl.isApplicant(user)) {
+			String select = "select * from onapproval_app";
+			Headers headers = new Headers();
+			headers.getHeaders().add(TableHeader.instanceOf("dataModuleId", TableHeader.COLUMN_LONG));
+			headers.getHeaders().add(TableHeader.instanceOf("state", TableHeader.COLUMN_STRING));
+			String where="dataModuleId="+applData.getID();
+			List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", where, headers);
+			if(rows.size()>0 && accessControl.sameEmail(owner.getIdentifier(), user.getEmail())) {
+				data.setReject(true);
+			}
 		}
 		return data;
 	}
@@ -798,9 +800,18 @@ public class ReportService {
 			}
 			//the history
 			data.getApplHistory().clear();
+			String wf="";
+			int i=0;
 			for(TableRow hisRow : hisRows) {
 				Object actDataID = hisRow.getCellByKey("activityDataID").getOriginalValue();
 				ThingDTO dt = new ThingDTO();
+				if(!wf.equalsIgnoreCase(hisRow.getCellByKey("workflow").getValue())) {
+					wf=hisRow.getCellByKey("workflow").getValue();
+					i=i+1;
+					dt.setUxIdentifier(String.valueOf(i));
+				}else {
+					dt.setUxIdentifier(String.valueOf(i));
+				}
 				String title = hisRow.getCellByKey("go").getValue()
 						+ "  "
 						+  hisRow.getCellByKey("workflow").getValue()
@@ -812,6 +823,7 @@ public class ReportService {
 					dt.setNodeId(0L);
 				}
 				dt.setTitle(title);
+				dt.setHistoryId(hisRow.getDbID());
 				dt.setReadOnly(true);
 				data.getApplHistory().add(dt);
 			}

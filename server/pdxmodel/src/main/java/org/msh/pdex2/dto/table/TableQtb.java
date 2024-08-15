@@ -156,5 +156,26 @@ public class TableQtb {
 	public boolean hasHeaders() {
 		return getHeaders().getHeaders().size()>0;
 	}
+	/**
+	 * Get table page with the first selected row
+	 * @param rows
+	 * @param table
+	 */
+	public static void currentTablePage(List<TableRow> rows, TableQtb table) {
+		table.getRows().clear();
+		table.getHeaders().setPages(TableHeader.calcPages(table.getHeaders().getPageSize(),rows.size()));
+		for(int pageNo=0;pageNo<table.getHeaders().getPages();pageNo++) {
+			List<TableRow> page = TableHeader.fetchPage(rows, pageNo, table.getHeaders().getPageSize());
+			for(TableRow row: page) {
+				if(row.getSelected()) {
+					table.getRows().addAll(page);
+					table.getHeaders().setPage(pageNo);
+					return;
+				}
+			}
+		}
+		//not found
+		TableQtb.tablePage(rows, table);
+	}
 	
 }

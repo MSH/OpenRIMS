@@ -263,11 +263,13 @@ hiddenRestricted(){
                 </Row>
                 <Row>
                     <Col>
+                        {/* <ViewEdit mode="text" attribute="varName" component={this} editno={this.hiddenRestricted()}/> */}
                         <FieldGuarded mode="text" attribute="varName" component={this} editno={this.hiddenRestricted()}/>
                     </Col>
                 </Row>
                 <Row>
                     <Col>
+                        {/* <ViewEdit mode="text" attribute="varNameExt" component={this} editno={this.hiddenRestricted()}/> */}
                         <FieldGuarded mode="text" attribute="varNameExt" component={this} editno={this.hiddenRestricted()}/>
                     </Col>
                 </Row>

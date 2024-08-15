@@ -15,6 +15,7 @@ import Spinner from './utils/Spinner'
 import SpinnerMain from './utils/SpinnerMain'
 import PublicPermitData from './PublicPermitData'
 import URLAssistant from './URLAssistant'
+import VariableAssistant from './dataconfig/VariableAssistant'
 
 /**
  * Uniform content component
@@ -138,9 +139,17 @@ class Content extends Component{
             case "reports":
                 return <Reports />
             case "urlassistant":
-                let parStr = Navigator.parameterValue()
-                let params=JSON.parse(parStr)
-                return <URLAssistant assistant={params.assistant} value={params.value} recipient={params.recipient} title={params.title} />
+                {
+                    let parStr = Navigator.parameterValue()
+                    let params=JSON.parse(parStr)
+                    return <URLAssistant assistant={params.assistant} value={params.value} recipient={params.recipient} title={params.title} />
+                }
+            case "varassistant":
+                {
+                    let parStr = Navigator.parameterValue()
+                    let params=JSON.parse(parStr)
+                    return <VariableAssistant value={params.value} recipient={params.recipient}/>
+                }
             default:
                 return this.paintRows()
         }

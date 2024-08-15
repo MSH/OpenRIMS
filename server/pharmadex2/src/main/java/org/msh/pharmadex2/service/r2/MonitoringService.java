@@ -5,13 +5,11 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.tomcat.util.buf.StringUtils;
 import org.msh.pdex2.dto.table.Headers;
 import org.msh.pdex2.dto.table.TableHeader;
 import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
-import org.msh.pdex2.model.old.User;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.repository.common.JdbcRepository;
@@ -651,14 +649,6 @@ public class MonitoringService {
 				20));
 		if(showExecutor) {
 			headers.getHeaders().add(TableHeader.instanceOf(
-					"executor",
-					"employees",
-					false,
-					true,
-					true,
-					TableHeader.COLUMN_STRING,
-					20));
-			headers.getHeaders().add(TableHeader.instanceOf(
 					"office",
 					"departmentbranch",
 					true,
@@ -666,6 +656,18 @@ public class MonitoringService {
 					true,
 					TableHeader.COLUMN_STRING,
 					30));
+			headers.getHeaders().add(TableHeader.instanceOf(
+					"executor",
+					"employees",
+					false,
+					true,
+					true,
+					TableHeader.COLUMN_STRING,
+					20));
+			/*
+			 * headers.getHeaders().add(TableHeader.instanceOf( "office",
+			 * "departmentbranch", true, true, true, TableHeader.COLUMN_STRING, 30));
+			 */
 		}
 		headers.setPageSize(20);
 		boilerServ.translateHeaders(headers);

@@ -27,6 +27,7 @@ import org.msh.pharmadex2.dto.RegisterDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.ThingValuesDTO;
+import org.msh.pharmadex2.dto.TimeLineWokflowDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.exception.DataNotFoundException;
 import org.msh.pharmadex2.service.common.UserService;
@@ -321,7 +322,26 @@ public class ActivityAPI{
 		}
 		return data;
 	}
-
+	
+	/**
+	 * get wokflow activities to build a timeline for the selected activity
+	 * 
+	 * @param auth
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping({ "/api/*/activity/timeline/workflow"})
+	public TimeLineWokflowDTO timelineWorkflow(Authentication auth, UriComponentsBuilder uri, @RequestBody TimeLineWokflowDTO data) throws DataNotFoundException {
+		accServ.allowAuthenticated(auth, uri);
+		UserDetailsDTO user = userServ.userData(auth, new UserDetailsDTO());
+		try {
+			data = applServ.timelineWorkflow(data, user);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
 	/**
 	 * save a checklist
 	 * 

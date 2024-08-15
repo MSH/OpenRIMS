@@ -14,7 +14,8 @@ import Alerts from './utils/Alerts'
 import AmendmentActivity from './AmendmentActivity'
 import ThingsPublisher from './reports/ThingsPublisher'
 import Downloader from './utils/Downloader'
-
+import TimeLine from './TimeLine'
+//import {FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 /**
  * Manages an activity
  */
@@ -73,6 +74,7 @@ class ActivityManager extends Component{
         this.content=this.content.bind(this)
         this.prevNotes=this.prevNotes.bind(this)
         this.headerFooter=this.headerFooter.bind(this)
+        this.timeLine=this.timeLine.bind(this)//IK
         this.hasCancelled=this.hasCancelled.bind(this)
         this.activityHistory=this.activityHistory.bind(this)
         //this.toggle=this.toggle.bind(this)
@@ -103,7 +105,7 @@ class ActivityManager extends Component{
                 }
                 if(data.subject=='activityHistoryClose'){
                     this.state.historyId=0
-                    this.state.hist=false
+                   // this.state.hist=false //IK
                     this.state.histEvent=false
                     this.setState(this.state)
                 }
@@ -215,8 +217,9 @@ class ActivityManager extends Component{
                             this.setState(this.state)
                         }}
                         >
-                            <h6 className="d-inline">{thing.title}</h6>
+                            <h6 className={"d-inline"}>{thing.title}</h6>                   
                         </div>
+                        {/* <i className="far fa-calendar-check fa-sm" style={{color: '#007BFF'}}></i> */}
                         </BreadcrumbItem>
                     )
                 }else{
@@ -347,10 +350,14 @@ class ActivityManager extends Component{
      */
     content(){
         if(this.state.send){
+            let idData=this.state.historyId//IK--
+            if(idData==0){
+                idData=this.state.data.historyId
+            }//--IK
             return(
                 <Row>
                     <Col>
-                        <ActivitySubmit historyId={this.state.data.historyId} reject={this.state.reject} 
+                        <ActivitySubmit historyId={idData} reject={this.state.reject} 
                         reassign={this.state.reassign} supervisor={this.state.supervisor} 
                         recipient={this.state.identifier} monitoring={this.props.monitoring}/>
                     </Col>
@@ -474,6 +481,8 @@ class ActivityManager extends Component{
                          onClick={()=>{
                             if(this.state.send){
                                 this.state.send=false
+                                this.state.historyId=0//IK
+                                this.state.data.historyId=this.state.history.historyId
                                 this.setState(this.state)
                             }else{
                                 window.history.back()
@@ -543,12 +552,29 @@ class ActivityManager extends Component{
         </Row>
         )
     }
+    timeLine(){
+        if(!this.state.send){
+            if(this.state.data.historyId>0){
+                return(
+                    <Row>
+                    <Col>
+                        <TimeLine historyId={this.state.data.historyId} recipient={this.state.identifier}/>
+                    </Col>
+                    </Row>
+                )
+            }else{
+                return []
+            }
+        }else{
+             return []
+        }
+    }
     /**
      * 
      * @returns expanded activity record
      */
     activityHistory(){
-        if(this.state.historyId>0){
+        if(this.state.historyId>0){//IK
             return <ActivityHistoryData historyId={this.state.historyId} recipient={this.state.identifier} />
         }else{
             return []
@@ -594,7 +620,8 @@ class ActivityManager extends Component{
                 linkProcessor={(rowNo, cell)=>{
                     this.state.hist=!this.state.hist
                     this.state.send=true
-                    this.state.data.historyId=this.state.history.tableEv.rows[rowNo].dbID
+                    this.state.data.historyId=this.state.history.tableEv.rows[rowNo].dbID//IK
+                    this.state.historyId=this.state.history.tableEv.rows[rowNo].dbID//IK
                    // this.state.data.monitoring=this.state.history.monitoring
                     this.setState(this.state)
                 }}
@@ -662,14 +689,15 @@ class ActivityManager extends Component{
                         </Collapse>
                     </Col>
                 </Row>
-                
                 <Row>
                     <Col>
                         <Collapse isOpen={!this.state.hist}>
                             {this.headerFooter()}
+                            {this.timeLine()}
                             {this.createBreadCrumbAndExecutorName()}
                             {this.content()}
                             {this.createBreadCrumbAndExecutorName()}
+                            {this.timeLine()}
                             {this.headerFooter()}
                         </Collapse>
                     </Col>

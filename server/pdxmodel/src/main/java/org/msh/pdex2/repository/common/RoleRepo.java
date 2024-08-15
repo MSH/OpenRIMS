@@ -5,6 +5,6 @@ import java.util.Optional;
 import org.msh.pdex2.model.old.Role;
 import org.springframework.data.repository.CrudRepository;
 
-public interface RoleRepo extends CrudRepository<Role, Long> {
+public interface RoleRepo extends CrudRepository<Role, Integer> {
 	Optional<Role> findByrolename(String roleName);
 }

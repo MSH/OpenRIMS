@@ -8,59 +8,55 @@
  */
 
 /**
- * Licensee: DuKe TeAm
- * License Type: Purchased
+ * Licensee: 
+ * License Type: Evaluation
  */
 package org.msh.pdex2.model.r2;
 
 import java.io.Serializable;
 import javax.persistence.*;
-/**
- * To keep binary data and technical metadata for files stored.
- */
 @Entity
 @org.hibernate.annotations.Proxy(lazy=false)
 @Table(name="fileresource")
-@Inheritance(strategy=InheritanceType.SINGLE_TABLE)
 public class FileResource implements Serializable {
 	public FileResource() {
 	}
 	
-	@Column(name="ID", nullable=false)	
+	@Column(name="ID", nullable=false, length=19)	
 	@Id	
-	@GeneratedValue(generator="VAC22227718DA768E98202BDC")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22227718DA768E98202BDC", strategy="native")	
+	@GeneratedValue(generator="ORG_MSH_PDEX2_MODEL_R2_FILERESOURCE_ID_GENERATOR")	
+	@org.hibernate.annotations.GenericGenerator(name="ORG_MSH_PDEX2_MODEL_R2_FILERESOURCE_ID_GENERATOR", strategy="native")	
 	private long ID;
 	
-	@OneToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
-	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.SAVE_UPDATE, org.hibernate.annotations.CascadeType.LOCK})	
-	@JoinColumns({ @JoinColumn(name="activityDataID") })	
-	@Basic(fetch=FetchType.LAZY)	
-	private org.msh.pdex2.model.r2.Concept activityData;
-	
-	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
-	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.LOCK})	
-	@JoinColumns({ @JoinColumn(name="dictconceptID", referencedColumnName="ID") })	
-	@Basic(fetch=FetchType.LAZY)	
-	private org.msh.pdex2.model.r2.Concept classifier;
-	
-	@OneToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
+	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class, fetch=FetchType.LAZY)	
 	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.ALL, org.hibernate.annotations.CascadeType.DELETE_ORPHAN})	
-	@JoinColumns({ @JoinColumn(name="conceptID") })	
-	@Basic(fetch=FetchType.LAZY)	
+	@JoinColumns(value={ @JoinColumn(name="conceptID", referencedColumnName="ID", nullable=false) }, foreignKey=@ForeignKey(name="FKfileresour477120"))	
+	@org.hibernate.annotations.LazyToOne(value=org.hibernate.annotations.LazyToOneOption.NO_PROXY)	
 	private org.msh.pdex2.model.r2.Concept concept;
 	
-	@Column(name="FileSize", nullable=false, length=20)	
+	@Column(name="FileSize", nullable=false, length=19)	
 	private long fileSize;
 	
-	@Column(name="File", nullable=false)	
+	@Column(name="`File`", nullable=false)	
 	private byte[] file;
 	
-	@Column(name="ChangedAt", nullable=true)	
-	private java.util.Date changedAt;
+	@Column(name="ChangedAt", nullable=false, insertable=false, updatable=false, length=19)	
+	private java.sql.Timestamp changedAt;
+	
+	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class, fetch=FetchType.LAZY)	
+	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.LOCK})	
+	@JoinColumns(value={ @JoinColumn(name="dictconceptID", referencedColumnName="ID", nullable=false) }, foreignKey=@ForeignKey(name="FKfileresour491212"))	
+	@org.hibernate.annotations.LazyToOne(value=org.hibernate.annotations.LazyToOneOption.NO_PROXY)	
+	private org.msh.pdex2.model.r2.Concept classifier;
 	
 	@Column(name="Mediatype", nullable=true, length=255)	
 	private String mediatype;
+	
+	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class, fetch=FetchType.LAZY)	
+	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.LOCK})	
+	@JoinColumns(value={ @JoinColumn(name="activityDataID", referencedColumnName="ID") }, foreignKey=@ForeignKey(name="FKfileresour258199"))	
+	@org.hibernate.annotations.LazyToOne(value=org.hibernate.annotations.LazyToOneOption.NO_PROXY)	
+	private org.msh.pdex2.model.r2.Concept activityData;
 	
 	private void setID(long value) {
 		this.ID = value;
@@ -74,18 +70,24 @@ public class FileResource implements Serializable {
 		return getID();
 	}
 	
-	/**
-	 * File size in bytes
-	 */
 	public void setFileSize(long value) {
 		this.fileSize = value;
 	}
 	
-	/**
-	 * File size in bytes
-	 */
 	public long getFileSize() {
 		return fileSize;
+	}
+	
+	public void setFile(byte[] value) {
+		this.file = value;
+	}
+	
+	public byte[] getFile() {
+		return file;
+	}
+	
+	public java.sql.Timestamp getChangedAt() {
+		return changedAt;
 	}
 	
 	public void setMediatype(String value) {
@@ -94,28 +96,6 @@ public class FileResource implements Serializable {
 	
 	public String getMediatype() {
 		return mediatype;
-	}
-	
-	/**
-	 * Binary representation of a file
-	 */
-	public void setFile(byte[] value) {
-		this.file = value;
-	}
-	
-	/**
-	 * Binary representation of a file
-	 */
-	public byte[] getFile() {
-		return file;
-	}
-	
-	public void setChangedAt(java.util.Date value) {
-		this.changedAt = value;
-	}
-	
-	public java.util.Date getChangedAt() {
-		return changedAt;
 	}
 	
 	public void setConcept(org.msh.pdex2.model.r2.Concept value) {

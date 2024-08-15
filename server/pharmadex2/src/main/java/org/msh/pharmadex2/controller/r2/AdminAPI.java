@@ -43,6 +43,7 @@ import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.TilesDTO;
 import org.msh.pharmadex2.dto.URLAssistantDTO;
 import org.msh.pharmadex2.dto.UserElementDTO;
+import org.msh.pharmadex2.dto.VariableAssistantDTO;
 import org.msh.pharmadex2.dto.WorkflowDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.log.EventLogDTO;
@@ -53,7 +54,6 @@ import org.msh.pharmadex2.service.common.ValidationService;
 import org.msh.pharmadex2.service.r2.ActuatorService;
 import org.msh.pharmadex2.service.r2.ApplicationService;
 import org.msh.pharmadex2.service.r2.AssemblyService;
-import org.msh.pharmadex2.service.r2.AssistanceService;
 import org.msh.pharmadex2.service.r2.AsyncService;
 import org.msh.pharmadex2.service.r2.ContentService;
 import org.msh.pharmadex2.service.r2.DWHService;
@@ -96,6 +96,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.msh.pharmadex2.service.r2.UrlAssistantService;
+import org.msh.pharmadex2.service.r2.VariableAssitantService;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -163,7 +165,7 @@ public class AdminAPI {
 	@Autowired
 	ReassignUserService reassignService;
 	@Autowired
-	private AssistanceService assistServ;
+	private UrlAssistantService assistServ;
 	@Autowired
 	private ImportLocalesService importLocalesServ;
 	@Autowired
@@ -180,6 +182,8 @@ public class AdminAPI {
 	private ProcessComponentsService processComponents;
 	@Autowired
 	private ELAssistantService elAssistant;
+	@Autowired
+	private VariableAssitantService variableAssist;
 	/**
 	 * Tiles for landing page
 	 * 
@@ -1363,7 +1367,24 @@ public class AdminAPI {
 	}
 
 	/**
-	 * Import a national language help
+	 * General Administrate help
+	 * @return
+	 * @throws DataNotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value="/api/admin/help/administrate", method = RequestMethod.GET)
+	public ResponseEntity<Resource> helpAdministrate() throws DataNotFoundException, IOException {
+		ResponseEntity<Resource> res;
+		try {
+			res = resourceServ.adminHelp();
+			return res;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+	
+	/**
+	 * Administrator help
 	 * @return
 	 * @throws DataNotFoundException
 	 * @throws IOException
@@ -2146,7 +2167,11 @@ public class AdminAPI {
 	 */
 	@PostMapping("/api/admin/resources/nodeid")
 	public DictNodeDTO dataResourceNodeIdByUrl(@RequestBody DictNodeDTO data) throws DataNotFoundException{
-		data=superVisServ.dataResourceNodeIdByUrl(data);
+		try {
+			data=superVisServ.dataResourceNodeIdByUrl(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
 		return data;
 	}
 	/**
@@ -2214,5 +2239,15 @@ public class AdminAPI {
 				.header(HttpHeaders.CONTENT_DISPOSITION, "inline" + "; filename=\"" + "eltest.docx" + "\"")
 				.header("filename", "eltest.docx")
 				.body(res);
+	}
+	/**
+	 * Variable name assistant
+	 * @param data
+	 * @return
+	 */
+	@PostMapping("/api/admin/variable/assistant/load")
+	public VariableAssistantDTO variableAssistantLoad(@RequestBody VariableAssistantDTO data ) {
+		data=variableAssist.load(data);
+		return data;
 	}
 }

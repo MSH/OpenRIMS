@@ -1,6 +1,8 @@
 package org.msh.pharmadex2.service.r2;
 
 import java.time.LocalDate;
+import java.time.Period;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Date;
 //import java.util.HashMap;
@@ -15,7 +17,7 @@ import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
-import org.msh.pdex2.model.old.User;
+import org.msh.pdex2.model.r2.User;
 import org.msh.pdex2.model.r2.Assembly;
 //import org.msh.pdex2.model.r2.Assembly;
 import org.msh.pdex2.model.r2.Checklistr2;
@@ -40,13 +42,16 @@ import org.msh.pharmadex2.dto.ApplicationOrActivityDTO;
 import org.msh.pharmadex2.dto.ApplicationsDTO;
 //import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.CheckListDTO;
+import org.msh.pharmadex2.dto.PointTimeLine;
 import org.msh.pharmadex2.dto.PublicPermitDTO;
 //import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.QuestionDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
+import org.msh.pharmadex2.dto.TimeLineWokflowDTO;
 import org.msh.pharmadex2.dto.WorkflowParamDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.form.AllowValidation;
+import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pharmadex2.service.common.DtoService;
@@ -169,19 +174,19 @@ public class ApplicationService {
 		table = boilerServ.translateRows(table);
 		table.setSelectable(false);
 		if(data.isArch()) {
-				data.setArchive(table);
+			data.setArchive(table);
 		}else {
-				//paint color
-				for(TableRow row : table.getRows()) {
-					for(TableCell cell :row.getRow()) {
-						if(cell.getKey().equalsIgnoreCase("term")) {
-							if(cell.getIntValue()<0) {
-								cell.setStyleClass("text-danger");
-							}
+			//paint color
+			for(TableRow row : table.getRows()) {
+				for(TableCell cell :row.getRow()) {
+					if(cell.getKey().equalsIgnoreCase("term")) {
+						if(cell.getIntValue()<0) {
+							cell.setStyleClass("text-danger");
 						}
 					}
 				}
-				data.setTable(table);
+			}
+			data.setTable(table);
 		}
 		return data;
 	}
@@ -430,9 +435,12 @@ public class ApplicationService {
 			} else {
 				throw new ObjectNotFoundException("checkListLoad.Activity not defined in the history", logger);
 			}
-		} else {
-			throw new ObjectNotFoundException("checkListLoad. History not found. ID is ZERO", logger);
-		}
+		} 
+		/*
+		 * else { throw new
+		 * ObjectNotFoundException("checkListLoad. History not found. ID is ZERO",
+		 * logger); }
+		 */
 
 		return data;
 	}
@@ -960,12 +968,15 @@ public class ApplicationService {
 				List<History> allHis = historyRepo.findAllByApplicationDataOrderByCome(applData);
 				//search for opened initial application record 
 				for(History h : allHis) {
-					if(h.getActivityData()!=null && h.getApplicationData()!=null &&
-							h.getActivityData().getID()==h.getApplicationData().getID() && h.getActConfig()==null && h.getGo()==null
-							&& h.getApplDict().getID()==data.getApplDictNodeId()) {
-						data.setHistoryId(h.getID());
-						data.setApplication(true);
-						return data;
+					if(h.getGo() == null) {
+						if(h.getActivityData()!=null && h.getApplicationData()!=null &&
+								h.getActivityData().getID()==h.getApplicationData().getID() && h.getActConfig()==null
+								//&& h.getApplDict().getID()==data.getApplDictNodeId()
+								) {
+							data.setHistoryId(h.getID());
+							data.setApplication(true);
+							return data;
+						}
 					}
 				}
 
@@ -1081,8 +1092,103 @@ public class ApplicationService {
 		} else {
 			throw new ObjectNotFoundException("activityLoad. Access denied.", logger);
 		}
-
 	}
+
+	public TimeLineWokflowDTO timelineWorkflow(TimeLineWokflowDTO data, UserDetailsDTO user) throws ObjectNotFoundException{
+		data.getPoint().clear();
+		History curHis = new History();
+		PointTimeLine point=new PointTimeLine();
+		List<History> otherHis= new ArrayList<History>();
+		Concept dictNode= new Concept();
+		Concept firstActivity= new Concept();
+		List<ThingDTO> path=new ArrayList<ThingDTO>();
+		
+		if (data.getHistoryId() > 0) {
+			curHis = boilerServ.historyById(data.getHistoryId());
+			//systemServ.isHost(curHis);
+			dictNode = curHis.getApplDict();
+		String url = literalServ.readValue("applicationurl", dictNode);
+		firstActivity = closureServ.loadRoot("configuration." + url.toLowerCase());
+		path=boilerServ.createActivitiesPath(firstActivity, new ArrayList<ThingDTO>());
+		path.size();
+		}
+		
+		Concept applData=new Concept();
+		if (data.getHistoryId() > 0) {
+			curHis = boilerServ.historyById(data.getHistoryId());
+			applData = closureServ.loadConceptById(curHis.getApplicationData().getID());
+		}
+		else if(data.getPermitdataid()>0) {
+			applData = closureServ.loadConceptById(data.getPermitdataid());
+		}
+		otherHis = boilerServ.historyAllOrderByCome(applData);
+		
+		if(!otherHis.isEmpty()) {
+			for(History his:otherHis) {
+				if(his.getApplDict()==dictNode && his.getApplConfig()==firstActivity) {
+					curHis=his;
+					if(his.getGo()!=null && his.getApplicationData()==his.getActivityData() &&
+							  his.getActConfig()==null) {
+					 LocalDate d=boilerServ.localDateFromDate(his.getGo());
+					 Concept item=his.getApplDict();
+						String processName=literalServ.readPrefLabel(item);
+					 point.setDate(TableCell.localDateToString(d)); point.setName(processName);
+					 
+					}
+				}
+			}
+			if(point.getName().isEmpty()) {
+				LocalDate d=boilerServ.localDateFromDate(curHis.getCome());
+				point.setDate(TableCell.localDateToString(d));
+				Concept item=curHis.getApplDict();
+				String processName=literalServ.readPrefLabel(item);
+				point.setName(processName);
+			}
+			data.getPoint().add(point);
+			
+			List<History> cleaHhistory=new ArrayList<History>();
+			for(History his:otherHis) {//his
+				if(his.getApplDict()==dictNode && his.getApplConfig()==firstActivity) {
+					if(his.getActConfig()!=null) {
+						if(his.getActConfig()==firstActivity) {
+							cleaHhistory.clear();
+							cleaHhistory.add(his);
+						}else {
+							cleaHhistory.add(his);
+						}
+					}
+				}
+			}
+			
+			if(!path.isEmpty()) {
+				for(ThingDTO th:path) {
+					PointTimeLine point1=new PointTimeLine();
+					point1.setDate("---");
+					for(History his:cleaHhistory) {//his
+						if(his.getApplDict()==dictNode && his.getApplConfig()==firstActivity) {
+							if(his.getActConfig()!=null) {
+								if(his.getActConfig().getID()==th.getNodeId()) {
+									if(his.getGo()!=null) {
+										LocalDate d=boilerServ.localDateFromDate(his.getGo());
+										point1.setDate(TableCell.localDateToString(d));
+									} 
+								}
+							}
+						}
+					}//his
+						point1.setName(th.getTitle());
+						data.getPoint().add(point1);
+				}
+			}else {
+				throw new ObjectNotFoundException("timelineWorkflow: no workflow configuration for building a timeline", logger);
+			}
+			
+		}else {
+			throw new ObjectNotFoundException("timelineWorkflow: there are no history records to build a timeline", logger);
+		}
+		return data;
+	}
+
 
 	/**
 	 * Create or a data for an activity if one
@@ -1146,6 +1252,13 @@ public class ApplicationService {
 		if (title.length() == 0) {
 			title = literalServ.readPrefLabel(his.getActivityData());
 		}
+		/*
+		 * else { Date come=his.getCome(); LocalDate
+		 * c=boilerServ.localDateFromDate(come); LocalDate g=LocalDate.now();
+		 * if(his.getGo()!=null) { Date go=his.getGo();
+		 * g=boilerServ.localDateFromDate(go); } long days=ChronoUnit.DAYS.between(c,
+		 * g); if(days>=0) { title=title+" - "+days; } }
+		 */
 		if (title.length() == 0) {
 			title = messages.get("activity.trace");
 		}
@@ -1532,7 +1645,14 @@ public class ApplicationService {
 			data.setWorkflow(literalServ.readPrefLabel(wConc));
 			Concept actConc = his.getActConfig();
 			if (actConc != null) {
-				data.setActivity(literalServ.readPrefLabel(actConc));
+				String title=literalServ.readPrefLabel(actConc);
+				/*
+				 * Date come=his.getCome(); LocalDate c=boilerServ.localDateFromDate(come);
+				 * LocalDate g=LocalDate.now(); if(his.getGo()!=null) { Date go=his.getGo();
+				 * g=boilerServ.localDateFromDate(go); } long days=ChronoUnit.DAYS.between(c,
+				 * g); if(days>=0) { title=title+" - "+days; }
+				 */
+				data.setActivity(title);
 				Concept dataConc = his.getApplicationData();
 				data.setPrefLabel(literalServ.readPrefLabel(dataConc));
 			} else {
@@ -1542,10 +1662,12 @@ public class ApplicationService {
 			// dates
 			LocalDate come = boilerServ.localDateFromDate(his.getCome());
 			data.getGlobal_startdate().setValue(come);
+			data.setGlobal_startdate(FormFieldDTO.of(come));
 			LocalDate go = null;
 			if (his.getGo() != null) {
 				go = boilerServ.localDateFromDate(his.getGo());
 				data.getCompleteddate().setValue(go);
+				data.setCompleteddate(FormFieldDTO.of(go));
 				data.setCompleted(true);
 			} else {
 				data.setCompleted(false);
@@ -1579,5 +1701,6 @@ public class ApplicationService {
 		}
 		return data;
 	}
+
 
 }

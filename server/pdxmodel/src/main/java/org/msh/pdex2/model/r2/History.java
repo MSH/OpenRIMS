@@ -8,85 +8,75 @@
  */
 
 /**
- * Licensee: DuKe TeAm
- * License Type: Purchased
+ * Licensee: 
+ * License Type: Evaluation
  */
 package org.msh.pdex2.model.r2;
 
 import java.io.Serializable;
 import javax.persistence.*;
-/**
- * Responsible for relation inside the application
- */
 @Entity
 @org.hibernate.annotations.Proxy(lazy=false)
-@Table(name="history")
-@Inheritance(strategy=InheritanceType.SINGLE_TABLE)
+@Table(name="history", indexes={ @Index(name="byGo", columnList="Go"), @Index(name="byApplication", columnList="applicationID"), @Index(name="byCancelled", columnList="Cancelled"), @Index(name="byCome", columnList="Come") })
 public class History implements Serializable {
 	public History() {
 	}
 	
-	@Column(name="ID", nullable=false)	
+	@Column(name="ID", nullable=false, length=19)	
 	@Id	
-	@GeneratedValue(generator="VAC22227718DA768E97F02BD9")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22227718DA768E97F02BD9", strategy="native")	
+	@GeneratedValue(generator="ORG_MSH_PDEX2_MODEL_R2_HISTORY_ID_GENERATOR")	
+	@org.hibernate.annotations.GenericGenerator(name="ORG_MSH_PDEX2_MODEL_R2_HISTORY_ID_GENERATOR", strategy="native")	
 	private long ID;
 	
-	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
+	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class, fetch=FetchType.LAZY)	
 	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.LOCK})	
-	@JoinColumns({ @JoinColumn(name="executorConceptID", referencedColumnName="ID") })	
-	@Basic(fetch=FetchType.LAZY)	
-	private org.msh.pdex2.model.r2.Concept executor;
-	
-	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
-	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.ALL, org.hibernate.annotations.CascadeType.DELETE_ORPHAN})	
-	@JoinColumns({ @JoinColumn(name="actConfigID", referencedColumnName="ID") })	
-	@Basic(fetch=FetchType.LAZY)	
-	private org.msh.pdex2.model.r2.Concept actConfig;
-	
-	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
-	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.ALL, org.hibernate.annotations.CascadeType.DELETE_ORPHAN})	
-	@JoinColumns({ @JoinColumn(name="applConfigID", referencedColumnName="ID") })	
-	@Basic(fetch=FetchType.LAZY)	
-	private org.msh.pdex2.model.r2.Concept applConfig;
-	
-	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
-	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.ALL, org.hibernate.annotations.CascadeType.DELETE_ORPHAN})	
-	@JoinColumns({ @JoinColumn(name="applDictID", referencedColumnName="ID") })	
-	@Basic(fetch=FetchType.LAZY)	
-	private org.msh.pdex2.model.r2.Concept applDict;
-	
-	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
-	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.LOCK})	
-	@JoinColumns({ @JoinColumn(name="applDataID", referencedColumnName="ID") })	
-	@Basic(fetch=FetchType.LAZY)	
-	private org.msh.pdex2.model.r2.Concept applicationData;
-	
-	@OneToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
-	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.SAVE_UPDATE, org.hibernate.annotations.CascadeType.LOCK})	
-	@JoinColumns({ @JoinColumn(name="activityDataID") })	
-	@Basic(fetch=FetchType.LAZY)	
-	private org.msh.pdex2.model.r2.Concept activityData;
-	
-	@OneToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
-	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.SAVE_UPDATE, org.hibernate.annotations.CascadeType.LOCK})	
-	@JoinColumns({ @JoinColumn(name="applicationID") })	
-	@Basic(fetch=FetchType.LAZY)	
+	@JoinColumns(value={ @JoinColumn(name="applicationID", referencedColumnName="ID", nullable=false) }, foreignKey=@ForeignKey(name="FKhistory608612"))	
+	@org.hibernate.annotations.LazyToOne(value=org.hibernate.annotations.LazyToOneOption.NO_PROXY)	
 	private org.msh.pdex2.model.r2.Concept application;
 	
-	@OneToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
-	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.SAVE_UPDATE, org.hibernate.annotations.CascadeType.LOCK})	
-	@JoinColumns({ @JoinColumn(name="activityID") })	
-	@Basic(fetch=FetchType.LAZY)	
+	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class, fetch=FetchType.LAZY)	
+	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.LOCK})	
+	@JoinColumns(value={ @JoinColumn(name="activityID", referencedColumnName="ID") }, foreignKey=@ForeignKey(name="FKhistory387311"))	
+	@org.hibernate.annotations.LazyToOne(value=org.hibernate.annotations.LazyToOneOption.NO_PROXY)	
 	private org.msh.pdex2.model.r2.Concept activity;
 	
-	@Column(name="Come", nullable=true)	
-	@Basic	
-	@Temporal(value=TemporalType.TIMESTAMP)	
+	@Column(name="Come", nullable=true, length=19)	
+	@Temporal(TemporalType.DATE)	
 	private java.util.Date come;
 	
-	@Column(name="Go", nullable=true)	
+	@Column(name="Go", nullable=true, length=19)	
+	@Temporal(TemporalType.DATE)	
 	private java.util.Date go;
+	
+	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class, fetch=FetchType.LAZY)	
+	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.LOCK})	
+	@JoinColumns(value={ @JoinColumn(name="activityDataID", referencedColumnName="ID") }, foreignKey=@ForeignKey(name="FKhistory19325"))	
+	@org.hibernate.annotations.LazyToOne(value=org.hibernate.annotations.LazyToOneOption.NO_PROXY)	
+	private org.msh.pdex2.model.r2.Concept activityData;
+	
+	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class, fetch=FetchType.LAZY)	
+	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.LOCK})	
+	@JoinColumns(value={ @JoinColumn(name="applDataID", referencedColumnName="ID", nullable=false) }, foreignKey=@ForeignKey(name="FKhistory877482"))	
+	@org.hibernate.annotations.LazyToOne(value=org.hibernate.annotations.LazyToOneOption.NO_PROXY)	
+	private org.msh.pdex2.model.r2.Concept applicationData;
+	
+	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class, fetch=FetchType.LAZY)	
+	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.LOCK})	
+	@JoinColumns(value={ @JoinColumn(name="applConfigID", referencedColumnName="ID", nullable=false) }, foreignKey=@ForeignKey(name="FKhistory733279"))	
+	@org.hibernate.annotations.LazyToOne(value=org.hibernate.annotations.LazyToOneOption.NO_PROXY)	
+	private org.msh.pdex2.model.r2.Concept applConfig;
+	
+	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class, fetch=FetchType.LAZY)	
+	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.LOCK})	
+	@JoinColumns(value={ @JoinColumn(name="applDictID", referencedColumnName="ID", nullable=false) }, foreignKey=@ForeignKey(name="FKhistory777469"))	
+	@org.hibernate.annotations.LazyToOne(value=org.hibernate.annotations.LazyToOneOption.NO_PROXY)	
+	private org.msh.pdex2.model.r2.Concept applDict;
+	
+	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class, fetch=FetchType.LAZY)	
+	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.LOCK})	
+	@JoinColumns(value={ @JoinColumn(name="actConfigID", referencedColumnName="ID") }, foreignKey=@ForeignKey(name="FKhistory555751"))	
+	@org.hibernate.annotations.LazyToOne(value=org.hibernate.annotations.LazyToOneOption.NO_PROXY)	
+	private org.msh.pdex2.model.r2.Concept actConfig;
 	
 	@Column(name="DataUrl", nullable=true, length=255)	
 	private String dataUrl;
@@ -95,13 +85,20 @@ public class History implements Serializable {
 	private String prevNotes;
 	
 	@Column(name="Cancelled", nullable=false, length=1)	
-	private boolean cancelled = false;
+	private boolean cancelled;
 	
 	@Column(name="Expire", nullable=true)	
+	@Temporal(TemporalType.DATE)	
 	private java.util.Date expire;
 	
-	@Column(name="CreatedAt", nullable=true)	
-	private java.util.Date createdAt;
+	@Column(name="CreatedAt", nullable=false, insertable=false, updatable=false, length=19)	
+	private java.sql.Timestamp createdAt;
+	
+	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class, fetch=FetchType.LAZY)	
+	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.LOCK})	
+	@JoinColumns(value={ @JoinColumn(name="executorConceptID", referencedColumnName="ID") }, foreignKey=@ForeignKey(name="FKhistory364237"))	
+	@org.hibernate.annotations.LazyToOne(value=org.hibernate.annotations.LazyToOneOption.NO_PROXY)	
+	private org.msh.pdex2.model.r2.Concept executor;
 	
 	private void setID(long value) {
 		this.ID = value;
@@ -131,82 +128,40 @@ public class History implements Serializable {
 		return go;
 	}
 	
-	/**
-	 * Expiration date. Mainly for monitoring activity
-	 */
-	public void setExpire(java.util.Date value) {
-		this.expire = value;
-	}
-	
-	/**
-	 * Expiration date. Mainly for monitoring activity
-	 */
-	public java.util.Date getExpire() {
-		return expire;
-	}
-	
-	/**
-	 * If activity require an additional data. It is a url of this data configuration
-	 */
 	public void setDataUrl(String value) {
 		this.dataUrl = value;
 	}
 	
-	/**
-	 * If activity require an additional data. It is a url of this data configuration
-	 */
 	public String getDataUrl() {
 		return dataUrl;
 	}
 	
-	/**
-	 * Notes from the previous step
-	 */
 	public void setPrevNotes(String value) {
 		this.prevNotes = value;
 	}
 	
-	/**
-	 * Notes from the previous step
-	 */
 	public String getPrevNotes() {
 		return prevNotes;
 	}
 	
-	/**
-	 * Is this activity has been cancelled
-	 */
 	public void setCancelled(boolean value) {
 		this.cancelled = value;
 	}
 	
-	/**
-	 * Is this activity has been cancelled
-	 */
 	public boolean getCancelled() {
 		return cancelled;
 	}
 	
-	/**
-	 * Real date to create this record
-	 */
-	public void setCreatedAt(java.util.Date value) {
-		this.createdAt = value;
+	public void setExpire(java.util.Date value) {
+		this.expire = value;
 	}
 	
-	/**
-	 * Real date to create this record
-	 */
-	public java.util.Date getCreatedAt() {
+	public java.util.Date getExpire() {
+		return expire;
+	}
+	
+	public java.sql.Timestamp getCreatedAt() {
 		return createdAt;
-	}
-	
-	public void setActivity(org.msh.pdex2.model.r2.Concept value) {
-		this.activity = value;
-	}
-	
-	public org.msh.pdex2.model.r2.Concept getActivity() {
-		return activity;
 	}
 	
 	public void setApplication(org.msh.pdex2.model.r2.Concept value) {
@@ -215,6 +170,14 @@ public class History implements Serializable {
 	
 	public org.msh.pdex2.model.r2.Concept getApplication() {
 		return application;
+	}
+	
+	public void setActivity(org.msh.pdex2.model.r2.Concept value) {
+		this.activity = value;
+	}
+	
+	public org.msh.pdex2.model.r2.Concept getActivity() {
+		return activity;
 	}
 	
 	public void setActivityData(org.msh.pdex2.model.r2.Concept value) {
@@ -233,20 +196,20 @@ public class History implements Serializable {
 		return applicationData;
 	}
 	
-	public void setApplDict(org.msh.pdex2.model.r2.Concept value) {
-		this.applDict = value;
-	}
-	
-	public org.msh.pdex2.model.r2.Concept getApplDict() {
-		return applDict;
-	}
-	
 	public void setApplConfig(org.msh.pdex2.model.r2.Concept value) {
 		this.applConfig = value;
 	}
 	
 	public org.msh.pdex2.model.r2.Concept getApplConfig() {
 		return applConfig;
+	}
+	
+	public void setApplDict(org.msh.pdex2.model.r2.Concept value) {
+		this.applDict = value;
+	}
+	
+	public org.msh.pdex2.model.r2.Concept getApplDict() {
+		return applDict;
 	}
 	
 	public void setActConfig(org.msh.pdex2.model.r2.Concept value) {

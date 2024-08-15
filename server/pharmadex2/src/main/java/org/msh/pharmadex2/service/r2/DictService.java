@@ -50,6 +50,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class DictService {
+	private static final String GIS_EARTH_CENTER = "39.000000;34.000000";
 	private static final Logger logger = LoggerFactory.getLogger(DictService.class);
 	@Autowired
 	ClosureService closureServ;
@@ -621,7 +622,7 @@ public class DictService {
 		List<Concept> concPath = closureServ.loadParents(node);
 		List<OptionDTO> ret = new ArrayList<OptionDTO>();
 		for(Concept conc : concPath) {
-			if(!conc.getIdentifier().equalsIgnoreCase(dictUrl)) {
+			if(!conc.getIdentifier().trim().equalsIgnoreCase(dictUrl.trim())) {
 				if(conc.getID()!=node.getID()) {
 					ret.add(optionFromNode(conc));
 				}
@@ -1120,6 +1121,9 @@ public class DictService {
 		Concept country = closureServ.loadRoot(SystemService.DICTIONARY_ADMIN_UNITS);
 		if(country != null) {
 			loc = literalServ.readValue(LiteralService.GIS_LOCATION, country);
+			if(loc.isEmpty()) {
+				loc=GIS_EARTH_CENTER;
+			}
 		}
 		return loc;
 	}

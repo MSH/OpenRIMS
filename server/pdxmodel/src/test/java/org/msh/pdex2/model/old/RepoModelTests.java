@@ -18,6 +18,7 @@ import org.hibernate.persister.entity.AbstractEntityPersister;
 import org.hibernate.persister.entity.EntityPersister;
 import org.junit.jupiter.api.Test;
 import org.msh.pdex2.model.i18n.ResourceBundle;
+import org.msh.pdex2.model.r2.User;
 import org.msh.pdex2.repository.common.UserRepo;
 import org.msh.pdex2.repository.i18n.ResourceBundleRepo;
 import org.springframework.beans.factory.annotation.Autowired;

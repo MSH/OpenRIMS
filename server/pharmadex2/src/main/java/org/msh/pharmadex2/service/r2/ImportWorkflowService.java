@@ -60,7 +60,7 @@ public class ImportWorkflowService {
 	@Autowired
 	private ResourceService resServ;
 	@Autowired
-	private AssistanceService assistServ;
+	private UrlAssistantService assistServ;
 	@Autowired
 	private SystemService systemServ;
 	@Autowired

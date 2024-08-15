@@ -10,7 +10,7 @@ import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.model.dwh.ReportPage;
 import org.msh.pdex2.model.dwh.ReportSession;
 import org.msh.pdex2.model.enums.YesNoNA;
-import org.msh.pdex2.model.old.User;
+import org.msh.pdex2.model.r2.User;
 import org.msh.pdex2.model.r2.Assembly;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;

@@ -8,40 +8,36 @@
  */
 
 /**
- * Licensee: DuKe TeAm
- * License Type: Purchased
+ * Licensee: 
+ * License Type: Evaluation
  */
 package org.msh.pdex2.model.r2;
 
 import java.io.Serializable;
 import javax.persistence.*;
-/**
- * Allows link other objects to a given. Relation is m:m
- */
 @Entity
 @org.hibernate.annotations.Proxy(lazy=false)
 @Table(name="thinglink")
-@Inheritance(strategy=InheritanceType.SINGLE_TABLE)
 public class ThingLink implements Serializable {
 	public ThingLink() {
 	}
 	
-	@Column(name="ID", nullable=false)	
+	@Column(name="ID", nullable=false, length=19)	
 	@Id	
-	@GeneratedValue(generator="VAC22227718DA768E99002BED")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22227718DA768E99002BED", strategy="native")	
+	@GeneratedValue(generator="ORG_MSH_PDEX2_MODEL_R2_THINGLINK_ID_GENERATOR")	
+	@org.hibernate.annotations.GenericGenerator(name="ORG_MSH_PDEX2_MODEL_R2_THINGLINK_ID_GENERATOR", strategy="native")	
 	private long ID;
 	
-	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
+	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class, fetch=FetchType.LAZY)	
 	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.LOCK})	
-	@JoinColumns({ @JoinColumn(name="linkedObjectID", referencedColumnName="ID") })	
-	@Basic(fetch=FetchType.LAZY)	
+	@JoinColumns(value={ @JoinColumn(name="linkedObjectID", referencedColumnName="ID", nullable=false) }, foreignKey=@ForeignKey(name="FKthinglink598140"))	
+	@org.hibernate.annotations.LazyToOne(value=org.hibernate.annotations.LazyToOneOption.NO_PROXY)	
 	private org.msh.pdex2.model.r2.Concept linkedObject;
 	
-	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
+	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class, fetch=FetchType.LAZY)	
 	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.LOCK})	
-	@JoinColumns({ @JoinColumn(name="dictItemID", referencedColumnName="ID") })	
-	@Basic(fetch=FetchType.LAZY)	
+	@JoinColumns(value={ @JoinColumn(name="dictItemID", referencedColumnName="ID") }, foreignKey=@ForeignKey(name="FKthinglink78883"))	
+	@org.hibernate.annotations.LazyToOne(value=org.hibernate.annotations.LazyToOneOption.NO_PROXY)	
 	private org.msh.pdex2.model.r2.Concept dictItem;
 	
 	@Column(name="LinkUrl", nullable=true, length=255)	
@@ -65,30 +61,18 @@ public class ThingLink implements Serializable {
 		return getID();
 	}
 	
-	/**
-	 * URL of a linked object
-	 */
 	public void setLinkUrl(String value) {
 		this.linkUrl = value;
 	}
 	
-	/**
-	 * URL of a linked object
-	 */
 	public String getLinkUrl() {
 		return linkUrl;
 	}
 	
-	/**
-	 * Optional classifier for a linked object, e.g. The Beatles->Finished Product Manufacturer
-	 */
 	public void setDictUrl(String value) {
 		this.dictUrl = value;
 	}
 	
-	/**
-	 * Optional classifier for a linked object, e.g. The Beatles->Finished Product Manufacturer
-	 */
 	public String getDictUrl() {
 		return dictUrl;
 	}

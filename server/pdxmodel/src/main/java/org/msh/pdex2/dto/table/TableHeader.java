@@ -118,6 +118,13 @@ public class TableHeader {
 	public String getKey() {
 		return key;
 	}
+	/**
+	 * Get a key enclosed in quotas for select statements
+	 * @return
+	 */
+	public String getQuotedKey() {
+		return "`"+key+"`";
+	}
 	public void setKey(String key) {
 		this.key = key;
 	}
@@ -320,19 +327,19 @@ public class TableHeader {
 			switch(getColumnType()){
 			case COLUMN_STRING:
 				if(isFilterAllowed() && getConditionS().length()>0){
-					ret = getKey()+" like '%" + getConditionS() + "%'";
+					ret = getQuotedKey()+" like '%" + getConditionS() + "%'";
 				}
 				break;
 			case COLUMN_LONG:
-				ret= "("+getKey() + ">=" + getFromLong() + " and " + getKey() + "<=" + getToLong() + ")";
+				ret= "("+getQuotedKey() + ">=" + getFromLong() + " and " + getQuotedKey() + "<=" + getToLong() + ")";
 				break;
 			case COLUMN_YESNO:
 			case COLUMN_BOOLEAN_CHECKBOX:
 			case COLUMN_BOOLEAN_RADIO:
 				if(isConditionB()){
-					ret=getKey()+ " IS TRUE";
+					ret=getQuotedKey()+ " IS TRUE";
 				}else{
-					ret = getKey() + " IS NOT TRUE";
+					ret = getQuotedKey() + " IS NOT TRUE";
 				}
 				break;
 			case COLUMN_LOCALDATE:
@@ -340,7 +347,7 @@ public class TableHeader {
 				setTo(LocalDate.of(getTo().getYear(), getTo().getMonthValue(), getTo().lengthOfMonth()));
 				
 				DateTimeFormatter fmt = DateTimeFormatter.ISO_LOCAL_DATE;
-				ret = getKey()+ " BETWEEN '" +  getFrom().format(fmt) + "' AND '" + getTo().format(fmt)+"'";
+				ret = getQuotedKey()+ " BETWEEN '" +  getFrom().format(fmt) + "' AND '" + getTo().format(fmt)+"'";
 				break;
 			case COLUMN_LOCALDATETIME:  //Please, put your attention!!!!! dates without times
 				//DateTimeFormatter fmt1 = ISODateTimeFormat.dateHourMinuteSecond();
@@ -359,11 +366,11 @@ public class TableHeader {
 				dd = dd.plusMonths(1);// надо взять первое число следующего месяца
 				setToDt(LocalDateTime.of(dd.getYear(), dd.getMonthValue(), 1,0,10,0));
 				
-				ret = getKey()+ " BETWEEN '" +  getFromDt().format(fmt1).replace("T", " ") + "' AND '" + getToDt().format(fmt1).replace("T", " ")+"'";
+				ret = getQuotedKey()+ " BETWEEN '" +  getFromDt().format(fmt1).replace("T", " ") + "' AND '" + getToDt().format(fmt1).replace("T", " ")+"'";
 				break;
 			case COLUMN_LINK:
 				if(isFilterAllowed() && getConditionS().length()>0){
-					ret = getKey()+" like '%" + getConditionS() + "%'";
+					ret = getQuotedKey()+" like '%" + getConditionS() + "%'";
 				}
 				break;
 			default:
@@ -383,12 +390,12 @@ public class TableHeader {
 			switch(getColumnType()){
 			case COLUMN_STRING:
 				if(getGeneralCondition().length()>0){
-					ret =getKey()+" like '%" + getGeneralCondition() + "%'";
+					ret =getQuotedKey()+" like '%" + getGeneralCondition() + "%'";
 				}
 				break;
 			case COLUMN_LINK:
 				if(getGeneralCondition().length()>0){
-					ret = getKey()+" like '%" + getGeneralCondition() + "%'";
+					ret = getQuotedKey()+" like '%" + getGeneralCondition() + "%'";
 				}
 				break;
 			default:
@@ -409,10 +416,10 @@ public class TableHeader {
 			case SORT_OFF:
 				break; //nothing to do
 			case SORT_ASC:
-				ret = getKey();
+				ret = getQuotedKey();
 				break;
 			case SORT_DESC:
-				ret = getKey() + " DESC";
+				ret = getQuotedKey() + " DESC";
 			default:
 				break; //nothing to do
 			}

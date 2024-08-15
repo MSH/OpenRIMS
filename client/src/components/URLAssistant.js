@@ -38,6 +38,7 @@ class URLAssistant extends Component{
                 global_help:'',
                 form_ok:'',
                 preview:'',
+                search:'',
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)

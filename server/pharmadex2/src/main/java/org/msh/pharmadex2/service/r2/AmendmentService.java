@@ -598,7 +598,7 @@ public class AmendmentService {
 		Concept concept = new Concept();
 		concept = closureServ.placeConceptToTree(url, user.getEmail(),concept);
 		ret.setConcept(concept);
-		ret.setCreatedAt(new Date());
+		//ret.setCreatedAt(new Date()); auto since 20240717
 		//add it to applicationData
 		Thing th = new Thing();
 		th=boilerServ.thingByNode(amendment);

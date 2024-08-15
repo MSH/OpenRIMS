@@ -10,8 +10,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties(ignoreUnknown=true)
 public class LocationDTO extends AllowValidation{
 	
-	private double lat = 0;
-	private double lng = 0;
+	private double lat = 0.000000;
+	private double lng = 0.000000;
 	
 	public double getLat() {
 		return lat;

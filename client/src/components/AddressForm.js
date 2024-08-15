@@ -4,7 +4,7 @@ import PropTypes from 'prop-types'
 import Locales from './utils/Locales'
 import Fetchers from './utils/Fetchers'
 import Dictionary from './Dictionary'
-import ProjectMap from './map/ProjectMap'
+import GoogleMaps  from './map/GoogleMaps'
 import ButtonUni from './form/ButtonUni'
 import Navigator from './utils/Navigator'
 
@@ -21,11 +21,9 @@ class AddressForm extends Component{
         this.state={
             identifier:Date.now().toString(),  //my address for messages
             showmap:false,
-            data:{
-            },
+            data:this.props.data,
             labels:{
-                global_save:'',
-                global_cancel:'',
+                global_close:'',
                 gisLocation:'',
                 gisView:'',
                 streetaddress:""
@@ -34,6 +32,9 @@ class AddressForm extends Component{
             curzoom:0,
             map:undefined,
             point:{}
+        }
+        if(window.location.hostname.toUpperCase()=='LOCALHOST'){
+            this.state.data.googleMapApiKey="AIzaSyBBpXaRXiSfpkr01F1mCYQtHrcYOS1C_80" //we don't need the extrnal key while development 
         }
         this.eventProcessor=this.eventProcessor.bind(this)
         this.loadCenterZoom=this.loadCenterZoom.bind(this)
@@ -98,7 +99,13 @@ class AddressForm extends Component{
             let data=event.data
             if(data.subject=='onSelectionChange'){
                 this.state.data.dictionary = data.data
-                this.state.data.marker  = {}
+                this.state.data.marker  = {lat:0.000000,lng:0.000000}
+                this.setState(this.state)
+                Navigator.message(this.state.identifier,this.props.recipient, 'onSelectionChange', this.state.data)
+            }
+            if(data.subject=='gis_position_changed'){
+                this.state.data.marker.lat=data.data.lat
+                this.state.data.marker.lng=data.data.lng
                 this.setState(this.state)
                 Navigator.message(this.state.identifier,this.props.recipient, 'onSelectionChange', this.state.data)
             }
@@ -108,7 +115,6 @@ class AddressForm extends Component{
     componentDidMount(){
         window.addEventListener("message",this.eventProcessor)
         Locales.resolveLabels(this)
-        this.state.data = this.props.data
     }
 
     componentWillUnmount(){
@@ -149,59 +155,98 @@ class AddressForm extends Component{
             this.setState(this.state)
         }
     }
+    /**
+     * 
+     * @returns true, if the marker is defined
+     */
+    isMarkerEmpty(){
+        let marker=this.state.data.marker
+        if(marker==undefined){
+            return false
+        }else{
+            if(marker.lat!=undefined && marker.lng!=undefined){
+                return this.state.data.marker.lat+this.state.data.marker.lng < 0.000001
+            }else{
+                return false
+            }
+        }
+    }
 
     markerToString(){
         var lbl = ""
-        if(this.state.data.marker != undefined && this.state.data.marker.lat != undefined
-            && this.state.data.marker.lat > 0){
+        if(this.isMarkerEmpty){
             lbl = this.state.labels.gisView + ": "
             lbl += this.state.data.marker.lat + "; " + this.state.data.marker.lng
         }
         return lbl
     }
-
-    render(){
-        if(this.state.labels.locale != undefined && this.state.data.dictionary != undefined){
-            if(this.state.showmap){
-                return(
+    passMarker(){
+        if(this.isMarkerEmpty() ){
+            return undefined
+        }else{
+            return ({lat: this.state.data.marker.lat, lng: this.state.data.marker.lng})
+        }
+    }
+    /**
+     * place a map or button if is is allowed
+     */
+    placeMap(){
+        if(this.state.data.googleMapApiKey.length==0){
+            return []
+        }
+        //map or button?
+        if(this.state.showmap){
+            return(
                 <Row>
                     <Col xs='12' sm='12' lg='12' xl='12'>
                         <Row style={{height:'300px'}}>
-                            <ProjectMap zoom={this.state.curzoom} center={this.state.curcenter}
-                                    marker={this.state.data.marker}
-                                    readOnly={this.props.readOnly}/>
+                            <GoogleMaps 
+                                    recipient={this.state.identifier}
+                                    center={{lat:this.state.curcenter.lat,lng:this.state.curcenter.lng}} 
+                                    marker={this.passMarker()}
+                                    zoom={this.state.curzoom}
+                                    apiKey={this.state.data.googleMapApiKey}/>
                         </Row>
                         <Row >
-                            <Col xs='12' sm='12' lg='6' xl='6'>
-                                <div hidden={this.props.readOnly}>
-                                    <ButtonUni
-                                        label={this.state.labels.global_save}
-                                        onClick={()=>{
-                                            this.state.showmap=false
-                                            this.setState(this.state)
-                                            Navigator.message(this.state.identifier,this.props.recipient, 'onSelectionChange', this.state.data)
-                                        }}
-                                        color="success"
-                                        hidden={this.state.data.readOnly}
-                                    />
-                                </div>
-                            </Col>
+                            <Col xs='12' sm='12' lg='6' xl='6'/>
                             <Col xs='12' sm='12' lg='6' xl='6'>
                                 <ButtonUni
-                                    label={this.state.labels.global_cancel}
+                                    label={this.state.labels.global_close}
+                                    outline
                                     onClick={()=>{
-                                        // вернем сохраненные координаты маркера
-                                        this.state.data.marker = this.state.point
                                         this.state.showmap=false
                                         this.setState(this.state)
-                                        Navigator.message(this.state.identifier,this.props.recipient, 'onSelectionChange', this.state.data)
                                     }}
                                     color="info"
                                 />
                             </Col>
                         </Row>
                     </Col>
+            </Row>
+            )
+
+        }else{
+            return(
+                <Row>
+                    <Col>
+                        <ButtonUni
+                                label={this.state.labels.gisLocation}
+                                onClick={()=>{
+                                    {this.loadCenterZoom()}
+                                }}
+                                color="success"
+                        />
+                    </Col>
                 </Row>
+            )
+        }
+    }
+
+    render(){
+        if(this.state.labels.locale != undefined && this.state.data.dictionary != undefined){
+            if(this.state.showmap){
+                return(
+                    this.placeMap()
                 )
             }else{
                 return (
@@ -219,15 +264,7 @@ class AddressForm extends Component{
                                 <Label style={{fontSize:'0.8rem'}}>{this.markerToString()}</Label>
                             </Col>
                         </Row>
-                        <Row>
-                            <ButtonUni
-                                    label={this.state.labels.gisLocation}
-                                    onClick={()=>{
-                                        {this.loadCenterZoom()}
-                                    }}
-                                    color="success"
-                                />
-                        </Row>
+                       {this.placeMap()}
                     </Col>
                 </Row>
                 )

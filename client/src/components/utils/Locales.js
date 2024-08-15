@@ -24,6 +24,24 @@ class Locales{
         Locales.createLabelsRecursive(component.state.data, component.state.labels, literal);
     }
 
+    /**
+     * collect labels for all fields in a functional component data
+     * @param {data} - data that may contain fields
+     * @param {labels} a map. Key is label, value is FieldDTO
+     * @returns a list of field's labels
+     */
+    static createLabelsFunctional(data,labels){
+        if(data != undefined && Fetchers.isGoodArray(Object.keys(data))){
+            let newLabels={}
+            Object.keys(data).forEach((key)=>{
+                newLabels[key]=''
+            })
+            return {...labels,...newLabels}
+        }else{
+            return {...labels}
+        }
+    }
+
     static createLabelsRecursive(data, labels,literal){
         if(data != undefined && Fetchers.isGoodArray(Object.keys(data))){
             Object.keys(data).forEach((key)=>{
@@ -37,11 +55,25 @@ class Locales{
     }
 
     /**
+     * Resolve labels in functional components
+     */
+    static resolveLabelsFunctional(labels, setLabels){
+        let component ={
+            state:{
+                labels:Object.assign({}, labels),
+            }
+        }
+        Locales.resolveLabels(component, setLabels)
+        
+    }
+
+    /**
      * Load labels with the current locale for a component
      * @param {object} implementation of the component. Must implement "this.state.labels"
+     * @param {setLabels} - useState function for functional components optional
      * @example  Locales.resolveLabels(this) 
      */
-    static resolveLabels(component){
+    static resolveLabels(component, setLabels){
         //labels should be loaded
         let toLoad=[] 
         //labels that are already loaded
@@ -80,7 +112,11 @@ class Locales{
                     //refresh component's state if somethig changes
                     if(refresh){
                         let s = component.state
-                        component.setState(s)
+                        if(setLabels==undefined){
+                            component.setState(s)
+                        }else{
+                            setLabels(s.labels)
+                        }
                     }
                 })
             }

@@ -37,7 +37,8 @@ class CheckList extends Component{
                 route_action:"",
                 cancel:"",
                 requiredvalue:"",
-                success:""
+                success:"",
+                previewunavailable:'',
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -172,7 +173,7 @@ class CheckList extends Component{
             return []
         }
         if(this.state.data.questions.length==0){
-            return []
+            return <small>{this.state.labels.previewunavailable}</small>
         }
         return(
             <Container fluid className={Pharmadex.settings.activeBorder}>

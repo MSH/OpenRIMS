@@ -639,5 +639,14 @@ public class ResourceService {
 	public ResponseEntity<Resource> adminHelpELAssistant() throws ObjectNotFoundException, IOException {
 		return downloadFile("el.assistant","elassistant.pdf");
 	}
+	/**
+	 * Administrate help
+	 * @return
+	 * @throws ObjectNotFoundException
+	 * @throws IOException
+	 */
+	public ResponseEntity<Resource> adminHelp() throws ObjectNotFoundException, IOException {
+		return downloadFile("help.administrate","FeaturesForTheOpenRIMSSupervisorUser.pdf");
+	}
 
 }

@@ -150,17 +150,20 @@ public class ThingService {
 	@Autowired
 	private UserService userServ;
 	@PersistenceContext
-	EntityManager entityManager;
+	private EntityManager entityManager;
 	@Autowired
-	ThingThingRepo thingThingRepo;
+	private ThingThingRepo thingThingRepo;
 	@Autowired
-	ThingPersonRepo thingPersonRepo;
+	private ThingPersonRepo thingPersonRepo;
 	@Autowired
-	ThingDocRepo thingDocRepo;
+	private ThingDocRepo thingDocRepo;
 
 
 	@Value("${spring.servlet.multipart.max-file-size}" )
-	String maxFileSize;
+	private String maxFileSize;
+	
+	@Value("${pharmadex.google.map.api.key}")
+	private String googleMapApiKey;
 
 	/**
 	 * Create a new thing
@@ -600,6 +603,7 @@ public class ThingService {
 	@Transactional
 	public AddressDTO createAddress(ThingDTO data, Thing thing, AssemblyDTO assm) throws ObjectNotFoundException {
 		AddressDTO addr = new AddressDTO();
+		addr.setGoogleMapApiKey(googleMapApiKey);
 		addr.setVarName(assm.getPropertyName());
 		addr.setUrl(assm.getUrl());
 		addr.getDictionary().setUrl(assemblyServ.adminUnitsDict());
@@ -1831,7 +1835,11 @@ public class ThingService {
 			//nothing to do
 		}
 		//prepare data to store
-		node.setLabel(data.getMarker().gisLocation());
+		if(data.getMarker().isEmpty()) {
+			node.setLabel(null);
+		}else {
+			node.setLabel(data.getMarker().gisLocation());
+		}
 		thing.getDictionaries().clear();
 		thing.setUrl(data.getUrl());
 		Set<Long> selected = dictServ.selectedItems(data.getDictionary());

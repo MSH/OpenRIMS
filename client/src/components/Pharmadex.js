@@ -9,6 +9,7 @@ import About from './About'
 import AlertFloat from './utils/AlertFloat'
 
 
+
 /**
  * The Pharmadex main
  * consists of header, landing content and footer (about) components

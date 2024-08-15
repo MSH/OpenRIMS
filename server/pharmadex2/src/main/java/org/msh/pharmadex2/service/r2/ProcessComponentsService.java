@@ -85,7 +85,7 @@ public class ProcessComponentsService {
 		dictUrls.addAll(checkListRows);
 		dictUrls.addAll(dictPagesRows);
 		dictUrls.addAll(docDictRows);
-		String definedDict="select c.Identifier as 'url'\r\n" + 
+		String definedDict="select trim(c.Identifier) as 'url'\r\n" + 
 				"from concept c\r\n" + 
 				"left join closure clo on clo.childID=c.ID and clo.`Level`=1\r\n" + 
 				"join closure clo1 on clo1.parentID=c.ID and clo1.`Level`=1\r\n" + 

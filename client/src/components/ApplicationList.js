@@ -37,7 +37,7 @@ class ApplicationList extends Component{
     componentDidUpdate(){
         if(this.state.data.dictItemId!=this.props.dictItemId){
             this.state.data.dictItemId=this.props.dictItemId
-            this.state.data.table.generalSearch = "onSelDict"
+            //this.state.data.table.generalSearch = "onSelDict"
             this.loadTable()
         }
     }
@@ -95,7 +95,7 @@ class ApplicationList extends Component{
 
     render(){
         if(this.state.data.table==undefined){
-            return []
+            return Pharmadex.wait()
         }
         let showtable=this.state.data.table
             if(this.props.archive){

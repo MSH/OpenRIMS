@@ -9,7 +9,7 @@ import java.util.Set;
 
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
-import org.msh.pdex2.model.old.User;
+import org.msh.pdex2.model.r2.User;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
 import org.msh.pdex2.repository.common.UserRepo;

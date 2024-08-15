@@ -19,8 +19,9 @@ module.exports = {
           use: {
             loader: "babel-loader",
             options: {
-                presets: ['@babel/preset-react'
-              ]
+              presets: [['@babel/preset-react'], ['@babel/preset-env',{
+                "debug": true,
+              }]],
             }
           }
         }, 
@@ -58,7 +59,8 @@ module.exports = {
   ],
 
   output: {
-    path: path.resolve('C:/eclipse/workspace/pharmadex2/src/main/resources/static/', 'js'), 
+    //path: path.resolve('C:/eclipse/workspace/pharmadex2/src/main/resources/static/', 'js'), 
+    path: path.resolve('C:/eclipse/jee-2024-06/workspace/pharmadex2/src/main/resources/static', 'js'), 
     publicPath: '/js/',
     filename: '[name].[fullhash].js',
   },

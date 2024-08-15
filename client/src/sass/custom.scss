@@ -90,3 +90,109 @@ label{
   50.01% { opacity: 0; }
   100% { opacity: 0; }
  }
+
+ .timeline-steps {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap
+}
+
+.timeline-steps .timeline-step {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  margin: 0.5rem
+}
+
+.timeline-steps .timeline-step1 {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  margin: 0.5rem
+}
+
+@media (min-width:768px) {
+  .timeline-steps .timeline-step1:not(:last-child):after {
+      content: "";
+      display: block;
+      border-top: .1rem dotted #6c757d;
+      width: 5.2725rem;
+      position: absolute;
+      left: 3rem;
+      top: .3125rem
+  }
+
+
+  .timeline-steps .timeline-step:not(:last-child):after {
+    content: "";
+    display: block;
+    border-top: .1rem solid #6c757d;
+    width: 5.2725rem;
+    position: absolute;
+    left: 3rem;
+    top: .3125rem
+}
+  /* .timeline-steps .timeline-step:not(:first-child):before {
+      content: "";
+      display: block;
+      border-top: .25rem dotted #f2eb22;
+      width: 3.8125rem;
+      position: absolute;
+      right: 7.5rem;
+      top: .3125rem
+  } */
+}
+
+.timeline-steps .timeline-content {
+  width: 5rem;
+  text-align: center
+}
+
+.timeline-steps .timeline-content .inner-circle {
+  border-radius: 0.8rem;
+  height: 0.8rem;
+  width: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #3b82f6
+}
+
+.timeline-steps .timeline-content .inner-circle:before {
+  content: "";
+  background-color: #7dadeb;
+  display: inline-block;
+  height: 1.5rem;
+  width: 1.5rem;
+  min-width: 1.5rem;
+  border-radius: 1.5rem;
+  opacity: .5
+}
+
+.timeline-steps .timeline-content1 {
+  width: 5rem;
+  text-align: center
+}
+
+.timeline-steps .timeline-content1 .inner-circle {
+  border-radius: 0.8rem;
+  height: 0.8rem;
+  width: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #0b0000
+}
+
+.timeline-steps .timeline-content1 .inner-circle:before {
+  content: "";
+  background-color: #c7cbcf;
+  display: inline-block;
+  height: 1.5rem;
+  width: 1.5rem;
+  min-width: 1.5rem;
+  border-radius: 1.5rem;
+  opacity: .5
+}

@@ -6,7 +6,7 @@ var path = require('path');
 module.exports = {
   mode: 'development',
   entry: {
-    application: path.resolve(__dirname, './src/js/application.js')
+    application: path.resolve(__dirname, './src/js/application.js'),
   },  
   devServer: {
       inline: true,
@@ -18,6 +18,7 @@ module.exports = {
         "/login": "http://localhost:9292",
         "/logout": "http://localhost:9292"
       }
+
   },
   module: {
       rules: [        
@@ -25,7 +26,9 @@ module.exports = {
           use: {
             loader: "babel-loader",
             options: {
-                presets: ['@babel/preset-react', '@babel/preset-env']
+              presets: [['@babel/preset-react'], ['@babel/preset-env',{
+                "debug": true,
+              }]],
             }
           }
         }, 

@@ -3,10 +3,6 @@ package org.msh.pharmadex2.dto.form;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.msh.pdex2.dto.table.TableRow;
-import org.msh.pdex2.i18n.Messages;
-import org.msh.pdex2.model.old.User;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**

@@ -8,47 +8,45 @@
  */
 
 /**
- * Licensee: DuKe TeAm
- * License Type: Purchased
+ * Licensee: 
+ * License Type: Evaluation
  */
 package org.msh.pdex2.model.r2;
 
 import java.io.Serializable;
 import javax.persistence.*;
-/**
- * Contains registration numbers and dates. It is a relaxed implementation of filing system automation.
- */
 @Entity
 @org.hibernate.annotations.Proxy(lazy=false)
-@Table(name="register")
-@Inheritance(strategy=InheritanceType.SINGLE_TABLE)
+@Table(name="register", indexes={ @Index(name="byConceptID", columnList="conceptID") })
 public class Register implements Serializable {
 	public Register() {
 	}
 	
-	@Column(name="ID", nullable=false)	
+	@Column(name="ID", nullable=false, length=19)	
 	@Id	
-	@GeneratedValue(generator="VAC22227718DA768E98902BE4")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22227718DA768E98902BE4", strategy="native")	
+	@GeneratedValue(generator="ORG_MSH_PDEX2_MODEL_R2_REGISTER_ID_GENERATOR")	
+	@org.hibernate.annotations.GenericGenerator(name="ORG_MSH_PDEX2_MODEL_R2_REGISTER_ID_GENERATOR", strategy="native")	
 	private long ID;
 	
-	@OneToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
+	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class, fetch=FetchType.LAZY)	
 	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.ALL, org.hibernate.annotations.CascadeType.DELETE_ORPHAN})	
-	@JoinColumns({ @JoinColumn(name="conceptID") })	
-	@Basic(fetch=FetchType.LAZY)	
+	@JoinColumns(value={ @JoinColumn(name="conceptID", referencedColumnName="ID", nullable=false) }, foreignKey=@ForeignKey(name="FKregister932047"))	
+	@org.hibernate.annotations.LazyToOne(value=org.hibernate.annotations.LazyToOneOption.NO_PROXY)	
 	private org.msh.pdex2.model.r2.Concept concept;
 	
 	@Column(name="RegisteredAt", nullable=true)	
+	@Temporal(TemporalType.DATE)	
 	private java.util.Date registeredAt;
 	
 	@Column(name="Register", nullable=true, length=255)	
 	private String register;
 	
 	@Column(name="ValidTo", nullable=true)	
+	@Temporal(TemporalType.DATE)	
 	private java.util.Date validTo;
 	
-	@Column(name="CreatedAt", nullable=true)	
-	private java.util.Date createdAt;
+	@Column(name="CreatedAt", nullable=false, insertable=false, updatable=false, length=19)	
+	private java.sql.Timestamp createdAt;
 	
 	private void setID(long value) {
 		this.ID = value;
@@ -62,53 +60,31 @@ public class Register implements Serializable {
 		return getID();
 	}
 	
-	/**
-	 * Registration date
-	 */
 	public void setRegisteredAt(java.util.Date value) {
 		this.registeredAt = value;
 	}
 	
-	/**
-	 * Registration date
-	 */
 	public java.util.Date getRegisteredAt() {
 		return registeredAt;
 	}
 	
-	/**
-	 * Register number
-	 */
 	public void setRegister(String value) {
 		this.register = value;
 	}
 	
-	/**
-	 * Register number
-	 */
 	public String getRegister() {
 		return register;
 	}
 	
-	/**
-	 * Valid to date
-	 */
 	public void setValidTo(java.util.Date value) {
 		this.validTo = value;
 	}
 	
-	/**
-	 * Valid to date
-	 */
 	public java.util.Date getValidTo() {
 		return validTo;
 	}
 	
-	public void setCreatedAt(java.util.Date value) {
-		this.createdAt = value;
-	}
-	
-	public java.util.Date getCreatedAt() {
+	public java.sql.Timestamp getCreatedAt() {
 		return createdAt;
 	}
 	

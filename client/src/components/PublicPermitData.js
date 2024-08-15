@@ -8,6 +8,7 @@ import ThingsPublisher from './reports/ThingsPublisher'
 import Navigator from './utils/Navigator'
 import Downloader from './utils/Downloader'
 import Alerts from './utils/Alerts'
+import TimeLine from './TimeLine'
 
 /**
  * Display public available permit data
@@ -35,6 +36,7 @@ class PublicPermitData extends Component{
         this.builLeftColumn=this.builLeftColumn.bind(this)
         this.buildRightColumn=this.buildRightColumn.bind(this)
         this.withdrawApplication=this.withdrawApplication.bind(this)
+        this.timeLine=this.timeLine.bind(this)
     }
 
     /**
@@ -152,6 +154,20 @@ class PublicPermitData extends Component{
         window.history.back()
         })
     }
+    timeLine(){
+        let p=this.state.data.permitDataID
+        let h=this.state.data.historyID
+        if(Fetchers.isGoodArray(this.state.data.applHistory)){
+            h=this.state.data.applHistory[0].historyId
+        }
+        return(
+            <Row>
+                <Col>
+                    <TimeLine historyId={h} permitdataid={p} recipient={this.state.identifier}/>
+                </Col>
+            </Row>
+        )
+    }
 
     render(){
         if(this.state.data.title == undefined || this.state.labels.locale==undefined){// || !Fetchers.isGoodArray(this.state.data.application)){
@@ -163,8 +179,8 @@ class PublicPermitData extends Component{
                     <Col>
                         <h1 className="text-center">{this.state.data.title}</h1>
                     </Col>
-                    
                 </Row>
+                {this.timeLine()}
                 <Row>
                     <Col xs='12' sm='12' lg='10' xl='10'>
                         <FormText color="muted">

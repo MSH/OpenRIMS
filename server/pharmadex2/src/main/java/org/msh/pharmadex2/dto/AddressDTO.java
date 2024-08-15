@@ -13,11 +13,6 @@ public class AddressDTO extends AllowValidation{
 	private boolean changed=false;
 	private DictionaryDTO dictionary = new DictionaryDTO();
 	private GisLocationDTO homecenter = new GisLocationDTO();
-	
-	/** with key '0' - add Location center Nepal */
-	//private Map<Long, LocationDTO> locations = new HashMap<Long, LocationDTO>();
-	/** with key '0' - add Zoom center Nepal */
-	//private Map<Long, Integer> zooms = new HashMap<Long, Integer>();
 	/** координаты выбранной точки на карте - для сохранения локации в БД */
 	private LocationDTO marker = new LocationDTO();
 	//variable name in a thing
@@ -26,6 +21,7 @@ public class AddressDTO extends AllowValidation{
 	private String url="";
 	//node id of this address
 	private long nodeId=0;
+	private String googleMapApiKey="";
 	
 	public boolean isReadOnly() {
 		return readOnly;
@@ -74,6 +70,12 @@ public class AddressDTO extends AllowValidation{
 	}
 	public void setNodeId(long nodeId) {
 		this.nodeId = nodeId;
+	}
+	public String getGoogleMapApiKey() {
+		return googleMapApiKey;
+	}
+	public void setGoogleMapApiKey(String googleMapApiKey) {
+		this.googleMapApiKey = googleMapApiKey;
 	}
 
 	

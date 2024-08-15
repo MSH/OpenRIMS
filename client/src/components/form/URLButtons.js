@@ -58,7 +58,13 @@ class URLButtons extends Component{
         return(
             <ButtonGroup>
                 <Button title={this.props.title}
-                    onClick={()=>window.open('/admin#urlassistant/'+param,'_blank')}
+                    onClick={()=>{
+                        if(this.props.assistant.startsWith("URL")){
+                            window.open('/admin#urlassistant/'+param,'_blank')
+                        }else{
+                            window.open('/admin#varassistant/'+param,'_blank') 
+                        }
+                    }}
                     color='primary'
                 >
                     <i className="far fa-edit" aria-hidden="true"></i>

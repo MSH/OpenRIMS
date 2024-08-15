@@ -8,47 +8,44 @@
  */
 
 /**
- * Licensee: DuKe TeAm
- * License Type: Purchased
+ * Licensee: 
+ * License Type: Evaluation
  */
 package org.msh.pdex2.model.r2;
 
 import java.io.Serializable;
 import javax.persistence.*;
-/**
- * Responsible for follow-up tasks
- */
 @Entity
 @org.hibernate.annotations.Proxy(lazy=false)
 @Table(name="scheduler")
-@Inheritance(strategy=InheritanceType.SINGLE_TABLE)
 public class Scheduler implements Serializable {
 	public Scheduler() {
 	}
 	
-	@Column(name="ID", nullable=false)	
+	@Column(name="ID", nullable=false, length=19)	
 	@Id	
-	@GeneratedValue(generator="VAC22227718DA768E98802BE3")	
-	@org.hibernate.annotations.GenericGenerator(name="VAC22227718DA768E98802BE3", strategy="native")	
+	@GeneratedValue(generator="ORG_MSH_PDEX2_MODEL_R2_SCHEDULER_ID_GENERATOR")	
+	@org.hibernate.annotations.GenericGenerator(name="ORG_MSH_PDEX2_MODEL_R2_SCHEDULER_ID_GENERATOR", strategy="native")	
 	private long ID;
 	
-	@OneToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class)	
+	@ManyToOne(targetEntity=org.msh.pdex2.model.r2.Concept.class, fetch=FetchType.LAZY)	
 	@org.hibernate.annotations.Cascade({org.hibernate.annotations.CascadeType.ALL, org.hibernate.annotations.CascadeType.DELETE_ORPHAN})	
-	@JoinColumns({ @JoinColumn(name="conceptID") })	
-	@Basic(fetch=FetchType.LAZY)	
+	@JoinColumns(value={ @JoinColumn(name="conceptID", referencedColumnName="ID", nullable=false) }, foreignKey=@ForeignKey(name="FKscheduler428774"))	
+	@org.hibernate.annotations.LazyToOne(value=org.hibernate.annotations.LazyToOneOption.NO_PROXY)	
 	private org.msh.pdex2.model.r2.Concept concept;
 	
 	@Column(name="Scheduled", nullable=true)	
+	@Temporal(TemporalType.DATE)	
 	private java.util.Date scheduled;
 	
 	@Column(name="ProcessUrl", nullable=true, length=255)	
 	private String processUrl;
 	
-	@Column(name="CreatedAt", nullable=true)	
-	private java.util.Date createdAt;
+	@Column(name="CreatedAt", nullable=false, insertable=false, updatable=false, length=19)	
+	private java.sql.Timestamp createdAt;
 	
-	@Column(name="ChangedAt", nullable=true)	
-	private java.util.Date changedAt;
+	@Column(name="ChangedAt", nullable=false, insertable=false, updatable=false, length=19)	
+	private java.sql.Timestamp changedAt;
 	
 	private void setID(long value) {
 		this.ID = value;
@@ -62,16 +59,10 @@ public class Scheduler implements Serializable {
 		return getID();
 	}
 	
-	/**
-	 * Data to which this event has been scheduled
-	 */
 	public void setScheduled(java.util.Date value) {
 		this.scheduled = value;
 	}
 	
-	/**
-	 * Data to which this event has been scheduled
-	 */
 	public java.util.Date getScheduled() {
 		return scheduled;
 	}
@@ -84,25 +75,11 @@ public class Scheduler implements Serializable {
 		return processUrl;
 	}
 	
-	/**
-	 * Created date
-	 */
-	public void setCreatedAt(java.util.Date value) {
-		this.createdAt = value;
-	}
-	
-	/**
-	 * Created date
-	 */
-	public java.util.Date getCreatedAt() {
+	public java.sql.Timestamp getCreatedAt() {
 		return createdAt;
 	}
 	
-	public void setChangedAt(java.util.Date value) {
-		this.changedAt = value;
-	}
-	
-	public java.util.Date getChangedAt() {
+	public java.sql.Timestamp getChangedAt() {
 		return changedAt;
 	}
 	

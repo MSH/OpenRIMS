@@ -164,19 +164,19 @@ class ActivityHistoryData extends Component{
                     <Col xs='12' sm='12' lg='6' xl='6'>
                         <Row>
                             <Col xs='12' sm='12' lg='6' xl='6'>
-                                <ViewEditDate attribute="global_startdate" component={this} />
+                                <ViewEditDate attribute="global_startdate" component={this}/>
                             </Col>
                             <Col xs='12' sm='12' lg='6' xl='6' hidden={!this.state.data.completed}>
                                 <ViewEditDate attribute="completeddate" component={this} />
                             </Col>
                         </Row>
                         <Row>
-                            <Col>
+                            <Col hidden={!this.state.data.expert.value.length>0}>
                                 <ViewEdit mode='textarea' attribute='expert' component={this}/>
                             </Col>
                         </Row>
                     </Col>
-                    <Col xs='12' sm='12' lg='6' xl='6'>
+                    <Col xs='12' sm='12' lg='6' xl='6' hidden={!this.state.data.notes.value.length>0}>
                         <ViewEdit mode='textarea' attribute='notes' component={this}/>
                     </Col>
                 </Row>

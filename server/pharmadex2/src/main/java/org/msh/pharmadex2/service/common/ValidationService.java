@@ -29,7 +29,7 @@ import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.enums.YesNoNA;
-import org.msh.pdex2.model.old.User;
+import org.msh.pdex2.model.r2.User;
 import org.msh.pdex2.model.r2.Assembly;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.History;
@@ -80,6 +80,7 @@ import org.msh.pharmadex2.service.r2.SystemService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -123,6 +124,7 @@ public class ValidationService {
 			+ "[-a-z0-9_]*(\\.[-a-z0-9_]+)*\\.(aero|arpa|biz|com|coop|edu|gov|info|int|mil|museum|name|net|org|pro|travel|mobi|"
 			+ "[a-z][a-z])|([0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}))(:[0-9]{1,5})?$";
 	private static final Pattern emailPattern = Pattern.compile(regexEmail, Pattern.CASE_INSENSITIVE);
+
 	/**
 	 * Validate a node
 	 * @param data
@@ -478,11 +480,11 @@ public class ValidationService {
 							if(c.equalsIgnoreCase("yes")) {
 								data.setValid(false);
 								data.setIdentifier(messages.get("invalidfinalactiv_background"));
-								  fld.setError(true);
-								  fld.setSuggest(messages.get("invalidfinalactiv_background"));
-								  fld.setStrict(strict);
-								  helpLogical(fld,fld.getDescription());
-								 
+								fld.setError(true);
+								fld.setSuggest(messages.get("invalidfinalactiv_background"));
+								fld.setStrict(strict);
+								helpLogical(fld,fld.getDescription());
+
 							}
 						}
 					}
@@ -491,13 +493,13 @@ public class ValidationService {
 		}
 		return data;
 	}
-/**
- * The first workflow activity should not have a CONCURRENTURL
- * @param data
- * @param strict
- * @param str
- * @return
- */
+	/**
+	 * The first workflow activity should not have a CONCURRENTURL
+	 * @param data
+	 * @param strict
+	 * @param str
+	 * @return
+	 */
 	private ThingDTO validConcurrenturl(ThingDTO data, boolean strict, AssemblyDTO str) {
 		if(str.getPropertyName().equalsIgnoreCase(assemblyServ.CONCURRENTURL) && data.getUrl().equalsIgnoreCase(assemblyServ.ACTIVITY_CONFIGURATION)) {
 			Map<String, FormFieldDTO<String>> fields= data.getStrings();
@@ -520,18 +522,18 @@ public class ValidationService {
 							if(c.equalsIgnoreCase("yes")) {
 								data.setValid(false);
 								data.setIdentifier(messages.get("invalidconcurrentURL_background"));
-								  fldL.setError(true);
-								  fldL.setSuggest(messages.get("invalidconcurrentURL_background"));
-								  fldL.setStrict(strict);
-								  helpLogical(fldL,fldL.getDescription());
-								 
+								fldL.setError(true);
+								fldL.setSuggest(messages.get("invalidconcurrentURL_background"));
+								fldL.setStrict(strict);
+								helpLogical(fldL,fldL.getDescription());
+
 							}
 						}
 					}
 				}
 			}
 		}
-		
+
 		return data;
 	}
 	/**
@@ -913,11 +915,13 @@ public class ValidationService {
 				data.setIdentifier(messages.get("addressisempty"));
 				return;
 			}
-			if(data.getMarker().isEmpty()) {
-				data.setValid(false);
-				data.setStrict(strict);
-				data.setIdentifier(messages.get("selectgislocation"));
-				return;
+			if(!data.getGoogleMapApiKey().isEmpty()) {
+				if(data.getMarker().isEmpty()) {
+					data.setValid(false);
+					data.setStrict(strict);
+					data.setIdentifier(messages.get("selectgislocation"));
+					return;
+				}
 			}
 		}
 	}
@@ -1234,7 +1238,7 @@ public class ValidationService {
 		data.propagateValidation();
 		return data;
 	}
-	
+
 	private DataVariableDTO variableIfPrefLabel(DataVariableDTO data) {
 		String clazz = data.getClazz().getValue().getCode();
 		if(clazz.equalsIgnoreCase("literals") || clazz.equalsIgnoreCase("strings")) {
@@ -1261,7 +1265,7 @@ public class ValidationService {
 		}
 		return data;
 	}
-	
+
 	/**
 	 * field fileTypes should be checked and all non-printable characters should be removed:
 	 * <ul>
@@ -2373,7 +2377,7 @@ public class ValidationService {
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException 
-	
+
 	@Transactional
 	public ThingDTO validateThingsIncluded(List<Assembly> assemblies, List<AssemblyDTO> storedConfig, ThingDTO data) throws ObjectNotFoundException {
 		if(storedConfig.isEmpty()) {
@@ -2396,7 +2400,7 @@ public class ValidationService {
 	 * @param data
 	 * @return
 	 * @throws ObjectNotFoundException 
-	 
+
 	@Transactional
 	private ThingDTO validateThingIncluded(AssemblyDTO dto, ThingDTO data) throws ObjectNotFoundException {
 		data.clearErrors();
@@ -2424,7 +2428,7 @@ public class ValidationService {
 		}
 		return data;
 	}
-	*/
+	 */
 	/**
 	 * Validate email address using regex
 	 * @param data
@@ -2642,7 +2646,8 @@ public class ValidationService {
 					//check
 					return h.getApplicationData().getID()==h.getActivityData().getID() 
 							&& h.getGo()==null
-							&& h.getActConfig()==null;
+							&& h.getActConfig()==null
+							&& h.getApplicationData().getID()==permData.getID();
 				}
 			}
 		}

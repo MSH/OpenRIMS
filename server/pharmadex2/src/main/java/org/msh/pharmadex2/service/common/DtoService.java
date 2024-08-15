@@ -13,7 +13,7 @@ import java.util.Map;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
 import org.msh.pdex2.model.enums.YesNoNA;
-import org.msh.pdex2.model.old.User;
+import org.msh.pdex2.model.r2.User;
 import org.msh.pdex2.model.r2.Assembly;
 import org.msh.pdex2.model.r2.Checklistr2;
 import org.msh.pdex2.model.r2.Concept;
@@ -24,6 +24,7 @@ import org.msh.pharmadex2.dto.DictNodeDTO;
 import org.msh.pharmadex2.dto.LocationDTO;
 import org.msh.pharmadex2.dto.QuestionDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
+import org.msh.pharmadex2.dto.enums.AssistantEnum;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.service.r2.LiteralService;
@@ -540,7 +541,9 @@ public class DtoService {
 		data.getDescription().setValue(literalServ.readPrefLabel(varNode));
 		data.setNodeId(node.getID());
 		data.getVarName().setValue(stringVal(varNode.getIdentifier()));
+		//data.getVarName().setAssistant(AssistantEnum.VARIABLE); temporarily TO DO
 		data.getVarNameExt().setValue(stringVal(varNode.getLabel()));
+		//data.getVarNameExt().setAssistant(AssistantEnum.VARIABLE); temporarily TO DO
 		data.setVarNodeId(varNode.getID());
 		//Assembly
 		data=assemblyToDto(assm, data);

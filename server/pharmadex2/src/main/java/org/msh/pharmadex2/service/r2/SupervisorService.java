@@ -103,7 +103,7 @@ public class SupervisorService {
 	@Autowired
 	ResourceBundleRepo resourceBundleRepo;
 	@Autowired
-	AssistanceService assisServ;
+	UrlAssistantService assisServ;
 
 	@Value("${variables.properties.edit}")
 	private boolean variablesPropertiesEdit;
@@ -220,6 +220,7 @@ public class SupervisorService {
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
+	@Transactional
 	public DataConfigDTO dataCollectionsLoad(DataConfigDTO data, String searchStr, String searchStrVars) throws ObjectNotFoundException {
 		Concept root = closureServ.loadRoot(SystemService.DATA_COLLECTIONS_ROOT);
 		if (data.getTable().getHeaders().getHeaders().size() == 0) {
@@ -325,7 +326,7 @@ public class SupervisorService {
 		}
 		return data;
 	}
-//autoCreate configuration for resource
+	//autoCreate configuration for resource
 	public DataCollectionDTO createConfigResource(String url, String dictUrl) throws ObjectNotFoundException {
 		DataCollectionDTO conf=new DataCollectionDTO();
 		conf.getUrl().setValue("configuration."+url);
@@ -736,7 +737,7 @@ public class SupervisorService {
 		for (TableRow row : table.getRows()) {
 			if (row.getSelected()) {
 				if (data.getNodeId() > 0) {
-				data.setSelected(row.getDbID());
+					data.setSelected(row.getDbID());
 				}else {
 					data.setSelected(0l);
 				}
@@ -756,21 +757,7 @@ public class SupervisorService {
 		// load data if one
 		if (data.getNodeId() > 0) {
 			Concept node = closureServ.loadConceptById(data.getNodeId());
-			data.getUrl().setValue(node.getIdentifier());
-			data.getConfigUrl().setValue(node.getLabel());
-			data.getDescription().setValue(literalServ.readDescription(node));
-//load url dictionary
-			List<Assembly> allAssms = assemblyServ.loadDataConfiguration(node.getLabel(),"documents");
-			for(Assembly clazz : allAssms) {
-				if(clazz.getClazz().equalsIgnoreCase("documents")) {
-					if(clazz.getUrl()!=null || clazz.getUrl().length()>0) {
-						data.getDictUrl().setValue(clazz.getDictUrl());
-					}else {
-						data.addError(messages.get("errorConfigDataResource"));
-						return data;
-					}
-				}
-			}
+			data=resourceDtoByNode(data, node);
 		} else {
 			data.getUrl().setValue("");
 			data.getDescription().setValue("");
@@ -778,6 +765,31 @@ public class SupervisorService {
 			data.getDictUrl().setValue("");
 		}
 		data.getTable().getHeaders().setPageSize(200);
+		return data;
+	}
+
+	/**
+	 * load resource definition
+	 * @param data
+	 * @param node
+	 * @throws ObjectNotFoundException
+	 */
+	@Transactional
+	public ResourceDTO resourceDtoByNode(ResourceDTO data, Concept node) throws ObjectNotFoundException {
+		data.getUrl().setValue(node.getIdentifier());
+		data.getConfigUrl().setValue(node.getLabel());
+		data.getDescription().setValue(literalServ.readDescription(node));
+		List<Assembly> allAssms = assemblyServ.loadDataConfiguration(node.getLabel(),"documents");
+		for(Assembly clazz : allAssms) {
+			if(clazz.getClazz().equalsIgnoreCase("documents")) {
+				if(clazz.getUrl()!=null || clazz.getUrl().length()>0) {
+					data.getDictUrl().setValue(clazz.getDictUrl());
+				}else {
+					data.addError(messages.get("errorConfigDataResource"));
+				}
+				break;
+			}
+		}
 		return data;
 	}
 
@@ -1273,35 +1285,49 @@ public class SupervisorService {
 		}
 		return data;
 	}
-
-	public DictNodeDTO dataResourceNodeIdByUrl(DictNodeDTO data) {
+	@Transactional
+	public DictNodeDTO dataResourceNodeIdByUrl(DictNodeDTO data) throws ObjectNotFoundException {
+		data.setNodeId(-1l);
+		//in the old resources for some languages the resource definition may not exist
 		String select = "SELECT ID \r\n" + 
 				"FROM resources dc";
-		String where="dc.url='"+data.getUrl()+"' and dc.lang='"+LocaleContextHolder.getLocale().toString().toUpperCase()+"'";
+		String where="dc.url='"+data.getUrl()+"'";
 		List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", where, new Headers());
-		if(rows.size()==1) {
-			data.setNodeId(rows.get(0).getDbID());
-		}else {
-			data.setNodeId(-1l);
+		Concept node = new Concept();
+		Concept lang=new Concept();
+		for(TableRow row : rows) {
+			node=closureServ.loadConceptById(row.getDbID());
+			lang=closureServ.getParent(node);
+			if(lang.getIdentifier().equalsIgnoreCase(LocaleContextHolder.getLocale().toString())) {
+				data.setNodeId(node.getID());
+			}
 		}
-		return data;
-	}
-	
-	public DictNodeDTO dataDictNodeIdByUrl(DictNodeDTO data) throws ObjectNotFoundException {
-		String select = "SELECT ID \r\n" + 
-				"FROM alldictionary dc";
-		String where="dc.url='"+data.getUrl()+"' and dc.lang='"+LocaleContextHolder.getLocale().toString().toUpperCase()+"'";
-		List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", where, new Headers());
-		if(rows.size()==1) {
-			data.setNodeId(rows.get(0).getDbID());
-			DictionaryDTO dict = new DictionaryDTO();
-			dict.setUrlId(rows.get(0).getDbID());
-			dict.setUrl(data.getUrl());
-			data.setDict(dictServ.createDictionary(dict));
-			dict=dictServ.page(dict);
-		}else {
-			data.setNodeId(-1l);
+		if(data.getNodeId()==-1l && !rows.isEmpty()) {
+			ResourceDTO rDto = new ResourceDTO();
+			rDto=resourceDtoByNode(rDto, node);
+			String localeStr = LocaleContextHolder.getLocale().toString().toUpperCase();
+			Concept root = closureServ.loadRoot("configuration.resources");
+			node=resourceDefinitionCreate(rDto, root, localeStr);
+			data.setNodeId(node.getID());
 		}
-		return data;
+	return data;
+}
+
+public DictNodeDTO dataDictNodeIdByUrl(DictNodeDTO data) throws ObjectNotFoundException {
+	String select = "SELECT ID \r\n" + 
+			"FROM alldictionary dc";
+	String where="dc.url='"+data.getUrl()+"' and dc.lang='"+LocaleContextHolder.getLocale().toString().toUpperCase()+"'";
+	List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", where, new Headers());
+	if(rows.size()==1) {
+		data.setNodeId(rows.get(0).getDbID());
+		DictionaryDTO dict = new DictionaryDTO();
+		dict.setUrlId(rows.get(0).getDbID());
+		dict.setUrl(data.getUrl());
+		data.setDict(dictServ.createDictionary(dict));
+		dict=dictServ.page(dict);
+	}else {
+		data.setNodeId(-1l);
 	}
+	return data;
+}
 }

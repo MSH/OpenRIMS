@@ -31,6 +31,7 @@ import ReassignUsers from './ReassignUsers'
 import Import_Messages from './Import_Messages'
 import ReassignActivities from './ReassignActivities'
 import ELAssistant from './ELAssistant'
+import HelpFrame from './HelpFrame'
 
 /**
  * Administrative functions for the supervisor
@@ -74,6 +75,14 @@ class Administrate extends Component{
                 importLocales:'',
                 reassignactivities:'',
                 elassistance:'',
+                global_help:'',
+                deployment:'',
+                quick_start:'',
+                setup_sandbox:'',
+                production:'',
+                community_label:'',
+                community_site_addr:'',
+
             },
             isOpen:false,
             menu:'',
@@ -162,8 +171,10 @@ class Administrate extends Component{
                 return <ReassignUsers />
             case "reassignactivities":
                     return <ReassignActivities/>
+            case "helpframe":
+                return <HelpFrame recipient={this.state.identifier} showIt={true}/>
             default:
-                return []
+                return <HelpFrame recipient={this.state.identifier} showIt={false}/>
         }
     }
 
@@ -222,6 +233,17 @@ class Administrate extends Component{
                                                 </NavLink>
                                             </NavItem>
                                         </DropdownItem>
+                                        <DropdownItem>
+                                                <NavItem active={this.state.menu=='changepass'}>
+                                                <NavLink active={this.state.menu=='changepass'}
+                                                        href="/admin#administrate/changepass">
+                                                    <div>
+                                                    <i className="fas fa-file-import mr-1"></i>
+                                                        {this.state.labels.changePassAdmin}
+                                                    </div>
+                                                </NavLink>
+                                                </NavItem>
+                                            </DropdownItem>
                                     </DropdownMenu>
                                 </UncontrolledDropdown>
 
@@ -262,7 +284,7 @@ class Administrate extends Component{
                                                 </NavItem>
                                             </div>
                                             </DropdownItem>
-                                            <DropdownItem>
+                                           {/*  <DropdownItem>
                                             <div>
                                                 <NavItem active={this.state.menu=='actions'}>
                                                     <NavLink href="/admin#administrate/actions">
@@ -273,7 +295,7 @@ class Administrate extends Component{
                                                     </NavLink>
                                                 </NavItem>
                                             </div>
-                                            </DropdownItem>
+                                            </DropdownItem> */}
                                         </DropdownMenu>
                                         </UncontrolledDropdown>
 
@@ -439,6 +461,7 @@ class Administrate extends Component{
                                             {this.state.labels.systemsetting}
                                         </DropdownToggle>
                                         <DropdownMenu right>
+                                        
                                             <DropdownItem>
                                                 <NavItem active={this.state.menu=='actuator'}>
                                                 <NavLink active={this.state.menu=='actuator'}
@@ -450,28 +473,57 @@ class Administrate extends Component{
                                                 </NavLink>
                                                 </NavItem>
                                             </DropdownItem>
+                                            
+                                        </DropdownMenu>
+                                </UncontrolledDropdown>
+                                <UncontrolledDropdown nav inNavbar>
+                                <DropdownToggle nav caret >
+                                            {this.state.labels.global_help}
+                                        </DropdownToggle>
+                                        <DropdownMenu right>
                                             <DropdownItem>
-                                                <NavItem active={this.state.menu=='changepass'}>
-                                                <NavLink active={this.state.menu=='changepass'}
-                                                        href="/admin#administrate/changepass">
-                                                    <div>
-                                                    <i className="fas fa-file-import mr-1"></i>
-                                                        {this.state.labels.changePassAdmin}
-                                                    </div>
-                                                </NavLink>
+                                                <NavItem active={this.state.menu=='helpframe'}>
+                                                    <NavLink
+                                                        onClick={()=>{
+                                                            window.open("/admin#administrate/helpframe","_blank")
+                                                        }}
+                                                    >
+                                                        <div>
+                                                            <i className="fas fa-question-circle mr-1"></i>
+                                                                {this.state.labels.global_help}
+                                                        </div>
+                                                    </NavLink>
+                                                </NavItem>
+                                            </DropdownItem>
+                                            <DropdownItem>
+                                                <NavItem>
+                                                    <NavLink>
+                                                        <div
+                                                            onClick={()=>{
+                                                                let community_site_addr="https://openrims.org"
+                                                                if(this.state.labels.community_site_addr.startsWith("https://")){
+                                                                    community_site_addr=this.state.labels.community_site_addr
+                                                                }
+                                                                window.open(community_site_addr,'_blank').focus()
+                                                            }}
+                                                            >
+                                                            <i className="fas fa-users-cog mr-1"></i>
+                                                                {this.state.labels.community_label}
+                                                        </div>
+                                                    </NavLink>
                                                 </NavItem>
                                             </DropdownItem>
                                         </DropdownMenu>
                                 </UncontrolledDropdown>
-                                        <NavItem>
-                                            <NavLink href="/admin">{this.state.labels.global_exit}</NavLink>
-                                        </NavItem>
+                                <NavItem>
+                                    <NavLink href="/admin">{this.state.labels.global_exit}</NavLink>
+                                </NavItem>
                                 </Nav>
                             </Collapse>
                         </Navbar>
                     </Col>
                 </Row>
-                <Row>
+                <Row style={{height:'100%'}}>
                     <Col>
                         {this.currentComponent()}
                     </Col>

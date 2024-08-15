@@ -22,6 +22,7 @@ class FieldInput extends Component{
         this.isStrict=this.isStrict.bind(this)
         this.eventProcessor=this.eventProcessor.bind(this)
         this.fieldData=this.fieldData.bind(this)
+        this.onChange=this.onChange.bind(this)
     }
    /**
      * Listen messages from the assistant
@@ -105,6 +106,17 @@ class FieldInput extends Component{
         }
         return data
     }
+    /**
+     * OnChange processor
+     */
+    onChange(value,data, component){
+        if(!this.props.functional){
+            data.value=value
+            component.setState(component.state)
+        }else{
+            component.setValue(value)
+        }
+    }
     render(){
         let component = this.props.component
         let key = this.props.attribute
@@ -137,8 +149,7 @@ class FieldInput extends Component{
                             <Input disabled={disabled} bsSize='sm' type={this.props.mode} id={key} lang={component.state.labels.locale.replace("_","-")} step="1" rows={rows}
                                 value={this.ensureText(data.value)}
                                 onChange={(e)=>{
-                                    data.value=e.target.value
-                                    component.setState(component.state)
+                                   this.onChange(e.target.value,data, component)
                                 }}
                                 valid={this.isValid(data) && this.isStrict(data)}
                                 invalid={!this.isValid(data) && this.isStrict(data)}/>
@@ -165,5 +176,6 @@ FieldInput.propTypes={
     rows: PropTypes.string,                                         //rows in textarea
     attribute  :PropTypes.string.isRequired,                        //should be component.state.labels[attribute] and component.state.data[attribute]
     component   :PropTypes.object.isRequired,                        //caller component
-    data:PropTypes.object                                           //data source, default component.state.data
+    data:PropTypes.object,                                           //data source, default component.state.data
+    functional:PropTypes.bool,                                       //caller is functional component
 }
