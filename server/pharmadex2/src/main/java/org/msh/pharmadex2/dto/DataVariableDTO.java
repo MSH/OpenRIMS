@@ -22,7 +22,8 @@ public class DataVariableDTO extends AllowValidation {
 	// hide it from an applicant
 	private FormFieldDTO<OptionDTO> hidefromapplicant = FormFieldDTO.of(new OptionDTO());
 	//variable name
-	private FormFieldDTO<String> varName = FormFieldDTO.of("");
+	//private FormFieldDTO<String> varName = FormFieldDTO.of("");
+	private FormFieldDTO<String> varName = FormFieldDTO.of("",true,false,AssistantEnum.VARIABLE);
 	//variable name extension
 	private FormFieldDTO<String> varNameExt = FormFieldDTO.of("");
 	//Help text

@@ -431,27 +431,6 @@ public class DictService {
 		data.getTitle().clear();
 		data.getTitle().addAll(createTitle(data));
 		return data;
-		/*if (table.getHeaders().getHeaders().size() == 0) {
-			table.setHeaders(createApplicationsTableHeaders(table.getHeaders()));
-			// только когда снова создаем заголовки, только тогда проверяем был ли текст в строке поиска
-			if(searchStr != null && !searchStr.equals("null") && searchStr.length() > 2) {
-				for(TableHeader th:table.getHeaders().getHeaders()) {
-					th.setGeneralCondition(searchStr);
-				}
-				table.setGeneralSearch(searchStr);
-			}
-		}else {
-			if(table.getGeneralSearch().equals("onSelDict")) {
-				table.setGeneralSearch("");
-				for(TableHeader th:table.getHeaders().getHeaders()) {
-					th.setGeneralCondition(table.getGeneralSearch());
-					if(th.getConditionS().length() > 0) {
-						th.setConditionS("");
-						th.setFilterActive(false);
-					}
-				}
-			}
-		}*/
 	}
 	/**
 	 * Load dictionary level as a list of OptionDTO

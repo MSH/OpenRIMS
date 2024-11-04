@@ -17,5 +17,7 @@ public enum AssistantEnum {
 	URL_RESOURCE_NEW,				//A file resource should be new new
 	URL_ACTIVITY,							//existing or new activity URL
 	URL_HOST,								//HOST Applications for concurrent run
-	VARIABLE					//Variable name assistant
+	VARIABLE,					//Variable name assistant
+	URL_DATA_SOURCE_NEW,				//Data Source name assistant
+	
 }

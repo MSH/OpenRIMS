@@ -36,13 +36,17 @@ class FieldDisplay extends Component{
     eventProcessor(event){
         let eventData=event.data
         let data = this.fieldData()[this.props.attribute]             //get FieldDTO object
-        let assistant=data.assistant
-        if(eventData.subject==assistant){
-            if(eventData.to==this.identifier){
-                data.value=eventData.data
-                this.props.component.setState(this.props.component.state)
+            let assistant=data.assistant
+            if(eventData.subject==assistant){
+                if(eventData.to==this.identifier){
+                    if(this.props.functional){
+                        this.props.component.setValue(eventData.data)
+                    }else{
+                        data.value=eventData.data
+                        this.props.component.setState(this.props.component.state)
+                    }
+                }
             }
-        }
     }
 
     componentDidMount(){
@@ -200,11 +204,16 @@ class FieldDisplay extends Component{
      * Calculate field's data (FieldDTO object)
      */
    fieldData(){
-        let data=this.props.component.state.data
-        if(this.props.data != undefined){
-            data=this.props.data
+        if(!this.props.functional){
+            let data=this.props.component.state.data
+            if(this.props.data != undefined){
+                data=this.props.data
+            }
+            return data
+        }else{
+            return this.props.data
         }
-        return data
+        
     }
     render(){
         if(this.hideIt()){

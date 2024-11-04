@@ -1,7 +1,9 @@
 package org.msh.pdex2.dto.table;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -16,6 +18,7 @@ public class TableQtb {
 	private boolean selectable=true;
 	private Headers headers = new Headers();
 	private List<TableRow> rows = new ArrayList<>();
+	private Set<Long> selections = new LinkedHashSet<Long>();
 	//search part
 	private int searchTreshold=2; //start search after user will typed searchTreshold characters
 	private String generalSearch="";
@@ -40,6 +43,13 @@ public class TableQtb {
 	}
 	public void setRows(List<TableRow> rows) {
 		this.rows = rows;
+	}
+	
+	public Set<Long> getSelections() {
+		return selections;
+	}
+	public void setSelections(Set<Long> selections) {
+		this.selections = selections;
 	}
 	public int getSearchTreshold() {
 		return searchTreshold;
@@ -87,16 +97,6 @@ public class TableQtb {
 		return ret;
 	}
 	
-	/*public void setSelectedRow(long tr) {
-		for(TableRow row :this.getRows()){
-			if(row.getDbID()==tr){
-				row.setSelected(true);
-				break;
-			}
-		}
-		
-	}*/
-	
 	/**
 	 * Get selected rows!!!
 	 * @return null if not found
@@ -138,7 +138,51 @@ public class TableQtb {
 		}
 		table.getHeaders().setFiltered(filtered);
 	}
-
+	
+	/**
+	 * lace a current page to a table from all rows, but keep selection
+	 * @param rows all rows that are typically is has ben gotten by a SQL
+	 * @param table
+	 * @param selectedOnly - fetch only selected rows
+	 */
+	public static void tablePageKeepSelection(List<TableRow> rows, TableQtb table, boolean selectedOnly) {
+		table.recalcSelections();
+		List<TableRow> allRows = new ArrayList<TableRow>();
+		if(selectedOnly) {
+			for(TableRow row : rows) {
+				if(table.getSelections().contains(row.getDbID())) {
+					allRows.add(row);
+				}
+			}
+		}else {
+			allRows.addAll(rows);
+		}
+		//
+		TableQtb.tablePage(allRows, table);
+		//
+		for(TableRow row : table.getRows()) {
+			if(table.getSelections().contains(row.getDbID())){
+				row.setSelected(true);
+			}
+		}
+	}
+	/**
+	 * Recalculate list of selections using currently on-screen selected
+	 */
+	private void recalcSelections() {
+		for(TableRow row : getRows()) {
+			if(getSelections().contains(row.getDbID())) {
+				if(!row.getSelected()) {
+					getSelections().remove(row.getDbID()); //remove
+				}
+			}else {
+				if(row.getSelected()) {
+					getSelections().add(row.getDbID());		//add
+				}
+			}
+		}
+		
+	}
 	/**
 	 * Calc pages
 	 * @param pageSize
@@ -156,26 +200,14 @@ public class TableQtb {
 	public boolean hasHeaders() {
 		return getHeaders().getHeaders().size()>0;
 	}
+
 	/**
-	 * Get table page with the first selected row
-	 * @param rows
-	 * @param table
+	 * Is this table loaded (initialized)
+	 * @return
 	 */
-	public static void currentTablePage(List<TableRow> rows, TableQtb table) {
-		table.getRows().clear();
-		table.getHeaders().setPages(TableHeader.calcPages(table.getHeaders().getPageSize(),rows.size()));
-		for(int pageNo=0;pageNo<table.getHeaders().getPages();pageNo++) {
-			List<TableRow> page = TableHeader.fetchPage(rows, pageNo, table.getHeaders().getPageSize());
-			for(TableRow row: page) {
-				if(row.getSelected()) {
-					table.getRows().addAll(page);
-					table.getHeaders().setPage(pageNo);
-					return;
-				}
-			}
-		}
-		//not found
-		TableQtb.tablePage(rows, table);
+	public boolean isLoaded() {
+		return getHeaders().getHeaders().size()>0;
 	}
+	
 	
 }

@@ -9,13 +9,12 @@ import Administrate from './Administrate'
 import Applications from './Applications'
 import ToDoList from './ToDoList'
 import Monitoring from './Monitoring'
-import Reports from './Reports'
-import PrintPreview from './PrintPreview'
 import Spinner from './utils/Spinner'
 import SpinnerMain from './utils/SpinnerMain'
 import PublicPermitData from './PublicPermitData'
 import URLAssistant from './URLAssistant'
 import VariableAssistant from './dataconfig/VariableAssistant'
+import DataSourceTest from './datasources/DataSourceTest'
 
 /**
  * Uniform content component
@@ -136,8 +135,6 @@ class Content extends Component{
                 return <ToDoList />
             case "monitor":
                 return <Monitoring />
-            case "reports":
-                return <Reports />
             case "urlassistant":
                 {
                     let parStr = Navigator.parameterValue()
@@ -148,7 +145,11 @@ class Content extends Component{
                 {
                     let parStr = Navigator.parameterValue()
                     let params=JSON.parse(parStr)
-                    return <VariableAssistant value={params.value} recipient={params.recipient}/>
+                    return <VariableAssistant currentName={params.value} recipient={params.recipient}/>
+                }
+            case "datasourcetest":
+                {
+                    return <DataSourceTest />
                 }
             default:
                 return this.paintRows()
@@ -169,10 +170,6 @@ class Content extends Component{
                 return <Monitoring />
             case "reports":
                 return <Reports />
-            case "printprev":
-                parStr = Navigator.parameterValue();
-                data = JSON.parse(parStr)
-                return <PrintPreview data={data} narrow/>
             default:
                 return this.paintRows()
         }

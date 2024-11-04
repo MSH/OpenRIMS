@@ -3,7 +3,6 @@ package org.msh.pharmadex2.service.r2;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -21,11 +20,8 @@ import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.r2.AssemblyRepo;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AssemblyDTO;
-import org.msh.pharmadex2.dto.FileDTO;
 import org.msh.pharmadex2.dto.LayoutCellDTO;
 import org.msh.pharmadex2.dto.LayoutRowDTO;
-import org.msh.pharmadex2.dto.ReportConfigDTO;
-import org.msh.pharmadex2.dto.ThingConfigurationDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.enums.AssistantEnum;
@@ -37,9 +33,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * This class is responsible for entity assembly issues such are dictionaries bound, root concept URLs, etc 
@@ -338,9 +331,7 @@ public class AssemblyService {
 
 		}
 
-		if(url.equalsIgnoreCase(SystemService.DICTIONARY_HOST_APPLICATIONS)
-				|| url.equalsIgnoreCase(SystemService.DICTIONARY_INSPECTIONS)
-				) {
+		if(url.equalsIgnoreCase(SystemService.DICTIONARY_HOST_APPLICATIONS)){
 			{
 				AssemblyDTO fld = new AssemblyDTO();
 				fld.setRequired(true);
@@ -1459,98 +1450,8 @@ public class AssemblyService {
 		}
 		return ret;
 	}
-	/**
-	 * Mock to load reports configurations
-	 * @deprecated
-	 * @return
-	 */
-	public Map<String, ReportConfigDTO> reportConfigLoad(){
-		Map<String, ReportConfigDTO> ret = new LinkedHashMap<String, ReportConfigDTO>();
-		{
-			ReportConfigDTO dto = new ReportConfigDTO();
-			dto.setDataUrl("pharmacy.site");
-			dto.setDictStageUrl("dictionary.host.applications");
-			dto.setAddressUrl("pharamcy.site.address");
-			dto.setOwnerUrl("pharmacy.site.owners");
-			dto.setInspectAppUrl("application.pharmacy.inspection");
-			dto.setRenewAppUrl("application.pharmacy.renew");
-			dto.setRegisterAppUrl("pharmacy.site.certificate");
-			dto.setRegistered(true);
-			ret.put(dto.getDataUrl(), dto);
-		}
-		{
-			ReportConfigDTO dto = new ReportConfigDTO();
-			dto.setDataUrl("retail.site.owned.persons");
-			dto.setDictStageUrl("dictionary.host.applications");
-			dto.setAddressUrl("nepal.address");
-			dto.setOwnerUrl("site.owners.persons");
-			dto.setInspectAppUrl("application.pharmacy.inspection");
-			dto.setRenewAppUrl("application.pharmacy.renew");
-			dto.setRegisterAppUrl("pharmacy.site.certificate");
-			dto.setRegistered(true);
-			ret.put(dto.getDataUrl(), dto);
-		}
-		{
-			ReportConfigDTO dto = new ReportConfigDTO();
-			dto.setDataUrl("importer.site");
-			dto.setDictStageUrl("dictionary.host.applications");
-			dto.setAddressUrl("importer.site.address");
-			dto.setOwnerUrl("importer.site.owners");
-			dto.setInspectAppUrl("application.importer.inspection");
-			dto.setRenewAppUrl("application.importer.renew");
-			dto.setRegisterAppUrl("importer.site.certificate");
-			dto.setRegistered(true);
-			ret.put(dto.getDataUrl(), dto);
-		}
 
-		{
-			ReportConfigDTO dto = new ReportConfigDTO();
-			dto.setDataUrl("ws.site");
-			dto.setDictStageUrl("dictionary.host.applications");
-			dto.setAddressUrl("ws.site.address");
-			dto.setOwnerUrl("ws.site.owners");
-			dto.setInspectAppUrl("application.ws.inspection");
-			dto.setRenewAppUrl("application.ws.renew");
-			dto.setRegisterAppUrl("ws.site.certificate");
-			dto.setRegistered(true);
-			ret.put(dto.getDataUrl(), dto);
-		}
-		{
-			ReportConfigDTO dto = new ReportConfigDTO();
-			dto.setDataUrl("import.permit");
-			dto.setRegisterAppUrl("register.import.permit");
-			dto.setRegistered(true);
-			dto.setApplicantRestriction(true);
-			ret.put(dto.getDataUrl(), dto);
-		}
-		return ret;
-	}
-	/**
-	 * Get report configuration by configuration ID
-	 * @param url
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	@Transactional
-	public ReportConfigDTO reportConfig(ReportConfigDTO reportConfigDTO) throws ObjectNotFoundException {
-		ReportConfigDTO ret = reportConfigDTO;
-		if(ret.getNodeId() >0) {
-			Concept node=closureServ.loadConceptById(ret.getNodeId());
-			ret.setTitle(literalServ.readPrefLabel(node));
-			ret.setAddressUrl(literalServ.readValue("address_url", node));
-			ret.setApplicantRestriction(false); //TODO
-			ret.setDataUrl(urlFromDictionary(node, "application"));
-			ret.setDictStageUrl(urlFromDictionary(node, "stage"));
-			ret.setDeregistered(ret.getDictStageUrl().equalsIgnoreCase(SystemService.DICTIONARY_GUEST_DEREGISTRATION));
-			ret.setApplicantUrl(literalServ.readValue("applicanturl", node));
-			ret.setInspectAppUrl(literalServ.readValue("inspection_url", node));
-			ret.setOwnerUrl(literalServ.readValue("owners_url", node));
-			ret.setRegisterAppUrl(literalServ.readValue("certificate_url", node));
-			ret.setRegistered(true);
-			ret.setRenewAppUrl(literalServ.readValue("renewal_url", node));
-		}
-		return ret;
-	}
+
 	/**
 	 * Get a url from a node selected in a dictionary linked to a report configuration
 	 * @param node

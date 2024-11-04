@@ -510,6 +510,7 @@ class ActivityManager extends Component{
                            Alerts.warning(this.state.labels.backDlg_war,()=>{
                             this.state.send=true
                             this.state.reassign=true
+                            this.state.reject=false
                             this.setState(this.state)
                            }, ()=>{})
                          }}
@@ -521,6 +522,7 @@ class ActivityManager extends Component{
                             onClick={()=>{
                                 this.state.send=true
                                 this.state.reject=true
+                                this.state.reassign=false
                                 Navigator.message(this.state.identifier,"*","saveChecklistSilent",{})
                             }}
                             //action return to applicant

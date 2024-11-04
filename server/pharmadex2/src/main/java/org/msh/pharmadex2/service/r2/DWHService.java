@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.msh.pdex2.i18n.Messages;
@@ -14,12 +13,10 @@ import org.msh.pdex2.model.dwh.ReportSession;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.dwh.ReportSessionRepo;
 import org.msh.pharmadex2.dto.AsyncInformDTO;
-import org.msh.pharmadex2.dto.ReportConfigDTO;
 import org.msh.pharmadex2.service.common.BoilerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 /**

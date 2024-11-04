@@ -11,6 +11,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.msh.pdex2.dto.table.Headers;
 import org.msh.pdex2.dto.table.TableHeader;
 import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
@@ -24,7 +25,6 @@ import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.URLAssistantDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.enums.AssistantEnum;
-import org.msh.pharmadex2.service.common.ValidationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +48,7 @@ public class UrlAssistantService {
 					,"activity.configuration"
 					,"log"
 					,"system"
+					,"datasources.catalogue"
 					));
 	@Autowired
 	private JdbcRepository jdbcRepo;
@@ -115,12 +116,35 @@ public class UrlAssistantService {
 		case URL_RESOURCE_NEW:				//A file resource should be new new
 			rows= urlResourceRows(data);
 			break;
+		case URL_DATA_SOURCE_NEW:
+			rows=urlDataSourceRows(data);
+			break;
 		default:
 			throw new ObjectNotFoundException("Wrong assistant "+data.getAssistant(), logger);
 		}
 		prepareTable(data.getUrls(),data.getSelectedUrl() ,rows);
 		urlFieldSet(data);
 		return data;
+	}
+	
+	/**
+	 * all data source url's
+	 * @param data
+	 * @return
+	 */
+	private List<TableRow> urlDataSourceRows(URLAssistantDTO data) {
+		List<TableRow> ret = new ArrayList<TableRow>();
+		String filter = urlFilter(data);
+		//URL make sense only if sub domain has been selected
+		if(!filter.isEmpty()) {
+			String select="select * from (SELECT distinct ds_url  as 'url', '' as 'prefLabel'\r\n"
+					+ "FROM data_sources) t";
+			String where ="url like '"+filter+"%'";
+			ret = jdbcRepo.qtbGroupReport(select, "", where, data.getUrls().getHeaders());
+		}else {
+			cleanUpUrl(data);
+		}
+		return ret;
 	}
 	/**
 	 * URL's for activities
@@ -345,12 +369,35 @@ public class UrlAssistantService {
 		case URL_RESOURCE_NEW:				//A file resource should be new new
 			rows= subDomainResourceRows(data);
 			break;
+		case URL_DATA_SOURCE_NEW:
+			rows=subDomainDataSourceRows(data);
+			break;
 		default:
 			throw new ObjectNotFoundException("Wrong assistant "+data.getAssistant(), logger);
 		}
 		prepareTable(data.getSubDomain(),data.getSelectedSubDomain() ,rows);
 		urlFieldSet(data);
 		return data;
+	}
+	
+	/**
+	 * Sub domains for URL data sources
+	 * @param data
+	 * @return
+	 */
+	private List<TableRow> subDomainDataSourceRows(URLAssistantDTO data) {
+		List<TableRow> ret = new ArrayList<TableRow>();
+		String filter = subDomainFilter(data,2);
+		//sub domain make sense only if domain has been selected
+		if(!filter.isEmpty()) {
+			String select="select * from (SELECT distinct SUBSTRING_INDEX(ds_url,'.',2) as 'subdomain' \r\n"
+					+ "FROM data_sources) t";
+			String where="subdomain like '"+filter+"%'";
+			ret = jdbcRepo.qtbGroupReport(select, "", where, data.getSubDomain().getHeaders());
+		}else {
+			cleanupSubdomain(data);
+		}
+		return ret;
 	}
 	/**
 	 * Activity sub-domain
@@ -560,12 +607,36 @@ public class UrlAssistantService {
 		case URL_RESOURCE_NEW:				//A file resource should be new new 
 			rows= domainResourceRows(data);
 			break;
+		case URL_DATA_SOURCE_NEW:
+			rows=domainDataSourceRows(data);
+			break;
 		default:
 			throw new ObjectNotFoundException("Wrong assistant "+data.getAssistant(), logger);
 		}
 		prepareTable(data.getDomain(),data.getSelectedDomain() ,rows);
 		urlFieldSet(data);
 		return data;
+	}
+	/**
+	 * All existing data sources
+	 * Really we need only new URls, but existing ones give ideas about a new name
+	 * @param data
+	 * @return
+	 */
+	private List<TableRow> domainDataSourceRows(URLAssistantDTO data) {
+		List<TableRow> ret = new ArrayList<TableRow>();
+		if(!data.getOldValue().isEmpty()) {	//apply filters if ones
+			String filter=parseUrl(data.getOldValue(), 1);
+			for(TableHeader header : data.getDomain().getHeaders().getHeaders()) {
+				header.setGeneralCondition(filter);
+			}
+			data.setSelectedDomain(filter);
+		}
+		String select="select * from (SELECT distinct SUBSTRING_INDEX(ds_url,'.',1) as 'domain' \r\n"
+				+ "FROM data_sources) t"; 
+		String where = "";
+		ret = jdbcRepo.qtbGroupReport(select, "", where, data.getDomain().getHeaders());
+		return ret;
 	}
 	/**
 	 * Existing URLs for activities
@@ -924,6 +995,11 @@ public class UrlAssistantService {
 						data.getUrl().invalidate(messages.get("notdataurl"));
 					}
 					break;
+				case URL_DATA_SOURCE_NEW:
+					if(isDataSourceUrl(url)) {
+						data.getUrl().invalidate(messages.get("url_exists"));
+					}
+					break;
 				default:
 					//nothing to do yet
 				}
@@ -936,6 +1012,16 @@ public class UrlAssistantService {
 		}
 		data.propagateValidation();
 		return data;
+	}
+	
+	/**
+	 * IT is forbidden to assign same URL for more than one data source
+	 * @param url
+	 * @return
+	 */
+	public boolean isDataSourceUrl(String url) {
+		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from data_sources", "", "ds_url='"+url+"'", new Headers());
+		return rows.size()>0;
 	}
 	/**
 	 * Is it dictionary related assistant?

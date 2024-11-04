@@ -15,9 +15,9 @@ function EmptyFunc({recipient}){
     const[data, setData] = useState({});                                  //data from the server and/or properties   
     
     function handleMessages(event){
-        let data=event.data
-        if(data.from==recipient){
-        //TODO handle messages
+        let eventData=event.data
+        if(eventData.to==identifier.current){
+            //TODO handle messages from next level
         }
     }
 
@@ -27,7 +27,7 @@ function EmptyFunc({recipient}){
      */
     function loadData(){
         Fetchers.postJSON("/api/unknown", data, (query,result)=>{
-            let newLabels=Locales.createLabelsFunctional()
+            let newLabels=Locales.createLabelsFunctional(result,labels)
             Locales.resolveLabelsFunctional(newLabels,setLabels)
             if(result.valid){
                 setData(result)
@@ -38,17 +38,14 @@ function EmptyFunc({recipient}){
     }
     
     /**
-     * Load or initialize data after component did mount
+     * Reset event processor after each render to avoid usage of the previous data
      */
     useEffect(()=>{
         //setup the messages listener
         window.addEventListener("message",handleMessages)
-
-        loadData()
-
         //cleanup the messages listener
         return ()=>window.removeEventListener("message",handleMessages)
-    },[])
+    })
     
     if(labels.locale== undefined){
         return Pharmadex.wait()

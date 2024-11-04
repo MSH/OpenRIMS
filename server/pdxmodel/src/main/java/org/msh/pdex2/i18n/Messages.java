@@ -50,6 +50,18 @@ public class Messages {
 	public Languages languages = new Languages();
 	@Autowired
 	private ResourceBundleRepo bundleRepo;
+	
+	/**
+	 * Mark any string as a key in a messages
+	 * It is using to extract all keys by messagesKeyFromCode.ps1 script.
+	 * This script is called while creation of the OpenRIMS deployment pack
+	 *
+	 * @param key
+	 * @return key
+	 */
+	public static String markAsKey(String key) {
+		return key;
+	}
 
 	/**
 	 * Localized strings for labels, messages, etc

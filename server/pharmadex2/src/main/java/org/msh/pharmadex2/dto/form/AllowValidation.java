@@ -11,13 +11,16 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.msh.pdex2.exception.ObjectNotFoundException;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 /**
  * All DTO should extends this class to allow validation and justloaded behavior
  * In addition this class allows using of literals and dictionaries
  * @author alexk
  *
  */
-public abstract class AllowValidation{
+@JsonIgnoreProperties(ignoreUnknown=true)
+public class AllowValidation{
 	private boolean valid=true;
 	private boolean strict=true;			//do not allow save in case of not validate
 	private String identifier="";	//error message
@@ -178,7 +181,7 @@ public abstract class AllowValidation{
 		}else {
 			setIdentifier(getIdentifier()+", "+mess);
 		}
-		
+		setStrict(true);
 	}
 }
 

@@ -21,6 +21,9 @@ import org.msh.pharmadex2.dto.ContentDTO;
 import org.msh.pharmadex2.dto.DataCollectionDTO;
 import org.msh.pharmadex2.dto.DataConfigDTO;
 import org.msh.pharmadex2.dto.DataPreviewDTO;
+import org.msh.pharmadex2.dto.DataSourceDTO;
+import org.msh.pharmadex2.dto.DataSourceDetailsDTO;
+import org.msh.pharmadex2.dto.DataSourcesDTO;
 import org.msh.pharmadex2.dto.DataVariableDTO;
 import org.msh.pharmadex2.dto.Dict2DTO;
 import org.msh.pharmadex2.dto.DictNodeDTO;
@@ -36,7 +39,6 @@ import org.msh.pharmadex2.dto.ProcessComponentsDTO;
 import org.msh.pharmadex2.dto.PublicOrgDTO;
 import org.msh.pharmadex2.dto.ReassignActivitiesDTO;
 import org.msh.pharmadex2.dto.ReassignUserDTO;
-import org.msh.pharmadex2.dto.ReportConfigDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
 import org.msh.pharmadex2.dto.RootNodeDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
@@ -46,6 +48,7 @@ import org.msh.pharmadex2.dto.UserElementDTO;
 import org.msh.pharmadex2.dto.VariableAssistantDTO;
 import org.msh.pharmadex2.dto.WorkflowDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
+import org.msh.pharmadex2.dto.form.AllowValidation;
 import org.msh.pharmadex2.dto.log.EventLogDTO;
 import org.msh.pharmadex2.exception.DataNotFoundException;
 import org.msh.pharmadex2.service.common.BoilerService;
@@ -56,7 +59,7 @@ import org.msh.pharmadex2.service.r2.ApplicationService;
 import org.msh.pharmadex2.service.r2.AssemblyService;
 import org.msh.pharmadex2.service.r2.AsyncService;
 import org.msh.pharmadex2.service.r2.ContentService;
-import org.msh.pharmadex2.service.r2.DWHService;
+import org.msh.pharmadex2.service.r2.DataSourceService;
 import org.msh.pharmadex2.service.r2.DictService;
 import org.msh.pharmadex2.service.r2.ELAssistantService;
 import org.msh.pharmadex2.service.r2.ImportATCcodesService;
@@ -74,13 +77,13 @@ import org.msh.pharmadex2.service.r2.ProcessComponentsService;
 import org.msh.pharmadex2.service.r2.PubOrgService;
 import org.msh.pharmadex2.service.r2.ReassignActivitiesService;
 import org.msh.pharmadex2.service.r2.ReassignUserService;
-import org.msh.pharmadex2.service.r2.ReportService;
 import org.msh.pharmadex2.service.r2.ResolverService;
 import org.msh.pharmadex2.service.r2.ResourceService;
 import org.msh.pharmadex2.service.r2.SupervisorService;
 import org.msh.pharmadex2.service.r2.SystemService;
 import org.msh.pharmadex2.service.r2.ThingService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -131,8 +134,6 @@ public class AdminAPI {
 	@Autowired
 	private SystemService systemServ;
 	@Autowired
-	private ReportService reportServ;
-	@Autowired
 	private ThingService thingServ;
 	@Autowired
 	private ImportBService importBServ;
@@ -140,8 +141,6 @@ public class AdminAPI {
 	private ActuatorService actuatorService;
 	@Autowired
 	private MetricService metricServ;
-	@Autowired
-	private DWHService dwhServ;
 	@Autowired
 	private ImportAdmUnitsService importAdmUnitsService;
 	@Autowired
@@ -184,6 +183,8 @@ public class AdminAPI {
 	private ELAssistantService elAssistant;
 	@Autowired
 	private VariableAssitantService variableAssist;
+	@Autowired
+	private DataSourceService dataSources;
 	/**
 	 * Tiles for landing page
 	 * 
@@ -462,7 +463,7 @@ public class AdminAPI {
 		return data;
 	}
 
-	
+
 	/**
 	 * Append an new created activity to workflow to the end of path
 	 * 
@@ -744,7 +745,6 @@ public class AdminAPI {
 	public MessageDTO messagesSave(@RequestBody MessageDTO data) throws DataNotFoundException {
 		try {
 			data = superVisServ.messagesSave(data);
-
 			// reload messages
 			messages.getMessages().clear();
 			messages.loadLanguages();
@@ -878,36 +878,6 @@ public class AdminAPI {
 		}
 	}
 
-	@PostMapping("/api/admin/report/configuration/load")
-	public ReportConfigDTO reportConfigurationLoad(Authentication auth,@RequestBody ReportConfigDTO data) throws DataNotFoundException {
-		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-		try {
-			data = reportServ.reportConfigurationLoad(user, data);
-		} catch (ObjectNotFoundException e) {
-			throw new DataNotFoundException(e);
-		}
-		return data;
-	}
-	/*
-	 * We don't need it anymore
-	 * 	*//**
-	 * Keep actual addresses cache etc
-	 * 
-	 * @param data
-	 * @return
-	 * @throws DataNotFoundException
-	 *//*
-				@PostMapping("/api/admin/report/parameters/renew")
-				@Deprecated
-				public ReportConfigDTO reportParametersRenew(@RequestBody ReportConfigDTO data) throws DataNotFoundException {
-				try {
-					data = reportServ.reportParametersRenew(data);
-				} catch (ObjectNotFoundException e) {
-					throw new DataNotFoundException(e);
-				}
-				return data;
-				}*/
-
 	/**
 	 * To avoid concurrent data import
 	 * @param auth
@@ -917,7 +887,7 @@ public class AdminAPI {
 	 */
 	@PostMapping("/api/admin/data/import/check")
 	public ThingDTO dataImportCheck(Authentication auth, @RequestBody ThingDTO data) throws DataNotFoundException {
-		if(asyncService.hasDataImportThread()) {
+		if(AsyncService.hasDataImportThread()) {
 			data.addError(messages.get("errorconcurrentdataimport"));
 		}else {
 			try {
@@ -1091,7 +1061,6 @@ public class AdminAPI {
 	@PostMapping("/api/admin/actuator/load")
 	public ActuatorAdmDTO actuatorLoad(Authentication auth, @RequestBody ActuatorAdmDTO data)
 			throws DataNotFoundException {
-		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 		data = actuatorService.loadData(data);
 		return data;
 	}
@@ -1110,14 +1079,14 @@ public class AdminAPI {
 	 * @throws DataNotFoundException
 	 */
 	@PostMapping("/api/admin/report/renewexternal")
-	public ReportConfigDTO reportsRenewExternal(Authentication auth, @RequestBody ReportConfigDTO data)
+	public AllowValidation reportsRenewExternal(Authentication auth, @RequestBody AllowValidation data)
 			throws DataNotFoundException {
 		try {
 			data.clearErrors();
 			if(!AsyncService.hasDataImportThread()) {
 				asyncService.dwhUploadRun();
 			}else {
-				data=(ReportConfigDTO) asyncService.concurrentError(data);
+				data=asyncService.concurrentError(data);
 			}
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
@@ -1305,6 +1274,22 @@ public class AdminAPI {
 		}
 	}
 	/**
+	 * Variable assistance help
+	 * @return
+	 * @throws DataNotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value="/api/admin/variable/assistant/help", method = RequestMethod.GET)
+	public ResponseEntity<Resource> helpVariableAssistant() throws DataNotFoundException, IOException {
+		ResponseEntity<Resource> res;
+		try {
+			res = resourceServ.adminHelpVariableAssistant();
+			return res;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+	/**
 	 * URL assistance help
 	 * @return
 	 * @throws DataNotFoundException
@@ -1382,7 +1367,7 @@ public class AdminAPI {
 			throw new DataNotFoundException(e);
 		}
 	}
-	
+
 	/**
 	 * Administrator help
 	 * @return
@@ -1534,7 +1519,6 @@ public class AdminAPI {
 			@RequestParam("file") Optional<MultipartFile> file) throws DataNotFoundException {
 		DictionaryDTO dict = new DictionaryDTO();
 		try {
-			UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
 			dict = objectMapper.readValue(jsonDict, DictionaryDTO.class);
 			byte[] fileBytes = new byte[0];
 			if (file.isPresent()) {
@@ -1794,7 +1778,7 @@ public class AdminAPI {
 		return data;
 	}
 	/**
-	 * Save a date format definitions
+	 * Validate a URL
 	 * @param data
 	 * @return
 	 * @throws DataNotFoundException 
@@ -1911,12 +1895,7 @@ public class AdminAPI {
 
 	@PostMapping("/api/admin/import/locales/loadmessages")
 	public TableQtb importLocalesLoadMessages(Authentication auth, @RequestBody TableQtb data) throws DataNotFoundException {
-		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
-		//try {
 		data = importLocalesServ.loadMessages(data);
-		//} catch (ObjectNotFoundException e) {
-		//	throw new DataNotFoundException(e);
-		//}
 		return data;
 	}
 
@@ -2201,7 +2180,7 @@ public class AdminAPI {
 		}
 		return data;
 	}
-	
+
 	/**
 	 * Build EL using selected workflow and user's choices
 	 * @param data
@@ -2217,7 +2196,7 @@ public class AdminAPI {
 		}
 		return data;
 	}
-	
+
 	/**
 	 * Test EL expression just built
 	 * @param data
@@ -2244,10 +2223,159 @@ public class AdminAPI {
 	 * Variable name assistant
 	 * @param data
 	 * @return
+	 * @throws DataNotFoundException 
 	 */
 	@PostMapping("/api/admin/variable/assistant/load")
-	public VariableAssistantDTO variableAssistantLoad(@RequestBody VariableAssistantDTO data ) {
-		data=variableAssist.load(data);
+	public VariableAssistantDTO variableAssistantLoad(@RequestBody VariableAssistantDTO data ) throws DataNotFoundException {
+		try {
+			data=variableAssist.load(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
 		return data;
 	}
+
+	@PostMapping("/api/admin/variable/assistant/validate")
+	public VariableAssistantDTO variableAssistantValidate(@RequestBody VariableAssistantDTO data) throws DataNotFoundException {
+		try {
+			data.clearErrors();
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		if(!validation.variableNameMatchFull(data.getCurrentName())) {
+			data.addError(messages.get("errorVariableName")+" "+data.getCurrentName());
+		}
+		return data;
+	}
+	/**
+	 * Prepare edit variable name and lables
+	 * @param data
+	 */
+	@PostMapping("/api/admin/variable/assistant/edit")
+	public VariableAssistantDTO variableAssistantEdit(@RequestBody VariableAssistantDTO data) {
+		data=variableAssist.prepareEdit(data);
+		return data;
+	}
+
+	/**
+	 * Variable Assistant Save variable name and labels definitions
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException 
+	 */
+	@PostMapping("/api/admin/variable/assistant/edit/save")
+	public VariableAssistantDTO variableAssistantEditSave(@RequestBody VariableAssistantDTO data) throws DataNotFoundException {
+		try {
+			data=variableAssist.editSave(data);
+			return data;
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+
+	/**
+	 * List of the data sources that have been stored for a selected data sources dictionary item 
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException 
+	 */
+	@PostMapping("/api/admin/datasources/list")
+	public DataSourcesDTO dataSourcesList(@RequestBody DataSourcesDTO data) throws DataNotFoundException {
+		try {
+			data=dataSources.sources(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+
+	/**
+	 * Load stored data source or create a new one
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException 
+	 */
+	@PostMapping("/api/admin/datasources/source/load")
+	public DataSourceDTO dataSourcesSource(@RequestBody DataSourceDTO data) throws DataNotFoundException {
+		try {
+			data=dataSources.load(data);
+		} catch (ObjectNotFoundException | IOException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+
+	/**
+	 * Load filters and fields for a data source given
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException 
+	 */
+	@PostMapping("/api/admin/datasources/source/details")
+	public DataSourceDetailsDTO dataSourceSourceDetails(@RequestBody DataSourceDetailsDTO data) throws DataNotFoundException {
+		try {
+			data=dataSources.details(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+
+	@PostMapping("/api/admin/datasources/source/counters")
+	public DataSourceDTO dataSourceCounters(@RequestBody DataSourceDTO data) throws DataNotFoundException {
+		try {
+			data=dataSources.counters(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+
+	@PostMapping("/api/admin/datasources/source/save")
+	public DataSourceDTO dataSourceSave(@RequestBody DataSourceDTO data) throws DataNotFoundException {
+		try {
+			data=dataSources.save(data);
+		} catch (JsonProcessingException | ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+
+	/**
+	 * Generate an SQL
+	 * @param data
+	 * @return
+	 * @throws DataNotFoundException
+	 */
+	@PostMapping("/api/admin/datasources/source/sql")
+	public  ResponseEntity<Resource> dataSourceSql(@RequestBody DataSourceDTO data) throws DataNotFoundException {
+		try {
+			data = dataSources.validate(data);
+			data.setSql(messages.get("valueisempty"));
+			if(data.isValid()) {
+				data=dataSources.sqlCreate(data);
+			}else {
+				data.setSql(data.getIdentifier());		//put an error message to the file
+			}
+			Resource res = new ByteArrayResource(data.getSql().getBytes());
+			return ResponseEntity.ok()
+					.contentType(MediaType.TEXT_PLAIN)
+					.header(HttpHeaders.CONTENT_DISPOSITION, "attachment" + "; filename=\"" + data.getUrl().getValue() +".sql.txt\"")
+					.header("filename", data.getUrl().getValue() +".sql.txt")
+					.body(res);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+	
+	@PostMapping("/api/admin/datasources/source/sql/test")
+	public DataSourceDTO dataSourcesqlTest(@RequestBody DataSourceDTO data) throws DataNotFoundException {
+		try {
+			data=dataSources.sqlTest(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+
 }

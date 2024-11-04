@@ -122,7 +122,7 @@ class ProcessConfigurator extends Component{
             </Col>
             <Col xs='12' sm='12' lg='2' xl='1'>
                 <ButtonUni
-                    label={this.state.labels.workflowguide}
+                    label={this.state.labels.global_help}
                     onClick={()=>{
                         window.open('/api/admin/manual/workflow','_blank').focus()
                     }}

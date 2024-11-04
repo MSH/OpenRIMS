@@ -142,6 +142,26 @@ class Dictionary extends Component{
         )
     }
     /**
+     * is this dictionary loaded 
+     * @param {DictionaryDTO} dictionaryDTO 
+     */
+    static isLoaded(dictionaryDTO){
+        if(dictionaryDTO==undefined){
+            return false
+        }
+        if(dictionaryDTO.table==undefined){
+            return false
+        }
+        if(dictionaryDTO.table.headers==undefined){
+            return false
+        }
+        if(dictionaryDTO.table.headers.headers==undefined){
+            return false
+        }
+        return dictionaryDTO.table.headers.headers.length>0
+    }
+
+    /**
      * listen for incoming messages from the parent component
      */
     eventProcessor(event){
@@ -291,7 +311,6 @@ class Dictionary extends Component{
                                             this.comparator = new FieldsComparator(this)
                                             this.state.sendMess=true
                                             this.setState(this.state)
-                                            //Navigator.message(this.props.identifier,this.props.recipient,"onSelectionChange",this.state.data)
                                         })
                                 }}>
                                     {field.code}
@@ -321,29 +340,6 @@ class Dictionary extends Component{
                 return accum
             }
         },0)
-        /*let hasnext = this.state.hasnext//(this.props.display && sumSelected==1) || (!this.props.display && sumSelected>0)
-        if(hasnext && !this.state.data.readOnly && !this.state.data.mult){
-            ret.push(
-                <BreadcrumbItem hidden={this.state.edit} key='next'>
-                    <div className={className} style={{fontSize:'0.8rem'}}
-                                onClick={()=>{
-                                    if(this.state.data.readOnly){
-                                        return
-                                    }
-                                    let varName=this.state.data.varName
-                                    Fetchers.postJSONNoSpinner("/api/common/dictionary/load/next", this.state.data, (query,result)=>{
-                                        this.state.data=result
-                                        this.state.hasnext=false
-                                        this.state.data.varName=varName
-                                        this.comparator = new FieldsComparator(this)
-                                        this.setState(this.state)
-                                       })
-                            }}>
-                        <b>{this.state.labels.next}</b>
-                    </div>
-                </BreadcrumbItem>
-            )
-        }*/
         return ret
     }
     /**

@@ -18,7 +18,7 @@ import Actions from './Actions'
 import ATCCodes from './ATCCodes'
 import Excipients from './Excipients'
 import Inns from './Inns'
-import ReportConfigurator from './reports/ReportConfigurator'
+import DataSources from './datasources/DataSources'
 import Import_A from './Import_A'
 import Import_B from './Import_B'
 import ImportWorkflow from './ImportWorkflow'
@@ -53,7 +53,7 @@ class Administrate extends Component{
                 language:'',
                 global_exit:'',
                 dataconfigurator:'',
-                reports:'',
+                datasourcesconfigurator:'',
                 messages:'',
                 resources:'',
                 processes:'',
@@ -129,8 +129,8 @@ class Administrate extends Component{
                     }
                 }
                 return <DataConfigurator nodeId={params.nodeId} vars={params.nodeId!=0}/>
-            case "reportconfigurator":
-                return <ReportConfigurator/>
+            case "datasourcesconfigurator":
+                return <DataSources/>
             case "messages":
                 return <Messages/>
             case "dataformpreview":
@@ -284,18 +284,6 @@ class Administrate extends Component{
                                                 </NavItem>
                                             </div>
                                             </DropdownItem>
-                                           {/*  <DropdownItem>
-                                            <div>
-                                                <NavItem active={this.state.menu=='actions'}>
-                                                    <NavLink href="/admin#administrate/actions">
-                                                    <div>
-                                                        <i className="fas fa-xs fa-check-double mr-1"></i>
-                                                        {this.state.labels.label_actions}
-                                                    </div>
-                                                    </NavLink>
-                                                </NavItem>
-                                            </div>
-                                            </DropdownItem> */}
                                         </DropdownMenu>
                                         </UncontrolledDropdown>
 
@@ -372,11 +360,11 @@ class Administrate extends Component{
                                             </DropdownItem>
                                             <DropdownItem>
                                                 <NavItem>
-                                                    <NavLink active={this.state.menu=='reports' || this.state.menu=='reportconfig'}
-                                                        href="/admin#administrate/reportconfigurator">
+                                                    <NavLink active={this.state.menu=='datasourcesconfigurator' || this.state.menu=='reportconfig'}
+                                                        href="/admin#administrate/datasourcesconfigurator">
                                                         <div>
                                                             <i className="fas fa-xs fa-table mr-1"></i>
-                                                            {this.state.labels.reports}
+                                                            {this.state.labels.datasourcesconfigurator}
                                                         </div>
                                                     </NavLink>
                                                 </NavItem>

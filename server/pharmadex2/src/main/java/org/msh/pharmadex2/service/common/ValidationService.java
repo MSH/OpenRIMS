@@ -66,6 +66,7 @@ import org.msh.pharmadex2.dto.RootNodeDTO;
 import org.msh.pharmadex2.dto.SchedulerDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.UserElementDTO;
+import org.msh.pharmadex2.dto.VariableAssistantDTO;
 import org.msh.pharmadex2.dto.VerifItemDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.form.AllowValidation;
@@ -119,11 +120,11 @@ public class ValidationService {
 	 */
 	private static final String regexVarName = "^[a-z]{1,}[a-z0-9]*" + "((\\.|\\_)[a-z0-9]{1,})*";
 	public static Pattern REGEX = Pattern.compile("[$&+,:;=\\\\?@#|/'<>.^*()%!-]");
-	private static final Pattern pattern = Pattern.compile(regexVarName, Pattern.CASE_INSENSITIVE);
+	private static final Pattern patternVarName = Pattern.compile(regexVarName, Pattern.CASE_INSENSITIVE);
 	public static final String regexEmail="^[-a-z0-9~!$%^&*_=+}{\\'?]+(\\.[-a-z0-9~!$%^&*_=+}{\\'?]+)*@([a-z0-9_]"
 			+ "[-a-z0-9_]*(\\.[-a-z0-9_]+)*\\.(aero|arpa|biz|com|coop|edu|gov|info|int|mil|museum|name|net|org|pro|travel|mobi|"
 			+ "[a-z][a-z])|([0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}))(:[0-9]{1,5})?$";
-	private static final Pattern emailPattern = Pattern.compile(regexEmail, Pattern.CASE_INSENSITIVE);
+	private static final Pattern patternEmail = Pattern.compile(regexEmail, Pattern.CASE_INSENSITIVE);
 
 	/**
 	 * Validate a node
@@ -693,8 +694,8 @@ public class ValidationService {
 	 * @return true if full value  \sequencematches this matcher's pattern
 	 * если вся строка value подходит под шаблон
 	 */
-	public boolean patternMatchFull(String value) {
-		Matcher matcher = pattern.matcher(value);
+	public boolean variableNameMatchFull(String value) {
+		Matcher matcher = patternVarName.matcher(value);
 		return matcher.matches();
 	}
 
@@ -1624,7 +1625,7 @@ public class ValidationService {
 			suggest(vn,3,100,strict);
 			return data;
 		}
-		if(!patternMatchFull(vn.getValue().trim())) {
+		if(!variableNameMatchFull(vn.getValue().trim())) {
 			data.setValid(false);
 			//data.setValid(data.getVarNodeId()!=0 && data.isValid());
 			// relaxed temporarily
@@ -1652,7 +1653,7 @@ public class ValidationService {
 	public DataVariableDTO variableExtName(DataVariableDTO data, boolean strict) throws ObjectNotFoundException {
 		FormFieldDTO<String> vn= data.getVarNameExt();
 		if(vn.getValue().length() > 0){
-			if(!patternMatchFull(vn.getValue())) {
+			if(!variableNameMatchFull(vn.getValue())) {
 				// не подходит по патерну - выдаем сообщение, но разрешаем сохранять ПОКА
 				data.setValid(false);
 				data.setStrict(data.getNodeId()>0);
@@ -2435,7 +2436,7 @@ public class ValidationService {
 	 * @return
 	 */
 	public AskForPass validEmail(AskForPass data) {
-		Matcher matcher = emailPattern.matcher(data.getEmail());
+		Matcher matcher = patternEmail.matcher(data.getEmail());
 		if(!matcher.find()) {
 			data.addError(messages.get("valid_email"));
 		}
@@ -2823,6 +2824,34 @@ public class ValidationService {
 			data.getFormatDate().invalidate(messages.get("invaliddateformat"));
 		} finally {
 			Messages.dateFormat=oldValue;
+		}
+		return data;
+	}
+	/**
+	 * Validate variable name and labels
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public VariableAssistantDTO variableNameAndLabels(VariableAssistantDTO data) throws ObjectNotFoundException {
+		data.clearErrors();
+		if(variableNameMatchFull(data.getVarName().getValue())){
+			String emptyLangLabel="";
+			if(data.getLabels().keySet().size()>0) {
+				for(String key :data.getLabels().keySet()) {
+					if(data.getLabels().get(key).getValue().length()==0) {
+						emptyLangLabel=key;
+						break;
+					}
+				}
+				if(!emptyLangLabel.isEmpty()) {
+					data.addError(messages.get("errorVariableLabelsEmpty")+ " "+ emptyLangLabel);
+				}
+			}else {
+				data.addError(messages.get("errorVariableLabelsEmpty"));
+			}
+		}else {
+			data.addError(messages.get("errorVariableName")+" "+data.getVarName().getValue());
 		}
 		return data;
 	}

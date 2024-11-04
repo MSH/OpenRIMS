@@ -649,4 +649,8 @@ public class ResourceService {
 		return downloadFile("help.administrate","FeaturesForTheOpenRIMSSupervisorUser.pdf");
 	}
 
+	public ResponseEntity<Resource> adminHelpVariableAssistant() throws ObjectNotFoundException, IOException {
+		return downloadFile("help.variable.name.assistant","VariableNameAssistant.pdf");
+	}
+
 }

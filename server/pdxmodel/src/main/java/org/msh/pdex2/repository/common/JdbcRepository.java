@@ -538,31 +538,7 @@ public class JdbcRepository {
 		proc.execute(params);
 
 	}
-	/**
-	 * Report sites
-	 * @param dataUrl, site data url, i.e. pharmacy.site
-	 * @param dictStageUrl life cycle stage dictionary - guest, host, shutdown (dictionary.guest.applications, dictionary.host.applications, dictionary.shutdown.applications)
-	 * @param addressUrl - under which addresses of the site are stored, i.e. 'pharamcy.site.address'
-	 * @param ownerUrl - under which owners of the site are stored, i.e. pharmacy.site.owners
-	 * @param inspectAppUrl under which inspection applications are stored, i.e. application.pharmacy.inspection
-	 * @param renewAppUrl under which renewal applications are stored, i.e. application.pharmacy.renew
-	 */
-	public void report_sites(String dataUrl, String dictStageUrl, String addressUrl, String ownerUrl,
-			String inspectAppUrl, String renewAppUrl, String certAppUrl) {
-		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
-		proc.withProcedureName("report_sites");
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue("site_url", dataUrl);
-		params.addValue("dict_stage_url", dictStageUrl);
-		params.addValue("addr_url", addressUrl);
-		params.addValue("owner_url", ownerUrl);
-		params.addValue("appl_inspection_url", inspectAppUrl);
-		params.addValue("appl_renew_url", renewAppUrl);
-		params.addValue("appl_cert_url", certAppUrl);
-		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
-		proc.execute(params);
 
-	}
 	/**
 	 * load amendments
 	 * @param email user's email, if null - all users all amendments
@@ -682,28 +658,6 @@ public class JdbcRepository {
 		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
 		proc.withProcedureName("report_configurations");
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
-		proc.execute(params);
-	}
-	/**
-	 * Reports available for applicant (any user)
-	 */
-	public void report_applicant() {
-		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
-		proc.withProcedureName("report_applicant");
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
-		proc.execute(params);
-	}
-	/**
-	 * Reports available to NMRA user
-	 * @param email
-	 */
-	public void report_user(String email) {
-		SimpleJdbcCall proc = new SimpleJdbcCall(jdbcTemplate);
-		proc.withProcedureName("report_user");
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue("email", email);
 		params.addValue("lang", LocaleContextHolder.getLocale().toString().toUpperCase());
 		proc.execute(params);
 	}

@@ -11,22 +11,31 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties(ignoreUnknown=true)
 public class VariableAssistantDTO extends AllowValidation {
-	private long currentDataConfID=0l;
+	//select form
 	private String currentName="";	//a current name of the variable
-	private Map<String, FormFieldDTO<String>> labels = new LinkedHashMap<String, FormFieldDTO<String>>(); //labels on all languages
 	private TableQtb table = new TableQtb(); //table for a choice from existing
+	//edit form
+	private FormFieldDTO<String> varName = FormFieldDTO.of("");
+	private Map<String, FormFieldDTO<String>> labels = new LinkedHashMap<String, FormFieldDTO<String>>(); //labels on all languages
+	public int usageCount=0;	//quantity of usage of this name as a variable name 
 	
-	public long getCurrentDataConfID() {
-		return currentDataConfID;
-	}
-	public void setCurrentDataConfID(long currentDataConfID) {
-		this.currentDataConfID = currentDataConfID;
-	}
 	public String getCurrentName() {
 		return currentName;
 	}
 	public void setCurrentName(String currentName) {
 		this.currentName = currentName;
+	}
+	public TableQtb getTable() {
+		return table;
+	}
+	public void setTable(TableQtb table) {
+		this.table = table;
+	}
+	public FormFieldDTO<String> getVarName() {
+		return varName;
+	}
+	public void setVarName(FormFieldDTO<String> varName) {
+		this.varName = varName;
 	}
 	public Map<String, FormFieldDTO<String>> getLabels() {
 		return labels;
@@ -34,11 +43,11 @@ public class VariableAssistantDTO extends AllowValidation {
 	public void setLabels(Map<String, FormFieldDTO<String>> labels) {
 		this.labels = labels;
 	}
-	public TableQtb getTable() {
-		return table;
+	public int getUsageCount() {
+		return usageCount;
 	}
-	public void setTable(TableQtb table) {
-		this.table = table;
+	public void setUsageCount(int usageCount) {
+		this.usageCount = usageCount;
 	}
 	
 	

@@ -25,11 +25,13 @@ import org.msh.pdex2.model.enums.YesNoNA;
 import org.msh.pdex2.model.i18n.ResourceBundle;
 import org.msh.pdex2.model.i18n.ResourceMessage;
 import org.msh.pdex2.model.r2.Assembly;
+import org.msh.pdex2.model.r2.Closure;
 import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.Thing;
 import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.repository.i18n.ResourceBundleRepo;
 import org.msh.pdex2.repository.i18n.ResourceMessageRepo;
+import org.msh.pdex2.repository.r2.ClosureRepo;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AboutDTO;
 import org.msh.pharmadex2.dto.DataCollectionDTO;
@@ -104,6 +106,8 @@ public class SupervisorService {
 	ResourceBundleRepo resourceBundleRepo;
 	@Autowired
 	UrlAssistantService assisServ;
+	@Autowired
+	private ClosureRepo closureRepo;
 
 	@Value("${variables.properties.edit}")
 	private boolean variablesPropertiesEdit;
@@ -296,6 +300,17 @@ public class SupervisorService {
 	public DataCollectionDTO dataCollectionDefinitionLoad(DataCollectionDTO data) throws ObjectNotFoundException {
 		if (data.getNodeId() > 0) {
 			Concept node = closureServ.loadConceptById(data.getNodeId());
+			//check if it is possible to change the data url
+			List<Concept>cons=closureServ.loadAllConceptsByIdentifier(node.getIdentifier());
+			if(cons.size()>0) {
+				for(Concept c:cons) {
+					if(closureServ.getParent(c)==null) {
+						if(closureRepo.findByChild(c).size()>0) {
+							data.getUrl().setAssistant(AssistantEnum.NO);
+						};
+					}
+				}
+			}		
 			data.getUrl().setValue(node.getIdentifier());
 			data.getDescription().setValue(literalServ.readPrefLabel(node));
 		}
@@ -780,15 +795,22 @@ public class SupervisorService {
 		data.getConfigUrl().setValue(node.getLabel());
 		data.getDescription().setValue(literalServ.readDescription(node));
 		List<Assembly> allAssms = assemblyServ.loadDataConfiguration(node.getLabel(),"documents");
+		String urlDict="";
 		for(Assembly clazz : allAssms) {
 			if(clazz.getClazz().equalsIgnoreCase("documents")) {
 				if(clazz.getUrl()!=null || clazz.getUrl().length()>0) {
-					data.getDictUrl().setValue(clazz.getDictUrl());
+					urlDict=clazz.getDictUrl();
+				}
+				/*	data.getDictUrl().setValue(clazz.getDictUrl());
 				}else {
 					data.addError(messages.get("errorConfigDataResource"));
 				}
-				break;
+				break;*/
 			}
+		}
+		data.getDictUrl().setValue(urlDict);
+		if(urlDict.isEmpty()){
+			data.addError(messages.get("errorConfigDataResource"));
 		}
 		return data;
 	}
@@ -995,7 +1017,7 @@ public class SupervisorService {
 					List<ResourceMessage> list = resourceMessageRepo.findByMessage_key(key, idrb);
 					if (list != null && list.size() > 0) {
 						rm = list.get(0);
-						if (list.size() == 1 && rm.getId() == data.getSelectedIds().get(rb.getLocale().toUpperCase())) {
+						if (list.size() == 1){  // && rm.getId() == data.getSelectedIds().get(rb.getLocale().toUpperCase())) {
 							// это редактирование записи
 							rm.setMessage_key(key);
 							rm.setMessage_value(value);

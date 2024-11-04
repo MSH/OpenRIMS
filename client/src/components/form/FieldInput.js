@@ -34,8 +34,12 @@ class FieldInput extends Component{
         let assistant=data.assistant
         if(eventData.subject==assistant){
             if(eventData.to==this.identifier){
-                data.value=eventData.data
-                this.props.component.setState(this.props.component.state)
+                if(this.props.functional){
+                    this.props.component.setValue(eventData.data)
+                }else{
+                    data.value=eventData.data
+                    this.props.component.setState(this.props.component.state)
+                }
             }
         }
     }   

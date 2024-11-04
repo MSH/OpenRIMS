@@ -71,8 +71,9 @@ class Fetchers{
                // if(response.statusText.includes("/api/guest/thing/save/application") || response.status.includes(500)){
                //     Spinner.hide()
                // }else{
+                let time=Date(Date.now()).toString()
                     Spinner.hide();
-                    Alerts.show(api +" " + response.status + " " + response.statusText,3)
+                    Alerts.show(time + "; url:" +api +"; status:" + response.status +  response.statusText,3)
                // }
             }
           }) 
@@ -162,7 +163,7 @@ class Fetchers{
                 return res.json();             
             }else{
                 Spinner.hide()
-                Alerts.show(api +" " + res.status + " " + res.statusText,3)
+                Alerts.show(api +" ER " + res.status + " ER " + res.statusText,3)
             }
         }) 
         .then(res=> {
@@ -249,30 +250,29 @@ class Fetchers{
         return ret
     }
     /**
-     * Store container's data to browser's local storage
-     * Container is a component that may be used only as a singleton, therefore,has only one stored state. 
-     * @param {string} containerName - name of the container component
-     * @param {object} state - object of the container component to store to window.localStorage
+     * Store  data to browser's local storage
+     * @param {string} containerName - name the data storage (the key)
+     * @param {object} data - object  to store to window.localStorage
      * @example
      * Fetchers.writeLocaly("Authorities", this.state.parentIds)
      */
-    static writeLocaly(containerName, state){
-        let str = JSON.stringify(state);
+    static writeLocaly(containerName, data){
+        let str = JSON.stringify(data);
         window.localStorage.setItem(containerName+"_Pharmadex2", str)
     }
     /**
-     * Read containe'r component from the browser's local storage
+     * Read data from the browser's local storage
      * @param {string} containerName name of the container component
-     * @param {*} state the current object of the container component that will be write to local storage if ones is not existing yet
+     * @param {*} data the current object of the container component that will be write to local storage if ones is not existing yet
      * @returns stored object or the current object
      */
-    static readLocaly(containerName, state){
+    static readLocaly(containerName, data){
         let str = window.localStorage.getItem(containerName+"_Pharmadex2")
         if(str!=null){
             return JSON.parse(str)
         }else {
-            this.writeLocaly(containerName,state)
-            return state
+            this.writeLocaly(containerName,data)
+            return data
         }
     }
 

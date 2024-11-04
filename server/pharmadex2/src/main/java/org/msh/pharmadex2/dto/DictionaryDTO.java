@@ -2,19 +2,22 @@ package org.msh.pharmadex2.dto;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pdex2.dto.table.TableRow;
 import org.msh.pharmadex2.dto.form.AllowValidation;
+import org.msh.pharmadex2.dto.form.FormFieldDTO;
+import org.msh.pharmadex2.dto.form.OptionDTO;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 /**
- * It allows selection from a dictionary level and adding a new level to the selection
+ * The dictionary.<br>
+ * Allows single or multiply selections.<br>
+ * Allows multi level<br>
+ * <b>Selected IDs will be in prevSelected property. These are really selected items, not levels</b><br>
+ * Many properties, like a varName, are related to integration a dictionary into electronic forms (things)
  * @author alexk
  *
  */
-import org.msh.pharmadex2.dto.form.FormFieldDTO;
-import org.msh.pharmadex2.dto.form.OptionDTO;
-
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties(ignoreUnknown=true)
 public class DictionaryDTO extends AllowValidation{
 	//recognized as single level
@@ -229,6 +232,7 @@ public class DictionaryDTO extends AllowValidation{
 		ret.setPathSelected(getPathSelected());
 		ret.setSelectedOnly(isSelectedOnly());
 		ret.setMaxDepth(getMaxDepth());
+		ret.setSystem(isSystem());
 		return ret;
 	}
 	
@@ -254,6 +258,13 @@ public class DictionaryDTO extends AllowValidation{
 				+ ", table=" + table + ", system=" + system + ", mult=" + mult + ", required=" + required
 				+ ", prevSelected=" + prevSelected + ", pathSelected=" + pathSelected + ", selectedOnly=" + selectedOnly
 				+ ", readOnly=" + readOnly + ", currentSelections=" + currentSelections + ", allrows=" + allrows + "]";
+	}
+	/**
+	 * Is this dictionary already loaded
+	 * @return
+	 */
+	public boolean isLoaded() {
+		return getTable().getHeaders().getHeaders().size()>0;
 	}
 	
 }

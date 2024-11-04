@@ -1,7 +1,6 @@
 import React,{useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import FieldInput from './FieldInput'
-import { attr } from 'highcharts'
 
 /**
  * Functional edition of FieldInput
@@ -13,6 +12,8 @@ import { attr } from 'highcharts'
     data:PropTypes.object.isRequired,                               //data in which the field defined in useState.
     setData:PropTypes.func.isRequired,                              //set data function defined in useState
  * ~~~
+    @example
+     <FieldInputFunctional  mode='text' attribute='varName' data={data} labels={labels} setData={setData}/>
  */
 function FieldInputFunctional({disabled, mode,rows,attribute, labels, data, setData}){
     let component={

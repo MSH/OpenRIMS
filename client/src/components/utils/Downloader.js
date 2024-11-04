@@ -30,6 +30,7 @@ class Downloader{
      * @param {String} defaultFileName 
      */
     postDownload(url, params, defaultFileName){
+        Fetchers.setJustLoaded(params, false)
         if(this.isIE()){
             this.downloadIE(Fetchers.contextPath() + url, params, defaultFileName,true)
         }else{

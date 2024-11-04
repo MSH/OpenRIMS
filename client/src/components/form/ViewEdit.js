@@ -30,10 +30,10 @@ class ViewEdit extends Component{
             data=this.props.data
         }
         if(this.props.edit){
-            return <FieldInput mode={this.props.mode} attribute={this.props.attribute} component={this.props.component} data={data} />
+            return <FieldInput mode={this.props.mode} attribute={this.props.attribute} component={this.props.component} data={data} functional={this.props.functional}/>
         }else{
             return <FieldDisplay mode={this.props.mode} attribute={this.props.attribute} component={this.props.component} 
-                        data={data} hideEmpty={this.props.hideEmpty} nolabel={this.props.nolabel}/>
+                        data={data} hideEmpty={this.props.hideEmpty} nolabel={this.props.nolabel} functional={this.props.functional}/>
         }
     }
 

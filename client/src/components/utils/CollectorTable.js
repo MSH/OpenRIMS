@@ -6,6 +6,7 @@ import TableHeader from "./TableHeader"
 
 /**
  * Common table implementation to use for Collector project
+ * Provides static method selectRowMultiply(rowNo, table) to select multiply rows in functional way
  * accepted such properties:
  * @property {Object} tableData - complex table data model, see Java implementation (REQ)
  * @property {function} loader() reload table data (REQ)
@@ -17,6 +18,16 @@ import TableHeader from "./TableHeader"
  * @property {function} selectAll() user click on checkbox at first column header
  * @property {function} [styleCorrector(header.key)] provides explicit important inline style to column with header.key given, i.e. {width:'20%'}
  * @property {function} repaint how to repaint this table
+ * @example
+ * <CollectorTable
+                            tableData={data.filtersTable}
+                            loader={loadData}
+                            headBackground={Pharmadex.settings.tableHeaderBackground}
+                            selectRow={(rowNo)=>{
+                                setData({...data,
+                                        filtersTable:selectRow(rowNo, data.filtersTable)})
+                            }}
+                        />
  */
 class CollectorTable extends Component{
     constructor(props){
@@ -41,6 +52,60 @@ class CollectorTable extends Component{
              this.headBackground= props.headBackground
          }
          this.headColor=this.invertColor(this.headBackground,true)
+    }
+    /**
+     * to select table rows in functional way
+     * selects both visible rows and modify the selections array
+     * allows multipy and single choices
+     * @returns new table with selected/deselected rows synchronized with the selections array 
+     */
+    static selectRow(rowNo, table, singleChoice){
+        //process visible rows
+        let rows = table.rows
+        let newRows= [...rows]
+        if(singleChoice){
+            newRows.forEach((row,index)=>{
+                if(index==rowNo){
+                    row.selected=!row.selected
+                }else{
+                    row.selected=false
+                }
+            })   
+        }else{
+            newRows[rowNo].selected=!newRows[rowNo].selected
+        }
+        //process "selections" array to consider selections made before, possibly on another pages
+        const selections = table.selections
+        let newSelections=[...selections]
+        rows.forEach((row)=>{
+            if(row.selected){   //add, if possible
+                if(!newSelections.includes(row.dbID)){
+                    newSelections.push(row.dbID)
+                }
+            }else{              //remove if possible
+                let index=newSelections.indexOf(row.dbID)
+                if(index>-1){
+                    newSelections.splice(index,1)
+                }
+            }
+        })
+        return {...table,
+                rows:newRows,
+                selections:newSelections}
+    }
+
+    /**
+     * Not mutable deselection of all rows in a table given
+     * @param {TableQtb} table - table to deleselect all rows
+     * @returns new TableQtb JSON
+     */
+    static deselectAll(table){
+        let ret=structuredClone(table)
+        ret.selections=[]
+        ret.rows.forEach((row)=>{
+            row.selected=false
+        })
+        return ret
     }
     /**
      * Calculate font color contrast to background

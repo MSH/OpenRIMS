@@ -36,7 +36,6 @@ class ApplicationStart extends Component{
                 global_submit:'',
                 return_action:'',
                 route_action:'',
-                global_showPrint:"",
                 notes:'',
             },
             history:{},             //histroy table
@@ -184,20 +183,6 @@ class ApplicationStart extends Component{
                                         Navigator.message(this.state.identifier, "*", "nextButtonPressed", {btnname:this.state.btnname})
                                     }}
                                 >{this.state.nextlabel}</Button>{' '}
-                                <Button size="sm" hidden={this.state.history.historyId == 0}
-                                        className="mr-1" color="info"
-                                        onClick={()=>{
-                                            let data={
-                                                url:this.props.data.url,
-                                                applDictNodeId:this.props.data.applDictNodeId,
-                                                historyId:this.props.data.historyId,
-                                            }
-                                            let param = JSON.stringify(data)
-                                            var url = "/" + Navigator.tabSetName() + "#printprev" + "/" + encodeURIComponent(param)
-                                            let w = window.open(url, "_blank")
-                                        }}>
-                                    {this.state.labels.global_showPrint}
-                                </Button>{' '}
                                 <Button size="sm"
                                     className="mr-1" color="success"
                                     onClick={()=>{

@@ -63,7 +63,6 @@ import org.msh.pharmadex2.dto.LinksDTO;
 import org.msh.pharmadex2.dto.PersonDTO;
 import org.msh.pharmadex2.dto.PersonSpecialDTO;
 import org.msh.pharmadex2.dto.RegisterDTO;
-import org.msh.pharmadex2.dto.ReportDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
 import org.msh.pharmadex2.dto.SchedulerDTO;
 import org.msh.pharmadex2.dto.ThingConfigurationDTO;
@@ -2653,30 +2652,6 @@ public class ThingService {
 			return true;
 		}
 		return false;
-	}
-	public boolean openThing(ReportDTO data, UserDetailsDTO user) throws ObjectNotFoundException {
-		ThingDTO thing=data.getThing();
-		if(thing.getNodeId()>0) {
-			String select = "";
-			if (!accessControlServ.isApplicant(user)) {
-				jdbcRepo.report_open_nmra(thing.getNodeId(), user.getEmail());
-				select = "select * from report_open_nmra";
-				Headers headers= new Headers();
-				headers.getHeaders().add(TableHeader.instanceOf("us", "us", false, false, false, TableHeader.COLUMN_STRING, 0));
-				List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", "", headers);
-				if(rows.size()>0) {
-					return true;
-				}else {
-					data.setIdentifier(messages.get("warningNMRA"));
-					return false;
-				}
-			}else {
-				return true;
-			} 
-		}else {
-			data.setIdentifier(messages.get("errorNMRA"));
-			return false;
-		}
 	}
 
 	/**

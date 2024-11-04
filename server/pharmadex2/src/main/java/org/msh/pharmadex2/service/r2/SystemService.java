@@ -58,57 +58,50 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class SystemService {
+	public static final String DS_CATALOGUE = "CATALOGUE";
+	public static final String DS_KPI_APPLICANTS = "APPLICANTS";
+	public static final String DS_KPI_WORKFLOWS = "WORKFLOWS";
+	public static final String DS_KPI_ACTIVITIES = "ACTIVITIES";
+	public static final String DS_KPI_APPLICATIONS = "APPLICATIONS";
+	public static final String DS_STATISTIC = "STATISTIC";
+	public static final Logger logger = LoggerFactory.getLogger(SystemService.class);
+	// dictionary that is backed import data file upload
 	public static final String DICTIONARY_SYSTEM_IMPORT_DATA = "dictionary.system.import.data";
-	// public static final String DICTIONARY_SYSTEM_IMPORT_LEGACY_DATA =
-	// "dictionary.system.import.legacy.data";
-	// Finalization activity related
+	// Finalization outcomes values and the dictionary for them
 	public static final String FINAL_DEREGISTRATION = "deregistration";
 	public static final String FINAL_AMEND = "AMEND";
 	public static final String FINAL_DECLINE = "DECLINE";
 	public static final String FINAL_ACCEPT = "ACCEPT";
-	public static final String FINAL_COMPANY="COMPANY";
+	public static final String FINAL_COMPANY = "COMPANY";
 	public static final String FINAL_NO = "NO";
-	
-	private static final Logger logger = LoggerFactory.getLogger(SystemService.class);
 	public static final String DICTIONARY_SYSTEM_FINALIZATION = "dictionary.system.finalization";
+	//possible applications
+	public static final String DICTIONARY_SYSTEM_LIFECYCLE = "dictionary.system.lifecycle";	//references for dictionaries below 
 	public static final String DICTIONARY_GUEST_DEREGISTRATION = "dictionary.guest.deregistration";
 	public static final String DICTIONARY_GUEST_AMENDMENTS = "dictionary.guest.amendments";
 	public static final String DICTIONARY_GUEST_APPLICATIONS = "dictionary.guest.applications";
 	public static final String DICTIONARY_GUEST_INSPECTIONS = "dictionary.guest.inspections";
 	public static final String DICTIONARY_SHUTDOWN_APPLICATIONS = "dictionary.shutdown.applications";
 	public static final String DICTIONARY_HOST_APPLICATIONS = "dictionary.host.applications";
-	public static final String DICTIONARY_INSPECTIONS="dictionary.inspections";
-	public static final String DICTIONARY_SYSTEM_LIFECYCLE = "dictionary.system.lifecycle";
+	//possible submit actions
 	public static final String DICTIONARY_SYSTEM_SUBMIT = "dictionary.system.submit";
-	public static final String ROOT_SYSTEM_TILES = "dictionary.system.tiles";
-	public static final String DICTIONARY_ADMIN_UNITS = "dictionary.admin.units";
+	//Access roles and tiles for them
 	public static final String DICTIONARY_SYSTEM_ROLES = "dictionary.system.roles";
+	public static final String ROOT_SYSTEM_TILES = "dictionary.system.tiles";
+	//Data sources
+	public static final String DICTIONARY_SYSTEM_DATA_SOURCES = "dictionary.system.data.sources";
+	//administrative units and related
+	public static final String DICTIONARY_ADMIN_UNITS = "dictionary.admin.units";
 	public static final String CONFIGURATION_ADMIN_UNITS = "configuration.admin.units";
-	public static final String DICTIONARY_REPORT_GOOGLE_TOOLS="dictionary.report.googletools";
-	public static final String DICTIONARY_REPORT_GOOGLETOOLS_NMRA="dictionary.report.googletools.nmra";
-	public static final String DICTIONARY_REPORT_GOOGLETOOLS_APPL="dictionary.report.googletools.appl";
 	public static final Integer DEFAULT_ZOOM = 7;
-	public static List<String> APPLICATION_DICTIONARIES = Arrays.asList(
-			DICTIONARY_GUEST_DEREGISTRATION,
-			DICTIONARY_GUEST_AMENDMENTS,
-			DICTIONARY_GUEST_APPLICATIONS,
-			DICTIONARY_GUEST_INSPECTIONS,
-			DICTIONARY_SHUTDOWN_APPLICATIONS,
-			DICTIONARY_HOST_APPLICATIONS,
-			DICTIONARY_INSPECTIONS
-			);
-	public static List<String> SINLE_LEVEL_DICTIONARIES = Arrays.asList(
-			DICTIONARY_SYSTEM_FINALIZATION,
-			DICTIONARY_SYSTEM_LIFECYCLE,
-			DICTIONARY_SYSTEM_SUBMIT,
-			DICTIONARY_SYSTEM_ROLES,
-			DICTIONARY_REPORT_GOOGLE_TOOLS,
-			DICTIONARY_REPORT_GOOGLETOOLS_NMRA,
-			DICTIONARY_REPORT_GOOGLETOOLS_APPL
-			);
+	public static List<String> APPLICATION_DICTIONARIES = Arrays.asList(DICTIONARY_GUEST_DEREGISTRATION,
+			DICTIONARY_GUEST_AMENDMENTS, DICTIONARY_GUEST_APPLICATIONS, DICTIONARY_GUEST_INSPECTIONS,
+			DICTIONARY_SHUTDOWN_APPLICATIONS, DICTIONARY_HOST_APPLICATIONS);
+	public static List<String> SINLE_LEVEL_DICTIONARIES = Arrays.asList(DICTIONARY_SYSTEM_FINALIZATION,
+			DICTIONARY_SYSTEM_LIFECYCLE, DICTIONARY_SYSTEM_SUBMIT, DICTIONARY_SYSTEM_ROLES);
 
 	public static final String PRODUCTCLASSIFICATION_ATC_HUMAN = "who.atc.human";
-	
+
 	public static final String DICTIONARY_SYSTEM_LOCALES = "dictionary.system.locales";
 	public static final String SUFF_RECEIPT_BYTEMPL = ".receipt";
 	/**
@@ -120,35 +113,32 @@ public class SystemService {
 	public static final String DATA_COLLECTIONS_ROOT = "configuration.data";
 	public static final String RESOURCES_COLLECTIONS_ROOT = "configuration.resources";
 	public static final String RECYCLE = "system.recycle.bin";
-	
 
-	// *************************** ROLES
-	// ******************************************************************
+	// *************************** ROLES for WebSecurity.java
 	public static String ROLE_ADMIN = "ROLE_ADMIN";
 	public static String ROLE_SECRETARY = "ROLE_SECRETARY";
 	public static String ROLE_APPLICANT = "APPLICANT";
 	public static String[] ROLES = { ROLE_ADMIN, "ROLE_MODERATOR", "ROLE_REVIEWER", "ROLE_INSPECTOR", "ROLE_ACCOUNTANT",
 			"ROLE_SCREENER", ROLE_SECRETARY, ROLE_APPLICANT };
 	/**
-	 * list of NMRA actors to use in ..mapping.. annotations 
+	 * list of NMRA actors to use in ..mapping.. annotations
 	 */
-	public static final String ACTORS_NMRA = String.join(",",ROLES).toLowerCase().replace("role_", "");
+	public static final String ACTORS_NMRA = String.join(",", ROLES).toLowerCase().replace("role_", "");
 	/**
 	 * list of all authenticated actors to use in ..mapping.. annotations
 	 */
-	public static final String ACTORS_AUTHENTICATED= ACTORS_NMRA+",guest";
+	public static final String ACTORS_AUTHENTICATED = ACTORS_NMRA + ",guest";
 	/**
 	 * List of all possible actors to use in ..mapping.. annotations
 	 */
-	public static final String ACTORS_ALL=ACTORS_AUTHENTICATED+",public";
-
+	public static final String ACTORS_ALL = ACTORS_AUTHENTICATED + ",public";
+	//Appliction states for DWH
 	public static final String STATE_ACTIVE = "ACTIVE";
 	public static final String STATE_ONAPPROVAL = "ONAPPROVAL";
 	public static final String STATE_REVOKED = "REVOKED";
 	public static final String STATE_LOST = "LOST";
 	public static final String STATE_DEREGISTERED = "DEREGISTERED";
-	
-	
+
 	@Autowired
 	UserRepo userRepo;
 	@Autowired
@@ -173,7 +163,7 @@ public class SystemService {
 	private BoilerService boilerServ;
 	@Autowired
 	private JdbcRepository jdbcRepo;
-	
+
 	/**
 	 * Add role to roles dictionary
 	 * 
@@ -198,26 +188,27 @@ public class SystemService {
 	/**
 	 * Some system dictionary need to be actualize by removing deprecated roles
 	 * These roles should be inactive to ensure backward compatibility
+	 * 
 	 * @param root
 	 * @param roleToRemove
 	 */
 	@Transactional
 	private void removeRoleFromDictionary(Concept root, String roleToRemove) {
 		List<Concept> childs = closureServ.loadLevel(root);
-		if(childs != null) {
-			for(Concept child : childs) {
-				if(child.getIdentifier().equalsIgnoreCase(roleToRemove)) {
-					if(child.getActive()) {
+		if (childs != null) {
+			for (Concept child : childs) {
+				if (child.getIdentifier().equalsIgnoreCase(roleToRemove)) {
+					if (child.getActive()) {
 						child.setActive(false);
-						child=closureServ.save(child);
+						child = closureServ.save(child);
 						break;
 					}
 				}
 			}
 		}
-		
+
 	}
-	
+
 	/**
 	 * Loads or creates user's roles dictionary
 	 * 
@@ -274,7 +265,6 @@ public class SystemService {
 		addRoleToDictionary(root, FINAL_COMPANY);
 	}
 
-
 	/**
 	 * Address or Admin unit dictionary. Allows to add new
 	 * 
@@ -289,8 +279,9 @@ public class SystemService {
 
 	/**
 	 * New applications dictionary
+	 * 
 	 * @deprecated
-	 * @param url 
+	 * @param url
 	 * 
 	 * @param data
 	 * @param user
@@ -310,27 +301,27 @@ public class SystemService {
 		data = dictServ.createDictionary(data);
 		return data;
 	}
-	
+
 	public DictionaryDTO processesEnabled(String url, String email, DictionaryDTO data) throws ObjectNotFoundException {
 		Concept root = closureServ.loadRoot(url);
 		String prefLabel = literalServ.readPrefLabel(root);
-		//if (prefLabel.length() == 0) {
-			if(url.equals(DICTIONARY_GUEST_APPLICATIONS)) {
-				prefLabel = messages.get("prod_app_type");
-			}else if(url.equals(DICTIONARY_GUEST_AMENDMENTS)) {
-				prefLabel = messages.get("amdmt_type");
-			}else if(url.equals(DICTIONARY_GUEST_DEREGISTRATION)){
-				prefLabel = messages.get("deregistration");
-			}else if(url.equals(DICTIONARY_GUEST_INSPECTIONS)){
-				prefLabel = messages.get("inspections");
-			}else {
-				prefLabel = messages.get("newapplications");
-			}
-		//}
+		// if (prefLabel.length() == 0) {
+		if (url.equals(DICTIONARY_GUEST_APPLICATIONS)) {
+			prefLabel = messages.get("prod_app_type");
+		} else if (url.equals(DICTIONARY_GUEST_AMENDMENTS)) {
+			prefLabel = messages.get("amdmt_type");
+		} else if (url.equals(DICTIONARY_GUEST_DEREGISTRATION)) {
+			prefLabel = messages.get("deregistration");
+		} else if (url.equals(DICTIONARY_GUEST_INSPECTIONS)) {
+			prefLabel = messages.get("inspections");
+		} else {
+			prefLabel = messages.get("newapplications");
+		}
+		// }
 		data.setHome(prefLabel);
-		
+
 		TableQtb table = data.getTable();
-		if(table.getHeaders().getHeaders().size() == 0) {
+		if (table.getHeaders().getHeaders().size() == 0) {
 			table.setHeaders(dictServ.createHeaders(table.getHeaders(), true));
 		}
 		// add temporary column not display
@@ -338,21 +329,21 @@ public class SystemService {
 		jdbcRepo.processesEnabled(url, email);
 		String select = "select * from processes_enabled";
 		List<TableRow> rows = jdbcRepo.qtbGroupReport(select, "", "", table.getHeaders());
-		
+
 		String style = "text";
 		String styleEnabled = "font-weight-light font-italic";
-		for(TableRow row : rows) {
+		for (TableRow row : rows) {
 			int active = row.getCellByKey("active").getIntValue();
-			if(active == 0) {
-				for(TableCell cell:row.getRow()) {
+			if (active == 0) {
+				for (TableCell cell : row.getRow()) {
 					cell.setStyleClass(styleEnabled);
 				}
 			}
 			row.getRow().remove(2);
 		}
-		// remove temporary column 
+		// remove temporary column
 		table.getHeaders().getHeaders().remove(2);
-		
+
 		TableQtb.tablePage(rows, table);
 		table = boilerServ.translateRows(table);
 		table.setSelectable(true);
@@ -362,6 +353,7 @@ public class SystemService {
 
 	/**
 	 * All amendment types implemented in the system
+	 * 
 	 * @deprecated
 	 * @param data
 	 * @return
@@ -383,6 +375,7 @@ public class SystemService {
 
 	/**
 	 * DE-registration applications
+	 * 
 	 * @deprecated
 	 * @param data
 	 * @return
@@ -512,7 +505,14 @@ public class SystemService {
 	 * 
 	 * @param root
 	 */
-	private void systemDictNode(Concept root, String identifier, String prefLabel) throws ObjectNotFoundException {
+	private Concept systemDictNode(Concept root, String identifier, String prefLabel) throws ObjectNotFoundException {
+		List<Concept> nodes=literalServ.loadOnlyChilds(root);
+		for(Concept node :nodes) {
+			if(node.getIdentifier().equalsIgnoreCase(identifier)) {
+				return node;
+			}
+		}
+		//create the node if not found
 		Concept node = new Concept();
 		node.setIdentifier(identifier);
 		node = closureServ.saveToTree(root, node);
@@ -520,6 +520,7 @@ public class SystemService {
 		if (pl.length() == 0) {
 			node = literalServ.prefAndDescription(prefLabel, "", node);
 		}
+		return node;
 	}
 
 	/**
@@ -682,7 +683,7 @@ public class SystemService {
 		Concept thisDictRoot = closureServ.getParent(curHis.getApplDict());
 		return thisDictRoot.getIdentifier().equalsIgnoreCase(DICTIONARY_SHUTDOWN_APPLICATIONS);
 	}
-	
+
 	/**
 	 * Is it shutdown application?
 	 * 
@@ -693,7 +694,7 @@ public class SystemService {
 		Concept thisDictRoot = closureServ.getParent(curHis.getApplDict());
 		return thisDictRoot.getIdentifier().equalsIgnoreCase(DICTIONARY_GUEST_INSPECTIONS);
 	}
-	
+
 	/**
 	 * Recognize host dictionary node by host process URL
 	 * 
@@ -703,7 +704,7 @@ public class SystemService {
 	 * @throws ObjectNotFoundException is not found
 	 */
 	@Transactional
-	public Concept applDictItemByUrl( String dictRootUrl, String processUrl) throws ObjectNotFoundException {
+	public Concept applDictItemByUrl(String dictRootUrl, String processUrl) throws ObjectNotFoundException {
 		Concept root = closureServ.loadRoot(dictRootUrl);
 		List<Concept> level = literalServ.loadOnlyChilds(root);
 		for (Concept conc : level) {
@@ -723,42 +724,43 @@ public class SystemService {
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	public Concept revokepermitDictNode(String processUrl) throws ObjectNotFoundException  {
-		
-		Concept root= new Concept();
-		
+	public Concept revokepermitDictNode(String processUrl) throws ObjectNotFoundException {
+
+		Concept root = new Concept();
+
 		try {
 			root = closureServ.loadRoot(DICTIONARY_SHUTDOWN_APPLICATIONS);
 		} catch (ObjectNotFoundException e) {
-			throw new ObjectNotFoundException("No dictionary DICTIONARY_SHUTDOWN_APPLICATIONS "+e,logger);
+			throw new ObjectNotFoundException("No dictionary DICTIONARY_SHUTDOWN_APPLICATIONS " + e, logger);
 		}
 		List<Concept> level = literalServ.loadOnlyChilds(root);
-		Concept conDict=null;
+		Concept conDict = null;
 		for (Concept conc : level) {
 			String aurl = literalServ.readValue(LiteralService.URL, conc);
 			if (aurl.equalsIgnoreCase(processUrl) && conc.getActive()) {
-				conDict= conc;
+				conDict = conc;
 			}
 		}
 		return conDict;
 	}
-	
+
 	/**
-	 * For Example 
-	 * Find concept "New  Retail Pharmacy - Individually Owned"(url=retail.site.owned.persons)
-	 * in dictionary dictionary.guest.applications
+	 * For Example Find concept "New Retail Pharmacy - Individually
+	 * Owned"(url=retail.site.owned.persons) in dictionary
+	 * dictionary.guest.applications
+	 * 
 	 * @param dictUrl
 	 * @param processUrl
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	public Concept findProccessByUrl(String dictUrl, String processUrl) throws ObjectNotFoundException  {
+	public Concept findProccessByUrl(String dictUrl, String processUrl) throws ObjectNotFoundException {
 		Concept root = new Concept();
 		try {
 			root = closureServ.loadRoot(dictUrl);
 		} catch (ObjectNotFoundException e) {
-			throw new ObjectNotFoundException("No dictionary " + dictUrl + " "+ e,logger);
+			throw new ObjectNotFoundException("No dictionary " + dictUrl + " " + e, logger);
 		}
 		List<Concept> level = literalServ.loadOnlyChilds(root);
 		Concept conDict = null;
@@ -771,7 +773,7 @@ public class SystemService {
 		}
 		return conDict;
 	}
-	
+
 	/**
 	 * Return report configuration dictionary depends on the user category
 	 * <ul>
@@ -831,8 +833,8 @@ public class SystemService {
 	 */
 	public List<Concept> guestWorkflow(String guestDictUrl, String appicationUrl, List<Concept> ret)
 			throws ObjectNotFoundException {
-		//02112023 khomenska refactoring code
-		//List<OptionDTO> dictOpt = dictServ.loadPlain(guestDictUrl);
+		// 02112023 khomenska refactoring code
+		// List<OptionDTO> dictOpt = dictServ.loadPlain(guestDictUrl);
 		Concept root = closureServ.loadRoot(guestDictUrl);
 		List<OptionDTO> dictOpt = dictServ.loadLevelAsOptions(root);
 		for (OptionDTO opt : dictOpt) {
@@ -851,6 +853,7 @@ public class SystemService {
 	 * 
 	 * @throws ObjectNotFoundException
 	 */
+	@Transactional
 	public void checkDictionaries() throws ObjectNotFoundException {
 		checkAddressDict();
 		userRolesDict(new DictionaryDTO());
@@ -859,15 +862,71 @@ public class SystemService {
 		uploadImportDataDictionary();
 		inspectionDictionaries();
 		finalizeDict();
-		reportGoogleToolsDict();
-		reportGoogleToolsNMRADict();
-		reportGoogleToolsAPPLDict();
 		languagesDict();
+		createDS();
+	}
+	
+
+	/**
+	 * create data sources dictionary
+	 * @throws ObjectNotFoundException 
+	 */
+	private void createDS() throws ObjectNotFoundException {
+		dictServ.checkDictionary(DICTIONARY_SYSTEM_DATA_SOURCES);
+		Concept dict=closureServ.loadRoot(DICTIONARY_SYSTEM_DATA_SOURCES);
+		literalServ.createUpdateLiteral("type", "system", dict);
+		List<Concept> nodes = literalServ.loadOnlyChilds(dict);
+		if(nodes.size()!=3) {
+			dict=createDSCat(dict);
+			dict=createDSKPI(dict);
+			dict=createDSStat(dict);
+		}
+		
 	}
 	/**
-	 * Create and fill out the languages dict if one is empty
-	 * public because transactional
+	 * Statistical data sources
+	 * @param dict
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	private Concept createDSStat(Concept dict) throws ObjectNotFoundException {
+		Concept	node=systemDictNode(dict, DS_STATISTIC, messages.get("statistic"));
+		systemDictNode(node, "PRODUCT_SHARE", messages.get("products_share"));
+		systemDictNode(node, "APPLICANT_SHARE", messages.get("applicants_share"));
+		return dict;
+	}
+
+	/**
+	 * KPI for data sources
+	 * @param dict
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	private Concept createDSKPI(Concept dict) throws ObjectNotFoundException {
+		Concept node=systemDictNode(dict, "KPI", messages.get("Indicators"));
+		systemDictNode(node, DS_KPI_APPLICATIONS, messages.get("manageapplications"));
+		systemDictNode(node, DS_KPI_ACTIVITIES, messages.get("activities"));
+		systemDictNode(node, DS_KPI_WORKFLOWS, messages.get("workflows"));
+		systemDictNode(node, DS_KPI_APPLICANTS, messages.get("applicants"));
+		return dict;
+	}
+
+	/**
+	 * Catalogues branch in the data sources 
+	 * @param dict
+	 * @return
 	 * @throws ObjectNotFoundException 
+	 */
+	private Concept createDSCat(Concept dict) throws ObjectNotFoundException {
+		systemDictNode(dict, DS_CATALOGUE, messages.get("catalogue"));
+		return dict;
+	}
+
+	/**
+	 * Create and fill out the languages dict if one is empty public because
+	 * transactional
+	 * 
+	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
 	public void languagesDict() throws ObjectNotFoundException {
@@ -876,38 +935,38 @@ public class SystemService {
 		Concept dict = closureServ.loadRoot(DICTIONARY_SYSTEM_LOCALES);
 		List<Concept> nodes = literalServ.loadOnlyChilds(dict);
 		Map<String, Concept> nodesMap = new HashMap<String, Concept>();
-		Map<String,String> otherLangs = new HashMap<String, String>();
-		otherLangs.put("pt_PT","Português");
-		otherLangs.put("pt_BR","Português Brasil");
-		otherLangs.put("fr_FR","Français");
-		otherLangs.put("de_DE","Deutsch");
-		otherLangs.put("es_ES","Española");
-		otherLangs.put("bn","Bangla");
-		otherLangs.put("ne_NP","नेपाली");
-		//existing nodes
+		Map<String, String> otherLangs = new HashMap<String, String>();
+		otherLangs.put("pt_PT", "Português");
+		otherLangs.put("pt_BR", "Português Brasil");
+		otherLangs.put("fr_FR", "Français");
+		otherLangs.put("de_DE", "Deutsch");
+		otherLangs.put("es_ES", "Española");
+		otherLangs.put("bn", "Bangla");
+		otherLangs.put("ne_NP", "नेपाली");
+		// existing nodes
 		for (Concept node : nodes) {
 			if (node.getActive()) {
-				nodesMap.put(node.getIdentifier(),node);
+				nodesMap.put(node.getIdentifier(), node);
 			}
 		}
-		//add locales defined in the resource bundle
-		for(Language lang : langs.getLangs()) {
-			if(!nodesMap.containsKey(lang.getLocaleAsString())) {
-				if(!lang.getLocaleAsString().equalsIgnoreCase("EN_US")) {
+		// add locales defined in the resource bundle
+		for (Language lang : langs.getLangs()) {
+			if (!nodesMap.containsKey(lang.getLocaleAsString())) {
+				if (!lang.getLocaleAsString().equalsIgnoreCase("EN_US")) {
 					Concept node = new Concept();
 					node.setIdentifier(lang.getLocaleAsString());
-					node=closureServ.saveToTree(dict, node);
-					nodesMap.put(node.getIdentifier(),node);
+					node = closureServ.saveToTree(dict, node);
+					nodesMap.put(node.getIdentifier(), node);
 					literalServ.prefAndDescription(lang.getLocaleAsString(), lang.getDisplayName(), node);
 				}
 			}
 		}
 		// add rst of the most used locales
-		for(String key : otherLangs.keySet()) {
-			if(!nodesMap.containsKey(key)) {
+		for (String key : otherLangs.keySet()) {
+			if (!nodesMap.containsKey(key)) {
 				Concept node = new Concept();
 				node.setIdentifier(key);
-				node=closureServ.saveToTree(dict, node);
+				node = closureServ.saveToTree(dict, node);
 				literalServ.prefAndDescription(key, otherLangs.get(key), node);
 			}
 		}
@@ -915,20 +974,21 @@ public class SystemService {
 
 	/**
 	 * inspection's guest, host and inspection
-	 * @throws ObjectNotFoundException 
+	 * 
+	 * @throws ObjectNotFoundException
 	 */
 	private void inspectionDictionaries() throws ObjectNotFoundException {
 		List<String> appl = inspectionDictUrs();
 		for (String url : appl) {
 			dictServ.checkDictionary(url);
 		}
-		
+
 	}
 
 	private List<String> inspectionDictUrs() {
 		List<String> ret = new ArrayList<String>();
 		ret.add(SystemService.DICTIONARY_GUEST_INSPECTIONS);
-		ret.add(SystemService.DICTIONARY_INSPECTIONS);
+		//ret.add(SystemService.DICTIONARY_INSPECTIONS);
 		return ret;
 	}
 
@@ -937,7 +997,7 @@ public class SystemService {
 	 * 
 	 * @throws ObjectNotFoundException
 	 */
-	private void checkLifeCycleDicts() throws ObjectNotFoundException { 
+	private void checkLifeCycleDicts() throws ObjectNotFoundException {
 		for (String url : APPLICATION_DICTIONARIES) {
 			dictServ.checkDictionary(url);
 		}
@@ -950,20 +1010,6 @@ public class SystemService {
 	 */
 	public void checkAddressDict() throws ObjectNotFoundException {
 		dictServ.checkDictionary(DICTIONARY_ADMIN_UNITS);
-	}
-	/**
-	 * If reportGoogleTools dictionary does not exist, create new one
-	 * 
-	 * @throws ObjectNotFoundException
-	 */
-	public void reportGoogleToolsDict() throws ObjectNotFoundException {
-		dictServ.checkDictionary(DICTIONARY_REPORT_GOOGLE_TOOLS);
-	}
-	public void reportGoogleToolsNMRADict() throws ObjectNotFoundException {
-		dictServ.checkDictionary(DICTIONARY_REPORT_GOOGLETOOLS_NMRA);
-	}
-	public void reportGoogleToolsAPPLDict() throws ObjectNotFoundException {
-		dictServ.checkDictionary(DICTIONARY_REPORT_GOOGLETOOLS_APPL);
 	}
 	/**
 	 * Load a role concept from roles dictionary by role name
@@ -987,102 +1033,102 @@ public class SystemService {
 		}
 		return ret;
 	}
+
 	/**
 	 * Is the same process to the same data is already running?
+	 * 
 	 * @param dictItem
 	 * @param applicationData
 	 * @return not running processes found
 	 */
 	@Transactional
 	public boolean isUniqueProcess(Concept dictItem, Concept applicationData) {
-		List<History>  list = historyRepo.findAllByApplDictAndApplicationDataAndGo(dictItem,	applicationData, null);
+		List<History> list = historyRepo.findAllByApplDictAndApplicationDataAndGo(dictItem, applicationData, null);
 		return list.isEmpty();
 	}
 
 	/**
 	 * Initialize dates format form
+	 * 
 	 * @param data
 	 * @return
 	 */
 	public FormatsDTO formatDates(FormatsDTO data) {
-		//initial format
+		// initial format
 		String format = "MMM dd yyyy";
-		if(!Messages.dateFormat.isEmpty()) {
-			format=Messages.dateFormat;
+		if (!Messages.dateFormat.isEmpty()) {
+			format = Messages.dateFormat;
 		}
 		data.getFormatDate().setValue(format);
 		formatSamples(data);
 		return data;
 	}
+
 	/**
 	 * Format samples in the custom format form
-	 *  @param data
+	 * 
+	 * @param data
 	 */
 	public FormatsDTO formatSamples(FormatsDTO data) {
 		// format samples
-		LocalDate ld=data.getDateInputSample().getValue();
+		LocalDate ld = data.getDateInputSample().getValue();
 		data.setDateDisplaySample(FormFieldDTO.of(ld));
-		data.setDateCell(TableCell.instanceOf(data.getDateCell().getKey(),ld, LocaleContextHolder.getLocale()));
+		data.setDateCell(TableCell.instanceOf(data.getDateCell().getKey(), ld, LocaleContextHolder.getLocale()));
 		// format hints
 		TableQtb table = data.getTable();
 		table.getHeaders().getHeaders().clear();
 		table.getRows().clear();
-		table.getHeaders().getHeaders().add(TableHeader.instanceOf(
-				"pattern",
-				messages.get("pattern"),
-				0,
-				TableHeader.COLUMN_STRING));
-		table.getHeaders().getHeaders().add(TableHeader.instanceOf(
-				"meaning",
-				messages.get("meaning"),
-				0,
-				TableHeader.COLUMN_STRING));
-		table.getHeaders().getHeaders().add(TableHeader.instanceOf(
-				"samples",
-				messages.get("samples"),
-				0,
-				TableHeader.COLUMN_STRING));
-		table.getRows().add(formatTableRow(ld,"yy"));
-		table.getRows().add(formatTableRow(ld,"yyyy"));
-		table.getRows().add(formatTableRow(ld,"MM"));
-		table.getRows().add(formatTableRow(ld,"MMM"));
-		table.getRows().add(formatTableRow(ld,"MMMM"));
-		table.getRows().add(formatTableRow(ld,"MM"));
-		table.getRows().add(formatTableRow(ld,"dd"));
+		table.getHeaders().getHeaders()
+				.add(TableHeader.instanceOf("pattern", messages.get("pattern"), 0, TableHeader.COLUMN_STRING));
+		table.getHeaders().getHeaders()
+				.add(TableHeader.instanceOf("meaning", messages.get("meaning"), 0, TableHeader.COLUMN_STRING));
+		table.getHeaders().getHeaders()
+				.add(TableHeader.instanceOf("samples", messages.get("samples"), 0, TableHeader.COLUMN_STRING));
+		table.getRows().add(formatTableRow(ld, "yy"));
+		table.getRows().add(formatTableRow(ld, "yyyy"));
+		table.getRows().add(formatTableRow(ld, "MM"));
+		table.getRows().add(formatTableRow(ld, "MMM"));
+		table.getRows().add(formatTableRow(ld, "MMMM"));
+		table.getRows().add(formatTableRow(ld, "MM"));
+		table.getRows().add(formatTableRow(ld, "dd"));
 		table.setSelectable(false);
 		// set suggestes
 		data.getDateInputSample().setSuggest(messages.get("inputformatting"));
 		data.getDateInputSample().setError(true);
 		return data;
 	}
+
 	/**
 	 * A row in the proposed format table
+	 * 
 	 * @param ld
-	 * @param pattern 
+	 * @param pattern
 	 * @return
 	 */
 	public TableRow formatTableRow(LocalDate ld, String pattern) {
 		TableRow row = TableRow.instanceOf(1l);
-		DateTimeFormatter dtf=DateTimeFormatter.ofPattern(pattern).withLocale(LocaleContextHolder.getLocale());
+		DateTimeFormatter dtf = DateTimeFormatter.ofPattern(pattern).withLocale(LocaleContextHolder.getLocale());
 		row.getRow().add(TableCell.instanceOf("pattern", pattern));
 		row.getRow().add(TableCell.instanceOf("meaning", messages.get(pattern)));
 		row.getRow().add(TableCell.instanceOf("samples", ld.format(dtf)));
 		return row;
 	}
+
 	/**
 	 * Save new date format definition into the Messages
+	 * 
 	 * @param data
 	 * @return
-	 * @throws ObjectNotFoundException 
+	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
 	public FormatsDTO formatsSave(FormatsDTO data) throws ObjectNotFoundException {
-		data=validator.format(data);
-		if(data.isValid()) {
-			Messages.dateFormat=data.getFormatDate().getValue();
+		data = validator.format(data);
+		if (data.isValid()) {
+			Messages.dateFormat = data.getFormatDate().getValue();
 			Iterable<ResourceBundle> bundleList = resourceBundleRepo.findAll();
-			for(ResourceBundle rb : bundleList) {
-				rb=formatForLanguageSave(Messages.dateFormat, "dateFormat", LocaleContextHolder.getLocale(), rb);
+			for (ResourceBundle rb : bundleList) {
+				rb = formatForLanguageSave(Messages.dateFormat, "dateFormat", LocaleContextHolder.getLocale(), rb);
 			}
 			// reload messages
 			messages.getMessages().clear();
@@ -1093,31 +1139,33 @@ public class SystemService {
 
 	/**
 	 * Save or create new format for language defined
+	 * 
 	 * @param formatValue
-	 * @param formatKey 
-	 * @param currentLocale 
+	 * @param formatKey
+	 * @param currentLocale
 	 * @param rb
 	 * @return
 	 */
-	private ResourceBundle formatForLanguageSave(String formatValue, String formatKey, Locale currentLocale, ResourceBundle rb) {
+	private ResourceBundle formatForLanguageSave(String formatValue, String formatKey, Locale currentLocale,
+			ResourceBundle rb) {
 		ResourceMessage mess = new ResourceMessage();
 		mess.setMessage_key(formatKey);
 		mess.setMessage_value(formatValue);
-		for(ResourceMessage rm : rb.getMessages()) {
-			if(rm.getMessage_key().equalsIgnoreCase(formatKey)) {
-				mess=rm;
+		for (ResourceMessage rm : rb.getMessages()) {
+			if (rm.getMessage_key().equalsIgnoreCase(formatKey)) {
+				mess = rm;
 				break;
 			}
 		}
-		if(mess.getId()==0l) {
+		if (mess.getId() == 0l) {
 			rb.getMessages().add(mess);
-		}else {
-			if(rb.getLocale().equalsIgnoreCase(messages.getCurrentLocaleStr())){
-				mess.setMessage_value(formatValue);	//for the existing messages, only for the current locale
+		} else {
+			if (rb.getLocale().equalsIgnoreCase(messages.getCurrentLocaleStr())) {
+				mess.setMessage_value(formatValue); // for the existing messages, only for the current locale
 			}
 		}
-		mess=resourceMessageRepo.save(mess);
-		rb=resourceBundleRepo.save(rb);
+		mess = resourceMessageRepo.save(mess);
+		rb = resourceBundleRepo.save(rb);
 		return rb;
 	}
 
@@ -1127,15 +1175,15 @@ public class SystemService {
 		for (TableRow row : data.getScheduled().getRows()) {
 			ThingScheduler ts = boilerServ.thingSchedulerById(row.getDbID());
 			Scheduler sch = boilerServ.schedulerByNode(ts.getConcept());
-			try { //03102023 khomenska
-				Concept dictConc = applDictItemByUrl(SystemService.DICTIONARY_HOST_APPLICATIONS,sch.getProcessUrl());
+			try { // 03102023 khomenska
+				Concept dictConc = applDictItemByUrl(SystemService.DICTIONARY_HOST_APPLICATIONS, sch.getProcessUrl());
 			} catch (ObjectNotFoundException e) {
 				list.add(sch.getProcessUrl());
 			}
 		}
-		if(list.size() > 0) {
+		if (list.size() > 0) {
 			String err = "dictionary node for host process not found. URLs are - ";
-			for(String l:list) {
+			for (String l : list) {
 				err += l + "; ";
 			}
 			data.setValid(false);
@@ -1143,19 +1191,19 @@ public class SystemService {
 		}
 		return data;
 	}
-	
+
 	/**
 	 * Assign default passwords=MD5 representation of user's raw password
 	 */
 	public void assignDefaultPasswords() {
 		Iterable<User> users = userRepo.findAll();
-		if(users != null){
-			for(User u : users){
-				if(u.getPassword()==null){
+		if (users != null) {
+			for (User u : users) {
+				if (u.getPassword() == null) {
 					u.setPassword(password.encode(u.getUsername()));
 					userRepo.save(u);
 				}
-				if(u.getPassword().equalsIgnoreCase("123")) {
+				if (u.getPassword().equalsIgnoreCase("123")) {
 					u.setPassword(password.encode(";f,jtl12_hfp"));
 					userRepo.save(u);
 				}

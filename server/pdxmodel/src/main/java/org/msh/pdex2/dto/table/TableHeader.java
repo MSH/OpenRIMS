@@ -311,7 +311,7 @@ public class TableHeader {
 		return TableHeader.instanceOf(
 				key,
 				header,
-				false,
+				true,
 				false,
 				false,
 				columnType,

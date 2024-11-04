@@ -38,7 +38,6 @@ import org.msh.pharmadex2.service.r2.AssemblyService;
 import org.msh.pharmadex2.service.r2.IrkaServices;
 import org.msh.pharmadex2.service.r2.LinkService;
 import org.msh.pharmadex2.service.r2.MonitoringService;
-import org.msh.pharmadex2.service.r2.PdfService;
 import org.msh.pharmadex2.service.r2.ResourceService;
 import org.msh.pharmadex2.service.r2.SubmitService;
 import org.msh.pharmadex2.service.r2.SupervisorService;
@@ -91,8 +90,6 @@ public class ActivityAPI{
 	SupervisorService superVisServ;
 	@Autowired
 	ResourceService resourceServ;
-	@Autowired
-	PdfService pdfServ;
 	@Autowired
 	Messages messages;
 	@Autowired
@@ -778,9 +775,7 @@ public class ActivityAPI{
 	 * @return
 	 * @throws DataNotFoundException
 	 */
-	@PostMapping({ 
-		"/api/*/activity/submit/send"
-	})
+	@PostMapping({"/api/*/activity/submit/send"})
 	public ActivitySubmitDTO submitSend(
 			Authentication auth,
 			UriComponentsBuilder uri,
@@ -867,19 +862,6 @@ public class ActivityAPI{
 			throw new DataNotFoundException(e);
 		}
 		return data;
-	}
-
-	@RequestMapping(value = { "/api/*/activity/printprev"})
-	public ThingDTO printprev(Authentication auth, UriComponentsBuilder uri, @RequestBody ThingDTO data)
-			throws DataNotFoundException, ObjectNotFoundException, IOException {
-		accServ.allowAuthenticated(auth, uri);
-		try {
-			UserDetailsDTO user = new UserDetailsDTO();
-			user = userServ.userData(auth, user);
-			return pdfServ.printprev(user, data);
-		} catch (ObjectNotFoundException e) {
-			throw new DataNotFoundException(e);
-		}
 	}
 
 	/**
