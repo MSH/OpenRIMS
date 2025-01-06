@@ -27,6 +27,7 @@ class SubmitReciept extends Component{
                 submitreceipt:'',
                 global_print:'',
                 global_upload:'',
+                download_reciept:'',
             },
             data:{
                 historyId:this.props.historyId, //SubmitRecieptDTO
@@ -70,7 +71,7 @@ class SubmitReciept extends Component{
                 </Col>
                 <Col xs='12' sm='12' lg='2' xl='1'>
                     <ButtonUni
-                        label={this.state.labels.global_upload}
+                        label={this.state.labels.download_reciept}
                         color='primary'
                         onClick={()=>{
                             let data={

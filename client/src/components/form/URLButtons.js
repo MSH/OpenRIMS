@@ -1,7 +1,7 @@
 import React , {Component} from 'react'
 import {Button,ButtonGroup} from 'reactstrap'
 import PropTypes from 'prop-types'
-import Locales from '../utils/Locales'
+import Fetchers from '../utils/Fetchers'
 
 /**
  * Buttons at the left of URL fiels
@@ -60,9 +60,9 @@ class URLButtons extends Component{
                 <Button title={this.props.title}
                     onClick={()=>{
                         if(this.props.assistant.startsWith("URL")){
-                            window.open('/admin#urlassistant/'+param,'_blank')
+                            Fetchers.openWindowAssist('/admin#urlassistant/'+param,'assistwnd')
                         }else{
-                            window.open('/admin#varassistant/'+param,'_blank') 
+                            Fetchers.openWindowAssist('/admin#varassistant/'+param,'assistwnd') 
                         }
                     }}
                     color='primary'

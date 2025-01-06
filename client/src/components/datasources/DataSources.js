@@ -114,7 +114,7 @@ function DataSources(){
                     >{labels.global_save}</Button>{' '}
                     <Button color="info"
                         onClick={()=>{
-                            window.open('/api/admin/help/report/config/manual', labels.global_help)
+                            Fetchers.openWindowHelp('/api/admin/help/report/config/manual')//, labels.global_help)
                         }}
                     >{labels.global_help}</Button>{' '}
                     <Button color="secondary" outline

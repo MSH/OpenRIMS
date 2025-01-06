@@ -35,7 +35,8 @@ public class ApplicationHistoryDTO extends AllowValidation {
 	private String  columnName="";
 	//notes in case the application has been reverted
 	private String notes="";
-	
+	//todo=false or monitoring=true?
+	private boolean monitoring=false;
 	public long getApplDictNodeId() {
 		return applDictNodeId;
 	}
@@ -110,6 +111,12 @@ public class ApplicationHistoryDTO extends AllowValidation {
 	}
 	public void setCurrentHistoryActive(boolean currentHistoryActive) {
 		this.currentHistoryActive = currentHistoryActive;
+	}
+	public boolean isMonitoring() {
+		return monitoring;
+	}
+	public void setMonitoring(boolean monitoring) {
+		this.monitoring = monitoring;
 	}
 	
 }

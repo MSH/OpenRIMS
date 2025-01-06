@@ -311,7 +311,7 @@ class Messages extends Component{
                         <ButtonUni 
                             label={this.state.labels.global_help}
                             onClick={()=>{
-                                window.open('/api/admin/help/messages','_blank').focus()
+                                Fetchers.openWindowHelp('/api/admin/help/messages')
                             }}
                             color="info"
                         />

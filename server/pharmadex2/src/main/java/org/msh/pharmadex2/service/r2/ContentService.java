@@ -98,7 +98,7 @@ public class ContentService {
 				List<Concept> children = literalServ.loadOnlyChilds(page);
 				for(Concept c:children) {
 					if(c.getActive()) {
-						DictNodeDTO node = dictServ.createNode(c);
+						DictNodeDTO node = dictServ.createNode(c,null);
 						TileDTO tile = publicServ.createTile(dictServ.literalsLoad(node));
 						tile.setIdentifier(node.getIdentifier());
 						tile.setNodeID(node.getNodeId());

@@ -24,6 +24,7 @@ import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.servlet.DispatcherServlet;
 
 @SpringBootApplication(scanBasePackages= "org.msh")
 @EnableAsync
@@ -32,7 +33,9 @@ public class Pharmadex2Application   {//implements WebMvcConfigurer
 	//public static final String DATA_IMPORT = "DataImport-";
 	
 	public static void main(String[] args) {
-		SpringApplication.run(Pharmadex2Application.class, args);
+		SpringApplication.run(Pharmadex2Application.class, args)
+		.getBean(DispatcherServlet.class)
+        .setThreadContextInheritable(true);
 	}
 
 	  @Autowired 

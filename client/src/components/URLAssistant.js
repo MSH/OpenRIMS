@@ -67,6 +67,16 @@ class URLAssistant extends Component{
         Locales.createLabels(this)
     }
 
+   /*  componentDidUpdate(){
+        // чтоб работало открытие всех асистов на одной вкладке Не работает и циклит!!!
+        if(this.state.data.selectedUrl != undefined && this.state.data.selectedUrl != this.props.value){
+            this.state.data.assistant = this.props.assistant
+            this.state.data.oldValue = this.props.value
+            this.state.data.title = this.props.title
+            this.loader()
+        }
+    } */
+
     componentWillUnmount(){
         window.removeEventListener("message",this.eventProcessor)
     }
@@ -216,7 +226,7 @@ class URLAssistant extends Component{
                 <ButtonUni
                     label={this.state.labels.global_help}
                     onClick={()=>{
-                        window.open('/api/admin/help/url/assistant','_blank').focus()
+                        Fetchers.openWindowHelp('/api/admin/help/url/assistant','_blank').focus()
                     }}
                     color="info"
                 />

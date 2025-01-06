@@ -183,7 +183,7 @@ class Dictionary extends Component{
                     this.state.edit=true
                     this.setState(this.state)
                 }
-                if(data.subject=="editWorkflowItem"){
+                if(data.subject=="editWorkflowItem" && this.state.data.prevSelected.length>0){
                     this.state.activeNode=this.state.data.prevSelected[0];
                     this.state.data.prevSelected=[]
                     this.state.processDict=true
@@ -271,7 +271,7 @@ class Dictionary extends Component{
         }
         ret.push(
             <BreadcrumbItem key={this.state.data.home}>
-                <div hidden={this.state.edit} className={className} style={{fontSize:'0.8rem'}}
+                <div className={className} style={{fontSize:'0.8rem'}}
                              onClick={()=>{
                             if(this.state.data.readOnly || this.props.readOnly){
                                 return
@@ -281,15 +281,14 @@ class Dictionary extends Component{
                             this.state.hasnext=false
                             this.comparator = new FieldsComparator(this)
                             this.state.sendMess=true
+                            this.state.edit=false
                             this.setState(this.state)
                             //Navigator.message(this.props.identifier,this.props.recipient,"onSelectionChange",this.state.data)
                            })
                         }}>
                     {this.state.data.home}
                 </div>
-                <div hidden={!this.state.edit}>
-                    {this.state.data.home}
-                </div>
+                
             </BreadcrumbItem>
         )
         let fields = this.state.data.path
@@ -607,34 +606,31 @@ class Dictionary extends Component{
                     </Col>
                     <Col xs='12' sm='12' lg='4' xl='3'>
                         <ButtonUni
-                            outline
                             onClick={()=>{
                                 this.exportClick()
                             }}
                             label={this.state.labels.global_export_short}
-                            color="success"
+                            color="link"
                         />
                     </Col>
                     <Col xs='12' sm='12' lg='4' xl='3'>
                         <ButtonUni
-                            outline
                             onClick={()=>{
                                 this.loadImport()
                             }}
                             label={this.state.labels.global_import_short}
-                            color="info"
+                            color="link"
                         />
                     </Col>
                     <Col xs='12' sm='12' lg='4' xl='3'>
                         <ButtonUni
-                            outline
                             onClick={()=>{
                                 this.state.activeNode=0;
                                 this.state.edit=true
                                 this.setState(this.state)
                             }}
                             label={this.state.labels.global_add}
-                            color="primary"
+                            color="link"
                         />
                     </Col>
                 </Row>

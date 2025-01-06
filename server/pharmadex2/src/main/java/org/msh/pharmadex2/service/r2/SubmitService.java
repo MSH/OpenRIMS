@@ -27,6 +27,7 @@ import org.msh.pdex2.repository.common.JdbcRepository;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.ActivitySubmitDTO;
 import org.msh.pharmadex2.dto.ActivityToRun;
+import org.msh.pharmadex2.dto.AssemblyDTO;
 import org.msh.pharmadex2.dto.CheckListDTO;
 import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.PersonDTO;
@@ -368,7 +369,11 @@ public class SubmitService {
 	private List<String> submitMonitoringAction(UserDetailsDTO user, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		History curHis = boilerServ.historyById(data.getHistoryId());
 		List<String> allowed = new ArrayList<String>();
+		History his = boilerServ.historyById(data.getHistoryId());
 		if(accServ.isSupervisor(user) || accServ.isModerator(user)||accServ.isSecretary(user)) {//SUPERVISOR or moderator
+			if (accServ.isMyActivity(his.getActivity(), user)) {
+				allowed.add("0"); //continue
+			}
 			data = validServ.actionReassign(curHis, data);
 			if (data.isValid()) {
 				allowed.add("6"); // reassign the executor
@@ -381,8 +386,10 @@ public class SubmitService {
 			if (data.isValid()) {
 				allowed.add("3"); // cancel !!!Danger Activity, you can lose applications
 			}*/
-			if(isRevokeProcessPossible(curHis,amendmentServ.initialApplicationData(curHis.getApplicationData()))) {
-				allowed.add("9"); // revoke the permit
+			if(systemServ.isHost(curHis)) {
+				if(isRevokeProcessPossible(curHis,amendmentServ.initialApplicationData(curHis.getApplicationData()))) {
+					allowed.add("9"); // revoke the permit
+				}
 			}
 			data=validServ.runHosts(curHis, data);
 			if(data.isValid()) {
@@ -757,7 +764,8 @@ public class SubmitService {
 				//the application root and workflow validation
 				Concept applRoot = closureServ.loadParents(curHis.getApplication()).get(0);
 				String applUrl = applRoot.getIdentifier();
-				data = (CheckListDTO)validServ.validWorkFlowConfig(data, applUrl);
+				data = (CheckListDTO)validServ.validWorkFlowConfig(data, applUrl, true);
+				//add verification decline
 				if (data.isValid()) {
 					//the activities configuration root
 					Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
@@ -777,8 +785,6 @@ public class SubmitService {
 								curHis = appServ.closeActivity(curHis, false);
 								// tracking by an applicant
 								appServ.activityTrackRun(null, curHis, applUrl, user.getEmail()); 
-								// monitoring by the all supervisors as a last resort
-								//2024-03-05 no longer needed appServ.activityMonitoringRun(null, curHis, applUrl); 
 								// run activities
 								for(ActivityToRun act :toRun ) {
 									for (String email : act.getExecutors()) {
@@ -864,41 +870,45 @@ public class SubmitService {
 		return ret;
 	}
 	/**
-	 * Have all pages been defined?
-	 * @param data
+	 * Collects all pages defined.
+	 * !! Does not validate the content 
+	 * @param firstPageConcept
 	 * @param checkPersons - check persons pages as well
-	 * @return not empty list if OK, empty list if fails
+	 * @return not empty list if OK, empty list if some page(s) is(are) not defined
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional			// may become public in the future
-	private List<Concept> checkPagesDefined(Concept data, List<Concept> ret, boolean checkPersons) throws ObjectNotFoundException {
-		if(data.getActive()) {
-			ret.add(data);
+	private List<Concept> checkPagesDefined(Concept firstPageConcept, List<Concept> ret, boolean checkPersons) throws ObjectNotFoundException {
+		if(firstPageConcept.getActive()) {
+			ret.add(firstPageConcept);
 			//check persons on the first page
 			if(checkPersons) {
-				ret=checkPagesPersonDefined(data, ret);
+				ret=checkPagesPersonDefined(firstPageConcept, ret);
 			}
-			if(ret.isEmpty()) {
+			if(ret.isEmpty()) {	//persons may make the ret empty because of lack pages 
 				return ret;
 			}
-			// get thing
+			//collect other pages
 			Thing thing = new Thing();
-			thing=boilerServ.thingByNode(data, thing);
+			thing=boilerServ.thingByNode(firstPageConcept, thing);
 			if(thing.getID()>0) {
-				// get all pages
+				// collect pages
 				Map<String,Concept> pages =new LinkedHashMap<String, Concept>();
 				for(ThingThing tt : thing.getThings()) {
 					if(tt.getConcept().getActive()) {
 						pages.put(tt.getUrl().toUpperCase(),tt.getConcept());
 					}
 				}
-				// get data configuration URL
-				Concept owner = closureServ.getParent(data);
+				// are all pages defined?
+				Concept owner = closureServ.getParent(firstPageConcept);
 				if(owner != null) {
 					Concept root=closureServ.getParent(owner);
 					if(root != null) {
-						List<Assembly> assms =assmServ.loadDataConfiguration(root.getIdentifier());
-						for(Assembly assm :assms) {
+						List<AssemblyDTO> assmDtos=thingServ.loadDataConfigurationFromNode(firstPageConcept.getID());
+						if(assmDtos.isEmpty()) {
+							assmDtos =assmServ.loadDataConfigurationAsDtos(root.getIdentifier());
+						}
+						for(AssemblyDTO assm :assmDtos) {
 							if(assm.getClazz().equalsIgnoreCase("things")) {
 								String url = assm.getUrl();
 								Concept page = pages.get(url.toUpperCase());
@@ -1058,7 +1068,7 @@ public class SubmitService {
 				data = validServ.actionReassign(curHis, data);
 				data = validServ.submitReAssign(curHis, user, data);
 				if(data.isValid()) {
-					data = submitReAssign(curHis, user, data);
+					data = submitReAssign(curHis, data);
 				}
 				return data;
 			case 9:
@@ -1317,7 +1327,7 @@ public class SubmitService {
 	 * @throws ObjectNotFoundException
 	 */
 	@Transactional
-	public ActivitySubmitDTO submitReAssign(History curHis, UserDetailsDTO user, ActivitySubmitDTO data)
+	public ActivitySubmitDTO submitReAssign(History curHis, ActivitySubmitDTO data)
 			throws ObjectNotFoundException {
 		if (data.isValid() && curHis.getActConfig() != null) { // wrong, monitoring and trace can`t be reassigned
 			// determine activity configuration

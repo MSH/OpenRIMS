@@ -15,6 +15,7 @@ anotherprocessisrunning
 lostmessages
 errorVariableName
 valueisempty
+error
 expiredpin
 persons
 no_user
@@ -49,7 +50,6 @@ valueshouldbeunique
 valuehouldbeunique
 badconfiguration
 requiredvalue
-error
 warning
 sizeisnotdefined
 errorscreenposition
@@ -248,6 +248,14 @@ pattern
 meaning
 samples
 inputformatting
+submitforapproval
+APPROVE
+activity_decline
+error_selection_stages
+invalidstage 
+success
+checkAccessToActivity
+emptyactivitylist
 init
 password8andsame
 domain
@@ -304,10 +312,6 @@ global_add
 preview
 explore
 search
-global_add
-deregistration
-global_add
-renew
 application_info
 registration_numbers
 global_print
@@ -355,6 +359,7 @@ save_error
 backDlg_war
 application_nextEv
 uploadApplReceipt
+download_reciept
 nextactivity
 executors
 conclusion
@@ -553,8 +558,9 @@ save
 cancel
 global_suspend
 warningRemove
-workflows
-validate
+global_activities
+explore
+run
 elassistance
 menu_references
 global_cancel
@@ -627,8 +633,6 @@ startImport
 global_cancel
 global_save
 askforlegacydataimportrun
-reload
-startImport
 global_cancel
 askforimportrun
 global_download
@@ -704,6 +708,7 @@ search
 next
 marktoremove
 warningRemove
+processConfigurator
 processes
 workflows
 global_help
@@ -725,6 +730,7 @@ return_action
 withdraw_Application
 no_receipt
 access_deny
+download_reciept
 reassign_employee
 select_employee_other
 select_employee
@@ -788,6 +794,7 @@ form_ok
 submitreceipt
 global_print
 global_upload
+download_reciept
 save_app_error
 success
 saved_with_errors
@@ -884,3 +891,9 @@ global_suspend
 duplicate
 Test
 global_help
+createTestApplications
+run
+global_help
+global_cancel
+selectStages
+success

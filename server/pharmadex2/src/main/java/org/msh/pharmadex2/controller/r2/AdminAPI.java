@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -41,6 +42,7 @@ import org.msh.pharmadex2.dto.ReassignActivitiesDTO;
 import org.msh.pharmadex2.dto.ReassignUserDTO;
 import org.msh.pharmadex2.dto.ResourceDTO;
 import org.msh.pharmadex2.dto.RootNodeDTO;
+import org.msh.pharmadex2.dto.RunTestProcessDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.TilesDTO;
 import org.msh.pharmadex2.dto.URLAssistantDTO;
@@ -81,8 +83,10 @@ import org.msh.pharmadex2.service.r2.ResolverService;
 import org.msh.pharmadex2.service.r2.ResourceService;
 import org.msh.pharmadex2.service.r2.SupervisorService;
 import org.msh.pharmadex2.service.r2.SystemService;
+import org.msh.pharmadex2.service.r2.TestProcessService;
 import org.msh.pharmadex2.service.r2.ThingService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -185,6 +189,8 @@ public class AdminAPI {
 	private VariableAssitantService variableAssist;
 	@Autowired
 	private DataSourceService dataSources;
+	@Autowired
+	private TestProcessService testProcess;
 	/**
 	 * Tiles for landing page
 	 * 
@@ -2372,6 +2378,52 @@ public class AdminAPI {
 	public DataSourceDTO dataSourcesqlTest(@RequestBody DataSourceDTO data) throws DataNotFoundException {
 		try {
 			data=dataSources.sqlTest(data);
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
+	@PostMapping("/api/admin/test/process/load")
+	public RunTestProcessDTO testProcessLoad(@RequestBody RunTestProcessDTO data) {
+		data=testProcess.load(data);
+		return data;
+	}
+	
+	@PostMapping("/api/admin/test/process/run")
+	public RunTestProcessDTO testProcessRun(Authentication auth,@RequestBody RunTestProcessDTO data) throws DataNotFoundException {
+		UserDetailsDTO user = userService.userData(auth, new UserDetailsDTO());
+		try {
+			data=testProcess.validate(data);
+			if(data.isValid()) {
+				if(!AsyncService.hasDataImportThread()) {
+					asyncService.testProcessesRun(user, data);
+				}else {
+					data=(RunTestProcessDTO) asyncService.concurrentError(data);
+				}
+			}else {
+				data.setIdentifier(messages.get("error"));
+			}
+		} catch (ObjectNotFoundException e) {
+			throw new DataNotFoundException(e);
+		}
+		return data;
+	}
+	
+	@PostMapping("/api/admin/test/process/progress")
+	public AsyncInformDTO testProcessProgress(@RequestBody AsyncInformDTO data) throws DataNotFoundException {
+		data.setProcessName(AsyncService.PROCESS_TEST_PROCESSES_RUN);
+		try {
+			data=asyncService.dataImportProgress(data);
+			return data;
+		} catch (JsonProcessingException e) {
+			throw new DataNotFoundException(e);
+		}
+	}
+	@PostMapping("/api/admin/test/process/completed")
+	public RunTestProcessDTO testProcessCompleted(Authentication auth,@RequestBody RunTestProcessDTO data) throws DataNotFoundException {
+		try {
+			data=testProcess.readResults(data);
 		} catch (ObjectNotFoundException e) {
 			throw new DataNotFoundException(e);
 		}

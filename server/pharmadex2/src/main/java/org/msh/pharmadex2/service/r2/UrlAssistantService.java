@@ -565,7 +565,7 @@ public class UrlAssistantService {
 	public String subDomainFilter(URLAssistantDTO data, int level) {
 		String filter="";
 		if(!data.getOldValue().isEmpty()) {
-			filter=parseUrl(data.getOldValue(), 2);
+			filter=parseUrl(data.getOldValue(), level);
 			data.setSelectedSubDomain(filter);
 		}else {
 			if(!data.getSelectedDomain().isEmpty()) {

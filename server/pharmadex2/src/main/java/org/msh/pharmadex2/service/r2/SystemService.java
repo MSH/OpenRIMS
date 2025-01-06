@@ -865,7 +865,8 @@ public class SystemService {
 		languagesDict();
 		createDS();
 	}
-	
+
+
 
 	/**
 	 * create data sources dictionary
@@ -881,7 +882,7 @@ public class SystemService {
 			dict=createDSKPI(dict);
 			dict=createDSStat(dict);
 		}
-		
+
 	}
 	/**
 	 * Statistical data sources
@@ -1079,11 +1080,11 @@ public class SystemService {
 		table.getHeaders().getHeaders().clear();
 		table.getRows().clear();
 		table.getHeaders().getHeaders()
-				.add(TableHeader.instanceOf("pattern", messages.get("pattern"), 0, TableHeader.COLUMN_STRING));
+		.add(TableHeader.instanceOf("pattern", messages.get("pattern"), 0, TableHeader.COLUMN_STRING));
 		table.getHeaders().getHeaders()
-				.add(TableHeader.instanceOf("meaning", messages.get("meaning"), 0, TableHeader.COLUMN_STRING));
+		.add(TableHeader.instanceOf("meaning", messages.get("meaning"), 0, TableHeader.COLUMN_STRING));
 		table.getHeaders().getHeaders()
-				.add(TableHeader.instanceOf("samples", messages.get("samples"), 0, TableHeader.COLUMN_STRING));
+		.add(TableHeader.instanceOf("samples", messages.get("samples"), 0, TableHeader.COLUMN_STRING));
 		table.getRows().add(formatTableRow(ld, "yy"));
 		table.getRows().add(formatTableRow(ld, "yyyy"));
 		table.getRows().add(formatTableRow(ld, "MM"));

@@ -60,6 +60,7 @@ public class FormFieldDTO<T> extends FieldSuggest{
 	}
 	/**
 	 * Value of a field, see for the real type
+	 * For LocalDate, Long also sets valueStr
 	 * @return
 	 */
 	public void setValue(T value) {
@@ -69,6 +70,12 @@ public class FormFieldDTO<T> extends FieldSuggest{
 				this.value=(T) bdVal;
 			}else {
 				this.value = value;
+			}
+			if(value instanceof LocalDate) {
+				setValueStr(TableCell.localDateToString((LocalDate) value));
+			}
+			if(value instanceof Long) {
+				setValueStr(((Long)value).toString());
 			}
 		}
 	}

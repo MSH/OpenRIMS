@@ -121,7 +121,7 @@ class ProcessValidator extends Component{
                         label={this.state.labels.global_help}
                         color="info"
                         onClick={()=>{
-                            window.open('/api/admin/process/validator/manual','_blank').focus()
+                            Fetchers.openWindowHelp('/api/admin/process/validator/manual')
                         }}
                     />
                 </Col>

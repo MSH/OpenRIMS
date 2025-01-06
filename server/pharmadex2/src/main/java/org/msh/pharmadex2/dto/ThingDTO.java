@@ -11,7 +11,6 @@ import java.util.Map;
 
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.msh.pdex2.dto.table.TableHeader;
-import org.msh.pdex2.dto.table.TableQtb;
 import org.msh.pharmadex2.dto.form.AllowValidation;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.dto.form.OptionDTO;
@@ -24,12 +23,10 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  */
 @JsonIgnoreProperties(ignoreUnknown=true)
 public class ThingDTO extends AllowValidation {
-	//Help document, if one
-	private long helpDocumentID = 0l;
 	//Help document as a string
-	private String helpDocumentIDString = "";
+	private String helpDocumentIDString = "";	//necessary for thing help
 	//UX identifier
-	private String uxIdentifier="";
+	private String uxIdentifier="";				//only for Java Script client usage
 	//Application's data
 	private String applicationUrl="";		//URL of the application, required
 	private long applDictNodeId=0;			//Id of an application's dictionary node
@@ -89,14 +86,6 @@ public class ThingDTO extends AllowValidation {
 	private String auxPathVar="";																			//variable name that initiate path rebuild
 	private List<ThingDTO> auxPath = new ArrayList<ThingDTO>();						//auxiliary path
 	private int auxPathIndex=0;																			//the current index in it
-	
-	public long getHelpDocumentID() {
-		return helpDocumentID;
-	}
-	public void setHelpDocumentID(long helpDocumentID) {
-		this.helpDocumentID = helpDocumentID;
-	}
-	
 	
 	public String getHelpDocumentIDString() {
 		return helpDocumentIDString;

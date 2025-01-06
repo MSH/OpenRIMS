@@ -37,7 +37,7 @@ public class PubOrgServiceTest {
 	@Test
 	public void testLoadRoot() throws ObjectNotFoundException {
 		PublicOrganization org = pubOrgServ.loadById(2);
-		DictNodeDTO node = dictServ.createNode(org.getConcept());
+		DictNodeDTO node = dictServ.createNode(org.getConcept(),null);
 		PublicOrgDTO dto = pubOrgServ.loadByConcept(node); 
 		assertEquals(2L, dto.getId());
 	}

@@ -18,6 +18,7 @@ class ProcessConfigurator extends Component{
             data:{
             },                //Dict2DTO
             labels:{
+                processConfigurator:'',
                 processes:'',
                 workflows:'',
                 global_help:'',
@@ -109,6 +110,7 @@ class ProcessConfigurator extends Component{
         return(
         <Row>
             <Col xs='12' sm='12' lg='6' xl='9'>
+                <h4>{this.state.labels.ProcessConfigurator}</h4>
             </Col>
             <Col xs='12' sm='12' lg='2' xl='1'>
                 <ButtonUni
@@ -124,7 +126,7 @@ class ProcessConfigurator extends Component{
                 <ButtonUni
                     label={this.state.labels.global_help}
                     onClick={()=>{
-                        window.open('/api/admin/manual/workflow','_blank').focus()
+                        Fetchers.openWindowHelp('/api/admin/manual/workflow')
                     }}
                     color="info"
                 />

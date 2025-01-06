@@ -944,6 +944,9 @@ public class ActivityAPI{
 		} catch (ObjectNotFoundException | JsonProcessingException e) {
 			throw new DataNotFoundException(e);
 		}
+		if(!data.isStrict()) {	//to allow not strict saving
+			data.setValid(true);
+		}
 		return data;
 	}
 	/**

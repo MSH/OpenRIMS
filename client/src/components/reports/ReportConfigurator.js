@@ -189,7 +189,7 @@ class ReportConfigurator extends Component{
                                     color="info"
                                     outline
                                     onClick={()=>{
-                                        window.open('/api/admin/help/report/config/manual','_blank').focus()
+                                        Fetchers.openWindowHelp('/api/admin/help/report/config/manual')
                                     }}
                                 />
                             </Col>

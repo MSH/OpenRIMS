@@ -64,12 +64,12 @@ public class PublicService {
 			List<Concept> pages = literalServ.loadOnlyChilds(root);
 			for(Concept p:pages) {
 				if(p.getActive()) {
-					DictNodeDTO node = dictServ.createNode(p);
+					DictNodeDTO node = dictServ.createNode(p,null);
 					if(node.fetchPrefLabel().getValue().equalsIgnoreCase(pagename)) {
 						List<Concept> children = literalServ.loadOnlyChilds(p);
 						for(Concept c:children) {
 							if(c.getActive()) {
-								node = dictServ.createNode(c);
+								node = dictServ.createNode(c,null);
 								TileDTO tile = createTile(dictServ.literalsLoad(node));
 								tile.setIdentifier(node.getIdentifier());
 								tile.setNodeID(node.getNodeId());

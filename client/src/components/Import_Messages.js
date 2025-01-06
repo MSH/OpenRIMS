@@ -148,7 +148,7 @@ class Import_Messages extends Component{
                  <Button size="sm"
                     className="mr-1" color="info"
                     onClick={()=>{
-                        window.open('/api/admin/help/import/messages','_blank').focus()
+                        Fetchers.openWindowHelp('/api/admin/help/import/messages')
                     }}
                     >{this.state.labels.global_help}</Button>{' '}
                 <Button size="sm"

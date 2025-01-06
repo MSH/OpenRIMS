@@ -392,7 +392,7 @@ public class ImportExportDataConfigService {
 			Assembly assm=assemblyRender(concept, row);
 			DataVariableDTO dto = new DataVariableDTO();
 			dto.setNodeId(collDto.getNodeId());
-			dto = dtoServ.assemblyToDto(assm, dto);
+			dto = dtoServ.assemblyToDataVariableDto(assm, dto);
 			validServ.variable(dto, true, true);
 			if(dto.isValid() || !dto.isStrict()) {
 				good.add(assm);

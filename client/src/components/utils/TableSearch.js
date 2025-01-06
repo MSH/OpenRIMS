@@ -74,7 +74,7 @@ class TableSearch extends Component{
                         <h5>{this.props.title}</h5>
                     </Col>
                 </Row>
-                <Row className='mb-3' hidden={this.props.tableData.rows.length==0}>
+                <Row className='mb-3'>
                     <Col>
                         <SearchControl identifier={this.state.identifier+'searchbox'}  label={this.props.label} table={this.props.tableData} loader={this.props.loader}/>
                     </Col>

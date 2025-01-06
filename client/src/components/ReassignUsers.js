@@ -169,7 +169,7 @@ class ReassignUsers extends Component{
                             label={this.state.labels.global_help}
                             color='info'
                             onClick={()=>{
-                                window.open('/api/admin/help/reassign/applicant','_blank').focus()
+                                Fetchers.openWindowHelp('/api/admin/help/reassign/applicant')
                             }}
                         />
                     </Col>

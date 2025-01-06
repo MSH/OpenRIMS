@@ -78,7 +78,7 @@ public class PubOrgService {
 			Concept concept =dictServ.node(data);
 			org=fetchByConcept(concept);
 			ret.setId(org.getID());
-			ret.setNode(dictServ.createNode(concept));
+			ret.setNode(dictServ.createNode(concept,null));
 			//set path in organization chart
 			List<Concept> path = closureServ.loadParents(concept);
 			ret.getNode().getTitle().clear();
@@ -333,7 +333,7 @@ public class PubOrgService {
 		Concept orgNode = savePublOrg(data);
 		if(orgNode != null) {
 			//and return
-			data.setNode(dictServ.createNode(orgNode));
+			data.setNode(dictServ.createNode(orgNode,null));
 			data = loadByConcept(data.getNode());
 		}
 		return data;

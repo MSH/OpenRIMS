@@ -162,7 +162,7 @@ function VariableAssistant({recipient, currentName}){
                 <Col xs='12' sm='12' lg='1' xl='1'>
                     <ButtonUni
                         onClick={()=>{
-                            window.open('/api/admin/variable/assistant/help','_blank').focus()
+                            Fetchers.openWindowHelp('/api/admin/variable/assistant/help')
                         }}
                         label={labels.global_help}
                         color='info'

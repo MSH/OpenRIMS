@@ -27,6 +27,7 @@ class PublicPermitData extends Component{
                 withdraw_Application:'',
                 no_receipt:'',
                 access_deny:'',
+                download_reciept:'',
             },
             fullcollapse:[],
             show:true //show link uploadApplReceipt
@@ -116,7 +117,7 @@ class PublicPermitData extends Component{
                                                     }
                                                 })
                                             }}>
-                                                {this.state.labels.uploadApplReceipt}
+                                                {this.state.labels.download_reciept}
                                 </Button>
                             </Col>
                         </Row>

@@ -116,6 +116,8 @@ class CheckList extends Component{
                         }
                     })
                 }else{
+                    this.state.data=result
+                    this.setState(this.state)
                     //Navigator.message(this.state.identifier, this.props.recipient, "cancelThing", {}) 2023-03-13 AK to avoid close
                     Navigator.message('*', '*', 'show.alert.pharmadex.2', {mess:this.state.labels.success, color:'success'})
                     Navigator.message(this.state.identifier,this.props.recipient,"checklist_saved", this.state.data)
@@ -172,9 +174,14 @@ class CheckList extends Component{
         if(this.state.data.questions == undefined || this.state.labels.locale==undefined){
             return []
         }
-        if(this.state.data.questions.length==0){
+        /* if(this.state.data.questions.length==0){
             return <small>{this.state.labels.previewunavailable}</small>
-        }
+        } */
+            if(this.state.data.unavailable){
+                return <small>{this.state.labels.previewunavailable}</small>
+            }else if(this.state.data.questions.length==0){
+                return[]
+            }else{
         return(
             <Container fluid className={Pharmadex.settings.activeBorder}>
                 <Card key={this.state.data.id+this.state.data.prevStatusId} style={{fontSize:"0.8rem"}}>
@@ -202,6 +209,7 @@ class CheckList extends Component{
                 </Card>
             </Container>
             )
+        }
     }
 
 

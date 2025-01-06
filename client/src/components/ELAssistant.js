@@ -117,7 +117,7 @@ class ELAssistant extends Component{
                     <ButtonUni
                         label={this.state.labels.menu_references}
                         onClick={()=>{
-                            window.open('/api/admin/elreference','_blank').focus()
+                            Fetchers.openWindowAssist('/api/admin/elreference')
                         }}
                         color="info"
                     />

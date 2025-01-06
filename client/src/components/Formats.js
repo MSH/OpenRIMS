@@ -81,7 +81,7 @@ class Formats extends Component{
                         <Button size="sm"
                          className="mr-1" color="info"
                          onClick={()=>{
-                            window.open('/api/admin/date/format/help','_blank').focus()
+                            Fetchers.openWindowHelp('/api/admin/date/format/help')
                         }}
                         >{this.state.labels.global_help}</Button>{' '}
                         <Button size="sm"

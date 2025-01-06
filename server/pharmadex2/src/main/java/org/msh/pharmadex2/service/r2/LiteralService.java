@@ -325,6 +325,7 @@ public class LiteralService {
 	 * @param parent
 	 * @return empty if none
 	 */
+	@Transactional
 	public List<Concept> loadOnlyChilds(Concept parent) {
 		List<Concept> ret = new ArrayList<Concept>();
 		if(parent!=null) {
@@ -343,6 +344,7 @@ public class LiteralService {
 	 * @param parent
 	 * @return empty if none
 	 */
+	@Transactional
 	public List<Concept> loadOnlyActiveChilds(Concept parent) {
 		List<Concept> ret = new ArrayList<Concept>();
 		if(parent!=null) {

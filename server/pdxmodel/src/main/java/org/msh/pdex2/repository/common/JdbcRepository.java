@@ -25,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -122,7 +123,12 @@ public class JdbcRepository {
 	//@Transactional
 	public List<TableRow> selectQuery(String select, Headers headers){
 		List<TableRow> ret = new ArrayList<TableRow>();
-		ret = jdbcTemplate.query(select, new QtbRowMapper(headers));
+		try {
+			ret = jdbcTemplate.query(select, new QtbRowMapper(headers));
+		} catch (DataAccessException e) {
+			//nothing to do
+			e.printStackTrace();
+		}
 		return ret;
 	}
 

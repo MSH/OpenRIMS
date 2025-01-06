@@ -144,7 +144,9 @@ class ApplicationFiles extends Component{
             this.setState(this.state)
         })
     }
-
+    /**
+     * Returns FileDTO for future usage by the FileUpload component
+     */
     load(){
         Fetchers.postJSONNoSpinner('/api/'+Navigator.tabSetName() +'/thing/file/load', this.state.data,(query,result)=>{
             Fetchers.setJustLoaded(result,false)

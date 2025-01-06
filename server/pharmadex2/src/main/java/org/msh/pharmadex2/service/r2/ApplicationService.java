@@ -283,13 +283,13 @@ public class ApplicationService {
 			boolean applicant=accServ.isApplicant(user);
 			if (tableEv.getHeaders().getHeaders().size() == 0) {
 				tableEv.setHeaders(historyHeaders(tableEv.getHeaders(), user, manager));
-				//eliminate links for applicants
-				if(applicant) {
-					for(TableHeader h : tableEv.getHeaders().getHeaders()){
-						if(h.getColumnType()==TableHeader.COLUMN_LINK) {
-							h.setColumnType(TableHeader.COLUMN_STRING);
-						}
-					}
+				//eliminate links for applicants; 10122024 manager=false t.e. no link
+				 if(applicant || !data.isMonitoring()) { 
+					 for(TableHeader h : tableEv.getHeaders().getHeaders()){
+						 if(h.getColumnType()==TableHeader.COLUMN_LINK) {
+							 h.setColumnType(TableHeader.COLUMN_STRING); 
+						 }
+					 }
 				}
 			}
 			//---Concept objectData = boilerServ.initialApplicationNode(his.getApplicationData());
@@ -387,6 +387,7 @@ public class ApplicationService {
 			History his = boilerServ.historyById(data.getHistoryId());
 			if (his.getActivity() != null) {
 				if(accServ.checklistAllowed(his.getActConfig(),user)) {
+					data.setUnavailable(false);
 					data.setActivityNodeId(his.getActivity().getID());
 					data.setApplNodeId(his.getApplication().getID());
 					// determine owner and application's url
@@ -426,11 +427,13 @@ public class ApplicationService {
 						if (index > -1) {
 							data.getQuestions().add(dtoServ.question(stored.get(index), odto));
 						} else {
+						 
 							data.getQuestions().add(QuestionDTO.of(odto));
 						}
 					}
 				}else {
 					//checklist is not allowed
+					data.setUnavailable(true);
 				}
 			} else {
 				throw new ObjectNotFoundException("checkListLoad.Activity not defined in the history", logger);
@@ -620,11 +623,11 @@ public class ApplicationService {
 	public void activityTrackRun(Date scheduled, History curHis, String applUrl, String usersEmail)
 			throws ObjectNotFoundException {
 		// activity control
-		Concept activity = createActivityNode("activity.trace", usersEmail);
+		//Concept activity = createActivityNode("activity.trace", usersEmail);
 		// data always null
-		Concept activityData = null;
+		//Concept activityData = null;
 		// open a history record
-		openHistory(scheduled, curHis, null, activity, activityData, ""); // there is no activity configuration for
+		//openHistory(scheduled, curHis, null, activity, activityData, ""); // there is no activity configuration for
 		// application itself
 
 	}
@@ -1438,7 +1441,7 @@ public class ApplicationService {
 		applConc = closureServ.save(applConc);
 		applConc.setIdentifier(applConc.getID() + "");
 		applConc = closureServ.saveToTree(owner, applConc);
-		data = (ActivitySubmitDTO)validServ.validWorkFlowConfig(data, applUrl);			
+		data = (ActivitySubmitDTO)validServ.validWorkFlowConfig(data, applUrl, false);			
 		if (data.isValid()) {
 			Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
 			List<Concept> nextActs = boilerServ.loadActivities(configRoot);
@@ -1496,7 +1499,8 @@ public class ApplicationService {
 		applConc = closureServ.save(applConc);
 		applConc.setIdentifier(applConc.getID() + "");
 		applConc = closureServ.saveToTree(owner, applConc);
-		data = (ActivitySubmitDTO)validServ.validWorkFlowConfig(data, applUrl);
+		data = (ActivitySubmitDTO)validServ.validWorkFlowConfig(data, applUrl, true);
+		//add verification decline
 		if (data.isValid()) {
 			Concept configRoot = closureServ.loadRoot("configuration." + applUrl);
 			List<Concept> nextActs = boilerServ.loadActivities(configRoot);

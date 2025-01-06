@@ -913,8 +913,10 @@ public class AssemblyService {
 			LayoutCellDTO cell1 = new LayoutCellDTO();
 			cell1.getVariables().add("templateupload");
 			cell1.getVariables().add(DATAIMPORT_DATA);
-			cell1.getVariables().add(DATAIMPORT_RESULT);
 			row.getCells().add(cell1);
+			LayoutCellDTO cell2 = new LayoutCellDTO();
+			cell2.getVariables().add(DATAIMPORT_RESULT);
+			row.getCells().add(cell2);
 			ret.add(row);
 		}
 
@@ -1523,6 +1525,20 @@ public class AssemblyService {
 		}
 		if(vars.size()>0) {
 			ret=assmRepo.findAllByPropertyNameIn(vars, Sort.by(Sort.Direction.ASC,"row", "col", "ord"));
+		}
+		return ret;
+	}
+	/**
+	 * Load data configurations as DTOs
+	 * @param url
+	 * @return
+	 * @throws ObjectNotFoundException 
+	 */
+	public List<AssemblyDTO> loadDataConfigurationAsDtos(String url) throws ObjectNotFoundException{
+		List<Assembly> assms=loadDataConfiguration(url);
+		List<AssemblyDTO> ret = new ArrayList<AssemblyDTO>();
+		for(Assembly assm :assms) {
+			ret.add(dtoServ.assemblyDto(assm));
 		}
 		return ret;
 	}

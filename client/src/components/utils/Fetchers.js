@@ -311,5 +311,20 @@ class Fetchers{
         return ret
     }
 
+    static openWindowHelp(url){
+        window.open(url,'helpwnd').focus()
+        /*let wnd = window.open(url,'helpwnd')
+        wnd.onload = ()=>{
+            wnd.document.title = 'YOUR TITLE'
+        }
+        wnd.onfocus = ()=>{
+            wnd.document.title = 'YOUR TITLE'
+        }
+        wnd.focus()*/
+    }
+
+    static openWindowAssist(url){
+        window.open(url,'assistwnd').focus()
+    }
 }
 export default Fetchers

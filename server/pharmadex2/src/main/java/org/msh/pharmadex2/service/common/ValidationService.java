@@ -124,7 +124,7 @@ public class ValidationService {
 	public static final String regexEmail="^[-a-z0-9~!$%^&*_=+}{\\'?]+(\\.[-a-z0-9~!$%^&*_=+}{\\'?]+)*@([a-z0-9_]"
 			+ "[-a-z0-9_]*(\\.[-a-z0-9_]+)*\\.(aero|arpa|biz|com|coop|edu|gov|info|int|mil|museum|name|net|org|pro|travel|mobi|"
 			+ "[a-z][a-z])|([0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}))(:[0-9]{1,5})?$";
-	private static final Pattern patternEmail = Pattern.compile(regexEmail, Pattern.CASE_INSENSITIVE);
+	public static final Pattern patternEmail = Pattern.compile(regexEmail, Pattern.CASE_INSENSITIVE);
 
 	/**
 	 * Validate a node
@@ -177,7 +177,7 @@ public class ValidationService {
 	 * @param max
 	 * @param strict
 	 */
-	private FieldSuggest suggest(FieldSuggest prefLabel, int min, int max, boolean strict) {
+	public FieldSuggest suggest(FieldSuggest prefLabel, int min, int max, boolean strict) {
 		String format = "-";
 		format = String.format(messages.get("atleastchars"),min);
 		format= format+" "+String.format(messages.get("maxchars"),max);
@@ -193,7 +193,7 @@ public class ValidationService {
 	 * @param max
 	 * @param strict
 	 */
-	private FieldSuggest suggest(FieldSuggest prefLabel, String message, boolean strict) {
+	public FieldSuggest suggest(FieldSuggest prefLabel, String message, boolean strict) {
 		prefLabel.setSuggest(message);
 		prefLabel.setStrict(strict);
 		prefLabel.setError(true);
@@ -606,7 +606,7 @@ public class ValidationService {
 				}
 				if(interval.getMax().longValue()>0 && dto.isValid()) {
 					LocalDate maxDt = LocalDate.now().plusMonths(interval.getMax().longValue());
-					if(!to.isBefore(maxDt)) {
+					if(!to.isBefore(maxDt.plusDays(1))) {
 						//the left border of the interval 
 						dto.setValid(false);
 						dto.setStrict(strict);
@@ -746,7 +746,7 @@ public class ValidationService {
 			if(ar.getDescription().length()>0) {
 				errorMess=errorMess + " " + ar.getDescription();
 			}
-			if(regDate.isBefore(minDate) || regDate.isAfter(maxDate)) {
+			if(regDate.isBefore(minDate.minusDays(1)) || regDate.isAfter(maxDate)) {
 				dto.getRegistration_date().invalidate(errorMess);
 				dto.setStrict(strict);
 			}
@@ -776,8 +776,8 @@ public class ValidationService {
 				maxDate = createdAt.plusMonths(ar.getMax().intValue());
 				minDate = createdAt.plusMonths(1);
 				//errorMess = messages.get("valuerangeerror")+" " + regDate.plusMonths(2) +", " + maxDate;
-				errorMess = messages.get("valuerangeerror")+" " + createdAt +", " + maxDate;
-				if(expDate.isBefore(minDate) || expDate.isAfter(maxDate)) {
+				errorMess = messages.get("valuerangeerror")+" " + minDate +", " + maxDate;
+				if(expDate.isBefore(minDate.minusDays(1)) || expDate.isAfter(maxDate)) {
 					dto.getExpiry_date().invalidate(errorMess+" "+ar.getDescription());
 					dto.setStrict(strict);
 				}
@@ -1772,6 +1772,7 @@ public class ValidationService {
 	 * @param actConf
 	 * @return
 	 * @throws ObjectNotFoundException 
+	 * @deprecated
 	 */
 	@Transactional
 	public boolean isActivityAttention(Concept actConf) throws ObjectNotFoundException {
@@ -1806,12 +1807,13 @@ public class ValidationService {
 	@Transactional
 	public ActivitySubmitDTO actionNew(History curHis, ActivitySubmitDTO data) throws ObjectNotFoundException {
 		data.clearErrors();
-		//if(!data.isReassign()) {
-		if(isActivityBackground(curHis.getActConfig()) || isActivityForeground(curHis.getActConfig())) {
-			return data;
-		}
-		//}
-		data.setIdentifier(messages.get("error_finishmonia"));
+		/*We have abandoned the "new activity" action, as it leads to disruption of the workflow. 
+		 * The intended process of parallelization of work is not justified(((28.11.2024 ik
+		 * if(isActivityBackground(curHis.getActConfig()) ||
+		 * isActivityForeground(curHis.getActConfig())) { return data; }
+		 * 
+		 * data.setIdentifier(messages.get("error_finishmonia"));
+		 */
 		data.setValid(false);
 		return data;
 	}
@@ -2457,7 +2459,8 @@ public class ValidationService {
 		// valid configuration
 		Concept dictNode = closureServ.loadConceptById(data.getApplDictNodeId());
 		String url = literalServ.readValue("applicationurl", dictNode);
-		data = (VerifItemDTO)validWorkFlowConfig(data, url);
+		data = (VerifItemDTO)validWorkFlowConfig(data, url, true);
+		//add verification decline
 		return data;
 	}
 
@@ -2476,7 +2479,8 @@ public class ValidationService {
 		data.setCanAdd(dictNode.getActive());
 		if(dictNode.getActive()) {
 			String url = literalServ.readValue("applicationurl", dictNode);
-			data = (VerifItemDTO)validWorkFlowConfig(data, url);
+			data = (VerifItemDTO)validWorkFlowConfig(data, url, true);
+			//add verification decline
 			if(data.isValid()) {
 				Concept applData=closureServ.loadConceptById(data.getApplID());
 				data = (VerifItemDTO) hasActivities(SystemService.DICTIONARY_GUEST_AMENDMENTS, applData, data, curHis);
@@ -2535,10 +2539,11 @@ public class ValidationService {
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
-	public AllowValidation validWorkFlowConfig(AllowValidation data, String urlConfig) throws ObjectNotFoundException {		
+	@Transactional
+	public AllowValidation validWorkFlowConfig(AllowValidation data, String urlConfig, boolean validDecline) throws ObjectNotFoundException {		
 		Concept rootConfig = closureServ.loadRoot("configuration." + urlConfig.toLowerCase());
 		List<Concept> nextActs = boilerServ.loadActivities(rootConfig);
-		data = validActivities(nextActs, data, rootConfig);
+		data = validActivities(nextActs, data, rootConfig, validDecline);
 		return data;
 	}
 	/**
@@ -2550,22 +2555,44 @@ public class ValidationService {
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
-	private AllowValidation validActivities(List<Concept> nextActs, AllowValidation data, Concept configRoot) throws ObjectNotFoundException {		
+	private AllowValidation validActivities(List<Concept> nextActs, AllowValidation data, Concept configRoot, boolean validDecline) throws ObjectNotFoundException {		
 		boolean hasFinal = false;
+		boolean hasDecline = false;
+		String error="";
 		if(nextActs != null && nextActs.size() > 0) {
 			for(Concept c:nextActs) {
-				data = validThingInWorkflowConfig(c, configRoot, data);
-				if(!data.isValid()) {
-					return data;
-				}
-				if(!hasFinal) {
-					hasFinal = hasFinals(c);
+				if(c.getActive()) {
+					data = validThingInWorkflowConfig(c, configRoot, data);
+					if(!data.isValid()) {
+						return data;
+					}
+					if(!hasFinal) {
+						hasFinal = hasFinals(c);
+					}
+					if(validDecline) {
+						if(!hasDecline) {
+							hasDecline=hasDecline(c);
+						}
+					}
 				}
 			}
 			if(!hasFinal) {
-				data.setIdentifier(messages.get("badconfiguration")+" Configuration has not Finalization activity. Config root is " + configRoot.getIdentifier());
+				//data.setIdentifier(messages.get("badconfiguration")+" Configuration has not Finalization activity. Config root is " + configRoot.getIdentifier());
+				error=error+" Configuration has not Finalization activity. Config root is " + configRoot.getIdentifier();
 				data.setValid(false);
-				return data;
+				//return data;
+			}
+			if(validDecline) {
+				if(!hasDecline) {
+					//data.setIdentifier(messages.get("badconfiguration")+" Configuration has not Decline activity. Config root is " + configRoot.getIdentifier());
+					error=error+" Configuration has not Decline activity. Config root is " + configRoot.getIdentifier();
+					data.setValid(false);
+					//return data;
+				}
+			}
+			if(!data.isValid()) {
+				data.setIdentifier(messages.get("badconfiguration")+error);
+			return data;
 			}
 		}else {
 			data.setIdentifier(messages.get("badconfiguration")+" Empty path in configuration. Config root is " + configRoot.getIdentifier());
@@ -2612,9 +2639,11 @@ public class ValidationService {
 	private boolean hasFinals(Concept c) throws ObjectNotFoundException {
 		boolean hasFinalization = false;
 		Thing thing = boilerServ.thingByNode(c);
+		String ident="";
 		for(ThingDict dict : thing.getDictionaries()) {
+			ident=dict.getConcept().getIdentifier();
 			if(dict.getUrl().equalsIgnoreCase(SystemService.DICTIONARY_SYSTEM_FINALIZATION)){
-				if(!dict.getConcept().getIdentifier().equalsIgnoreCase(SystemService.FINAL_NO)){
+				if(ident.equalsIgnoreCase(SystemService.FINAL_ACCEPT) || ident.equalsIgnoreCase(SystemService.FINAL_COMPANY)){
 					return true;
 				}
 			}
@@ -2622,6 +2651,18 @@ public class ValidationService {
 		return hasFinalization;
 	}
 
+	private boolean hasDecline(Concept c) throws ObjectNotFoundException {
+		boolean hasDecline = false;
+		Thing thing = boilerServ.thingByNode(c);
+		for(ThingDict dict : thing.getDictionaries()) {
+			if(dict.getUrl().equalsIgnoreCase(SystemService.DICTIONARY_SYSTEM_FINALIZATION)){
+				if(dict.getConcept().getIdentifier().equalsIgnoreCase(SystemService.FINAL_DECLINE)){
+					return true;
+				}
+			}
+		}
+		return hasDecline;
+	}
 	/**
 	 * Does not submitted guest application exist for the permit
 	 * @param data

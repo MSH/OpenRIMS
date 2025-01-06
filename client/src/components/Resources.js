@@ -294,7 +294,7 @@ class Resources extends Component{
                         <ButtonUni
                             label={this.state.labels.global_help}
                             onClick={()=>{
-                                window.open('/api/admin/resource/help','_blank').focus()
+                                Fetchers.openWindowHelp('/api/admin/resource/help','_blank').focus()
                             }}
                             color="info"
                         />
@@ -304,7 +304,7 @@ class Resources extends Component{
                             label={this.state.labels.global_elreference}
                             outline
                             onClick={()=>{
-                                window.open('/api/admin/elreference','_blank').focus()
+                                Fetchers.openWindowHelp('/api/admin/elreference')
                             }}
                             color="info"
                         />

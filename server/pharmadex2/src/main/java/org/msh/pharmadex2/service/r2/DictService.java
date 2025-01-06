@@ -20,6 +20,7 @@ import org.msh.pdex2.model.r2.Concept;
 import org.msh.pdex2.model.r2.Thing;
 import org.msh.pdex2.model.r2.ThingDict;
 import org.msh.pdex2.repository.common.JdbcRepository;
+import org.msh.pdex2.repository.r2.ClosureRepo;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.dto.AddressDTO;
 import org.msh.pharmadex2.dto.AssemblyDTO;
@@ -29,6 +30,7 @@ import org.msh.pharmadex2.dto.DictionaryDTO;
 import org.msh.pharmadex2.dto.GisLocationDTO;
 import org.msh.pharmadex2.dto.RootNodeDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
+import org.msh.pharmadex2.dto.enums.AssistantEnum;
 import org.msh.pharmadex2.dto.form.FormFieldDTO;
 import org.msh.pharmadex2.dto.form.OptionDTO;
 import org.msh.pharmadex2.dto.mock.ChoiceDTO;
@@ -70,6 +72,8 @@ public class DictService {
 	Messages messages;
 	@Autowired
 	AssemblyService assembServ;
+	@Autowired
+	private ClosureRepo closureRepo;
 
 	/**
 	 * Save the node.
@@ -109,22 +113,11 @@ public class DictService {
 				}
 			}
 			Concept concept = node(node);
+			String dictUrl=node.getUrl();
 			concept=literalServ.saveFields(node.getLiterals(),concept);
-			node=createNode(concept);
+			node=createNode(concept,dictUrl);
 		}
 		return node;
-	}
-	/**
-	 * Load an node of dictionary by concept id
-	 * @param id node id
-	 * @return
-	 * @throws ObjectNotFoundException 
-	 */
-	@Transactional
-	public DictNodeDTO loadNodeById(long id) throws ObjectNotFoundException {
-		Concept node = closureServ.loadConceptById(id);
-		DictNodeDTO ret = createNode(node);
-		return ret;
 	}
 
 	/**
@@ -151,12 +144,20 @@ public class DictService {
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	public DictNodeDTO createNode(Concept concept) throws ObjectNotFoundException {
+	public DictNodeDTO createNode(Concept concept, String dictUrl) throws ObjectNotFoundException {
 		concept = closureServ.loadConceptById(concept.getID());
 		DictNodeDTO ret = new DictNodeDTO();
+		ret.setNodeId(concept.getID());
 		ret.setIdentifier(concept.getIdentifier());
 		ret.setLeaf(literalServ.isLeaf(concept));
-		ret.setLiterals(dtoServ.readAllLiterals(ret.getLiterals(), concept));
+		//<2024-11-20
+		if(dictUrl==null) {
+			ret.setLiterals(dtoServ.readAllLiterals(ret.getLiterals(), concept));	//for backward compatibility
+		}else {
+			ret.setUrl(dictUrl);
+			ret=literalsLoad(ret);
+		}
+		//2024-11-20/>
 		ret.setNodeId(concept.getID());
 		ret.setParentId(closureServ.getParent(concept).getID());
 		ret.setTable(loadTable(concept,ret.getTable(),new ArrayList<Long>(),false, false));
@@ -361,7 +362,7 @@ public class DictService {
 	 * @return
 	 * @throws ObjectNotFoundException 
 	 */
-	public DictNodeDTO literalsLoad(DictNodeDTO data) throws ObjectNotFoundException {
+	public DictNodeDTO literalsLoad(DictNodeDTO data) throws ObjectNotFoundException {		
 		data.getLiterals().clear();
 		//create empty literals
 		data.getLiterals().putAll(literalServ.mandatoryLiterals());
@@ -373,11 +374,26 @@ public class DictService {
 			// 2023-11-15 data.getLiterals().put(adto.getPropertyName(),FormFieldDTO.of(""));
 			data.getLiterals().put(adto.getPropertyName(),FormFieldDTO.of("", adto.isReadOnly(), adto.isTextArea()
 					, adto.getAssistant()));
+
 		}
 		if(data.getNodeId()>0) {
 			//load existing literals
 			Concept node = closureServ.loadConceptById(data.getNodeId());
-			dtoServ.readAllLiterals(data.getLiterals(),node);
+			data.getLiterals().putAll(dtoServ.readAllLiterals(data.getLiterals(),node));
+			//check if it is possible to change the data url
+			if(data.getLiterals().get("dataurl")!=null) {
+				String dataUrl=data.getLiterals().get("dataurl").getValue();
+				List<Concept>cons=closureServ.loadAllConceptsByIdentifier(dataUrl); 
+				if(cons.size()>0) { 
+					for(Concept c:cons) {
+						if(closureServ.getParent(c)==null) { 
+							if(closureRepo.findByChild(c).size()>0) {
+								data.getLiterals().get("dataurl").setAssistant(AssistantEnum.NO);
+							}
+						}
+					} 
+				}
+			}
 			data.setLeaf(literalServ.isLeaf(node));
 		}
 
@@ -846,6 +862,7 @@ public class DictService {
 		Concept root = loadRootByRootNode(data);
 		if(root.getID()>0) {
 			data.getUrl().setValue(root.getIdentifier());
+			possibleChangeUrlDict(data, root);
 			String prefLabel=literalServ.readValue("prefLabel", root);
 			String description=literalServ.readValue("description", root);
 			data.getPrefLabel().setValue(prefLabel);
@@ -863,6 +880,50 @@ public class DictService {
 				data.getZoom().setValue("");
 			}
 		}
+		return data;
+	}
+	private RootNodeDTO possibleChangeUrlDict(RootNodeDTO data, Concept root) throws ObjectNotFoundException {
+		//is it possible to change the dictionary url
+		//the systemDict?
+		if(checkSystem(root)) {
+			data.getUrl().setAssistant(AssistantEnum.NO);
+			return data;
+		}
+		//dict isEmpty thingdict?
+		String where="Url='"+root.getIdentifier()+"'";
+		List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from thingdict", "", where, new Headers());
+		if(!rows.isEmpty()) {
+			data.getUrl().setAssistant(AssistantEnum.NO);
+			return data;
+		}
+			//cheklists?
+			DictionaryDTO ret = new DictionaryDTO();
+			ret.setTable(loadTable(
+					root, ret.getTable(),ret.getPrevSelected(),ret.isSelectedOnly(), ret.isReadOnly()));
+			TableQtb table = new TableQtb();
+			table=ret.getTable();
+			if(table.getRows().size()>0) {
+				String ids="";
+				for(int i=0; i<=table.getRows().size()-1; i=i+1) {
+					ids=ids+table.getRows().get(i).getDbID();
+					if(i<table.getRows().size()-1) {
+						ids=ids+",";
+					}
+				}
+				where="dictItemID in ("+ids+")";
+				List<TableRow> rowIDS = jdbcRepo.qtbGroupReport("select * from checklistr2", "", where, new Headers());
+				if(!rowIDS.isEmpty()) {
+					data.getUrl().setAssistant(AssistantEnum.NO);
+					return data;
+				}
+			}
+			//thingdoc?
+			where="DictUrl='"+root.getIdentifier()+"'";
+			rows = jdbcRepo.qtbGroupReport("select * from thingdoc", "", where, new Headers());
+			if(!rows.isEmpty()) {
+				data.getUrl().setAssistant(AssistantEnum.NO);
+				return data;
+			}
 		return data;
 	}
 	/**
@@ -1293,7 +1354,7 @@ public class DictService {
 	// autoCreate dictionary for resource
 	public RootNodeDTO createDictResource(String url) throws ObjectNotFoundException {
 		RootNodeDTO dict=new RootNodeDTO();
-		dict.getUrl().setValue("dictionary."+url);
+		dict.getUrl().setValue(url);
 		String pl=url.replace(".","_");
 		dict.getPrefLabel().setValue(pl);
 		dict.setValid(true);

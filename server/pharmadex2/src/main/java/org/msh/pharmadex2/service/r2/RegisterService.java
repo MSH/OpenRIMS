@@ -37,7 +37,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class RegisterService {
-	private static final Logger logger = LoggerFactory.getLogger(ThingService.class);
+	private static final Logger logger = LoggerFactory.getLogger(RegisterService.class);
 	@Autowired
 	private BoilerService boilerServ;
 	@Autowired

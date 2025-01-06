@@ -898,7 +898,7 @@ class Thing extends Component{
                                 this.state.data=result
                                 this.setState(this.state)
                                 if(this.state.data.helpDocumentIDString.length!=0){
-                                    window.open('/api/common/thing/help/open/'+this.state.data.helpDocumentIDString,'_blank').focus()
+                                    Fetchers.openWindowHelp('/api/common/thing/help/open/'+this.state.data.helpDocumentIDString)
                                 }
                             })
                         }}

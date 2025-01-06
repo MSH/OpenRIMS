@@ -546,7 +546,7 @@ public class DtoService {
 		//data.getVarNameExt().setAssistant(AssistantEnum.VARIABLE); temporarily TO DO
 		data.setVarNodeId(varNode.getID());
 		//Assembly
-		data=assemblyToDto(assm, data);
+		data=assemblyToDataVariableDto(assm, data);
 		return data;
 	}
 	
@@ -555,7 +555,7 @@ public class DtoService {
 	 * @param assm
 	 * @param data
 	 */
-	public DataVariableDTO assemblyToDto(Assembly assm, DataVariableDTO data) {
+	public DataVariableDTO assemblyToDataVariableDto(Assembly assm, DataVariableDTO data) {
 		data=initializeLogical(data);
 		data=initializeClazz(data);
 		data.getPublicavailable().setValue(logicalOpt(assm.getPublicavailable(), data.getPublicavailable().getValue()));

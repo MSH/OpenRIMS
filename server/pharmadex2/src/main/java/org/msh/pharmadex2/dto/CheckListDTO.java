@@ -22,6 +22,7 @@ public class CheckListDTO extends AllowValidation{
 	private boolean readOnly = false;
 	private boolean init=false;				//in the INIT activity, only restricted set of actions will be provided
 	private List<QuestionDTO> questions = new ArrayList<QuestionDTO>();
+	private boolean unavailable = false;
 	public String getDictUrl() {
 		return dictUrl;
 	}
@@ -69,6 +70,12 @@ public class CheckListDTO extends AllowValidation{
 	}
 	public void setQuestions(List<QuestionDTO> questions) {
 		this.questions = questions;
+	}
+	public boolean isUnavailable() {
+		return unavailable;
+	}
+	public void setUnavailable(boolean unavailable) {
+		this.unavailable = unavailable;
 	}
 	
 }

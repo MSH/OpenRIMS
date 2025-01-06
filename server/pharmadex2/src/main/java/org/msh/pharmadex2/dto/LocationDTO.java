@@ -33,5 +33,26 @@ public class LocationDTO extends AllowValidation{
 		return getLat()<0.000001 && getLng()<0.000001;
 	}
 	
+	/**
+	 * Create new using a marker string
+	 * @param markerStr
+	 * @return
+	 */
+	public static LocationDTO of(String markerStr) {
+		LocationDTO dto = new LocationDTO();
+		String[] latLng=markerStr.split(";");
+		if(latLng.length==2) {
+			try {
+				Double lat=Double.valueOf(latLng[0]);
+				Double lng=Double.valueOf(latLng[1]);
+				dto.setLat(lat);
+				dto.setLng(lng);
+			} catch (NumberFormatException e) {
+				//nothing to do
+			}
+		}
+		return dto;
+	}
+	
 	
 }

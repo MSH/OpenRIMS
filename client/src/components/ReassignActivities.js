@@ -264,7 +264,7 @@ placeInputForm(){
                             label={this.state.labels.global_help}
                             color='info'
                             onClick={()=>{
-                                window.open('/api/admin/help/reassign/activities','_blank').focus()
+                                Fetchers.openWindowHelp('/api/admin/help/reassign/activities')
                             }}
                         />
                     </Col>

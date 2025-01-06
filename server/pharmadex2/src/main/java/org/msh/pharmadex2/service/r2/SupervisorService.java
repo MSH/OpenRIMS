@@ -344,7 +344,7 @@ public class SupervisorService {
 	//autoCreate configuration for resource
 	public DataCollectionDTO createConfigResource(String url, String dictUrl) throws ObjectNotFoundException {
 		DataCollectionDTO conf=new DataCollectionDTO();
-		conf.getUrl().setValue("configuration."+url);
+		conf.getUrl().setValue(url);
 		conf.getDescription().setValue(url.replaceAll("."," "));
 		conf=dataCollectionDefinitionSave(conf);
 		DataVariableDTO item= new DataVariableDTO();
@@ -373,17 +373,46 @@ public class SupervisorService {
 	public ResourceDTO resurceDefinitionSave(ResourceDTO data) throws ObjectNotFoundException {
 		data.clearErrors();
 		String url=data.getUrl().getValue();
-		RootNodeDTO dict=new RootNodeDTO();
-		dict=dictServ.createDictResource(url);
-		if(dict.isValid()) {
-			DataCollectionDTO conf=new DataCollectionDTO();
-			conf=createConfigResource(url,dict.getUrl().getValue());
-			data.getConfigUrl().setValue(conf.getUrl().getValue());
-			data.getDictUrl().setValue(dict.getUrl().getValue());
-			data = resourceDefinitionSave(data);
+		String confUrl=data.getConfigUrl().getValue();
+		String dictUrl=data.getDictUrl().getValue();
+		if(data.getNodeId()>0) {
+			//You can't change the resource URL, because it may be in the configuration
+			Concept node =  closureServ.loadConceptById(data.getNodeId());
+			url=node.getIdentifier();
+			if(dictUrl.isEmpty()&& confUrl.isEmpty()) {
+				//error configuration 
+				data = saveNewResource(data, url, "dictionary.","configuration.");
+			}else if(dictUrl.isEmpty()) {
+				//not link to dictionary
+				data = saveNewResource(data, confUrl, "dictionary.","");
+			}else {
+				//ups url config(((
+				data = saveNewResource(data, dictUrl, "","configuration.");
+			}
 		}else {
-			data.addError(dict.getUrl().getValue()+" - "+messages.get("error_dict_url"));
+			//new resource
+			data = saveNewResource(data, url, "dictionary.","configuration.");
 		}
+
+		return data;
+	}
+
+	private ResourceDTO saveNewResource(ResourceDTO data, String url, String prfDict, String prefConf) throws ObjectNotFoundException {
+		String urlDict=url;
+		if(!prfDict.isEmpty()) {
+			RootNodeDTO dict=new RootNodeDTO();
+			dict=dictServ.createDictResource(prfDict+url);
+			if(!dict.isValid()) {
+				data.addError(dict.getUrl().getValue()+" - "+messages.get("error_dict_url"));
+				return data;
+			}
+			urlDict=dict.getUrl().getValue();
+		}
+			DataCollectionDTO conf=new DataCollectionDTO();
+			conf=createConfigResource(prefConf+url,urlDict);
+			data.getConfigUrl().setValue(conf.getUrl().getValue());
+			data.getDictUrl().setValue(urlDict);
+			data = resourceDefinitionSave(data);
 		return data;
 	}
 
@@ -775,6 +804,7 @@ public class SupervisorService {
 			data=resourceDtoByNode(data, node);
 		} else {
 			data.getUrl().setValue("");
+			data.getUrl().setAssistant(AssistantEnum.URL_RESOURCE_NEW);
 			data.getDescription().setValue("");
 			data.getConfigUrl().setValue("");
 			data.getDictUrl().setValue("");
@@ -801,17 +831,22 @@ public class SupervisorService {
 				if(clazz.getUrl()!=null || clazz.getUrl().length()>0) {
 					urlDict=clazz.getDictUrl();
 				}
-				/*	data.getDictUrl().setValue(clazz.getDictUrl());
-				}else {
-					data.addError(messages.get("errorConfigDataResource"));
-				}
-				break;*/
 			}
 		}
 		data.getDictUrl().setValue(urlDict);
 		if(urlDict.isEmpty()){
 			data.addError(messages.get("errorConfigDataResource"));
 		}
+		//is it possible to change the resource url
+		data.getUrl().setAssistant(AssistantEnum.URL_RESOURCE_NEW);
+				String where="DictUrl='"+urlDict+"'";
+				List<TableRow> rows = jdbcRepo.qtbGroupReport("select * from assembly", "", where, new Headers());
+				//List<TableRow> rowsDoc = jdbcRepo.qtbGroupReport("select * from thingdoc", "", where, new Headers());
+				if(!rows.isEmpty()) {
+					//if(!rowsDoc.isEmpty()) {
+					data.getUrl().setAssistant(AssistantEnum.NO);
+					//}
+				}
 		return data;
 	}
 

@@ -343,7 +343,7 @@ class ImportWorkflow extends Component{
                             <ButtonUni
                                 label={this.state.labels.global_help}
                                 onClick={()=>{
-                                    window.open('/api/admin/help/impconfigprocess','_blank').focus()
+                                    Fetchers.openWindowHelp('/api/admin/help/impconfigprocess')
                                 }}
                                 color="info"
                             />

@@ -246,7 +246,7 @@ class DataConfigurator extends Component{
                         <ButtonUni
                             label={this.state.labels.global_help}
                             onClick={()=>{
-                                window.open('/api/admin/help/wfrguide','_blank').focus()
+                                Fetchers.openWindowHelp('/api/admin/help/wfrguide')
                             }}
                             color="info"
                         />

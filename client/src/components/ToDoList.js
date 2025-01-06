@@ -98,7 +98,7 @@ class ToDoList extends Component{
             case "activitymanager":
                 parStr = Navigator.parameterValue();
                 data = JSON.parse(parStr)
-                return <ActivityManager historyId={data.historyId} recipient={this.state.identifier}/>
+                return <ActivityManager historyId={data.historyId} recipient={this.state.identifier} monitoring={false}/>
             case "alert":
                 return(this.alert())
             case "actual":

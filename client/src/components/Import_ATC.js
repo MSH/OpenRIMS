@@ -108,7 +108,7 @@ class Import_ATC extends Component{
                 <Button size="sm"
                 className="mr-1" color="info"
                 onClick={()=>{
-                    window.open('/api/admin/help/import/atc','_blank').focus()
+                    Fetchers.openWindowHelp('/api/admin/help/import/atc')
                 }}
                 >{this.state.labels.global_help}</Button>{' '}
                 <Button size="sm"

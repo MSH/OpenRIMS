@@ -31,6 +31,7 @@ class ActivityManager extends Component{
             conclude:false,                    //only for alive checklist!
             send:false,                        //display breadcrumb "send"
             hist:false,                        //initially closed history
+            app:false,                         //data past event
             histEvent:false,                        //initially closed next event
             reloadData:true,                     //initialy reload data
             supervisor:false,                   //action has been initiated by the supervisor
@@ -52,11 +53,12 @@ class ActivityManager extends Component{
                 save_error:'',
                 backDlg_war:'',
                 application_nextEv:'',
-                uploadApplReceipt:''
+                uploadApplReceipt:'',
+                download_reciept:'',
             },
             history:{ //history table
                 historyId:this.props.historyId,
-               // monitoring:this.props.monitoring
+                monitoring:this.props.monitoring
             },
             data:{  //breadcrumb and data ActivityDTO.java
                 historyId:this.props.historyId,
@@ -105,7 +107,8 @@ class ActivityManager extends Component{
                 }
                 if(data.subject=='activityHistoryClose'){
                     this.state.historyId=0
-                   // this.state.hist=false //IK
+                    this.state.hist=true //IK
+                    this.state.app=false
                     this.state.histEvent=false
                     this.setState(this.state)
                 }
@@ -394,7 +397,7 @@ class ActivityManager extends Component{
                                                             }
                                                         })
                                                     }}>
-                                                        {this.state.labels.uploadApplReceipt}
+                                                        {this.state.labels.download_reciept}
                                                 </Button>
                                             </Col>
                                         </Row>
@@ -499,6 +502,8 @@ class ActivityManager extends Component{
                                 this.state.saveCounter=1    //save only checklist
                             }
                             this.state.submit=true
+                            this.state.reassign=false
+                            this.state.reject=false
                             Navigator.message(this.state.identifier,"*","saveAll",{})           //To CheckList.js and Thing.js 
                                                                                                 // Reply will be cancelThing and savedByAction 
                          }}
@@ -599,6 +604,8 @@ class ActivityManager extends Component{
             }}
             linkProcessor={(rowNo, cell)=>{
                 this.state.historyId=this.state.history.table.rows[rowNo].dbID
+                this.state.app=true
+                this.state.hist=false
                 this.setState(this.state)
             }}
             />
@@ -649,8 +656,8 @@ class ActivityManager extends Component{
         }
         return(
             <Container fluid>
-                <Row>
-                    <Col className="btn btn-link p-0 border-0 d-flex justify-content-start"
+                <Row hidden={this.state.app || this.state.send}>
+                    <Col className="btn btn-link p-0 border-0 d-flex justify-content-start" 
                         onClick={()=>{
                             this.state.hist=!this.state.hist
                             this.setState(this.state)
@@ -671,11 +678,11 @@ class ActivityManager extends Component{
                                    {this.completedHistoryTable()}
                                 </Col>
                             </Row>
-                            <Row>
+                            {/* <Row>
                                 <Col>
                                     {this.activityHistory()}
                                 </Col>
-                            </Row>
+                            </Row> */}
                             <Row>
                                 <Col className="btn btn-link p-0 border-0 d-flex justify-content-start">
                                     <h6 className="ml-3">{this.state.labels.application_nextEv}</h6>
@@ -692,6 +699,17 @@ class ActivityManager extends Component{
                     </Col>
                 </Row>
                 <Row>
+                <Col>
+                    <Collapse isOpen={this.state.app}>
+                        <Row>
+                            <Col>
+                                {this.activityHistory()}
+                            </Col>
+                        </Row>
+                    </Collapse>
+                </Col>
+                </Row>
+                <Row hidden={this.state.app}>
                     <Col>
                         <Collapse isOpen={!this.state.hist}>
                             {this.headerFooter()}

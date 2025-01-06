@@ -73,7 +73,7 @@ class ELAssistantSelectWF extends Component{
                             className="p-0 m-0"
                             color="link"
                             onClick={()=>{
-                                window.open('/api/admin/help/elassistant','_blank').focus()
+                                Fetchers.openWindowAssist('/api/admin/help/elassistant')
                             }}
                         >
                         <i className="far fa-question-circle"></i>

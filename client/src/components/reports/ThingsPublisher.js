@@ -140,8 +140,8 @@ class ThingsPublisher extends Component{
                                 narrow
                                 reload
                                 /> 
-                                
-                    <CheckList historyId={thing.historyId} recipient={this.state.identifier} readOnly/>
+                                {/* thing.historyId */}
+                    <CheckList historyId={0} recipient={this.state.identifier} readOnly/>
                     </Col></Row>
                 )
             }else{
@@ -152,9 +152,10 @@ class ThingsPublisher extends Component{
                     </Col></Row>
                 )
             }
-        }else{
-            return <small>{this.state.labels.previewunavailable}</small>
         }
+        // else{
+        //     return <small>{this.state.labels.previewunavailable}</small>
+        // }
     }
     timeLine(thing){
         if(thing.historyId>0 && this.state.wf!=thing.uxIdentifier){

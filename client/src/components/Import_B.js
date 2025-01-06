@@ -24,8 +24,6 @@ class Import_B extends Component{
                 global_cancel:'',
                 global_save:'',
                 askforlegacydataimportrun:'',
-                reload:"",
-                startImport :""
             }
         }
         this.eventProcessor=this.eventProcessor.bind(this)
@@ -125,13 +123,6 @@ class Import_B extends Component{
                     Navigator.message(this.state.identifier, "*", "saveAll", {})
                 }}
                 >{this.state.labels.global_save}</Button>{' '}
-
-                <Button size="sm"
-                className="mr-1" color="primary"
-                onClick={()=>{
-                    this.reload()
-                }}
-                >{this.state.labels.reload}</Button>{' '}
 
                 <Button size="sm"
                 className="mr-1" color="info"

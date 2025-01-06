@@ -15,12 +15,14 @@ import org.msh.pharmadex2.Pharmadex2Beans;
 import org.msh.pharmadex2.dto.AsyncInformDTO;
 import org.msh.pharmadex2.dto.ImportWorkflowDTO;
 import org.msh.pharmadex2.dto.ReassignUserDTO;
+import org.msh.pharmadex2.dto.RunTestProcessDTO;
 import org.msh.pharmadex2.dto.ThingDTO;
 import org.msh.pharmadex2.dto.auth.UserDetailsDTO;
 import org.msh.pharmadex2.dto.form.AllowValidation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -40,7 +42,8 @@ import com.fasterxml.jackson.databind.JsonMappingException;
  */
 @Service
 public class AsyncService {
-	
+
+
 	// Processes
 	private static final String PROCESS_DWH_UPDATE = "processDwhUpdate";
 	public static final String PROCESS_REASSIGN_APPLICANT = "reassignApplicant";
@@ -48,7 +51,8 @@ public class AsyncService {
 	private static final String PROCESS_IMPORT_ATC = "processImportATC";
 	private static final String PROCESS_IMPORT_LEGACYDATA = "processLegacyData";
 	private static final String PROCESS_IMPORT_WF = "processImportWF";
-	
+	public static final String PROCESS_TEST_PROCESSES_RUN = "PROCESS_TEST_PROCESSES_RUN";
+
 	public static final String PROCESS_NAME = "processName";
 	//shared multi thread memory
 	public static ConcurrentMap<String,String> asyncContext = new ConcurrentHashMap<String, String>();
@@ -56,15 +60,16 @@ public class AsyncService {
 	public static final String PROGRESS_SHEETS_IMPORTED = "sheets_imported";
 	public static final String PROGRESS_SHEETS = "sheets";
 	public static final String PROGRESS_CURRENT_SHEET = "currentSheet";
-	
+
 	public static final String PROGRESS_TOTAL = "total";
 	public static final String PROGRESS_TOTAL_REMOVE = "totalremove";
 	public static final String PROGRESS_COUNTER = "counter";
 	public static final String PROGRESS_COUNTER_REMOVE = "counterremove";
-	
+
 	public static final String PROGRESS_STOP_ERROR = "stopError";
 	//logger
 	private static final Logger logger = LoggerFactory.getLogger(AsyncService.class);
+
 
 	@Autowired
 	private ImportAdmUnitsService adminUnit;
@@ -80,6 +85,8 @@ public class AsyncService {
 	private Messages messages;
 	@Autowired
 	private ReassignUserService reassignUserServ;
+	@Autowired
+	private TestProcessService testProcess;
 
 	/**
 	 * Read async context variable by key
@@ -99,6 +106,7 @@ public class AsyncService {
 	 */
 	public static void initialize() {
 		asyncContext=new ConcurrentHashMap<String, String>();
+		String lang=LocaleContextHolder.getLocale().toLanguageTag();
 		writeAsyncContext(PROGRESS_SHEETS, "0");
 		writeAsyncContext(PROGRESS_SHEETS_IMPORTED, "0");
 	}
@@ -140,7 +148,7 @@ public class AsyncService {
 		AsyncService.writeAsyncContext(PROCESS_NAME, PROCESS_IMPORT_ADMIN_UNITS);	//mandatory for all async processes
 		adminUnit.importAdminunitsWorker(data, user);
 	}
-	
+
 	/**
 	 * Start async thread to run ATC import
 	 * @param data
@@ -156,7 +164,7 @@ public class AsyncService {
 			e.printStackTrace();
 		}
 	}
-	
+
 	/**
 	 * Start async thread to run import Legacy data
 	 * @param data
@@ -172,7 +180,7 @@ public class AsyncService {
 			e.printStackTrace();
 		}
 	}
-	
+
 	/**
 	 * Start async thread to run import wf
 	 * @param data
@@ -188,7 +196,7 @@ public class AsyncService {
 			e.printStackTrace();
 		}
 	}
-	
+
 	/**
 	 * Upload DWH 
 	 */
@@ -214,6 +222,13 @@ public class AsyncService {
 		}
 	}
 
+	@Async("taskExecutorDataImport")
+	public void testProcessesRun(UserDetailsDTO user, RunTestProcessDTO data) {
+		initialize();
+		writeAsyncContext(PROCESS_NAME, PROCESS_TEST_PROCESSES_RUN);
+		testProcess.run(user, data);
+	}
+
 	/**
 	 * Inform data import progress 
 	 * Uniform for all data import
@@ -224,7 +239,6 @@ public class AsyncService {
 	 * @throws JsonMappingException 
 	 */
 	public AsyncInformDTO dataImportProgress(AsyncInformDTO data) throws JsonMappingException, JsonProcessingException {
-		data.setCompleted(!hasDataImportThread());
 		String processName=readAsyncContext(PROCESS_NAME);
 		data.setProcessName(processName);
 		data.setStartedAt(LocalDateTime.now());
@@ -251,10 +265,10 @@ public class AsyncService {
 		case AsyncService.PROCESS_IMPORT_WF:
 			data = importwfServ.calcProgress(data);
 			break;
-			
+		case AsyncService.PROCESS_TEST_PROCESSES_RUN:
+			data=testProcess.calcProgress(data);
 			//TODO the rest of processes
 		}
-
 		return data;
 	}
 	/**
@@ -266,6 +280,7 @@ public class AsyncService {
 		data.addError(messages.get("errorprocessisrunning"));
 		return data;
 	}
+
 
 
 

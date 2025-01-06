@@ -968,13 +968,11 @@ public class AmendmentService {
 				//? storedConfigData
 				Concept nodeDu = closureServ.loadConceptById(du.getNodeId());
 				//List<AssemblyDTO> storedConfig = loadDataConfigurationFromNode(nodeDu.getID());
-				if(nodeDu.getLabel()!=null) {
-					try {
-					du=objectMapper.readValue(nodeDu.getLabel(), DataUnitDTO.class);
-					} catch (JsonProcessingException e) {
-						//nothing to do
-					}
-				}//? storedConfigData
+				/*
+				 * if(nodeDu.getLabel()!=null) { try {
+				 * du=objectMapper.readValue(nodeDu.getLabel(), DataUnitDTO.class); } catch
+				 * (JsonProcessingException e) { //nothing to do } }//? storedConfigData
+				 */				
 				if (dataUrl.length() > 0 && modiUrl.length() > 0) {
 					if (canBeModified(du.getUrl(), modiUrl)) {
 						TableRow row = dataUnitRow(du);

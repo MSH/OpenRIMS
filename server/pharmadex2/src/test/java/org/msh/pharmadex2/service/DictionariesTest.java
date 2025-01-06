@@ -22,6 +22,7 @@ import org.msh.pharmadex2.service.common.BoilerService;
 import org.msh.pdex2.services.r2.ClosureService;
 import org.msh.pharmadex2.service.r2.DictService;
 import org.msh.pharmadex2.service.r2.LiteralService;
+import org.msh.pharmadex2.service.r2.SystemService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
@@ -55,94 +56,7 @@ public class DictionariesTest {
 	@Autowired
 	private ObjectMapper objectMapper;
 
-	/**
-	 * CRUD a fiction dictionary
-	 * @throws ObjectNotFoundException 
-	 */
-	//@Test
-	public void testCRUDDictionary() throws ObjectNotFoundException {
 
-		//remove the old dictionary if one
-		Concept root = closureServ.loadRoot("dict.fiction.test");
-		closureServ.removeNode(root);
-
-		//create an empty dictionary
-		root = closureServ.loadRoot("dict.fiction.test");
-
-		//add two items on the root
-		//fill out data on the client
-		DictNodeDTO firstOpt = new DictNodeDTO();
-		firstOpt.fetchPrefLabel().setValue("irka");
-		firstOpt.fetchDescription().setValue("svinka");
-		firstOpt.setNodeId(0);
-		firstOpt.setParentId(root.getID());
-		//add to the he dictionary
-		firstOpt = dictServ.save(firstOpt);
-
-		//fill out data on the client
-		DictNodeDTO secOpt= new DictNodeDTO();
-		secOpt.fetchPrefLabel().setValue("korova");
-		secOpt.fetchDescription().setValue("zdorova");
-		secOpt.setNodeId(0);
-		secOpt.setParentId(root.getID());
-		//add to the he dictionary
-		firstOpt = dictServ.save(secOpt);
-
-		//test it
-		DictNodeDTO level = new DictNodeDTO();
-		level.setUrl("dict.fiction.test");
-		level = dictServ.loadLevel(level, "");
-		assertEquals(2, level.getTable().getRows().size());
-		DictNodeDTO dictEl = dictServ.loadNodeById(level.getTable().getRows().get(0).getDbID());
-		assertEquals("irka", dictEl.fetchPrefLabel().getValue());
-
-		//another language
-		//switch locale
-		Locale oldLocale = LocaleContextHolder.getLocale();
-		LocaleContextHolder.setLocale(new Locale("pt"));
-		//load options
-		//fill out data on the client and add to the server
-		for(TableRow row : level.getTable().getRows()) {
-			DictNodeDTO opt = new DictNodeDTO();
-			opt.setNodeId(row.getDbID());
-			opt.setParentId(root.getID());
-			opt.fetchPrefLabel().setValue(row.getRow().get(0)+"_pt");
-			opt.fetchDescription().setValue(row.getRow().get(1)+"_pt");
-			dictServ.save(opt);
-		}
-		//test it
-		assertEquals(2, level.getTable().getRows().size());
-		//restore locale
-		LocaleContextHolder.setLocale(oldLocale);
-
-
-		//select an item on the first level and load next level
-		//selection was on a client
-		DictNodeDTO nextLevel = new DictNodeDTO();
-		nextLevel.setParentId(level.getTable().getRows().get(0).getDbID());
-		nextLevel = dictServ.loadLevel(nextLevel, "");
-		//should be empty yet
-		assertEquals(0, nextLevel.getTable().getRows().size());
-
-		//add an item to the second level
-		DictNodeDTO opt2 = new DictNodeDTO();
-		opt2.fetchPrefLabel().setValue("second");
-		opt2.fetchDescription().setValue("secondary");
-		opt2.setParentId(level.getTable().getRows().get(0).getDbID());
-		opt2.setNodeId(0);
-
-		Concept selectedNode = closureServ.loadConceptById(nextLevel.getParentId());
-		opt2 = dictServ.save(opt2);
-		DictNodeDTO thirdLevel = new DictNodeDTO();
-		thirdLevel.setParentId(selectedNode.getID());
-		thirdLevel = dictServ.loadLevel(thirdLevel, "");
-		//should be only just added
-		assertEquals(1, thirdLevel.getTable().getRows().size());
-
-		//remove the test dictionary if one
-		root = closureServ.loadRoot("dict.fiction.test");
-		closureServ.removeNode(root);
-	}
 
 	//@Test
 	public void createCheckListDict() throws ObjectNotFoundException {
@@ -242,7 +156,7 @@ public class DictionariesTest {
 		List<Concept> provinces = literalServ.loadOnlyChilds(root);
 		if(provinces != null && provinces.size() > 0){
 			for(Concept p:provinces) {
-				DictNodeDTO node = dictServ.createNode(p);
+				DictNodeDTO node = dictServ.createNode(p,"dictionary.admin.units");
 				String value = node.fetchPrefLabel().getValue();
 				String center = mapCenters.get(value);
 				if(center != null) {
@@ -292,4 +206,6 @@ public class DictionariesTest {
 		node=dictServ.storePath(dictNode, node);
 		
 	}
+	
+
 }

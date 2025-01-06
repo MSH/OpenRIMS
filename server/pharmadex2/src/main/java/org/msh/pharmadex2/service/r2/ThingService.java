@@ -507,20 +507,32 @@ public class ThingService {
 		if(persons.size()>0) {
 			data.getPersons().clear();
 			for(AssemblyDTO pers : persons) {
-				PersonDTO dto = new PersonDTO();
-				dto.setDictUrl(pers.getDictUrl());
-				dto.setUrl(pers.getAuxDataUrl());
-				dto.setReadOnly(pers.isReadOnly());
-				dto.setRequired(pers.isRequired());
-				dto.setVarName(pers.getPropertyName());
-				dto.setThingNodeId(data.getNodeId());
-				dto.setAmendedNodeId(data.getModiUnitId());
-				dto =createPersTable(dto, data.isReadOnly());
-				data.getPersons().put(pers.getPropertyName(),dto);
+				data.getPersons().put(pers.getPropertyName(),createPersonDTO(data, pers, new PersonDTO()));
 			}
 			data=amendServ.personToRemove(data);
 		}
 		return data;
+	}
+	
+	/**
+	 * Create a PersonDTO
+	 * @param data thing to place
+	 * @param persConfig 
+	 * @param personDTO
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	public PersonDTO createPersonDTO(ThingDTO data, AssemblyDTO persConfig, PersonDTO personDTO) throws ObjectNotFoundException {
+		personDTO.setDictUrl(persConfig.getDictUrl());
+		personDTO.setUrl(persConfig.getAuxDataUrl());
+		personDTO.setReadOnly(persConfig.isReadOnly());
+		personDTO.setRequired(persConfig.isRequired());
+		personDTO.setVarName(persConfig.getPropertyName());
+		personDTO.setThingNodeId(data.getNodeId());
+		personDTO.setAmendedNodeId(data.getModiUnitId());
+		personDTO =createPersTable(personDTO, data.isReadOnly());
+		return personDTO;
+		
 	}
 	/**
 	 * Create a table with persons
@@ -970,7 +982,8 @@ public class ThingService {
 		if(data.isValid() || !data.isStrict()) {
 											//to ensure the next
 			if(accessControlServ.writeAllowed(data, user)) {
-				data = checkUrlChange(data);
+				data = checkUrlChange(data);	//seems as not used 20241129
+				//node
 				Concept node = new Concept();
 				if(data.getNodeId()==0) {
 					node = createNode(data.getUrl(), user.getEmail());
@@ -978,14 +991,16 @@ public class ThingService {
 					node=closureServ.loadConceptById(data.getNodeId());
 				}
 				data.setNodeId(node.getID());
+				
 				//thing
 				Thing thing = new Thing();
 				thing = boilerServ.thingByNode(node, thing);
 				thing.setConcept(node);
 				thing.setUrl(data.getUrl());
 
-				//store data under the node and thing
+				//Store all components
 				data = storeDataUnderThing(data, user, node, thing);
+				
 				//check amend
 				if(data.getModiUnitId()>0) {
 					boolean found=false;
@@ -1003,13 +1018,12 @@ public class ThingService {
 						thing.getAmendments().add(ta);
 					}
 				}
+				//save the thing and the node (cascade)
 				thing = thingRepo.save(thing);
 
-				/////////////////// Store data, end /////////////////////////////
-
-				//application and activity
+				//do we need create an application?
 				if(data.getHistoryId()==0 && data.getParentId()==0) {
-					if(data.getParentIndex()==-1) {
+					if(data.getParentIndex()==-1) {	//it is a multipage form - createPath(data, user, new ArrayList<ThingDTO>(),-1);
 						data=createApplication(data,user.getEmail(),node);
 					}
 				}
@@ -1111,10 +1125,10 @@ public class ThingService {
 	
 	/**
 	 * Store all components
-	 * @param data
-	 * @param user
-	 * @param node
-	 * @param thing
+	 * @param data the current thingDTO
+	 * @param user the current user under which the data node should be saved
+	 * @param node the data node to save
+	 * @param thing 
 	 * @return
 	 * @throws ObjectNotFoundException
 	 */
@@ -1987,11 +2001,7 @@ public class ThingService {
 	public ThingDTO path(UserDetailsDTO user, ThingDTO data) throws ObjectNotFoundException {
 		//application name and description
 		if(data.getApplDictNodeId()>0) {
-			Concept adictNode = closureServ.loadConceptById(data.getApplDictNodeId());
-			data.setApplName(literalServ.readPrefLabel(adictNode));
-			data.setApplDescr(literalServ.readDescription(adictNode));
-			data.setUrl(literalServ.readValue("dataurl", adictNode));
-			data.setApplicationUrl(literalServ.readValue("applicationurl", adictNode));
+			data=thingDataFromApplDictNode(data);
 		}
 		//is it existing application?
 		if(data.getHistoryId()>0) {
@@ -2051,6 +2061,17 @@ public class ThingService {
 				data.setModiUnitId(thing.getAmendments().iterator().next().getConcept().getID());
 			}
 		}
+		data=pathRebuild(user, data);
+		return data;
+	}
+	
+	/**
+	 * collect all things defined in the application data configuration
+	 * @param user
+	 * @param data
+	 * @throws ObjectNotFoundException
+	 */
+	public ThingDTO pathRebuild(UserDetailsDTO user, ThingDTO data) throws ObjectNotFoundException {
 		data.getPath().clear();
 		List<ThingDTO> path = createPath(data, user, new ArrayList<ThingDTO>(),-1);
 		data.getPath().addAll(path);
@@ -2058,6 +2079,21 @@ public class ThingService {
 			dto.setModiUnitId(data.getModiUnitId());
 			dto.setApplDictNodeId(data.getApplDictNodeId());
 		}
+		return data;
+	}
+	/**
+	 * get data from application dictionary node
+	 * @param data
+	 * @return
+	 * @throws ObjectNotFoundException
+	 */
+	@Transactional
+	public ThingDTO thingDataFromApplDictNode(ThingDTO data) throws ObjectNotFoundException {
+		Concept adictNode = closureServ.loadConceptById(data.getApplDictNodeId());
+		data.setApplName(literalServ.readPrefLabel(adictNode));
+		data.setApplDescr(literalServ.readDescription(adictNode));
+		data.setUrl(literalServ.readValue("dataurl", adictNode));
+		data.setApplicationUrl(literalServ.readValue("applicationurl", adictNode));
 		return data;
 	}
 
@@ -2110,7 +2146,7 @@ public class ThingService {
 
 	}
 	/**
-	 * Load a linked file or an empty record ready to upload
+	 * Prepare to load a linked file or an empty record ready to upload
 	 * @param data
 	 * @param user
 	 * @return
@@ -2157,75 +2193,81 @@ public class ThingService {
 		List<AssemblyDTO> storedAssms = loadDataConfigurationFromNode(data.getThingNodeId());
 		data=validServ.file(data, fileBytes, storedAssms);
 		if(data.isValid()) {
-			String email = user.getEmail();
-			if((data.getFileName().length()==0 || fileBytes.length>1) 
-					&& validServ.eMail(email) 
-					&& data.getDictNodeId()>0) {
-				//determine node ID
-				long fileNodeId = data.getNodeId();
-				Concept node = new Concept();
-				if(fileNodeId==0 ) {
-					//create a new file node and store it to data
-					Concept root = closureServ.loadRoot(data.getUrl());
-					Concept owner=closureServ.saveToTree(root, user.getEmail());
-					node = closureServ.save(node);
-					node.setIdentifier(node.getID()+"");
-					node=closureServ.saveToTree(owner, node);
-					data.getLinked().put(data.getDictNodeId(),node.getID());
-				}else {
-					node = closureServ.loadConceptById(data.getNodeId());
+			fileSaveAfterValidation(data, user, fileBytes);
+		}
+		return data;
+	}
+	/**
+	 * Save a file after validation/ Also it is used to bypass the validation while test processes creation
+	 * @param data
+	 * @param user
+	 * @param fileBytes
+	 * @throws ObjectNotFoundException
+	 */
+	@Transactional
+	public FileDTO fileSaveAfterValidation(FileDTO data, UserDetailsDTO user, byte[] fileBytes)
+			throws ObjectNotFoundException {
+		String email = user.getEmail();
+		if((data.getFileName().length()==0 || fileBytes.length>1) 
+				&& validServ.eMail(email) 
+				&& data.getDictNodeId()>0) {
+			//determine node ID
+			long fileNodeId = data.getNodeId();
+			Concept node = new Concept();
+			if(fileNodeId==0 ) {
+				//create a new file node and store it to data
+				Concept root = closureServ.loadRoot(data.getUrl());
+				Concept owner=closureServ.saveToTree(root, user.getEmail());
+				node = closureServ.save(node);
+				node.setIdentifier(node.getID()+"");
+				node=closureServ.saveToTree(owner, node);
+				data.getLinked().put(data.getDictNodeId(),node.getID());
+			}else {
+				node = closureServ.loadConceptById(data.getNodeId());
+			}
+			Concept parent = closureServ.getParent(node);
+			if(accessControlServ.sameEmail(parent.getIdentifier(), user.getEmail()) || accessControlServ.isSupervisor(user)) {
+				parent.setIdentifier(user.getEmail());
+				parent=closureServ.save(parent);
+				//dictionary item
+				Concept dictItem = closureServ.loadConceptById(data.getDictNodeId());
+				//file name
+				node.setLabel(data.getFileName());
+				//file data
+				FileResource fres = new FileResource();
+				Optional<FileResource> freso = fileRepo.findByConcept(node);
+				if(freso.isPresent()) {
+					fres=freso.get();
 				}
-				Concept parent = closureServ.getParent(node);
-				if(accessControlServ.sameEmail(parent.getIdentifier(), user.getEmail()) || accessControlServ.isSupervisor(user)) {
-					parent.setIdentifier(user.getEmail());
-					parent=closureServ.save(parent);
-					//dictionary item
-					Concept dictItem = closureServ.loadConceptById(data.getDictNodeId());
-					//file name
-					node.setLabel(data.getFileName());
-					//file data
-					FileResource fres = new FileResource();
-					Optional<FileResource> freso = fileRepo.findByConcept(node);
-					if(freso.isPresent()) {
-						fres=freso.get();
-					}
-					fres.setClassifier(dictItem);
-					fres.setConcept(node);
-					fres.setFile(fileBytes);
-					fres.setFileSize(data.getFileSize());
-					fres.setMediatype(data.getMediaType());
-					fres=fileRepo.save(fres);
-					ThingDoc tdoc = boilerServ.loadThingDocByFileNode(node);
-					if(data.getThingNodeId()>0) {
-						Concept thingConc = closureServ.loadConceptById(data.getThingNodeId());
-						Thing thing = new Thing();
-						thing = boilerServ.thingByNode(thingConc, thing);
-						if(thing.getID()>0) {
-							for(ThingDoc td : thing.getDocuments()) {
-								if(td.getDictNode().getID()==data.getDictNodeId() 
-										&& td.getVarName().toUpperCase().equalsIgnoreCase(data.getVarName())) {
-									tdoc=td;
-									break;
-								}
+				fres.setClassifier(dictItem);
+				fres.setConcept(node);
+				fres.setFile(fileBytes);
+				fres.setFileSize(data.getFileSize());
+				fres.setMediatype(data.getMediaType());
+				fres=fileRepo.save(fres);
+				ThingDoc tdoc = boilerServ.loadThingDocByFileNode(node);
+				if(data.getThingNodeId()>0) {
+					Concept thingConc = closureServ.loadConceptById(data.getThingNodeId());
+					Thing thing = new Thing();
+					thing = boilerServ.thingByNode(thingConc, thing);
+					if(thing.getID()>0) {
+						for(ThingDoc td : thing.getDocuments()) {
+							if(td.getDictNode().getID()==data.getDictNodeId() 
+									&& td.getVarName().toUpperCase().equalsIgnoreCase(data.getVarName())) {
+								tdoc=td;
+								break;
 							}
-							tdoc.setConcept(node);
-							tdoc.setDictNode(dictItem);
-							tdoc.setDictUrl(data.getDictUrl());
-							tdoc.setDocUrl(data.getUrl());
-							tdoc.setVarName(data.getVarName());
-							if(tdoc.getID()==0) {
-								thing.getDocuments().add(tdoc);
-							}
-							thing=thingRepo.save(thing);
-						}else { //thing is not saved yet
-							tdoc.setConcept(node);
-							tdoc.setDictNode(dictItem);
-							tdoc.setDictUrl(data.getDictUrl());
-							tdoc.setDocUrl(data.getUrl());
-							tdoc.setVarName(data.getVarName());
-							tdoc=boilerServ.saveThingDoc(tdoc);
 						}
-					}else {		//node is not defined yet		
+						tdoc.setConcept(node);
+						tdoc.setDictNode(dictItem);
+						tdoc.setDictUrl(data.getDictUrl());
+						tdoc.setDocUrl(data.getUrl());
+						tdoc.setVarName(data.getVarName());
+						if(tdoc.getID()==0) {
+							thing.getDocuments().add(tdoc);
+						}
+						thing=thingRepo.save(thing);
+					}else { //thing is not saved yet
 						tdoc.setConcept(node);
 						tdoc.setDictNode(dictItem);
 						tdoc.setDictUrl(data.getDictUrl());
@@ -2233,13 +2275,20 @@ public class ThingService {
 						tdoc.setVarName(data.getVarName());
 						tdoc=boilerServ.saveThingDoc(tdoc);
 					}
-				}else {
-					throw new ObjectNotFoundException("fileSave Access denied "+ user.getEmail()+"/"+data.getUrl(), logger);
+				}else {		//node is not defined yet		
+					tdoc.setConcept(node);
+					tdoc.setDictNode(dictItem);
+					tdoc.setDictUrl(data.getDictUrl());
+					tdoc.setDocUrl(data.getUrl());
+					tdoc.setVarName(data.getVarName());
+					tdoc=boilerServ.saveThingDoc(tdoc);
 				}
 			}else {
-				throw new ObjectNotFoundException("fileSave File is empty or eMAil/url/classifier is bad "
-						+ user.getEmail()+"/"+data.getUrl()+"/"+data.getDictNodeId(), logger);
+				throw new ObjectNotFoundException("fileSave Access denied "+ user.getEmail()+"/"+data.getUrl(), logger);
 			}
+		}else {
+			throw new ObjectNotFoundException("fileSave File is empty or eMAil/url/classifier is bad "
+					+ user.getEmail()+"/"+data.getUrl()+"/"+data.getDictNodeId(), logger);
 		}
 		return data;
 	}
@@ -2353,7 +2402,7 @@ public class ThingService {
 	 * @throws ObjectNotFoundException 
 	 */
 	@Transactional
-	private ThingDTO auxPathPerson(PersonDTO personDTO, UserDetailsDTO user, ThingDTO data) throws ObjectNotFoundException {
+	public ThingDTO auxPathPerson(PersonDTO personDTO, UserDetailsDTO user, ThingDTO data) throws ObjectNotFoundException {
 		//core ThingDTO
 		List<AssemblyDTO> storedConfig = loadDataConfigurationFromNode(personDTO.getNodeId());
 		//List<AssemblyDTO> storedConfig = new ArrayList<AssemblyDTO>();

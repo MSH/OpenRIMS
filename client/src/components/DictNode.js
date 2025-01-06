@@ -36,8 +36,9 @@ class DictNode extends Component{
                 cancel:'',
                 global_suspend:'',
                 warningRemove:'',
-                workflows:'',
-                validate:'',
+                global_activities:'',
+                explore:'',
+                run:'',
             },
             data:{}
         }
@@ -49,6 +50,7 @@ class DictNode extends Component{
         this.saveButton=this.saveButton.bind(this)
         this.assistButton=this.assistButton.bind(this)
         this.processButton=this.processButton.bind(this)
+        this.runButton=this.runButton.bind(this)
     }
 
     /**
@@ -156,7 +158,7 @@ class DictNode extends Component{
     saveButton(){
         return (<ButtonUni
             label={this.state.labels.save}
-            color='primary'
+            color='link'
             onClick={()=>{
                 Fetchers.postJSONNoSpinner("/api/admin/dictionary/node/save", this.state.data,(query,result)=>{
                     this.state.data=result
@@ -170,12 +172,12 @@ class DictNode extends Component{
         />)
     }
 
-    suspendButton(){
+    suspendButton(color){
         return (
             <ButtonUni
                 disabled={!this.state.data.leaf || this.props.nodeId==0}
                 label={this.state.labels.global_suspend}
-                color="warning"
+                color={color}
                 onClick={()=>{
                     Fetchers.alerts(this.state.labels.warningRemove, ()=>{
                         Fetchers.postJSONNoSpinner("/api/admin/dictionary/node/suspend",this.state.data,(query,result)=>{
@@ -209,11 +211,19 @@ class DictNode extends Component{
     assistButton(){
         return (
         <ButtonUni
-            label={this.state.labels.validate}
-            color='info'
+            label={this.state.labels.explore}
+            color='link'
             onClick={()=>{
-                Navigator.message(this.props.identifier, "*", "onWorkflowAssist", this.state.data)
-            }}
+                        Fetchers.postJSONNoSpinner("/api/admin/dictionary/node/save", this.state.data,(query,result)=>{
+                            this.state.data=result
+                            if(this.state.data.valid){
+                                Navigator.message(this.props.identifier, "*", "onWorkflowAssist", this.state.data)
+                            }else{
+                                this.setState(this.state)
+                            }
+                        })
+                    }
+            }
         />
         )
     }
@@ -224,19 +234,46 @@ class DictNode extends Component{
     processButton(){
         return(
             <ButtonUni
-                label={this.state.labels.workflows}
-                color='primary'
+                label={this.state.labels.global_activities}
+                color='link'
                 disabled={this.props.nodeId==0}
                 onClick={()=>{
-                    let param={
-                        dictNodeId:this.props.nodeId
-                    }
-                    let paramStr=JSON.stringify(param)
-                    if(paramStr.length>2){
-                        Navigator.navigate("administrate", "workflowconfigurator",paramStr)
-                    } 
+                    Fetchers.postJSONNoSpinner("/api/admin/dictionary/node/save", this.state.data,(query,result)=>{
+                        this.state.data=result
+                        if(this.state.data.valid){
+                            let param={
+                                dictNodeId:this.props.nodeId
+                            }
+                            let paramStr=JSON.stringify(param)
+                            if(paramStr.length>2){
+                                Navigator.navigate("administrate", "workflowconfigurator",paramStr)
+                            } 
+                        }else{
+                            this.setState(this.state)
+                        }
+                    })
                 }}
             />
+        )
+    }
+
+    runButton(){
+        return([]
+       /*  <ButtonUni
+                label={this.state.labels.run}
+                color='link'
+                disabled={this.state.data.url!='dictionary.guest.applications' || this.props.nodeId==0}
+                onClick={()=>{
+                    Fetchers.postJSONNoSpinner("/api/admin/dictionary/node/save", this.state.data,(query,result)=>{
+                        this.state.data=result
+                        if(this.state.data.valid){
+                            Navigator.message(this.props.identifier, '*', 'onRunTestProcess',this.state.data)
+                        }else{
+                            this.setState(this.state)
+                        }
+                    })
+                }}
+            /> */
         )
     }
 
@@ -244,42 +281,35 @@ class DictNode extends Component{
         if(this.props.processButtons){
             return(
                 <Row>
-                    <Col xs='12' sm='12' lg='3' xl='2'>
-                        {this.saveButton()}
-                    </Col>
-                    <Col xs='12' sm='12' lg='3' xl='2'>
-                        {this.suspendButton()}
-                    </Col>
-                    <Col xs='12' sm='12' lg='3' xl='2'>
-                        {this.cancelButton()}
-                    </Col>
-                    <Col xs='12' sm='12' lg='12' xl='6'>
+                    <Col xs='12' sm='12' lg='12' xl='8'>
                         <Row>
-                            <Col xs='0' sm='0' lg='1' xl='2' className='d-flex justify-content-end align-items-center'>
-                            <i className="fas fa-grip-lines-vertical fa-lg" style={{color: '#d1d3d6'}}></i>
+                            <Col xs='12' sm='12' lg='12' xl='4' className="d-flex justify-content-end">
+                                {this.runButton()}
                             </Col>
-                            <Col xs='12' sm='12' lg='5' xl='5' className="d-flex justify-content-end">
+                            <Col xs='12' sm='12' lg='12' xl='4' className="d-flex justify-content-end">
                                 {this.assistButton()}
                             </Col>
-                            <Col xs='12' sm='12' lg='6' xl='5' className="d-flex justify-content-end">
-                                {this.processButton()}
+                            <Col xs='12' sm='12' lg='12' xl='4' className="d-flex justify-content-end">
+                                {this.suspendButton('link')}
                             </Col>
+
                         </Row>
                     </Col>
+                    <Col xs='12' sm='12' lg='12' xl='4' className="d-flex justify-content-end">
+                        {this.processButton()}
+                    </Col>
                 </Row>
+                
             )
         }else{
             return (
                 <Row>
-                    <Col xs='0' sm='0' lg='3' xl='6' />
+                    <Col xs='0' sm='0' lg='3' xl='8' />
                     <Col xs='12' sm='12' lg='3' xl='2'>
                         {this.saveButton()}
                     </Col>
                     <Col xs='12' sm='12' lg='3' xl='2'>
-                        {this.suspendButton()}
-                    </Col>
-                    <Col xs='12' sm='12' lg='3' xl='2'>
-                        {this.cancelButton()}
+                        {this.suspendButton('link')}
                     </Col>
                 </Row>
             )
