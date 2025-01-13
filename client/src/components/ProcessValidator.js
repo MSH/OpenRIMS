@@ -174,12 +174,27 @@ class ProcessValidator extends Component{
         )
     }
     /**
+     * any FormFieldDTO has an error
+     */
+    detailsHasErrors(){
+        for(const property in this.state.data){
+            if(this.state.data[property].error){
+                return true
+            }
+        }
+        return false
+    }
+    /**
      * expandable section details
      */
     details(){
+        let color='#3eaf3c'
+        if(this.detailsHasErrors()){
+            color='#c53707'
+        }
         return(
             <Col>
-                {this.collapsator(this.state.labels.global_details,'#3eaf3c',0)}
+                {this.collapsator(this.state.labels.global_details,color,0)}
                 <Collapse isOpen={this.state.collapse[0]} >
                     <Row>
                         <Col>
@@ -204,6 +219,16 @@ class ProcessValidator extends Component{
                     <Row>
                         <Col>
                             <ViewEdit mode='textarea' attribute="applDescr" component={this} hideEmpty />
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col>
+                            <ViewEdit mode='textarea' attribute="acceptActivity" component={this} />
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col>
+                            <ViewEdit mode='textarea' attribute="declineActivity" component={this} />
                         </Col>
                     </Row>
                 </Collapse>

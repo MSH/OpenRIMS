@@ -209,22 +209,27 @@ class DictNode extends Component{
      * @returns button that issue a "onWorkflowAssist" message
      */
     assistButton(){
+        let awersomka='m-0 p-0'
+        if(!this.state.data.runButton){
+            awersomka="far fa-bell mr-1"
+        }
         return (
-        <ButtonUni
-            label={this.state.labels.explore}
-            color='link'
-            onClick={()=>{
-                        Fetchers.postJSONNoSpinner("/api/admin/dictionary/node/save", this.state.data,(query,result)=>{
-                            this.state.data=result
-                            if(this.state.data.valid){
-                                Navigator.message(this.props.identifier, "*", "onWorkflowAssist", this.state.data)
-                            }else{
-                                this.setState(this.state)
-                            }
-                        })
-                    }
-            }
-        />
+            <ButtonUni
+                label={this.state.labels.explore}
+                awersome={awersomka}
+                color='link'
+                onClick={()=>{
+                            Fetchers.postJSON("/api/admin/dictionary/node/save", this.state.data,(query,result)=>{
+                                this.state.data=result
+                                if(this.state.data.valid){
+                                    Navigator.message(this.props.identifier, "*", "onWorkflowAssist", this.state.data)
+                                }else{
+                                    this.setState(this.state)
+                                }
+                            })
+                        }
+                }
+            />
         )
     }
     /**
@@ -258,11 +263,11 @@ class DictNode extends Component{
     }
 
     runButton(){
-        return([]
-       /*  <ButtonUni
+        return(
+        <ButtonUni
                 label={this.state.labels.run}
                 color='link'
-                disabled={this.state.data.url!='dictionary.guest.applications' || this.props.nodeId==0}
+                disabled={!this.state.data.runButton}
                 onClick={()=>{
                     Fetchers.postJSONNoSpinner("/api/admin/dictionary/node/save", this.state.data,(query,result)=>{
                         this.state.data=result
@@ -273,7 +278,7 @@ class DictNode extends Component{
                         }
                     })
                 }}
-            /> */
+            /> 
         )
     }
 
@@ -281,22 +286,24 @@ class DictNode extends Component{
         if(this.props.processButtons){
             return(
                 <Row>
-                    <Col xs='12' sm='12' lg='12' xl='8'>
+                    <Col xs='12' sm='12' lg='12' xl='12'>
                         <Row>
-                            <Col xs='12' sm='12' lg='12' xl='4' className="d-flex justify-content-end">
+                            <Col xs='12' sm='12' lg='12' xl='2' className="d-flex justify-content-end">
                                 {this.runButton()}
                             </Col>
-                            <Col xs='12' sm='12' lg='12' xl='4' className="d-flex justify-content-end">
+                            <Col xs='12' sm='12' lg='12' xl='2' className="d-flex justify-content-end">
                                 {this.assistButton()}
                             </Col>
-                            <Col xs='12' sm='12' lg='12' xl='4' className="d-flex justify-content-end">
+                            <Col xs='12' sm='12' lg='12' xl='2' className="d-flex justify-content-end">
                                 {this.suspendButton('link')}
                             </Col>
-
+                            <Col xs='12' sm='12' lg='12' xl='2' className="d-flex justify-content-end">
+                                {this.saveButton('link')}
+                            </Col>
+                            <Col xs='12' sm='12' lg='12' xl='4' className="d-flex justify-content-end">
+                                {this.processButton()}
+                            </Col>
                         </Row>
-                    </Col>
-                    <Col xs='12' sm='12' lg='12' xl='4' className="d-flex justify-content-end">
-                        {this.processButton()}
                     </Col>
                 </Row>
                 

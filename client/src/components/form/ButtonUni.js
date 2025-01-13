@@ -31,11 +31,15 @@ class ButtonUni extends Component{
         if(this.props.hidden != undefined){
             hidden = this.props.hidden
         }
+        let awersomka=''
+        if(this.props.awersome){
+            awersomka=this.props.awersome
+        }
         return(
             <Button className="btn-block mt-1" size="sm" outline={outline} disabled={disabled}  color={color} 
             onClick={this.props.onClick} hidden={hidden}
             >
-             {this.props.label}
+            <i className={awersomka}></i>{this.props.label}
             </Button>
         )
     }
